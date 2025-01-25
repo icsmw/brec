@@ -1,0 +1,13 @@
+[package]
+name = "packet"
+version = "0.1.0"
+edition = "2018"
+
+[lib]
+proc-macro = true
+
+[dependencies]
+thiserror.workspace = true
+syn.workspace = true
+quote.workspace = true
+proc-macro2.workspace = true
