@@ -52,8 +52,8 @@ pub enum TyDef {
     f32,
     f64,
     bool,
-    Slice(usize, Box<TyDef>),
-    Option(Box<TyDef>),
+    Slice(usize, Box<Ty>),
+    Option(Box<Ty>),
 }
 
 impl TryFrom<&Type> for TyDef {
@@ -121,22 +121,16 @@ fn extract_option(ty: &TypePath) -> Result<TyDef, syn::Error> {
         let syn::GenericArgument::Type(inner) = &args.args[0] else {
             return Err(syn::Error::new_spanned(ty, E::FailParseGenericArg));
         };
-        TyDef::try_from(inner).map(|inner| TyDef::Option(Box::new(inner)))
+        Ty::try_from(inner).map(|inner| TyDef::Option(Box::new(inner)))
     } else {
         Err(syn::Error::new_spanned(ty, E::UnsupportedType))
     }
 }
 
 fn extract_array(ty: &TypeArray) -> Result<TyDef, syn::Error> {
-    let Type::Path(type_path) = &*ty.elem else {
-        return Err(syn::Error::new_spanned(ty, E::UnsupportedType));
-    };
-    let Some(ident) = type_path.path.get_ident() else {
-        return Err(syn::Error::new_spanned(type_path, E::FailExtractIdent));
-    };
     Ok(TyDef::Slice(
         extract_array_len(&ty.len)?,
-        Box::new(extract_primitive_from_ident(ident)?),
+        Box::new(Ty::try_from(&*ty.elem)?),
     ))
 }
 

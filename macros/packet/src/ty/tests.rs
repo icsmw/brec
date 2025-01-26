@@ -21,19 +21,25 @@ fn test() {
         ("bool", Ty::new(TyDef::bool, false)),
         (
             "[u8; 10]",
-            Ty::new(TyDef::Slice(10, Box::new(TyDef::u8)), false),
+            Ty::new(TyDef::Slice(10, Box::new(Ty::new(TyDef::u8, false))), false),
         ),
         (
             "[u16; 256]",
-            Ty::new(TyDef::Slice(256, Box::new(TyDef::u16)), false),
+            Ty::new(
+                TyDef::Slice(256, Box::new(Ty::new(TyDef::u16, false))),
+                false,
+            ),
         ),
         (
             "[i32; 1024]",
-            Ty::new(TyDef::Slice(1024, Box::new(TyDef::i32)), false),
+            Ty::new(
+                TyDef::Slice(1024, Box::new(Ty::new(TyDef::i32, false))),
+                false,
+            ),
         ),
         (
             "[f64; 5]",
-            Ty::new(TyDef::Slice(5, Box::new(TyDef::f64)), false),
+            Ty::new(TyDef::Slice(5, Box::new(Ty::new(TyDef::f64, false))), false),
         ),
         ("&u8", Ty::new(TyDef::u8, true)),
         ("&u16", Ty::new(TyDef::u16, true)),
@@ -41,68 +47,83 @@ fn test() {
         ("&bool", Ty::new(TyDef::bool, true)),
         (
             "&[u8; 10]",
-            Ty::new(TyDef::Slice(10, Box::new(TyDef::u8)), true),
+            Ty::new(TyDef::Slice(10, Box::new(Ty::new(TyDef::u8, false))), true),
         ),
         (
             "&[u32; 50]",
-            Ty::new(TyDef::Slice(50, Box::new(TyDef::u32)), true),
+            Ty::new(TyDef::Slice(50, Box::new(Ty::new(TyDef::u32, false))), true),
         ),
         (
             "&[bool; 4]",
-            Ty::new(TyDef::Slice(4, Box::new(TyDef::bool)), true),
+            Ty::new(TyDef::Slice(4, Box::new(Ty::new(TyDef::bool, false))), true),
         ),
         (
             "Option<u8>",
-            Ty::new(TyDef::Option(Box::new(TyDef::u8)), false),
+            Ty::new(TyDef::Option(Box::new(Ty::new(TyDef::u8, false))), false),
         ),
         (
             "Option<u16>",
-            Ty::new(TyDef::Option(Box::new(TyDef::u16)), false),
+            Ty::new(TyDef::Option(Box::new(Ty::new(TyDef::u16, false))), false),
         ),
         (
             "Option<bool>",
-            Ty::new(TyDef::Option(Box::new(TyDef::bool)), false),
+            Ty::new(TyDef::Option(Box::new(Ty::new(TyDef::bool, false))), false),
         ),
         (
             "Option<[u8; 10]>",
             Ty::new(
-                TyDef::Option(Box::new(TyDef::Slice(10, Box::new(TyDef::u8)))),
+                TyDef::Option(Box::new(Ty::new(
+                    TyDef::Slice(10, Box::new(Ty::new(TyDef::u8, false))),
+                    false,
+                ))),
                 false,
             ),
         ),
         (
             "Option<[i32; 1024]>",
             Ty::new(
-                TyDef::Option(Box::new(TyDef::Slice(1024, Box::new(TyDef::i32)))),
+                TyDef::Option(Box::new(Ty::new(
+                    TyDef::Slice(1024, Box::new(Ty::new(TyDef::i32, false))),
+                    false,
+                ))),
                 false,
             ),
         ),
         (
             "Option<&u8>",
-            Ty::new(TyDef::Option(Box::new(TyDef::u8)), false),
+            Ty::new(TyDef::Option(Box::new(Ty::new(TyDef::u8, true))), false),
         ),
         (
             "Option<&[u16; 256]>",
             Ty::new(
-                TyDef::Option(Box::new(TyDef::Slice(256, Box::new(TyDef::u16)))),
+                TyDef::Option(Box::new(Ty::new(
+                    TyDef::Slice(256, Box::new(Ty::new(TyDef::u16, false))),
+                    true,
+                ))),
                 false,
             ),
         ),
         (
             "std::option::Option<u8>",
-            Ty::new(TyDef::Option(Box::new(TyDef::u8)), false),
+            Ty::new(TyDef::Option(Box::new(Ty::new(TyDef::u8, false))), false),
         ),
         (
             "std::option::Option<[f32; 64]>",
             Ty::new(
-                TyDef::Option(Box::new(TyDef::Slice(64, Box::new(TyDef::f32)))),
+                TyDef::Option(Box::new(Ty::new(
+                    TyDef::Slice(64, Box::new(Ty::new(TyDef::f32, false))),
+                    false,
+                ))),
                 false,
             ),
         ),
         (
             "std::option::Option<&[i16; 8]>",
             Ty::new(
-                TyDef::Option(Box::new(TyDef::Slice(8, Box::new(TyDef::i16)))),
+                TyDef::Option(Box::new(Ty::new(
+                    TyDef::Slice(8, Box::new(Ty::new(TyDef::i16, false))),
+                    true,
+                ))),
                 false,
             ),
         ),
