@@ -1,6 +1,8 @@
 mod error;
+mod field;
 mod gens;
 mod opt;
+mod packet;
 mod refs;
 mod ty;
 
@@ -10,17 +12,67 @@ use proc_macro as pm;
 use proc_macro2 as pm2;
 use quote::{format_ident, quote};
 use refs::*;
-use std::borrow::Borrow;
+use std::{borrow::Borrow, convert::TryFrom};
 use syn::{
-    parse_macro_input, GenericArgument, Item, PathArguments, ReturnType, Signature, Type, TypePath,
-    TypeTuple,
+    parse_macro_input, parse_quote, Data, DeriveInput, Fields, GenericArgument, Item, ItemStruct,
+    Meta, PathArguments, ReturnType, Signature, Type, TypePath, TypeTuple,
 };
 
+pub(crate) use field::*;
+pub(crate) use packet::*;
 pub(crate) use ty::*;
+
+fn parse(input: DeriveInput) -> pm2::TokenStream {
+    let packet = match Packet::try_from_input(&input) {
+        Ok(p) => p,
+        Err(err) => return err.to_compile_error(),
+    };
+    println!("{packet:?}");
+    quote! { #input }
+}
+
+#[test]
+fn test() {
+    let input: DeriveInput = parse_quote! {
+        #[packet]
+        struct MyPacket {
+            field: u8,
+            #[link_with(LogLevel)]
+            log_level: u8,
+        }
+    };
+
+    let expanded = parse(input);
+    let expected = quote! {
+        struct MyPacket {
+            field: u8,
+            log_level: u8,
+        }
+    };
+
+    assert_eq!(expanded.to_string(), expected.to_string());
+}
 
 #[proc_macro_attribute]
 pub fn packet(args: pm::TokenStream, input: pm::TokenStream) -> pm::TokenStream {
-    input
+    let input = parse_macro_input!(input as DeriveInput);
+
+    let struct_name = &input.ident;
+    let mut parsed = Vec::new();
+    if let Data::Struct(data_struct) = &input.data {
+        if let Fields::Named(fields) = &data_struct.fields {
+            for field in &fields.named {
+                match Field::try_from(field) {
+                    Ok(field) => parsed.push(field),
+                    Err(err) => {
+                        return err.to_compile_error().into();
+                    }
+                }
+            }
+        }
+    }
+    pm::TokenStream::from(quote! { #input })
+
     // let opt: Opt = parse_macro_input!(args as Opt);
     // let item = parse_macro_input!(input as Item);
     // match item {

@@ -11,3 +11,4 @@ thiserror.workspace = true
 syn.workspace = true
 quote.workspace = true
 proc-macro2.workspace = true
+enum_ids.workspace = true

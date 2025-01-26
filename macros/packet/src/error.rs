@@ -20,4 +20,7 @@ pub enum E {
     OnlySingleGenericArg,
     #[error("Generic type isn't supported for this type")]
     GenericNotSupported,
+
+    #[error("Missed name of enum type")]
+    LinkingRequiresEnumName,
 }
