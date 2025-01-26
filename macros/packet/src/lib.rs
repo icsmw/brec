@@ -1,17 +1,13 @@
 mod error;
 mod field;
 mod gens;
-mod opt;
 mod packet;
-mod refs;
 mod ty;
 
 use error::*;
-use opt::Opt;
 use proc_macro as pm;
 use proc_macro2 as pm2;
 use quote::{format_ident, quote};
-use refs::*;
 use std::{borrow::Borrow, convert::TryFrom};
 use syn::{
     parse_macro_input, parse_quote, Data, DeriveInput, Fields, GenericArgument, Item, ItemStruct,
@@ -19,6 +15,7 @@ use syn::{
 };
 
 pub(crate) use field::*;
+pub(crate) use gens::*;
 pub(crate) use packet::*;
 pub(crate) use ty::*;
 
@@ -27,8 +24,13 @@ fn parse(input: DeriveInput) -> pm2::TokenStream {
         Ok(p) => p,
         Err(err) => return err.to_compile_error(),
     };
+    let referred = packet.referred();
     println!("{packet:?}");
-    quote! { #input }
+    quote! {
+        #input
+
+        #referred
+    }
 }
 
 #[test]

@@ -1,4 +1,9 @@
+mod gen;
+mod reflected;
+mod structured;
+
 use crate::*;
+use crc32fast::Hasher;
 
 #[derive(Debug)]
 pub struct Packet {
@@ -21,5 +26,28 @@ impl Packet {
             }
         }
         Ok(Self::new(name.to_string(), extracted))
+    }
+    pub fn sig(&self) -> [u8; 4] {
+        let mut hasher = Hasher::new();
+        let snap = format!(
+            "{};{}",
+            self.name,
+            self.fields
+                .iter()
+                .map(|f| format!("{}:{}", f.name, f.ty))
+                .collect::<Vec<String>>()
+                .join(";")
+        );
+        hasher.update(snap.as_bytes());
+        hasher.finalize().to_le_bytes()
+    }
+}
+
+impl Names for Packet {
+    fn origin_name(&self) -> String {
+        self.name.clone()
+    }
+    fn packet_name(&self) -> String {
+        format!("{}Packet", self.name)
     }
 }

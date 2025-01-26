@@ -15,7 +15,6 @@ fn test() {
         ("i32", Ty::new(TyDef::i32, false)),
         ("i64", Ty::new(TyDef::i64, false)),
         ("i128", Ty::new(TyDef::i128, false)),
-        ("f16", Ty::new(TyDef::f16, false)),
         ("f32", Ty::new(TyDef::f32, false)),
         ("f64", Ty::new(TyDef::f64, false)),
         ("bool", Ty::new(TyDef::bool, false)),

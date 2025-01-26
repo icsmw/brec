@@ -11,6 +11,7 @@ members = [
 
 [dependencies]
 
+
 [workspace.dependencies]
 thiserror = "2.0"
 uuid = "1.8"
@@ -20,3 +21,4 @@ syn = {version  = "2.0", features = ["full"]}
 quote = "1.0"
 proc-macro2 = "1.0"
 enum_ids = "0.6"
+crc32fast = "1.4"
