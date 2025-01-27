@@ -1,6 +1,6 @@
 mod error;
 mod field;
-mod gens;
+mod modes;
 mod packet;
 mod ty;
 
@@ -15,7 +15,7 @@ use syn::{
 };
 
 pub(crate) use field::*;
-pub(crate) use gens::*;
+pub(crate) use modes::*;
 pub(crate) use packet::*;
 pub(crate) use ty::*;
 
@@ -24,7 +24,7 @@ fn parse(input: DeriveInput) -> pm2::TokenStream {
         Ok(p) => p,
         Err(err) => return err.to_compile_error(),
     };
-    let reflected = packet.reflected();
+    let reflected = packet.generate();
     quote! {
         #input
 

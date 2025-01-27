@@ -1,7 +1,6 @@
+mod modes;
 mod referred;
-mod reflected;
 mod statics;
-mod structured;
 
 use crate::*;
 use crc32fast::Hasher;
