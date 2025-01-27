@@ -19,6 +19,12 @@ impl Packet {
     }
     pub fn try_from_input(input: &DeriveInput) -> Result<Self, syn::Error> {
         let name = &input.ident;
+        if !input.generics.params.is_empty() {
+            return Err(syn::Error::new_spanned(
+                &input.generics,
+                E::GenericTypesNotSupported,
+            ));
+        }
         let mut extracted = Vec::new();
         if let Data::Struct(data_struct) = &input.data {
             if let Fields::Named(fields) = &data_struct.fields {
@@ -46,9 +52,6 @@ impl Packet {
     }
     fn const_sig_name(&self) -> Ident {
         format_ident!("{}", self.name.to_ascii_uppercase())
-    }
-    fn origin_name(&self) -> Ident {
-        format_ident!("{}", self.name)
     }
     fn packet_name(&self) -> Ident {
         format_ident!("{}Packet", self.name)

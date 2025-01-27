@@ -8,8 +8,12 @@ pub enum E {
     NamedFieldsNotFound,
     #[error("Cannot extract identificator")]
     FailExtractIdent,
+    #[error("Generic types are not supported")]
+    GenericTypesNotSupported,
     #[error("Unsupported type")]
     UnsupportedType,
+    #[error("Referred types are unsupported")]
+    ReferenceUnsupported,
     #[error("Unsupported field type: {0}")]
     UnsupportedFieldType(String),
     #[error("Missed array size")]
