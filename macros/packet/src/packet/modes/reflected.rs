@@ -59,26 +59,26 @@ impl ReflectedMode for Packet {
                     &#const_sig
                 }
 
-                fn read(data: &'a [u8]) -> Result<Option<#referred_name<'a>>, brec::Error> {
+                fn read(#src: &'a [u8]) -> Result<Option<#referred_name<'a>>, brec::Error> {
                     use std::mem;
 
-                    if data.len() < 4 {
-                        return Err(brec::Error::NotEnoughtSignatureData(data.len(), 4));
+                    if #src.len() < 4 {
+                        return Err(brec::Error::NotEnoughtSignatureData(#src.len(), 4));
                     }
 
-                    if data[..4] != #const_sig {
+                    if #src[..4] != #const_sig {
                         return Ok(None);
                     }
 
-                    if data.len() < mem::size_of::<#packet_name>() {
-                        return Err(brec::Error::NotEnoughtData(data.len(), mem::size_of::<#packet_name>()));
+                    if #src.len() < mem::size_of::<#packet_name>() {
+                        return Err(brec::Error::NotEnoughtData(#src.len(), mem::size_of::<#packet_name>()));
                     }
 
-                    if data.as_ptr() as usize % std::mem::align_of::<#packet_name>() != 0 {
+                    if #src.as_ptr() as usize % std::mem::align_of::<#packet_name>() != 0 {
                         return Err(brec::Error::InvalidAlign(
-                            data.as_ptr() as usize,
+                            #src.as_ptr() as usize,
                             mem::size_of::<#packet_name>(),
-                            data.as_ptr() as usize % std::mem::align_of::<#packet_name>()
+                            #src.as_ptr() as usize % std::mem::align_of::<#packet_name>()
                         ));
                     }
 
