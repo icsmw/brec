@@ -1,6 +1,4 @@
 mod modes;
-mod referred;
-mod statics;
 
 use crate::*;
 use crc32fast::Hasher;
@@ -17,7 +15,7 @@ impl Packet {
     pub fn new(name: String, fields: Vec<Field>) -> Self {
         Self { name, fields }
     }
-    pub fn try_from_input(input: &DeriveInput) -> Result<Self, syn::Error> {
+    pub fn from_input(input: &DeriveInput) -> Result<Self, syn::Error> {
         let name = &input.ident;
         if !input.generics.params.is_empty() {
             return Err(syn::Error::new_spanned(
@@ -59,18 +57,10 @@ impl Packet {
     fn const_sig_name(&self) -> Ident {
         format_ident!("{}", self.name.to_ascii_uppercase())
     }
-    fn packet_name(&self) -> Ident {
-        format_ident!("{}Packet", self.name)
+    fn name(&self) -> Ident {
+        format_ident!("{}", self.name)
     }
     fn referred_name(&self) -> Ident {
-        format_ident!("{}Referred", self.packet_name())
+        format_ident!("{}Referred", self.name())
     }
-}
-
-pub trait ReferredPacket {
-    fn referred(&self) -> TokenStream;
-}
-
-pub trait StaticPacket {
-    fn r#static(&self) -> TokenStream;
 }

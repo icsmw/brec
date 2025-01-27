@@ -1,15 +1,12 @@
 mod attrs;
-mod modes;
-mod referred;
+mod extractors;
 mod reserved;
-mod statics;
-
-use std::convert::TryFrom;
 
 use crate::*;
 pub(crate) use attrs::*;
 use proc_macro2::TokenStream;
 pub(crate) use reserved::*;
+use std::convert::TryFrom;
 
 #[derive(Debug)]
 pub struct Field {
@@ -26,32 +23,6 @@ impl Field {
             attrs: Vec::new(),
             ty,
             injected: true,
-        }
-    }
-}
-
-impl Field {
-    pub fn downcast_as_ref(&self, offset: usize) -> TokenStream {
-        let name = format_ident!("{}", self.name);
-        let ty = self.ty.r#static();
-        if offset == 0 {
-            if matches!(self.ty, Ty::u8) {
-                quote! {
-                    let #name = unsafe { &*data.as_ptr() };
-                }
-            } else {
-                quote! {
-                    let #name = unsafe { &*(data.as_ptr() as *const #ty) };
-                }
-            }
-        } else if matches!(self.ty, Ty::u8) {
-            quote! {
-                let #name = unsafe { &*data.as_ptr().add(#offset) };
-            }
-        } else {
-            quote! {
-                let #name = unsafe { &*(data.as_ptr().add(#offset) as *const #ty) };
-            }
         }
     }
 }
@@ -81,5 +52,25 @@ impl TryFrom<&syn::Field> for Field {
             ty: Ty::try_from(&field.ty)?,
             injected: false,
         })
+    }
+}
+
+impl Referred for Field {
+    fn referred(&self) -> TokenStream {
+        let name = format_ident!("{}", self.name);
+        let ty = self.ty.referred();
+        quote! {
+            #name: #ty,
+        }
+    }
+}
+
+impl Static for Field {
+    fn r#static(&self) -> TokenStream {
+        let name = format_ident!("{}", self.name);
+        let ty = self.ty.r#static();
+        quote! {
+            #name: #ty,
+        }
     }
 }

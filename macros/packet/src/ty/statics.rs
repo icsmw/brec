@@ -1,7 +1,7 @@
 use crate::*;
 use proc_macro2::TokenStream;
 
-impl StaticPacket for Ty {
+impl Static for Ty {
     fn r#static(&self) -> TokenStream {
         match self {
             Self::u8

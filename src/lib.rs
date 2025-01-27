@@ -1,6 +1,3 @@
-pub mod safemode;
-pub mod unsafemode;
-
 pub mod error;
 pub mod packet;
 
@@ -13,24 +10,15 @@ struct MyPacket {
 }
 #[repr(C)]
 #[derive(Debug)]
-struct MyPacketPacket {
-    __sig: [u8; 4usize],
-    field: u8,
-    log_level: u8,
-    __crc: u32,
-    __next: [u8; 4usize],
-}
-#[repr(C)]
-#[derive(Debug)]
-struct MyPacketPacketReferred<'a> {
+struct MyPacketReferred<'a> {
     __sig: &'a [u8; 4usize],
     field: &'a u8,
     log_level: &'a u8,
     __crc: &'a u32,
     __next: &'a [u8; 4usize],
 }
-impl<'a> From<MyPacketPacketReferred<'a>> for MyPacket {
-    fn from(packet: MyPacketPacketReferred<'a>) -> Self {
+impl<'a> From<MyPacketReferred<'a>> for MyPacket {
+    fn from(packet: MyPacketReferred<'a>) -> Self {
         MyPacket {
             field: *packet.field,
             log_level: *packet.log_level,
@@ -38,11 +26,11 @@ impl<'a> From<MyPacketPacketReferred<'a>> for MyPacket {
     }
 }
 const MYPACKET: [u8; 4] = [11u8, 198u8, 4u8, 71u8];
-impl<'a> crate::Packet<MyPacketPacketReferred<'a>> for MyPacketPacketReferred<'a> {
+impl<'a> crate::Packet<'a, MyPacketReferred<'a>> for MyPacketReferred<'a> {
     fn sig() -> &'static [u8; 4] {
         &MYPACKET
     }
-    fn read(data: &[u8]) -> Result<Option<MyPacketPacketReferred<'a>>, crate::Error> {
+    fn read(data: &'a [u8]) -> Result<Option<MyPacketReferred<'a>>, crate::Error> {
         use std::mem;
         if data.len() < 4 {
             return Err(crate::Error::NotEnoughtSignatureData(data.len(), 4));
@@ -50,17 +38,17 @@ impl<'a> crate::Packet<MyPacketPacketReferred<'a>> for MyPacketPacketReferred<'a
         if data[..4] != MYPACKET {
             return Ok(None);
         }
-        if data.len() < mem::size_of::<MyPacketPacket>() {
+        if data.len() < mem::size_of::<MyPacket>() {
             return Err(crate::Error::NotEnoughtData(
                 data.len(),
-                mem::size_of::<MyPacketPacket>(),
+                mem::size_of::<MyPacket>(),
             ));
         }
-        if data.as_ptr() as usize % std::mem::align_of::<MyPacketPacket>() != 0 {
+        if data.as_ptr() as usize % std::mem::align_of::<MyPacket>() != 0 {
             return Err(crate::Error::InvalidAlign(
                 data.as_ptr() as usize,
-                mem::size_of::<MyPacketPacket>(),
-                data.as_ptr() as usize % std::mem::align_of::<MyPacketPacket>(),
+                mem::size_of::<MyPacket>(),
+                data.as_ptr() as usize % std::mem::align_of::<MyPacket>(),
             ));
         }
         let __sig = unsafe { &*(data.as_ptr() as *const [u8; 4usize]) };
@@ -68,7 +56,7 @@ impl<'a> crate::Packet<MyPacketPacketReferred<'a>> for MyPacketPacketReferred<'a
         let log_level = unsafe { &*data.as_ptr().add(5usize) };
         let __crc = unsafe { &*(data.as_ptr().add(6usize) as *const u32) };
         let __next = unsafe { &*(data.as_ptr().add(10usize) as *const [u8; 4usize]) };
-        Ok(Some(MyPacketPacketReferred {
+        Ok(Some(MyPacketReferred {
             __sig,
             field,
             log_level,

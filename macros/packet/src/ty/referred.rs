@@ -1,7 +1,7 @@
 use crate::*;
 use proc_macro2::TokenStream;
 
-impl ReferredPacket for Ty {
+impl Referred for Ty {
     fn referred(&self) -> TokenStream {
         match self {
             Self::u8

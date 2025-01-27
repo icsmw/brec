@@ -20,11 +20,11 @@ pub(crate) use packet::*;
 pub(crate) use ty::*;
 
 fn parse(input: DeriveInput) -> pm2::TokenStream {
-    let packet = match Packet::try_from_input(&input) {
+    let packet = match Packet::from_input(&input) {
         Ok(p) => p,
         Err(err) => return err.to_compile_error(),
     };
-    let reflected = packet.generate();
+    let reflected = modes::ReflectedMode::generate(&packet);
     quote! {
         #input
 

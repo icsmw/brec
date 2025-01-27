@@ -1,8 +1,12 @@
+mod extractors;
 mod referred;
 mod statics;
 #[cfg(test)]
 mod tests;
+
 use crate::*;
+pub(crate) use extractors::*;
+use proc_macro2::TokenStream;
 use std::{convert::TryFrom, fmt};
 use syn::{Expr, Ident, Type, TypeArray};
 
@@ -144,6 +148,14 @@ impl TryFrom<&Type> for Ty {
             _ => Err(syn::Error::new_spanned(ty, E::UnsupportedType)),
         }
     }
+}
+
+pub trait Referred {
+    fn referred(&self) -> TokenStream;
+}
+
+pub trait Static {
+    fn r#static(&self) -> TokenStream;
 }
 
 fn extract_array_len(len: &Expr) -> Result<usize, syn::Error> {
