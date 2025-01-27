@@ -140,6 +140,11 @@ fn parse<'a, T, K>(data: &'a [u8]) -> Result<&'a T, String> {
 
     Ok(unsafe { &*(data.as_ptr() as *const T) })
 }
+const SIG: [u8; 4] = [174u8, 20u8, 137u8, 24u8];
+
+fn get() -> &'static [u8; 4] {
+    &SIG
+}
 
 fn parse_header(data: &[u8]) -> Result<HeaderRef, String> {
     use std::mem;

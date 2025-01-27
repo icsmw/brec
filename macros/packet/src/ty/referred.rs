@@ -5,7 +5,7 @@ impl ReferredPacket for Ty {
     fn referred(&self) -> TokenStream {
         let def = self.def.referred();
         quote! {
-            &'a #def
+            #def
         }
     }
 }
@@ -13,6 +13,6 @@ impl ReferredPacket for Ty {
 impl ReferredPacket for TyDef {
     fn referred(&self) -> TokenStream {
         let ty = format_ident!("{}", self.to_string());
-        quote! { #ty }
+        quote! { &'a #ty }
     }
 }

@@ -24,12 +24,11 @@ fn parse(input: DeriveInput) -> pm2::TokenStream {
         Ok(p) => p,
         Err(err) => return err.to_compile_error(),
     };
-    let referred = packet.referred();
-    println!("{packet:?}");
+    let reflected = packet.reflected();
     quote! {
         #input
 
-        #referred
+        #reflected
     }
 }
 

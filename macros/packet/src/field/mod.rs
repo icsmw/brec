@@ -1,5 +1,6 @@
 mod attrs;
-mod gen;
+mod referred;
+mod statics;
 
 use std::convert::TryFrom;
 

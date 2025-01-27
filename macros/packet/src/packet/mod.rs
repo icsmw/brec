@@ -1,9 +1,12 @@
-mod gen;
+mod referred;
 mod reflected;
+mod statics;
 mod structured;
 
 use crate::*;
 use crc32fast::Hasher;
+use proc_macro2::TokenStream;
+use syn::Ident;
 
 #[derive(Debug)]
 pub struct Packet {
@@ -27,7 +30,7 @@ impl Packet {
         }
         Ok(Self::new(name.to_string(), extracted))
     }
-    pub fn sig(&self) -> [u8; 4] {
+    pub fn sig(&self) -> TokenStream {
         let mut hasher = Hasher::new();
         let snap = format!(
             "{};{}",
@@ -39,15 +42,27 @@ impl Packet {
                 .join(";")
         );
         hasher.update(snap.as_bytes());
-        hasher.finalize().to_le_bytes()
+        let sig = hasher.finalize().to_le_bytes();
+        quote! { [#(#sig),*] }
+    }
+    fn const_sig_name(&self) -> Ident {
+        format_ident!("{}", self.name.to_ascii_uppercase())
+    }
+    fn origin_name(&self) -> Ident {
+        format_ident!("{}", self.name)
+    }
+    fn packet_name(&self) -> Ident {
+        format_ident!("{}Packet", self.name)
+    }
+    fn referred_name(&self) -> Ident {
+        format_ident!("{}Referred", self.packet_name())
     }
 }
 
-impl Names for Packet {
-    fn origin_name(&self) -> String {
-        self.name.clone()
-    }
-    fn packet_name(&self) -> String {
-        format!("{}Packet", self.name)
-    }
+pub trait ReferredPacket {
+    fn referred(&self) -> TokenStream;
+}
+
+pub trait StaticPacket {
+    fn r#static(&self) -> TokenStream;
 }

@@ -3,16 +3,18 @@ use proc_macro2::TokenStream;
 
 impl Reflected for Packet {
     fn reflected(&self) -> TokenStream {
-        let name = self.packet_name();
+        let referred = self.referred();
+        let stat = self.r#static();
+        let referred_name = format_ident!("{}", self.referred_name());
         quote! {
-            struct UserPacketAReferred<'a> {
-                magic: &'a [u8; 4],
-                a: &'a u8,
-                b: &'a u64,
-                c: &'a [u8; 1024],
-                crc: &'a u32,
-                next: &'a [u8; 4],
+            #referred
+
+            impl Read for #referred_name {
+                fn read() -> Result<Option<#referred_name>, String> {
+
+                }
             }
+            #stat
         }
     }
 }

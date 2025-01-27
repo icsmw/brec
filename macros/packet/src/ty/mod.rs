@@ -1,5 +1,6 @@
 mod def;
-mod gen;
+mod referred;
+mod statics;
 #[cfg(test)]
 mod tests;
 
