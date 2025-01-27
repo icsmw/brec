@@ -33,6 +33,12 @@ impl Packet {
                 }
             }
         }
+        extracted.insert(
+            0,
+            Field::injected(FIELD_SIG, Ty::Slice(4, Box::new(Ty::u8))),
+        );
+        extracted.push(Field::injected(FIELD_CRC, Ty::u32));
+        extracted.push(Field::injected(FIELD_NEXT, Ty::Slice(4, Box::new(Ty::u8))));
         Ok(Self::new(name.to_string(), extracted))
     }
     pub fn sig(&self) -> TokenStream {

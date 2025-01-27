@@ -9,23 +9,32 @@ impl ReferredPacket for Packet {
             .iter()
             .map(|f| f.referred())
             .collect::<Vec<TokenStream>>();
-        let sig = self.sig();
-        let const_sig = self.const_sig_name();
+        let derefed = self
+            .fields
+            .iter()
+            .filter(|f| !f.injected)
+            .map(|f| {
+                let field = format_ident!("{}", f.name);
+                let field_path = quote! {
+                    packet.#field
+                };
+                quote! {
+                    #field: *#field_path,
+                }
+            })
+            .collect::<Vec<TokenStream>>();
         quote! {
             #[repr(C)]
             #[derive(Debug)]
             struct #name <'a> {
-                sig: &'a [u8; 4],
                 #(#fields)*
-                crc: &'a u32,
-                next: &'a [u8; 4],
             }
 
-            const #const_sig: [u8; 4] = #sig;
-
-            impl<'a> brec::Packet for #name <'a> {
-                fn sig() -> &'static [u8; 4] {
-                    &#const_sig
+            impl<'a> From<#name <'a>> for MyPacket {
+                fn from(packet: #name <'a>) -> Self {
+                    MyPacket {
+                        #(#derefed)*
+                    }
                 }
             }
         }

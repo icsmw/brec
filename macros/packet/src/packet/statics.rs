@@ -13,10 +13,7 @@ impl StaticPacket for Packet {
             #[repr(C)]
             #[derive(Debug)]
             struct #name {
-                sig: [u8; 4],
                 #(#fields)*
-                crc: u32,
-                next: [u8; 4],
             }
         }
     }

@@ -10,7 +10,7 @@ members = [
 ]
 
 [dependencies]
-
+thiserror.workspace = true
 
 [workspace.dependencies]
 thiserror = "2.0"
