@@ -27,6 +27,8 @@ pub enum E {
     #[error("{0} is reserved field name")]
     ReservedFieldName(String),
 
+    #[error("Cannot detect attribute")]
+    NoSuitableAttr,
     #[error("Missed name of enum type")]
     LinkingRequiresEnumName,
 }

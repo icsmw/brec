@@ -1,10 +1,14 @@
+mod entities;
 mod error;
-mod field;
 mod modes;
-mod packet;
-mod ty;
+mod parsing;
+mod tokenized;
 
+use entities::*;
 use error::*;
+use modes::*;
+use tokenized::*;
+
 use proc_macro as pm;
 use proc_macro2 as pm2;
 use quote::{format_ident, quote};
@@ -14,17 +18,12 @@ use syn::{
     Meta, PathArguments, ReturnType, Signature, Type, TypePath, TypeTuple,
 };
 
-pub(crate) use field::*;
-pub(crate) use modes::*;
-pub(crate) use packet::*;
-pub(crate) use ty::*;
-
 fn parse(input: DeriveInput) -> pm2::TokenStream {
-    let packet = match Packet::from_input(&input) {
+    let packet = match Packet::try_from(&input) {
         Ok(p) => p,
         Err(err) => return err.to_compile_error(),
     };
-    let reflected = modes::ReflectedMode::generate(&packet);
+    let reflected = modes::StructuredMode::generate(&packet);
     quote! {
         #input
 

@@ -1,9 +1,5 @@
-use proc_macro2::TokenStream;
+mod reflected;
+mod structured;
 
-pub trait StructuredMode {
-    fn generate(&self) -> TokenStream;
-}
-
-pub trait ReflectedMode {
-    fn generate(&self) -> TokenStream;
-}
+pub(crate) use reflected::*;
+pub(crate) use structured::*;
