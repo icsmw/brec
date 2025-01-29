@@ -16,7 +16,7 @@ use std::convert::TryFrom;
 use syn::{parse_macro_input, parse_quote, Data, DeriveInput, Fields};
 
 fn parse(input: DeriveInput) -> pm2::TokenStream {
-    let packet = match Packet::try_from(&input) {
+    let packet = match Block::try_from(&input) {
         Ok(p) => p,
         Err(err) => return err.to_compile_error(),
     };
@@ -32,7 +32,7 @@ fn parse(input: DeriveInput) -> pm2::TokenStream {
 fn test() {
     let input: DeriveInput = parse_quote! {
         #[packet]
-        struct MyPacket {
+        struct MyBlock {
             field: u8,
             #[link_with(LogLevel)]
             log_level: u8,
@@ -41,7 +41,7 @@ fn test() {
 
     let expanded = parse(input);
     let expected = quote! {
-        struct MyPacket {
+        struct MyBlock {
             field: u8,
             log_level: u8,
         }

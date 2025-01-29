@@ -2,7 +2,7 @@ use crate::*;
 use proc_macro2::TokenStream;
 use quote::quote;
 
-impl Crc for Packet {
+impl Crc for Block {
     fn gen(&self) -> TokenStream {
         let packet_name = self.name();
         let mut hash_pushes = Vec::new();
@@ -28,7 +28,7 @@ impl Crc for Packet {
     }
 }
 
-impl Size for Packet {
+impl Size for Block {
     fn gen(&self) -> TokenStream {
         let packet_name = self.name();
         let mut size = 0usize;

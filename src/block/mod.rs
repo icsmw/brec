@@ -1,8 +1,7 @@
 pub use crate::*;
 
-pub trait Packet<'a, T> {
+pub trait Block<'a, T> {
     fn sig() -> &'static [u8; 4];
-    fn read(data: &'a [u8]) -> Result<Option<T>, Error>;
 }
 
 pub trait Crc {
@@ -16,4 +15,16 @@ pub trait Size {
 pub trait Write: Crc + Size {
     fn write<T: std::io::Write>(&self, buf: &mut T) -> std::io::Result<usize>;
     fn write_all<T: std::io::Write>(&self, buf: &mut T) -> std::io::Result<()>;
+}
+
+pub trait ReadFromSlice<'a> {
+    fn read_from_slice(buf: &'a [u8]) -> Result<Self, Error>
+    where
+        Self: Sized;
+}
+
+pub trait Read {
+    fn read<T: std::io::Read>(buf: &mut T) -> Result<Self, Error>
+    where
+        Self: Sized;
 }

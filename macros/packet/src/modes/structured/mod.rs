@@ -1,4 +1,4 @@
-mod packet;
+mod block;
 
 use proc_macro2::TokenStream;
 
@@ -10,10 +10,14 @@ pub trait StructuredBase {
     fn gen(&self) -> TokenStream;
 }
 
-pub trait StructuredDeserializableImpl {
+pub trait StructuredRead {
     fn gen(&self) -> TokenStream;
 }
 
-pub trait StructuredSerializableImpl {
+pub trait StructuredReadFromSlice {
+    fn gen(&self) -> TokenStream;
+}
+
+pub trait StructuredWrite {
     fn gen(&self) -> TokenStream;
 }

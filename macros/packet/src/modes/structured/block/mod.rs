@@ -2,7 +2,7 @@ use crate::*;
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
 
-impl StructuredBase for Packet {
+impl StructuredBase for Block {
     fn gen(&self) -> TokenStream {
         let referred_name = self.referred_name();
         let struct_fields = self
@@ -36,13 +36,15 @@ impl StructuredBase for Packet {
 
             #[repr(C)]
             #[derive(Debug)]
-            struct #referred_name <'a> {
+            struct #referred_name <'a>
+                where Self: Sized
+            {
                 #(#struct_fields)*
             }
 
-            impl<'a> From<#referred_name <'a>> for MyPacket {
+            impl<'a> From<#referred_name <'a>> for MyBlock {
                 fn from(packet: #referred_name <'a>) -> Self {
-                    MyPacket {
+                    MyBlock {
                         #(#derefed)*
                     }
                 }
@@ -50,11 +52,63 @@ impl StructuredBase for Packet {
 
             const #const_sig: [u8; 4] = #sig;
 
+            impl<'a> #referred_name <'a> {
+
+                pub fn sig() -> &'static [u8; 4] {
+                    &#const_sig
+                }
+
+            }
+
         }
     }
 }
 
-impl StructuredDeserializableImpl for Packet {
+impl StructuredRead for Block {
+    fn gen(&self) -> TokenStream {
+        let packet_name = self.name();
+        let const_sig = self.const_sig_name();
+        let mut fields = Vec::new();
+        let mut fnames = Vec::new();
+        let src: syn::Ident = format_ident!("buf");
+        for field in self.fields.iter().filter(|f| !f.injected) {
+            fields.push(field.read_exact(&src).unwrap());
+            fnames.push(format_ident!("{}", field.name));
+        }
+        quote! {
+
+            impl brec::Read for #packet_name {
+                fn read<T: std::io::Read>(buf: &mut T) -> Result<Self, brec::Error>
+                where
+                    Self: Sized {
+                        let mut sig = [0u8; 4];
+                        #src.read_exact(&mut sig)?;
+                        if sig != #const_sig {
+                            return Err(brec::Error::SignatureDismatch)
+                        }
+
+                        #(#fields)*
+
+                        let mut crc = [0u8; 4];
+                        #src.read_exact(&mut crc)?;
+
+                        let packet = #packet_name {
+                            #(#fnames,)*
+                        };
+
+                        if packet.crc() != crc {
+                            return Err(brec::Error::CrcDismatch)
+                        }
+
+                        Ok(packet)
+                }
+            }
+
+        }
+    }
+}
+
+impl StructuredReadFromSlice for Block {
     fn gen(&self) -> TokenStream {
         let referred_name = self.referred_name();
         let packet_name = self.name();
@@ -62,7 +116,7 @@ impl StructuredDeserializableImpl for Packet {
         let mut fields = Vec::new();
         let mut fnames = Vec::new();
         let mut offset = 0usize;
-        let src: syn::Ident = format_ident!("data");
+        let src: syn::Ident = format_ident!("buf");
         for field in self.fields.iter() {
             fields.push(field.safe(&src, offset, offset + field.ty.size()));
             fnames.push(format_ident!("{}", field.name));
@@ -70,39 +124,37 @@ impl StructuredDeserializableImpl for Packet {
         }
         quote! {
 
-            impl<'a> brec::Packet<'a, #referred_name <'a>> for #referred_name <'a> {
+            impl<'a> brec::ReadFromSlice<'a> for #referred_name <'a> {
 
-                fn sig() -> &'static [u8; 4] {
-                    &#const_sig
-                }
-
-                fn read(#src: &'a [u8]) -> Result<Option<#referred_name<'a>>, brec::Error> {
-                    use std::mem;
-
+                fn read_from_slice(#src: &'a [u8]) -> Result<Self, brec::Error>
+                where
+                    Self: Sized,
+                {
                     if #src.len() < 4 {
                         return Err(brec::Error::NotEnoughtSignatureData(#src.len(), 4));
                     }
 
                     if #src[..4] != #const_sig {
-                        return Ok(None);
+                        return Err(brec::Error::SignatureDismatch);
                     }
 
-                    if #src.len() < mem::size_of::<#packet_name>() {
-                        return Err(brec::Error::NotEnoughtData(#src.len(), mem::size_of::<#packet_name>()));
+                    if #src.len() < std::mem::size_of::<#packet_name>() {
+                        return Err(brec::Error::NotEnoughtData(#src.len(), std::mem::size_of::<#packet_name>()));
                     }
 
                     #(#fields)*
 
-                    Ok(Some(#referred_name {
+                    Ok(#referred_name {
                         #(#fnames,)*
-                    }))
+                    })
                 }
+
             }
         }
     }
 }
 
-impl StructuredSerializableImpl for Packet {
+impl StructuredWrite for Block {
     fn gen(&self) -> TokenStream {
         let packet_name = self.name();
         let mut write_pushes = Vec::new();
@@ -140,27 +192,21 @@ impl StructuredSerializableImpl for Packet {
     }
 }
 
-// fn write(&self,  next: Option<[u8; 4]>  ) -> [u8] {
-//     let mut buffer = [0u8; #offset + 4 + 4 + 4];
-//     buffer[0..4].copy_from_slice(&#const_sig);
-//     #(#buf_pushes)*
-//     buffer[#offset..#offset + 4].copy_from_slice(&self.crc());
-//     buffer[#offset + 4 ..#offset + 4 + 4].copy_from_slice(&next);
-//     buffer
-// }
-impl Structured for Packet {
+impl Structured for Block {
     fn gen(&self) -> TokenStream {
         let base = StructuredBase::gen(self);
-        let de = StructuredDeserializableImpl::gen(self);
+        let read = StructuredRead::gen(self);
+        let read_slice = StructuredReadFromSlice::gen(self);
         let crc = Crc::gen(self);
         let size = Size::gen(self);
-        let se = StructuredSerializableImpl::gen(self);
+        let write = StructuredWrite::gen(self);
         quote! {
             #base
             #crc
             #size
-            #de
-            #se
+            #read
+            #read_slice
+            #write
         }
     }
 }

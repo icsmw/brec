@@ -1,2 +1,3 @@
-- rename `Entity` to `Packet`
-- rename current `Packet` to `Block`
+- rename `Entity` to `Block`
+- rename current `Block` to `Block`
+- remove `unwrap()`

@@ -5,12 +5,12 @@ use quote::{format_ident, quote};
 use syn::Ident;
 
 #[derive(Debug)]
-pub struct Packet {
+pub struct Block {
     pub name: String,
     pub fields: Vec<Field>,
 }
 
-impl Packet {
+impl Block {
     pub fn new(name: String, fields: Vec<Field>) -> Self {
         Self { name, fields }
     }

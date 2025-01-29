@@ -1,4 +1,4 @@
-mod packet;
+mod block;
 
 use proc_macro2::TokenStream;
 

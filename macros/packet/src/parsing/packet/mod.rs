@@ -2,7 +2,7 @@ use crate::*;
 use std::convert::TryFrom;
 use syn::{Data, DeriveInput, Fields};
 
-impl TryFrom<&DeriveInput> for Packet {
+impl TryFrom<&DeriveInput> for Block {
     type Error = syn::Error;
     fn try_from(input: &DeriveInput) -> Result<Self, Self::Error> {
         let name = &input.ident;

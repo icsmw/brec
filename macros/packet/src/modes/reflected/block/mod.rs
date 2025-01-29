@@ -2,7 +2,7 @@ use crate::*;
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
 
-impl Reflected for Packet {
+impl Reflected for Block {
     fn generate(&self) -> TokenStream {
         let referred_name = self.referred_name();
         let struct_fields = self
@@ -44,9 +44,9 @@ impl Reflected for Packet {
                 #(#struct_fields)*
             }
 
-            impl<'a> From<#referred_name <'a>> for MyPacket {
+            impl<'a> From<#referred_name <'a>> for MyBlock {
                 fn from(packet: #referred_name <'a>) -> Self {
-                    MyPacket {
+                    MyBlock {
                         #(#derefed)*
                     }
                 }
@@ -54,7 +54,7 @@ impl Reflected for Packet {
 
             const #const_sig: [u8; 4] = #sig;
 
-            impl<'a> brec::Packet<'a, #referred_name <'a>> for #referred_name <'a> {
+            impl<'a> brec::Block<'a, #referred_name <'a>> for #referred_name <'a> {
 
                 fn sig() -> &'static [u8; 4] {
                     &#const_sig

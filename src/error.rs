@@ -10,4 +10,10 @@ pub enum Error {
     InvalidAlign(usize, usize, usize),
     #[error("TryFromSliceError: {0}")]
     TryFromSliceError(#[from] std::array::TryFromSliceError),
+    #[error("Signature doesn't match to target entity")]
+    SignatureDismatch,
+    #[error("Crc doesn't match to target entity")]
+    CrcDismatch,
+    #[error("IO Error: {0}")]
+    Io(#[from] std::io::Error),
 }

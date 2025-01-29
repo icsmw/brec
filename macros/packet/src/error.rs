@@ -2,7 +2,7 @@ use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum E {
-    #[error("As Packet can be used only structs")]
+    #[error("As Block can be used only structs")]
     StructNotFound,
     #[error("Only named fields of struct are supported")]
     NamedFieldsNotFound,
