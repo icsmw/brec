@@ -11,6 +11,7 @@ members = [
 
 [dependencies]
 thiserror.workspace = true
+crc32fast.workspace = true
 
 [workspace.dependencies]
 thiserror = "2.0"

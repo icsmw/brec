@@ -24,4 +24,7 @@ impl Field {
     pub fn is_reserved_name<S: AsRef<str>>(name: S) -> bool {
         [FIELD_SIG, FIELD_CRC, FIELD_NEXT].contains(&name.as_ref())
     }
+    pub fn size(&self) -> usize {
+        self.ty.size()
+    }
 }

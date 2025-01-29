@@ -22,10 +22,10 @@ pub enum E {
     FailParseGenericArg,
     #[error("Only single generic argument is supported")]
     OnlySingleGenericArg,
-    #[error("Generic type isn't supported for this type")]
-    GenericNotSupported,
     #[error("{0} is reserved field name")]
     ReservedFieldName(String),
+    #[error("Only primite types are supported in the context of slice")]
+    UnsupportedTypeInSlice,
 
     #[error("Cannot detect attribute")]
     NoSuitableAttr,

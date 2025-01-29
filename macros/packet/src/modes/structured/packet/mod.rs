@@ -2,8 +2,8 @@ use crate::*;
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
 
-impl StructuredMode for Packet {
-    fn generate(&self) -> TokenStream {
+impl StructuredBase for Packet {
+    fn gen(&self) -> TokenStream {
         let referred_name = self.referred_name();
         let struct_fields = self
             .fields
@@ -30,18 +30,8 @@ impl StructuredMode for Packet {
                 }
             })
             .collect::<Vec<TokenStream>>();
-        let packet_name = self.name();
         let const_sig = self.const_sig_name();
-        let mut fields = Vec::new();
-        let mut fnames = Vec::new();
-        let mut offset = 0usize;
         let sig: TokenStream = self.sig();
-        let src: syn::Ident = format_ident!("data");
-        for field in self.fields.iter() {
-            fields.push(field.safe(&src, offset, offset + field.ty.size()));
-            fnames.push(format_ident!("{}", field.name));
-            offset += field.ty.size();
-        }
         quote! {
 
             #[repr(C)]
@@ -59,6 +49,26 @@ impl StructuredMode for Packet {
             }
 
             const #const_sig: [u8; 4] = #sig;
+
+        }
+    }
+}
+
+impl StructuredDeserializableImpl for Packet {
+    fn gen(&self) -> TokenStream {
+        let referred_name = self.referred_name();
+        let packet_name = self.name();
+        let const_sig = self.const_sig_name();
+        let mut fields = Vec::new();
+        let mut fnames = Vec::new();
+        let mut offset = 0usize;
+        let src: syn::Ident = format_ident!("data");
+        for field in self.fields.iter() {
+            fields.push(field.safe(&src, offset, offset + field.ty.size()));
+            fnames.push(format_ident!("{}", field.name));
+            offset += field.ty.size();
+        }
+        quote! {
 
             impl<'a> brec::Packet<'a, #referred_name <'a>> for #referred_name <'a> {
 
@@ -88,6 +98,69 @@ impl StructuredMode for Packet {
                     }))
                 }
             }
+        }
+    }
+}
+
+impl StructuredSerializableImpl for Packet {
+    fn gen(&self) -> TokenStream {
+        let packet_name = self.name();
+        let mut write_pushes = Vec::new();
+        let mut write_all_pushes = Vec::new();
+        for field in self.fields.iter().filter(|f| !f.injected) {
+            let as_bytes = field.to_bytes().unwrap();
+            write_pushes.push(quote! {
+                + buf.write(#as_bytes)?
+            });
+            write_all_pushes.push(quote! {
+                buf.write_all(#as_bytes)?;
+            });
+        }
+        let const_sig = self.const_sig_name();
+        quote! {
+
+            impl brec::Write for #packet_name {
+
+                fn write<T: std::io::Write>(&self, buf: &mut T) -> std::io::Result<usize> {
+                    Ok(buf.write(&#const_sig)?
+                    #(#write_pushes)*
+                    + buf.write(&self.crc())?)
+                }
+
+                fn write_all<T: std::io::Write>(&self, buf: &mut T) -> std::io::Result<()> {
+                    buf.write_all(&#const_sig)?;
+                    #(#write_all_pushes)*
+                    buf.write_all(&self.crc())?;
+                    Ok(())
+                }
+
+            }
+
+        }
+    }
+}
+
+// fn write(&self,  next: Option<[u8; 4]>  ) -> [u8] {
+//     let mut buffer = [0u8; #offset + 4 + 4 + 4];
+//     buffer[0..4].copy_from_slice(&#const_sig);
+//     #(#buf_pushes)*
+//     buffer[#offset..#offset + 4].copy_from_slice(&self.crc());
+//     buffer[#offset + 4 ..#offset + 4 + 4].copy_from_slice(&next);
+//     buffer
+// }
+impl Structured for Packet {
+    fn gen(&self) -> TokenStream {
+        let base = StructuredBase::gen(self);
+        let de = StructuredDeserializableImpl::gen(self);
+        let crc = Crc::gen(self);
+        let size = Size::gen(self);
+        let se = StructuredSerializableImpl::gen(self);
+        quote! {
+            #base
+            #crc
+            #size
+            #de
+            #se
         }
     }
 }

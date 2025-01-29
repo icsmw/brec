@@ -2,7 +2,7 @@ use crate::*;
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
 
-impl ReflectedMode for Packet {
+impl Reflected for Packet {
     fn generate(&self) -> TokenStream {
         let referred_name = self.referred_name();
         let struct_fields = self

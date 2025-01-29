@@ -6,6 +6,7 @@ version = 4
 name = "brec"
 version = "0.1.0"
 dependencies = [
+ "crc32fast",
  "thiserror",
 ]
 

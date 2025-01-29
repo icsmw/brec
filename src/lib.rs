@@ -4,6 +4,8 @@ pub mod packet;
 pub use error::*;
 pub use packet::*;
 
+pub use crc32fast;
+
 struct MyPacket {
     field: u8,
     log_level: u8,
@@ -26,6 +28,20 @@ impl<'a> From<MyPacketReferred<'a>> for MyPacket {
     }
 }
 const MYPACKET: [u8; 4] = [11u8, 198u8, 4u8, 71u8];
+
+impl crate::Crc for MyPacket {
+    fn crc(&self) -> [u8; 4] {
+        let mut hasher = crate::crc32fast::Hasher::new();
+        hasher.update(&[self.field]);
+        hasher.update(&[self.log_level]);
+        hasher.finalize().to_le_bytes()
+    }
+}
+impl crate::Size for MyPacket {
+    fn size(&self) -> usize {
+        14usize
+    }
+}
 impl<'a> crate::Packet<'a, MyPacketReferred<'a>> for MyPacketReferred<'a> {
     fn sig() -> &'static [u8; 4] {
         &MYPACKET
@@ -56,5 +72,20 @@ impl<'a> crate::Packet<'a, MyPacketReferred<'a>> for MyPacketReferred<'a> {
             __crc,
             __next,
         }))
+    }
+}
+impl crate::Write for MyPacket {
+    fn write<T: std::io::Write>(&self, buf: &mut T) -> std::io::Result<usize> {
+        Ok(buf.write(&MYPACKET)?
+            + buf.write(&[self.field])?
+            + buf.write(&[self.log_level])?
+            + buf.write(&self.crc())?)
+    }
+    fn write_all<T: std::io::Write>(&self, buf: &mut T) -> std::io::Result<()> {
+        buf.write_all(&MYPACKET)?;
+        buf.write_all(&[self.field])?;
+        buf.write_all(&[self.log_level])?;
+        buf.write_all(&self.crc())?;
+        Ok(())
     }
 }
