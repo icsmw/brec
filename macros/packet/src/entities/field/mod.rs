@@ -2,7 +2,6 @@ use crate::*;
 
 pub const FIELD_SIG: &str = "__sig";
 pub const FIELD_CRC: &str = "__crc";
-pub const FIELD_NEXT: &str = "__next";
 
 #[derive(Debug)]
 pub struct Field {
@@ -22,7 +21,7 @@ impl Field {
         }
     }
     pub fn is_reserved_name<S: AsRef<str>>(name: S) -> bool {
-        [FIELD_SIG, FIELD_CRC, FIELD_NEXT].contains(&name.as_ref())
+        [FIELD_SIG, FIELD_CRC].contains(&name.as_ref())
     }
     pub fn size(&self) -> usize {
         self.ty.size()

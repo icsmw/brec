@@ -1,11 +1,10 @@
 use crate::*;
-use proc_macro2::TokenStream;
 use std::convert::{TryFrom, TryInto};
 
-impl TryFrom<&syn::Field> for Field {
+impl TryFrom<&mut syn::Field> for Field {
     type Error = syn::Error;
 
-    fn try_from(field: &syn::Field) -> Result<Self, Self::Error> {
+    fn try_from(field: &mut syn::Field) -> Result<Self, Self::Error> {
         let Some(name) = field.ident.as_ref() else {
             return Err(syn::Error::new_spanned(field, E::FailExtractIdent));
         };
@@ -15,6 +14,7 @@ impl TryFrom<&syn::Field> for Field {
                 E::ReservedFieldName(name.to_string()),
             ));
         }
+        field.attrs.retain(|attr| !Attr::has(attr));
         let mut attrs = Vec::new();
         for attr in &field.attrs {
             if Attr::has(attr) {

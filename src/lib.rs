@@ -20,7 +20,6 @@ where
     field: u8,
     log_level: u8,
     __crc: u32,
-    __next: &'a [u8; 4usize],
 }
 impl<'a> From<MyBlockReferred<'a>> for MyBlock {
     fn from(packet: MyBlockReferred<'a>) -> Self {
@@ -30,9 +29,9 @@ impl<'a> From<MyBlockReferred<'a>> for MyBlock {
         }
     }
 }
-const MYBLOCK: [u8; 4] = [238u8, 165u8, 58u8, 176u8];
-impl<'a> MyBlockReferred<'a> {
-    fn sig() -> &'static [u8; 4] {
+const MYBLOCK: [u8; 4] = [254u8, 32u8, 165u8, 251u8];
+impl MyBlockReferred<'_> {
+    pub fn sig() -> &'static [u8; 4] {
         &MYBLOCK
     }
 }
@@ -46,7 +45,7 @@ impl crate::Crc for MyBlock {
 }
 impl crate::Size for MyBlock {
     fn size(&self) -> usize {
-        14usize
+        10usize
     }
 }
 impl crate::Read for MyBlock {
@@ -95,13 +94,11 @@ impl<'a> crate::ReadFromSlice<'a> for MyBlockReferred<'a> {
         let field = u8::from_le_bytes(buf[4usize..5usize].try_into()?);
         let log_level = u8::from_le_bytes(buf[5usize..6usize].try_into()?);
         let __crc = u32::from_le_bytes(buf[6usize..10usize].try_into()?);
-        let __next = <&[u8; 4usize]>::try_from(&buf[10usize..14usize])?;
         Ok(MyBlockReferred {
             __sig,
             field,
             log_level,
             __crc,
-            __next,
         })
     }
 }

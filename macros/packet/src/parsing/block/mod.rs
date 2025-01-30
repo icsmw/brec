@@ -2,9 +2,11 @@ use crate::*;
 use std::convert::TryFrom;
 use syn::{Data, DeriveInput, Fields};
 
-impl TryFrom<&DeriveInput> for Block {
+pub const BLOCK_ATTR: &str = "block";
+
+impl TryFrom<&mut DeriveInput> for Block {
     type Error = syn::Error;
-    fn try_from(input: &DeriveInput) -> Result<Self, Self::Error> {
+    fn try_from(input: &mut DeriveInput) -> Result<Self, Self::Error> {
         let name = &input.ident;
         if !input.generics.params.is_empty() {
             return Err(syn::Error::new_spanned(
@@ -12,10 +14,11 @@ impl TryFrom<&DeriveInput> for Block {
                 E::GenericTypesNotSupported,
             ));
         }
+        input.attrs.retain(|attr| !attr.path().is_ident(BLOCK_ATTR));
         let mut extracted = Vec::new();
-        if let Data::Struct(data_struct) = &input.data {
-            if let Fields::Named(fields) = &data_struct.fields {
-                for field in &fields.named {
+        if let Data::Struct(data_struct) = &mut input.data {
+            if let Fields::Named(fields) = &mut data_struct.fields {
+                for field in &mut fields.named {
                     extracted.push(Field::try_from(field)?);
                 }
             }
@@ -25,7 +28,6 @@ impl TryFrom<&DeriveInput> for Block {
             Field::injected(FIELD_SIG, Ty::Slice(4, Box::new(Ty::u8))),
         );
         extracted.push(Field::injected(FIELD_CRC, Ty::u32));
-        extracted.push(Field::injected(FIELD_NEXT, Ty::Slice(4, Box::new(Ty::u8))));
         Ok(Self::new(name.to_string(), extracted))
     }
 }

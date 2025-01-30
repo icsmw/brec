@@ -3,7 +3,7 @@ use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
 
 impl StructuredBase for Block {
-    fn gen(&self) -> TokenStream {
+    fn gen(&self) -> Result<TokenStream, E> {
         let referred_name = self.referred_name();
         let struct_fields = self
             .fields
@@ -32,7 +32,7 @@ impl StructuredBase for Block {
             .collect::<Vec<TokenStream>>();
         let const_sig = self.const_sig_name();
         let sig: TokenStream = self.sig();
-        quote! {
+        Ok(quote! {
 
             #[repr(C)]
             #[derive(Debug)]
@@ -52,7 +52,7 @@ impl StructuredBase for Block {
 
             const #const_sig: [u8; 4] = #sig;
 
-            impl<'a> #referred_name <'a> {
+            impl #referred_name <'_> {
 
                 pub fn sig() -> &'static [u8; 4] {
                     &#const_sig
@@ -60,22 +60,22 @@ impl StructuredBase for Block {
 
             }
 
-        }
+        })
     }
 }
 
 impl StructuredRead for Block {
-    fn gen(&self) -> TokenStream {
+    fn gen(&self) -> Result<TokenStream, E> {
         let packet_name = self.name();
         let const_sig = self.const_sig_name();
         let mut fields = Vec::new();
         let mut fnames = Vec::new();
         let src: syn::Ident = format_ident!("buf");
         for field in self.fields.iter().filter(|f| !f.injected) {
-            fields.push(field.read_exact(&src).unwrap());
+            fields.push(field.read_exact(&src)?);
             fnames.push(format_ident!("{}", field.name));
         }
-        quote! {
+        Ok(quote! {
 
             impl brec::Read for #packet_name {
                 fn read<T: std::io::Read>(buf: &mut T) -> Result<Self, brec::Error>
@@ -104,12 +104,12 @@ impl StructuredRead for Block {
                 }
             }
 
-        }
+        })
     }
 }
 
 impl StructuredReadFromSlice for Block {
-    fn gen(&self) -> TokenStream {
+    fn gen(&self) -> Result<TokenStream, E> {
         let referred_name = self.referred_name();
         let packet_name = self.name();
         let const_sig = self.const_sig_name();
@@ -122,7 +122,7 @@ impl StructuredReadFromSlice for Block {
             fnames.push(format_ident!("{}", field.name));
             offset += field.ty.size();
         }
-        quote! {
+        Ok(quote! {
 
             impl<'a> brec::ReadFromSlice<'a> for #referred_name <'a> {
 
@@ -150,17 +150,17 @@ impl StructuredReadFromSlice for Block {
                 }
 
             }
-        }
+        })
     }
 }
 
 impl StructuredWrite for Block {
-    fn gen(&self) -> TokenStream {
+    fn gen(&self) -> Result<TokenStream, E> {
         let packet_name = self.name();
         let mut write_pushes = Vec::new();
         let mut write_all_pushes = Vec::new();
         for field in self.fields.iter().filter(|f| !f.injected) {
-            let as_bytes = field.to_bytes().unwrap();
+            let as_bytes = field.to_bytes()?;
             write_pushes.push(quote! {
                 + buf.write(#as_bytes)?
             });
@@ -169,7 +169,7 @@ impl StructuredWrite for Block {
             });
         }
         let const_sig = self.const_sig_name();
-        quote! {
+        Ok(quote! {
 
             impl brec::Write for #packet_name {
 
@@ -188,25 +188,25 @@ impl StructuredWrite for Block {
 
             }
 
-        }
+        })
     }
 }
 
 impl Structured for Block {
-    fn gen(&self) -> TokenStream {
-        let base = StructuredBase::gen(self);
-        let read = StructuredRead::gen(self);
-        let read_slice = StructuredReadFromSlice::gen(self);
+    fn gen(&self) -> Result<TokenStream, E> {
+        let base = StructuredBase::gen(self)?;
+        let read = StructuredRead::gen(self)?;
+        let read_slice = StructuredReadFromSlice::gen(self)?;
         let crc = Crc::gen(self);
         let size = Size::gen(self);
-        let write = StructuredWrite::gen(self);
-        quote! {
+        let write = StructuredWrite::gen(self)?;
+        Ok(quote! {
             #base
             #crc
             #size
             #read
             #read_slice
             #write
-        }
+        })
     }
 }

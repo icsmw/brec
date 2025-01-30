@@ -15,12 +15,17 @@ use quote::quote;
 use std::convert::TryFrom;
 use syn::{parse_macro_input, parse_quote, Data, DeriveInput, Fields};
 
-fn parse(input: DeriveInput) -> pm2::TokenStream {
-    let packet = match Block::try_from(&input) {
+fn parse(mut input: DeriveInput) -> pm2::TokenStream {
+    let block = match Block::try_from(&mut input) {
         Ok(p) => p,
         Err(err) => return err.to_compile_error(),
     };
-    let reflected = modes::Structured::gen(&packet);
+    let reflected = match modes::Structured::gen(&block) {
+        Ok(p) => p,
+        Err(err) => {
+            return syn::Error::new_spanned(&input, err).to_compile_error();
+        }
+    };
     quote! {
         #input
 
@@ -31,7 +36,7 @@ fn parse(input: DeriveInput) -> pm2::TokenStream {
 #[test]
 fn test() {
     let input: DeriveInput = parse_quote! {
-        #[packet]
+        #[block]
         struct MyBlock {
             field: u8,
             #[link_with(LogLevel)]
@@ -52,21 +57,22 @@ fn test() {
 
 #[proc_macro_attribute]
 pub fn packet(args: pm::TokenStream, input: pm::TokenStream) -> pm::TokenStream {
-    let input = parse_macro_input!(input as DeriveInput);
+    // let input = parse_macro_input!(input as DeriveInput);
 
-    let struct_name = &input.ident;
-    let mut parsed = Vec::new();
-    if let Data::Struct(data_struct) = &input.data {
-        if let Fields::Named(fields) = &data_struct.fields {
-            for field in &fields.named {
-                match Field::try_from(field) {
-                    Ok(field) => parsed.push(field),
-                    Err(err) => {
-                        return err.to_compile_error().into();
-                    }
-                }
-            }
-        }
-    }
-    pm::TokenStream::from(quote! { #input })
+    // let struct_name = &input.ident;
+    // let mut parsed = Vec::new();
+    // if let Data::Struct(data_struct) = &input.data {
+    //     if let Fields::Named(fields) = &data_struct.fields {
+    //         for field in &fields.named {
+    //             match Field::try_from(field) {
+    //                 Ok(field) => parsed.push(field),
+    //                 Err(err) => {
+    //                     return err.to_compile_error().into();
+    //                 }
+    //             }
+    //         }
+    //     }
+    // }
+    // pm::TokenStream::from(quote! { #input })
+    input
 }
