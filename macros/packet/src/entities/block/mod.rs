@@ -1,3 +1,7 @@
+mod attr;
+
+pub(crate) use attr::*;
+
 use crate::*;
 use crc32fast::Hasher;
 use proc_macro2::TokenStream;

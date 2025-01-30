@@ -1,3 +1,5 @@
+mod attr;
+
 use crate::*;
 use std::convert::TryFrom;
 use syn::{Data, DeriveInput, Fields};

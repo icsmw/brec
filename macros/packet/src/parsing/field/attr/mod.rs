@@ -2,10 +2,10 @@ use crate::*;
 use std::convert::TryFrom;
 use syn::Attribute;
 
-impl TryFrom<&Attribute> for Attr {
+impl TryFrom<&Attribute> for FieldAttr {
     type Error = syn::Error;
     fn try_from(attr: &Attribute) -> Result<Self, Self::Error> {
-        if attr.path().is_ident(&AttrId::LinkWith.to_string()) {
+        if attr.path().is_ident(&FieldAttrId::LinkWith.to_string()) {
             let mut inner = None;
             attr.parse_nested_meta(|meta| {
                 if let Some(ident) = meta.path.get_ident() {
@@ -13,7 +13,7 @@ impl TryFrom<&Attribute> for Attr {
                     if ident.is_empty() {
                         Err(syn::Error::new_spanned(attr, E::LinkingRequiresEnumName))
                     } else {
-                        inner = Some(Attr::LinkWith(ident));
+                        inner = Some(FieldAttr::LinkWith(ident));
                         Ok(())
                     }
                 } else {

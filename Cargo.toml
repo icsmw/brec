@@ -12,6 +12,7 @@ members = [
 [dependencies]
 thiserror.workspace = true
 crc32fast.workspace = true
+packet = { path = "./macros/packet"}
 
 [workspace.dependencies]
 thiserror = "2.0"

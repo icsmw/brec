@@ -1,3 +1,7 @@
+mod attr;
+
+pub(crate) use attr::*;
+
 use crate::*;
 
 pub const FIELD_SIG: &str = "__sig";
@@ -6,7 +10,7 @@ pub const FIELD_CRC: &str = "__crc";
 #[derive(Debug)]
 pub struct Field {
     pub name: String,
-    pub attrs: Vec<Attr>,
+    pub attrs: Vec<FieldAttr>,
     pub ty: Ty,
     pub injected: bool,
 }

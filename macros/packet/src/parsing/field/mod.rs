@@ -1,3 +1,5 @@
+mod attr;
+
 use crate::*;
 use std::convert::{TryFrom, TryInto};
 
@@ -14,10 +16,10 @@ impl TryFrom<&mut syn::Field> for Field {
                 E::ReservedFieldName(name.to_string()),
             ));
         }
-        field.attrs.retain(|attr| !Attr::has(attr));
+        field.attrs.retain(|attr| !FieldAttr::has(attr));
         let mut attrs = Vec::new();
         for attr in &field.attrs {
-            if Attr::has(attr) {
+            if FieldAttr::has(attr) {
                 attrs.push(attr.try_into()?);
             }
         }

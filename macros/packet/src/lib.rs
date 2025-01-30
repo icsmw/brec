@@ -13,9 +13,14 @@ use proc_macro as pm;
 use proc_macro2 as pm2;
 use quote::quote;
 use std::convert::TryFrom;
-use syn::{parse_macro_input, parse_quote, Data, DeriveInput, Fields};
+use syn::{parse_macro_input, parse_quote, Data, DeriveInput, Fields, Meta, Path};
 
-fn parse(mut input: DeriveInput) -> pm2::TokenStream {
+fn parse(meta: Meta, mut input: DeriveInput) -> pm2::TokenStream {
+    match meta {
+        Meta::Path(path) => println!(">>>>>>>>>>>>>>>>>>>:{}", path.segments.len()),
+        Meta::List(lt) => println!(">>>>>>>>>>>>>>>>>>> list: {}", lt.path.get_ident().unwrap()),
+        Meta::NameValue(..) => println!(">>>>>>>>>>>>>>. name"),
+    }
     let block = match Block::try_from(&mut input) {
         Ok(p) => p,
         Err(err) => return err.to_compile_error(),
@@ -35,6 +40,7 @@ fn parse(mut input: DeriveInput) -> pm2::TokenStream {
 
 #[test]
 fn test() {
+    let meta: Meta = parse_quote! { block(mod_a::mod_b) };
     let input: DeriveInput = parse_quote! {
         #[block]
         struct MyBlock {
@@ -44,7 +50,7 @@ fn test() {
         }
     };
 
-    let expanded = parse(input);
+    let expanded = parse(meta, input);
     let expected = quote! {
         struct MyBlock {
             field: u8,
@@ -56,7 +62,10 @@ fn test() {
 }
 
 #[proc_macro_attribute]
-pub fn packet(args: pm::TokenStream, input: pm::TokenStream) -> pm::TokenStream {
+pub fn block(attr: pm::TokenStream, input: pm::TokenStream) -> pm::TokenStream {
+    let attrs: BlockAttrs = parse_macro_input!(attr as BlockAttrs);
+
+    println!(">>>>>>>>>>>>>>>>: {attrs:?}");
     // let input = parse_macro_input!(input as DeriveInput);
 
     // let struct_name = &input.ident;

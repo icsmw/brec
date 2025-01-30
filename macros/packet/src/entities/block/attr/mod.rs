@@ -1,25 +1,28 @@
 use std::fmt;
 use syn::Attribute;
 
+#[derive(Debug, Default)]
+pub struct BlockAttrs(pub Vec<BlockAttr>);
+
 #[enum_ids::enum_ids(display_variant_snake)]
 #[derive(Debug)]
-pub enum Attr {
-    LinkWith(String),
+pub enum BlockAttr {
+    Path(String),
 }
 
-impl Attr {
+impl BlockAttr {
     pub fn has(attr: &Attribute) -> bool {
-        attr.path().is_ident(&AttrId::LinkWith.to_string())
+        attr.path().is_ident(&BlockAttrId::Path.to_string())
     }
 }
 
-impl fmt::Display for Attr {
+impl fmt::Display for BlockAttr {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
             "{}",
             match self {
-                Self::LinkWith(target) => format!("{}({target})", self.id()),
+                Self::Path(path) => format!("{}({path})", self.id()),
             }
         )
     }

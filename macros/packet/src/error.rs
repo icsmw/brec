@@ -29,6 +29,10 @@ pub enum E {
 
     #[error("Cannot detect attribute")]
     NoSuitableAttr,
+    #[error("Attribute isn't supported")]
+    UnsupportedAttr,
+    #[error("Cannot parse attribute; unexpected attribute type")]
+    UnexpectedAttrType,
     #[error("Missed name of enum type")]
     LinkingRequiresEnumName,
 }
