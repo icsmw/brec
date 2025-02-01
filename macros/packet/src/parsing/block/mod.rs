@@ -6,9 +6,9 @@ use syn::{Data, DeriveInput, Fields};
 
 pub const BLOCK_ATTR: &str = "block";
 
-impl TryFrom<&mut DeriveInput> for Block {
+impl TryFrom<(BlockAttrs, &mut DeriveInput)> for Block {
     type Error = syn::Error;
-    fn try_from(input: &mut DeriveInput) -> Result<Self, Self::Error> {
+    fn try_from((attrs, input): (BlockAttrs, &mut DeriveInput)) -> Result<Self, Self::Error> {
         let name = &input.ident;
         if !input.generics.params.is_empty() {
             return Err(syn::Error::new_spanned(
@@ -30,6 +30,11 @@ impl TryFrom<&mut DeriveInput> for Block {
             Field::injected(FIELD_SIG, Ty::Slice(4, Box::new(Ty::u8))),
         );
         extracted.push(Field::injected(FIELD_CRC, Ty::u32));
-        Ok(Self::new(name.to_string(), extracted))
+        let blk = Self::new(name.to_string(), extracted, attrs);
+        Collector::get()
+            .map_err(|err| syn::Error::new_spanned(&input, err))?
+            .add_block(blk.clone())
+            .map_err(|err| syn::Error::new_spanned(&input, err))?;
+        Ok(blk)
     }
 }

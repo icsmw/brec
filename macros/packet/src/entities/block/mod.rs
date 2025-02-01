@@ -8,15 +8,20 @@ use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
 use syn::Ident;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Block {
     pub name: String,
     pub fields: Vec<Field>,
+    pub attrs: BlockAttrs,
 }
 
 impl Block {
-    pub fn new(name: String, fields: Vec<Field>) -> Self {
-        Self { name, fields }
+    pub fn new(name: String, fields: Vec<Field>, attrs: BlockAttrs) -> Self {
+        Self {
+            name,
+            fields,
+            attrs,
+        }
     }
     pub fn sig(&self) -> TokenStream {
         let mut hasher = Hasher::new();
@@ -41,5 +46,11 @@ impl Block {
     }
     pub fn referred_name(&self) -> Ident {
         format_ident!("{}Referred", self.name())
+    }
+    pub fn fullname(&self) -> Result<Ident, E> {
+        self.attrs.fullname(self.name())
+    }
+    pub fn fullpath(&self) -> Result<TokenStream, E> {
+        self.attrs.fullpath(self.name())
     }
 }

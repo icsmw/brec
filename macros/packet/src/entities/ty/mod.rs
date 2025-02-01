@@ -2,7 +2,7 @@ use std::fmt;
 
 /// f16 and f128 are unstable
 #[enum_ids::enum_ids(display_variant)]
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 #[allow(non_camel_case_types)]
 pub enum Ty {
     u8,

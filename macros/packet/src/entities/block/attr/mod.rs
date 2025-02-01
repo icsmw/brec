@@ -1,11 +1,45 @@
+use crate::*;
+use proc_macro2::TokenStream;
+use quote::format_ident;
 use std::fmt;
-use syn::Attribute;
+use syn::{parse_str, Attribute, Ident};
 
-#[derive(Debug, Default)]
+#[derive(Debug, Clone, Default)]
 pub struct BlockAttrs(pub Vec<BlockAttr>);
 
+impl BlockAttrs {
+    pub fn fullpath(&self, name: Ident) -> Result<TokenStream, E> {
+        let Some(BlockAttr::Path(path)) = self
+            .0
+            .iter()
+            .find(|attr| matches!(attr, BlockAttr::Path(..)))
+        else {
+            return Ok(quote! {#name});
+        };
+        let fullpath = format!("{path}::{name}");
+        let fullpath: Path = parse_str(&fullpath).map_err(|_err| E::FailParseFullpath)?;
+        Ok(quote! { #fullpath })
+    }
+    pub fn fullname(&self, name: Ident) -> Result<Ident, E> {
+        Ok(format_ident!(
+            "{}",
+            self.fullpath(name)?
+                .to_string()
+                .split("::")
+                .map(|s| {
+                    let mut chars = s.trim().chars();
+                    match chars.next() {
+                        Some(first) => first.to_uppercase().chain(chars).collect(),
+                        None => String::new(),
+                    }
+                })
+                .collect::<Vec<String>>()
+                .join("")
+        ))
+    }
+}
 #[enum_ids::enum_ids(display_variant_snake)]
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum BlockAttr {
     Path(String),
 }

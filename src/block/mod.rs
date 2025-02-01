@@ -1,6 +1,6 @@
 pub use crate::*;
 
-pub trait Block<'a, T> {
+pub trait Signature {
     fn sig() -> &'static [u8; 4];
 }
 

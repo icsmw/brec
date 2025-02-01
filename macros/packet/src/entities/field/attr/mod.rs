@@ -2,7 +2,7 @@ use std::fmt;
 use syn::Attribute;
 
 #[enum_ids::enum_ids(display_variant_snake)]
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum FieldAttr {
     LinkWith(String),
 }

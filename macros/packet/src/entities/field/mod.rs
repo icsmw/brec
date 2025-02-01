@@ -7,7 +7,7 @@ use crate::*;
 pub const FIELD_SIG: &str = "__sig";
 pub const FIELD_CRC: &str = "__crc";
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Field {
     pub name: String,
     pub attrs: Vec<FieldAttr>,

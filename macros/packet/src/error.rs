@@ -8,6 +8,8 @@ pub enum E {
     NamedFieldsNotFound,
     #[error("Cannot extract identificator")]
     FailExtractIdent,
+    #[error("Cannot parse full path")]
+    FailParseFullpath,
     #[error("Generic types are not supported")]
     GenericTypesNotSupported,
     #[error("Unsupported type")]
@@ -35,4 +37,12 @@ pub enum E {
     UnexpectedAttrType,
     #[error("Missed name of enum type")]
     LinkingRequiresEnumName,
+
+    #[error("Fail to access to collector")]
+    NoAccessToCollector,
+
+    #[error("IO Error: {0}")]
+    Io(#[from] std::io::Error),
+    #[error("Var Error: {0}")]
+    Var(#[from] std::env::VarError),
 }

@@ -52,9 +52,9 @@ impl StructuredBase for Block {
 
             const #const_sig: [u8; 4] = #sig;
 
-            impl #referred_name <'_> {
+            impl Signature for #referred_name <'_> {
 
-                pub fn sig() -> &'static [u8; 4] {
+                fn sig() -> &'static [u8; 4] {
                     &#const_sig
                 }
 

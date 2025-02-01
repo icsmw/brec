@@ -2,7 +2,7 @@ use crate::*;
 use syn::{
     parse::{self, Parse, ParseStream},
     punctuated::Punctuated,
-    Expr, Lit, Token,
+    Expr, Token,
 };
 
 impl Parse for BlockAttrs {

@@ -6,13 +6,15 @@ edition = "2021"
 [workspace]
 members = [
     "macros/packet",
+    "macros/include",
     "."
-]
+, "example"]
 
 [dependencies]
 thiserror.workspace = true
 crc32fast.workspace = true
 packet = { path = "./macros/packet"}
+include = { path = "./macros/include"}
 
 [workspace.dependencies]
 thiserror = "2.0"
@@ -24,3 +26,4 @@ quote = "1.0"
 proc-macro2 = "1.0"
 enum_ids = "0.6"
 crc32fast = "1.4"
+lazy_static = "1.5"
