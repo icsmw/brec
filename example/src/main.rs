@@ -2,19 +2,19 @@ use brec::*;
 mod test;
 mod test2;
 #[block]
-struct MyBlock {
+pub struct MyBlock {
     field: u8,
     log_level: u8,
 }
 
 #[block]
-struct MyBlock2 {
+pub struct MyBlock2 {
     field: u8,
     log_level: u8,
 }
 
 #[block]
-struct MyBlock1 {
+pub struct MyBlock1 {
     field: u8,
     log_level: u8,
 }

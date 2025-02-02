@@ -9,6 +9,7 @@ use std::{
 use crate::*;
 
 use lazy_static::lazy_static;
+use quote::format_ident;
 
 lazy_static! {
     static ref COLLECTOR: Mutex<Collector> = Mutex::new(Collector::default());
@@ -29,14 +30,31 @@ impl Collector {
     }
     fn write(&self) -> Result<(), E> {
         let mut variants = Vec::new();
+        let mut checks = Vec::new();
         for blk in self.blocks.iter() {
             let fullname = blk.fullname()?;
             let fullpath = blk.fullpath()?;
             variants.push(quote! {#fullname(#fullpath)});
+            checks.push(quote! {
+                let result = <#fullpath as brec::TryReadBuffered>::try_read(buf)?;
+                if !::core::matches!(result, brec::ReadStatus::DismatchSignature) {
+                    return Ok(result.map(Block::#fullname));
+                }
+            });
         }
         let enum_block = quote! {
-            pub (crate) enum Block {
+            pub enum Block {
                 #(#variants,)*
+            }
+
+            impl brec::TryRead for Block {
+                fn try_read<T: std::io::Read + std::io::Seek>(buf: &mut T) -> Result<brec::ReadStatus<Self>, Error>
+                where
+                    Self: Sized,
+                {
+                    #(#checks)*
+                    Ok(brec::ReadStatus::DismatchSignature)
+                }
             }
         };
         let out_dir = env::var("OUT_DIR")?;
