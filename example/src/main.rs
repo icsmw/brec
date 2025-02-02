@@ -1,5 +1,6 @@
 use brec::*;
-
+mod test;
+mod test2;
 #[block]
 struct MyBlock {
     field: u8,

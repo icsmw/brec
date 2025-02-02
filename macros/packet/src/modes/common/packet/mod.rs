@@ -31,15 +31,15 @@ impl Crc for Block {
 impl Size for Block {
     fn gen(&self) -> TokenStream {
         let packet_name = self.name();
-        let mut size = 0usize;
+        let mut size = 0u64;
         for field in self.fields.iter() {
-            size += field.size();
+            size += field.size() as u64;
         }
         quote! {
 
             impl brec::Size for #packet_name {
 
-                fn size(&self) -> usize {
+                fn size() -> u64 {
                     #size
                 }
 

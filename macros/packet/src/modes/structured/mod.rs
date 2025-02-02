@@ -19,6 +19,14 @@ pub trait StructuredReadFromSlice {
     fn gen(&self) -> Result<TokenStream, E>;
 }
 
+pub trait StructuredTryRead {
+    fn gen(&self) -> Result<TokenStream, E>;
+}
+
+pub trait StructuredTryReadBuffered {
+    fn gen(&self) -> Result<TokenStream, E>;
+}
+
 pub trait StructuredWrite {
     fn gen(&self) -> Result<TokenStream, E>;
 }

@@ -78,13 +78,15 @@ impl StructuredRead for Block {
         Ok(quote! {
 
             impl brec::Read for #packet_name {
-                fn read<T: std::io::Read>(buf: &mut T) -> Result<Self, brec::Error>
+                fn read<T: std::io::Read>(buf: &mut T, skip_sig: bool) -> Result<Self, brec::Error>
                 where
                     Self: Sized {
-                        let mut sig = [0u8; 4];
-                        #src.read_exact(&mut sig)?;
-                        if sig != #const_sig {
-                            return Err(brec::Error::SignatureDismatch)
+                        if !skip_sig {
+                            let mut sig = [0u8; 4];
+                            #src.read_exact(&mut sig)?;
+                            if sig != #const_sig {
+                                return Err(brec::Error::SignatureDismatch)
+                            }
                         }
 
                         #(#fields)*
@@ -118,7 +120,17 @@ impl StructuredReadFromSlice for Block {
         let mut offset = 0usize;
         let src: syn::Ident = format_ident!("buf");
         for field in self.fields.iter() {
-            fields.push(field.safe(&src, offset, offset + field.ty.size()));
+            if &field.name == "__sig" {
+                fields.push(quote! {
+                    let __sig = if skip_sig {
+                        &#const_sig
+                    } else {
+                        <&[u8; 4usize]>::try_from(&#src[0usize..4usize])?
+                    };
+                });
+            } else {
+                fields.push(field.safe(&src, offset, offset + field.ty.size()));
+            }
             fnames.push(format_ident!("{}", field.name));
             offset += field.ty.size();
         }
@@ -126,20 +138,26 @@ impl StructuredReadFromSlice for Block {
 
             impl<'a> brec::ReadFromSlice<'a> for #referred_name <'a> {
 
-                fn read_from_slice(#src: &'a [u8]) -> Result<Self, brec::Error>
+                fn read_from_slice(#src: &'a [u8], skip_sig: bool) -> Result<Self, brec::Error>
                 where
                     Self: Sized,
                 {
-                    if #src.len() < 4 {
-                        return Err(brec::Error::NotEnoughtSignatureData(#src.len(), 4));
-                    }
+                    if !skip_sig {
+                        if #src.len() < 4 {
+                            return Err(brec::Error::NotEnoughtSignatureData(#src.len(), 4));
+                        }
 
-                    if #src[..4] != #const_sig {
-                        return Err(brec::Error::SignatureDismatch);
+                        if #src[..4] != #const_sig {
+                            return Err(brec::Error::SignatureDismatch);
+                        }
                     }
-
-                    if #src.len() < std::mem::size_of::<#packet_name>() {
-                        return Err(brec::Error::NotEnoughtData(#src.len(), std::mem::size_of::<#packet_name>()));
+                    let required = if skip_sig {
+                        #packet_name::size() - 4
+                    } else {
+                        #packet_name::size()
+                    } as usize;
+                    if #src.len() < required {
+                        return Err(brec::Error::NotEnoughtData(#src.len(), required));
                     }
 
                     #(#fields)*
@@ -150,6 +168,83 @@ impl StructuredReadFromSlice for Block {
                 }
 
             }
+        })
+    }
+}
+
+impl StructuredTryRead for Block {
+    fn gen(&self) -> Result<TokenStream, E> {
+        let packet_name = self.name();
+        let const_sig = self.const_sig_name();
+        Ok(quote! {
+
+            impl brec::TryRead for #packet_name {
+
+                fn try_read<T: std::io::Read + std::io::Seek>(buf: &mut T) -> Result<ReadStatus<Self>, Error>
+                where
+                    Self: Sized,
+                {
+                    let mut sig_buf = [0u8; 4];
+                    let start_pos = buf.stream_position()?;
+                    let len = buf.seek(std::io::SeekFrom::End(0))? - start_pos;
+
+                    buf.seek(std::io::SeekFrom::Start(start_pos))?;
+                    if len < 4 {
+                        return Ok(ReadStatus::NotEnoughtDataToReadSig(4 - len));
+                    }
+                    buf.read_exact(&mut sig_buf)?;
+                    if sig_buf != #const_sig {
+                        buf.seek(std::io::SeekFrom::Start(start_pos))?;
+                        return Ok(ReadStatus::DismatchSignature);
+                    }
+                    if len < #packet_name::size() {
+                        return Ok(ReadStatus::NotEnoughtData(#packet_name::size() - len));
+                    }
+                    Ok(ReadStatus::Success(#packet_name::read(buf, true)?))
+                }
+            }
+        })
+    }
+}
+
+impl StructuredTryReadBuffered for Block {
+    fn gen(&self) -> Result<TokenStream, E> {
+        let packet_name = self.name();
+        let const_sig = self.const_sig_name();
+        Ok(quote! {
+
+            impl brec::TryReadBuffered for #packet_name {
+
+                fn try_read<T: std::io::Read>(buf: &mut T) -> Result<ReadStatus<Self>, Error>
+                where
+                    Self: Sized,
+                {
+                    use std::io::BufRead;
+
+                    let mut reader = std::io::BufReader::new(buf);
+                    let bytes = reader.fill_buf()?;
+
+                    if bytes.len() < 4 {
+                        return Ok(ReadStatus::NotEnoughtDataToReadSig(
+                            (4 - bytes.len()) as u64,
+                        ));
+                    }
+
+                    if !bytes.starts_with(&#const_sig) {
+                        return Ok(ReadStatus::DismatchSignature);
+                    }
+
+                    if (bytes.len() as u64) < #packet_name::size() {
+                        return Ok(ReadStatus::NotEnoughtData(
+                            #packet_name::size() - bytes.len() as u64,
+                        ));
+                    }
+                    reader.consume(4);
+                    let blk = #packet_name::read(&mut reader, true);
+                    reader.consume(#packet_name::size() as usize - 4);
+                    Ok(ReadStatus::Success(blk?))
+                }
+                        }
         })
     }
 }
@@ -197,6 +292,8 @@ impl Structured for Block {
         let base = StructuredBase::gen(self)?;
         let read = StructuredRead::gen(self)?;
         let read_slice = StructuredReadFromSlice::gen(self)?;
+        let try_read = StructuredTryRead::gen(self)?;
+        let try_read_buffered = StructuredTryReadBuffered::gen(self)?;
         let crc = Crc::gen(self);
         let size = Size::gen(self);
         let write = StructuredWrite::gen(self)?;
@@ -206,6 +303,8 @@ impl Structured for Block {
             #size
             #read
             #read_slice
+            #try_read
+            #try_read_buffered
             #write
         })
     }
