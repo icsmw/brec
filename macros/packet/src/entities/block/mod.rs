@@ -6,7 +6,7 @@ use crate::*;
 use crc32fast::Hasher;
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
-use syn::Ident;
+use syn::{Ident, LitInt};
 
 #[derive(Debug, Clone)]
 pub struct Block {
@@ -37,6 +37,10 @@ impl Block {
         hasher.update(snap.as_bytes());
         let sig = hasher.finalize().to_le_bytes();
         quote! { [#(#sig),*] }
+    }
+    pub fn sig_len(&self) -> TokenStream {
+        let len_lit = LitInt::new("4", proc_macro2::Span::call_site());
+        quote! { #len_lit }
     }
     pub fn const_sig_name(&self) -> Ident {
         format_ident!("{}", self.name.to_ascii_uppercase())
