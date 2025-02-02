@@ -25,10 +25,6 @@ impl TypeDefinition for Ty {
                 let inner_ty = ty.direct();
                 quote! { [#inner_ty; #len] }
             }
-            Self::Option(ty) => {
-                let inner_ty = ty.referenced();
-                quote! { Option< #inner_ty > }
-            }
         }
     }
     fn referenced(&self) -> TokenStream {
@@ -52,10 +48,6 @@ impl TypeDefinition for Ty {
             Self::Slice(len, ty) => {
                 let inner_ty = ty.direct();
                 quote! { &'a [#inner_ty; #len] }
-            }
-            Self::Option(ty) => {
-                let inner_ty = ty.referenced();
-                quote! { Option<&'a #inner_ty> }
             }
         }
     }

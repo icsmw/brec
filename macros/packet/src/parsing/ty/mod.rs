@@ -1,6 +1,6 @@
 use crate::*;
 use std::convert::{TryFrom, TryInto};
-use syn::{Expr, Ident, PathArguments, Type, TypeArray, TypePath};
+use syn::{Expr, Ident, Type, TypeArray, TypePath};
 
 impl TryFrom<&Type> for Ty {
     type Error = syn::Error;
@@ -21,27 +21,7 @@ impl TryFrom<&TypePath> for Ty {
         if let Some(ident) = ty.path.get_ident() {
             ident.try_into()
         } else {
-            let segments: Vec<_> = ty.path.segments.iter().collect();
-            let path = segments
-                .iter()
-                .map(|s| s.ident.to_string())
-                .collect::<Vec<String>>()
-                .join("::");
-            if ["Option", "std::option::Option"].contains(&path.as_str()) {
-                let PathArguments::AngleBracketed(args) = &segments[segments.len() - 1].arguments
-                else {
-                    return Err(syn::Error::new_spanned(ty, E::FailParseGenericArg));
-                };
-                if args.args.len() != 1 {
-                    return Err(syn::Error::new_spanned(ty, E::OnlySingleGenericArg));
-                }
-                let syn::GenericArgument::Type(inner) = &args.args[0] else {
-                    return Err(syn::Error::new_spanned(ty, E::FailParseGenericArg));
-                };
-                Ty::try_from(inner).map(|inner| Ty::Option(Box::new(inner)))
-            } else {
-                Err(syn::Error::new_spanned(ty, E::UnsupportedType))
-            }
+            Err(syn::Error::new_spanned(ty, E::UnsupportedType))
         }
     }
 }

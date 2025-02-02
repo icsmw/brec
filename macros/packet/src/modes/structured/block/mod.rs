@@ -9,7 +9,7 @@ impl StructuredBase for Block {
             .fields
             .iter()
             .map(|f| {
-                if matches!(f.ty, Ty::Slice(..) | Ty::Option(..)) {
+                if matches!(f.ty, Ty::Slice(..)) {
                     f.referenced_ty()
                 } else {
                     f.direct_ty()

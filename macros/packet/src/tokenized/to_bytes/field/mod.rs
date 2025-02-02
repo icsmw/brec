@@ -52,11 +52,8 @@ impl ToBytes for Field {
                     }
                     bytes
                 } }),
-                Ty::Slice(..) | Ty::Option(..) => Err(E::UnsupportedTypeInSlice),
+                Ty::Slice(..) => Err(E::UnsupportedTypeInSlice),
             },
-            Ty::Option(ty) => {
-                todo!("Add wrapper")
-            }
         }
     }
 }

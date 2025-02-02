@@ -19,7 +19,6 @@ pub enum Ty {
     f64,
     bool,
     Slice(usize, Box<Ty>),
-    Option(Box<Ty>),
 }
 
 impl Ty {
@@ -39,7 +38,6 @@ impl Ty {
             Self::f64 => std::mem::size_of::<f64>(),
             Self::bool => std::mem::size_of::<bool>(),
             Self::Slice(len, ty) => len * ty.size(),
-            Self::Option(ty) => ty.size() + 1,
         }
     }
 }
@@ -64,7 +62,6 @@ impl fmt::Display for Ty {
                 Self::f64 => TyId::f64.to_string(),
                 Self::bool => TyId::bool.to_string(),
                 Self::Slice(len, ty) => format!("[{ty};{len}]"),
-                Self::Option(ty) => format!("Option<{ty}>"),
             }
         )
     }

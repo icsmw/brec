@@ -31,12 +31,6 @@ impl FromBytes for Ty {
                     <&[#inner_ty; #len]>::try_from(&#src[#from..#to])?
                 }
             }
-            Ty::Option(ty) => {
-                let inner_ty = ty.safe(src, from, to);
-                quote! {
-                    Some( #inner_ty )
-                }
-            }
         }
     }
 
