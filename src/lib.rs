@@ -1,3 +1,8 @@
+#[cfg(feature = "build")]
+pub mod build;
+#[cfg(feature = "build")]
+pub use build::*;
+
 pub mod block;
 pub mod error;
 

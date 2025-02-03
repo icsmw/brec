@@ -5,3 +5,6 @@ edition = "2021"
 
 [dependencies]
 brec = { path = "../"}
+
+[build-dependencies]
+brec = { path = "../", features=["build"]}

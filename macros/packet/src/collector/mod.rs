@@ -9,7 +9,6 @@ use std::{
 use crate::*;
 
 use lazy_static::lazy_static;
-use quote::format_ident;
 
 lazy_static! {
     static ref COLLECTOR: Mutex<Collector> = Mutex::new(Collector::default());
