@@ -14,6 +14,10 @@ pub enum Error {
     SignatureDismatch,
     #[error("Crc doesn't match to target entity")]
     CrcDismatch,
+    #[error("Misaligned slice pointer")]
+    MisalignedPointer,
+    #[error("Unexpected slice length")]
+    UnexpectedSliceLength,
     #[error("IO Error: {0}")]
     Io(#[from] std::io::Error),
 }

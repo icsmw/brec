@@ -8,9 +8,23 @@ impl Crc for Block {
         let mut hash_pushes = Vec::new();
         for field in self.fields.iter().filter(|f| !f.injected) {
             let as_bytes = field.to_bytes().unwrap();
-            hash_pushes.push(quote! {
-                hasher.update(#as_bytes);
-            });
+            let el = if let Ty::Slice(.., inner_ty) = &field.ty {
+                if matches!(**inner_ty, Ty::u8) {
+                    quote! {
+                        hasher.update(#as_bytes);
+                    }
+                } else {
+                    quote! {
+                        let bytes = #as_bytes;
+                        hasher.update(&bytes);
+                    }
+                }
+            } else {
+                quote! {
+                    hasher.update(#as_bytes);
+                }
+            };
+            hash_pushes.push(el);
         }
         quote! {
 

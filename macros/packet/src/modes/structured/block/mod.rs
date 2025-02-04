@@ -5,6 +5,7 @@ use quote::{format_ident, quote};
 impl StructuredBase for Block {
     fn gen(&self) -> Result<TokenStream, E> {
         let referred_name = self.referred_name();
+        let block_name = self.name();
         let struct_fields = self
             .fields
             .iter()
@@ -22,8 +23,14 @@ impl StructuredBase for Block {
             .filter(|f| !f.injected)
             .map(|f| {
                 let field = format_ident!("{}", f.name);
-                let field_path = quote! {
-                    packet.#field
+                let field_path = if matches!(f.ty, Ty::Slice(..)) {
+                    quote! {
+                        *block.#field
+                    }
+                } else {
+                    quote! {
+                        block.#field
+                    }
                 };
                 quote! {
                     #field: #field_path,
@@ -43,9 +50,9 @@ impl StructuredBase for Block {
                 #(#struct_fields)*
             }
 
-            impl<'a> From<#referred_name <'a>> for MyBlock {
-                fn from(packet: #referred_name <'a>) -> Self {
-                    MyBlock {
+            impl<'a> From<#referred_name <'a>> for #block_name {
+                fn from(block: #referred_name <'a>) -> Self {
+                    #block_name {
                         #(#derefed)*
                     }
                 }
@@ -67,7 +74,7 @@ impl StructuredBase for Block {
 
 impl StructuredRead for Block {
     fn gen(&self) -> Result<TokenStream, E> {
-        let packet_name = self.name();
+        let block_name = self.name();
         let const_sig = self.const_sig_name();
         let mut fields = Vec::new();
         let mut fnames = Vec::new();
@@ -79,7 +86,7 @@ impl StructuredRead for Block {
         }
         Ok(quote! {
 
-            impl brec::Read for #packet_name {
+            impl brec::Read for #block_name {
                 fn read<T: std::io::Read>(buf: &mut T, skip_sig: bool) -> Result<Self, brec::Error>
                 where
                     Self: Sized {
@@ -96,15 +103,15 @@ impl StructuredRead for Block {
                         let mut crc = [0u8; 4];
                         #src.read_exact(&mut crc)?;
 
-                        let packet = #packet_name {
+                        let block = #block_name {
                             #(#fnames,)*
                         };
 
-                        if packet.crc() != crc {
+                        if block.crc() != crc {
                             return Err(brec::Error::CrcDismatch)
                         }
 
-                        Ok(packet)
+                        Ok(block)
                 }
             }
 
@@ -115,7 +122,7 @@ impl StructuredRead for Block {
 impl StructuredReadFromSlice for Block {
     fn gen(&self) -> Result<TokenStream, E> {
         let referred_name = self.referred_name();
-        let packet_name = self.name();
+        let block_name = self.name();
         let const_sig = self.const_sig_name();
         let sig_len = self.sig_len();
         let mut fields = Vec::new();
@@ -155,9 +162,9 @@ impl StructuredReadFromSlice for Block {
                         }
                     }
                     let required = if skip_sig {
-                        #packet_name::size() - #sig_len
+                        #block_name::size() - #sig_len
                     } else {
-                        #packet_name::size()
+                        #block_name::size()
                     } as usize;
                     if #src.len() < required {
                         return Err(brec::Error::NotEnoughtData(#src.len(), required));
@@ -177,12 +184,12 @@ impl StructuredReadFromSlice for Block {
 
 impl StructuredTryRead for Block {
     fn gen(&self) -> Result<TokenStream, E> {
-        let packet_name = self.name();
+        let block_name = self.name();
         let const_sig = self.const_sig_name();
         let sig_len = self.sig_len();
         Ok(quote! {
 
-            impl brec::TryRead for #packet_name {
+            impl brec::TryRead for #block_name {
 
                 fn try_read<T: std::io::Read + std::io::Seek>(buf: &mut T) -> Result<ReadStatus<Self>, Error>
                 where
@@ -201,10 +208,10 @@ impl StructuredTryRead for Block {
                         buf.seek(std::io::SeekFrom::Start(start_pos))?;
                         return Ok(ReadStatus::DismatchSignature);
                     }
-                    if len < #packet_name::size() {
-                        return Ok(ReadStatus::NotEnoughtData(#packet_name::size() - len));
+                    if len < #block_name::size() {
+                        return Ok(ReadStatus::NotEnoughtData(#block_name::size() - len));
                     }
-                    Ok(ReadStatus::Success(#packet_name::read(buf, true)?))
+                    Ok(ReadStatus::Success(#block_name::read(buf, true)?))
                 }
             }
         })
@@ -213,12 +220,12 @@ impl StructuredTryRead for Block {
 
 impl StructuredTryReadBuffered for Block {
     fn gen(&self) -> Result<TokenStream, E> {
-        let packet_name = self.name();
+        let block_name = self.name();
         let const_sig = self.const_sig_name();
         let sig_len = self.sig_len();
         Ok(quote! {
 
-            impl brec::TryReadBuffered for #packet_name {
+            impl brec::TryReadBuffered for #block_name {
 
                 fn try_read<T: std::io::Read>(buf: &mut T) -> Result<ReadStatus<Self>, Error>
                 where
@@ -239,14 +246,14 @@ impl StructuredTryReadBuffered for Block {
                         return Ok(ReadStatus::DismatchSignature);
                     }
 
-                    if (bytes.len() as u64) < #packet_name::size() {
+                    if (bytes.len() as u64) < #block_name::size() {
                         return Ok(ReadStatus::NotEnoughtData(
-                            #packet_name::size() - bytes.len() as u64,
+                            #block_name::size() - bytes.len() as u64,
                         ));
                     }
                     reader.consume(#sig_len);
-                    let blk = #packet_name::read(&mut reader, true);
-                    reader.consume(#packet_name::size() as usize - #sig_len);
+                    let blk = #block_name::read(&mut reader, true);
+                    reader.consume(#block_name::size() as usize - #sig_len);
                     Ok(ReadStatus::Success(blk?))
                 }
                         }
@@ -256,27 +263,48 @@ impl StructuredTryReadBuffered for Block {
 
 impl StructuredWrite for Block {
     fn gen(&self) -> Result<TokenStream, E> {
-        let packet_name = self.name();
+        let block_name = self.name();
         let mut write_pushes = Vec::new();
         let mut write_all_pushes = Vec::new();
         for field in self.fields.iter().filter(|f| !f.injected) {
             let as_bytes = field.to_bytes()?;
-            write_pushes.push(quote! {
-                + buf.write(#as_bytes)?
-            });
-            write_all_pushes.push(quote! {
-                buf.write_all(#as_bytes)?;
-            });
+            if let Ty::Slice(.., inner_ty) = &field.ty {
+                if matches!(**inner_ty, Ty::u8) {
+                    write_pushes.push(quote! {
+                        bytes += buf.write(#as_bytes)?;
+                    });
+                    write_all_pushes.push(quote! {
+                        buf.write_all(#as_bytes)?;
+                    });
+                } else {
+                    write_pushes.push(quote! {
+                        let bts = #as_bytes;
+                        bytes += buf.write(&bts)?;
+                    });
+                    write_all_pushes.push(quote! {
+                        let bts = #as_bytes;
+                        buf.write_all(&bts)?;
+                    });
+                }
+            } else {
+                write_pushes.push(quote! {
+                    bytes += buf.write(#as_bytes)?;
+                });
+                write_all_pushes.push(quote! {
+                    buf.write_all(#as_bytes)?;
+                });
+            };
         }
         let const_sig = self.const_sig_name();
         Ok(quote! {
 
-            impl brec::Write for #packet_name {
+            impl brec::Write for #block_name {
 
                 fn write<T: std::io::Write>(&self, buf: &mut T) -> std::io::Result<usize> {
-                    Ok(buf.write(&#const_sig)?
+                    let mut bytes: usize = buf.write(&#const_sig)?;
                     #(#write_pushes)*
-                    + buf.write(&self.crc())?)
+                    bytes += buf.write(&self.crc())?;
+                    Ok(bytes)
                 }
 
                 fn write_all<T: std::io::Write>(&self, buf: &mut T) -> std::io::Result<()> {

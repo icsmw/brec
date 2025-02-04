@@ -1,3 +1,6 @@
+#[cfg(test)]
+mod tests;
+
 mod collector;
 mod entities;
 mod error;
@@ -15,7 +18,7 @@ use proc_macro as pm;
 use proc_macro2 as pm2;
 use quote::quote;
 use std::convert::TryFrom;
-use syn::{parse_macro_input, parse_quote, Data, DeriveInput, Fields, Meta, Path};
+use syn::{parse_macro_input, DeriveInput, Path};
 
 fn parse(attrs: BlockAttrs, mut input: DeriveInput) -> pm2::TokenStream {
     let block = match Block::try_from((attrs, &mut input)) {
@@ -37,6 +40,8 @@ fn parse(attrs: BlockAttrs, mut input: DeriveInput) -> pm2::TokenStream {
 
 #[test]
 fn test() {
+    use syn::{parse_quote, DeriveInput};
+
     let input: DeriveInput = parse_quote! {
         #[block]
         struct MyBlock {

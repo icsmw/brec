@@ -1,4 +1,9 @@
-use std::fmt;
+#[cfg(test)]
+mod proptest;
+#[cfg(test)]
+pub(crate) use proptest::*;
+
+use std::{default, fmt};
 
 /// f16 and f128 are unstable
 #[enum_ids::enum_ids(display_variant)]

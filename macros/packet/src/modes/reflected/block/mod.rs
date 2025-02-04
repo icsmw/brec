@@ -16,15 +16,21 @@ impl Reflected for Block {
             .filter(|f| !f.injected)
             .map(|f| {
                 let field = format_ident!("{}", f.name);
-                let field_path = quote! {
-                    packet.#field
+                let field_path = if matches!(f.ty, Ty::Slice(..)) {
+                    quote! {
+                        *packet.#field
+                    }
+                } else {
+                    quote! {
+                        packet.#field
+                    }
                 };
                 quote! {
                     #field: *#field_path,
                 }
             })
             .collect::<Vec<TokenStream>>();
-        let packet_name = self.name();
+        let block_name = self.name();
         let const_sig = self.const_sig_name();
         let mut fields = Vec::new();
         let mut fnames = Vec::new();
@@ -44,9 +50,9 @@ impl Reflected for Block {
                 #(#struct_fields)*
             }
 
-            impl<'a> From<#referred_name <'a>> for MyBlock {
+            impl<'a> From<#referred_name <'a>> for #block_name {
                 fn from(packet: #referred_name <'a>) -> Self {
-                    MyBlock {
+                    #block_name {
                         #(#derefed)*
                     }
                 }
@@ -71,15 +77,15 @@ impl Reflected for Block {
                         return Ok(None);
                     }
 
-                    if #src.len() < mem::size_of::<#packet_name>() {
-                        return Err(brec::Error::NotEnoughtData(#src.len(), mem::size_of::<#packet_name>()));
+                    if #src.len() < mem::size_of::<#block_name>() {
+                        return Err(brec::Error::NotEnoughtData(#src.len(), mem::size_of::<#block_name>()));
                     }
 
-                    if #src.as_ptr() as usize % std::mem::align_of::<#packet_name>() != 0 {
+                    if #src.as_ptr() as usize % std::mem::align_of::<#block_name>() != 0 {
                         return Err(brec::Error::InvalidAlign(
                             #src.as_ptr() as usize,
-                            mem::size_of::<#packet_name>(),
-                            #src.as_ptr() as usize % std::mem::align_of::<#packet_name>()
+                            mem::size_of::<#block_name>(),
+                            #src.as_ptr() as usize % std::mem::align_of::<#block_name>()
                         ));
                     }
 
