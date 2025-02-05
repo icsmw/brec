@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-brec = { path = "../"}
+brec = { path = "../../brec"}
 
 [build-dependencies]
-brec = { path = "../", features=["build"]}
+brec = { path = "../../brec", features=["build"]}

@@ -8,7 +8,7 @@ members = [
     "macros/packet",
     "macros/include",
     "."
-, "example"]
+]
 
 [features]
 build = []
