@@ -2,77 +2,7 @@ use crate::*;
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
 
-impl StructuredBase for Block {
-    fn gen(&self) -> Result<TokenStream, E> {
-        let referred_name = self.referred_name();
-        let block_name = self.name();
-        let struct_fields = self
-            .fields
-            .iter()
-            .map(|f| {
-                if matches!(f.ty, Ty::Slice(..)) {
-                    f.referenced_ty()
-                } else {
-                    f.direct_ty()
-                }
-            })
-            .collect::<Vec<TokenStream>>();
-        let derefed = self
-            .fields
-            .iter()
-            .filter(|f| !f.injected)
-            .map(|f| {
-                let field = format_ident!("{}", f.name);
-                let field_path = if matches!(f.ty, Ty::Slice(..)) {
-                    quote! {
-                        *block.#field
-                    }
-                } else {
-                    quote! {
-                        block.#field
-                    }
-                };
-                quote! {
-                    #field: #field_path,
-                }
-            })
-            .collect::<Vec<TokenStream>>();
-        let const_sig = self.const_sig_name();
-        let sig = self.sig();
-        let sig_len = self.sig_len();
-        Ok(quote! {
-
-            #[repr(C)]
-            #[derive(Debug)]
-            struct #referred_name <'a>
-                where Self: Sized
-            {
-                #(#struct_fields)*
-            }
-
-            impl<'a> From<#referred_name <'a>> for #block_name {
-                fn from(block: #referred_name <'a>) -> Self {
-                    #block_name {
-                        #(#derefed)*
-                    }
-                }
-            }
-
-            const #const_sig: [u8; #sig_len] = #sig;
-
-            impl Signature for #referred_name <'_> {
-
-                fn sig() -> &'static [u8; #sig_len] {
-                    &#const_sig
-                }
-
-            }
-
-        })
-    }
-}
-
-impl StructuredRead for Block {
+impl Read for Block {
     fn gen(&self) -> Result<TokenStream, E> {
         let block_name = self.name();
         let const_sig = self.const_sig_name();
@@ -119,7 +49,7 @@ impl StructuredRead for Block {
     }
 }
 
-impl StructuredReadFromSlice for Block {
+impl ReadFromSlice for Block {
     fn gen(&self) -> Result<TokenStream, E> {
         let referred_name = self.referred_name();
         let block_name = self.name();
@@ -182,7 +112,7 @@ impl StructuredReadFromSlice for Block {
     }
 }
 
-impl StructuredTryRead for Block {
+impl TryRead for Block {
     fn gen(&self) -> Result<TokenStream, E> {
         let block_name = self.name();
         let const_sig = self.const_sig_name();
@@ -218,7 +148,7 @@ impl StructuredTryRead for Block {
     }
 }
 
-impl StructuredTryReadBuffered for Block {
+impl TryReadBuffered for Block {
     fn gen(&self) -> Result<TokenStream, E> {
         let block_name = self.name();
         let const_sig = self.const_sig_name();
@@ -257,88 +187,6 @@ impl StructuredTryReadBuffered for Block {
                     Ok(ReadStatus::Success(blk?))
                 }
                         }
-        })
-    }
-}
-
-impl StructuredWrite for Block {
-    fn gen(&self) -> Result<TokenStream, E> {
-        let block_name = self.name();
-        let mut write_pushes = Vec::new();
-        let mut write_all_pushes = Vec::new();
-        for field in self.fields.iter().filter(|f| !f.injected) {
-            let as_bytes = field.to_bytes()?;
-            if let Ty::Slice(.., inner_ty) = &field.ty {
-                if matches!(**inner_ty, Ty::u8) {
-                    write_pushes.push(quote! {
-                        bytes += buf.write(#as_bytes)?;
-                    });
-                    write_all_pushes.push(quote! {
-                        buf.write_all(#as_bytes)?;
-                    });
-                } else {
-                    write_pushes.push(quote! {
-                        let bts = #as_bytes;
-                        bytes += buf.write(&bts)?;
-                    });
-                    write_all_pushes.push(quote! {
-                        let bts = #as_bytes;
-                        buf.write_all(&bts)?;
-                    });
-                }
-            } else {
-                write_pushes.push(quote! {
-                    bytes += buf.write(#as_bytes)?;
-                });
-                write_all_pushes.push(quote! {
-                    buf.write_all(#as_bytes)?;
-                });
-            };
-        }
-        let const_sig = self.const_sig_name();
-        Ok(quote! {
-
-            impl brec::Write for #block_name {
-
-                fn write<T: std::io::Write>(&self, buf: &mut T) -> std::io::Result<usize> {
-                    let mut bytes: usize = buf.write(&#const_sig)?;
-                    #(#write_pushes)*
-                    bytes += buf.write(&self.crc())?;
-                    Ok(bytes)
-                }
-
-                fn write_all<T: std::io::Write>(&self, buf: &mut T) -> std::io::Result<()> {
-                    buf.write_all(&#const_sig)?;
-                    #(#write_all_pushes)*
-                    buf.write_all(&self.crc())?;
-                    Ok(())
-                }
-
-            }
-
-        })
-    }
-}
-
-impl Structured for Block {
-    fn gen(&self) -> Result<TokenStream, E> {
-        let base = StructuredBase::gen(self)?;
-        let read = StructuredRead::gen(self)?;
-        let read_slice = StructuredReadFromSlice::gen(self)?;
-        let try_read = StructuredTryRead::gen(self)?;
-        let try_read_buffered = StructuredTryReadBuffered::gen(self)?;
-        let crc = Crc::gen(self);
-        let size = Size::gen(self);
-        let write = StructuredWrite::gen(self)?;
-        Ok(quote! {
-            #base
-            #crc
-            #size
-            #read
-            #read_slice
-            #try_read
-            #try_read_buffered
-            #write
         })
     }
 }

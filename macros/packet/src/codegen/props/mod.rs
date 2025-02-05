@@ -1,4 +1,6 @@
-mod packet;
+mod block;
+
+pub(crate) use block::*;
 
 use proc_macro2::TokenStream;
 

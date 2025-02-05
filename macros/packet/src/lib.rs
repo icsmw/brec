@@ -1,17 +1,17 @@
 #[cfg(test)]
 mod tests;
 
+mod codegen;
 mod collector;
 mod entities;
 mod error;
-mod modes;
 mod parsing;
 mod tokenized;
 
+use codegen::*;
 pub(crate) use collector::*;
 use entities::*;
 use error::*;
-use modes::*;
 use tokenized::*;
 
 use proc_macro as pm;
@@ -25,7 +25,7 @@ fn parse(attrs: BlockAttrs, mut input: DeriveInput) -> pm2::TokenStream {
         Ok(p) => p,
         Err(err) => return err.to_compile_error(),
     };
-    let reflected = match modes::Structured::gen(&block) {
+    let reflected = match codegen::Gen::gen(&block) {
         Ok(p) => p,
         Err(err) => {
             return syn::Error::new_spanned(&input, err).to_compile_error();
