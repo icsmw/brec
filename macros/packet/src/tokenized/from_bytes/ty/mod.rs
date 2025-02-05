@@ -88,7 +88,6 @@ impl FromBytes for Ty {
                             if bytes.len() != #len * #ty_size {
                                 return Err(brec::Error::UnexpectedSliceLength)
                             }
-                            let slice = unsafe { &*(bytes.as_ptr() as *const [#ty; #len]) };
                             if cfg!(target_endian = "big") {
                                 let mut arr = [#default; #len];
                                 for (i, chunk) in bytes.chunks_exact(#ty_size).enumerate() {
@@ -98,7 +97,7 @@ impl FromBytes for Ty {
                                 }
                                 std::boxed::Box::leak(std::boxed::Box::new(arr))
                             } else {
-                                slice
+                                unsafe { &*(bytes.as_ptr() as *const [#ty; #len]) }
                             }
                         }
                     }

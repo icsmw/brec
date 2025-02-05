@@ -598,7 +598,6 @@ impl<'a> brec::ReadFromSlice<'a> for CustomBlockReferred<'a> {
             if bytes.len() != 100usize * 4usize {
                 return Err(brec::Error::UnexpectedSliceLength);
             }
-            let slice = unsafe { &*(bytes.as_ptr() as *const [f32; 100usize]) };
             if false {
                 let mut arr = [0f32; 100usize];
                 for (i, chunk) in bytes.chunks_exact(4usize).enumerate() {
@@ -608,7 +607,7 @@ impl<'a> brec::ReadFromSlice<'a> for CustomBlockReferred<'a> {
                 }
                 std::boxed::Box::leak(std::boxed::Box::new(arr))
             } else {
-                slice
+                unsafe { &*(bytes.as_ptr() as *const [f32; 100usize]) }
             }
         };
         let field_f64_slice = {
@@ -619,7 +618,6 @@ impl<'a> brec::ReadFromSlice<'a> for CustomBlockReferred<'a> {
             if bytes.len() != 100usize * 8usize {
                 return Err(brec::Error::UnexpectedSliceLength);
             }
-            let slice = unsafe { &*(bytes.as_ptr() as *const [f64; 100usize]) };
             if false {
                 let mut arr = [0f64; 100usize];
                 for (i, chunk) in bytes.chunks_exact(8usize).enumerate() {
@@ -629,7 +627,7 @@ impl<'a> brec::ReadFromSlice<'a> for CustomBlockReferred<'a> {
                 }
                 std::boxed::Box::leak(std::boxed::Box::new(arr))
             } else {
-                slice
+                unsafe { &*(bytes.as_ptr() as *const [f64; 100usize]) }
             }
         };
         let field_bool_slice = {
@@ -952,5 +950,25 @@ impl brec::Write for CustomBlock {
         buf.write_all(&bts)?;
         buf.write_all(&self.crc())?;
         Ok(())
+    }
+}
+pub enum Block {
+    CustomBlock(CustomBlock),
+}
+impl brec::TryRead for Block {
+    fn try_read<T: std::io::Read + std::io::Seek>(
+        buf: &mut T,
+    ) -> Result<brec::ReadStatus<Self>, Error>
+    where
+        Self: Sized,
+    {
+        let result = <CustomBlock as brec::TryReadBuffered>::try_read(buf)?;
+        if !match result {
+            brec::ReadStatus::DismatchSignature => true,
+            _ => false,
+        } {
+            return Ok(result.map(Block::CustomBlock));
+        }
+        Ok(brec::ReadStatus::DismatchSignature)
     }
 }

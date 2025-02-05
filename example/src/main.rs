@@ -32,7 +32,7 @@ pub struct CustomBlock {
     field_bool_slice: [bool; 100],
 }
 
-// include_generated!();
+include_generated!();
 
 fn main() {
     println!("Hello, world!");
