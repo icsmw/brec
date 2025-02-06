@@ -1,7 +1,19 @@
+use std::{
+    fmt::Debug,
+    io::{BufReader, Cursor, Seek},
+    ops::Deref,
+};
+
 use brec::*;
+use rand::{
+    distr::{Distribution, StandardUniform},
+    rngs::ThreadRng,
+    Rng,
+};
 
 mod extended;
 
+#[derive(Debug, PartialEq, Clone)]
 #[block]
 pub struct CustomBlock {
     field_u8: u8,
@@ -17,23 +29,200 @@ pub struct CustomBlock {
     field_f32: f32,
     field_f64: f64,
     field_bool: bool,
-    field_u8_slice: [u8; 100],
-    field_u16_slice: [u16; 100],
-    field_u32_slice: [u32; 100],
-    field_u64_slice: [u64; 100],
-    field_u128_slice: [u128; 100],
-    field_i8_slice: [i8; 100],
-    field_i16_slice: [i16; 100],
-    field_i32_slice: [i32; 100],
-    field_i64_slice: [i64; 100],
-    field_i128_slice: [i128; 100],
-    field_f32_slice: [f32; 100],
-    field_f64_slice: [f64; 100],
-    field_bool_slice: [bool; 100],
+    blob_a: [u8; 100],
+    blob_b: [u8; 100],
 }
 
 include_generated!();
 
+impl CustomBlock {
+    pub fn rand() -> Self {
+        let mut rng = rand::rng();
+        fn slice<T>(rng: &ThreadRng) -> [T; 100]
+        where
+            StandardUniform: Distribution<T>,
+            T: Debug,
+        {
+            rng.clone()
+                .random_iter()
+                .take(100)
+                .collect::<Vec<T>>()
+                .try_into()
+                .expect("Expected 100 elements")
+        }
+        Self {
+            field_u8: rng.random(),
+            field_u16: rng.random(),
+            field_u32: rng.random(),
+            field_u64: rng.random(),
+            field_u128: rng.random(),
+            field_i8: rng.random(),
+            field_i16: rng.random(),
+            field_i32: rng.random(),
+            field_i64: rng.random(),
+            field_i128: rng.random(),
+            field_f32: rng.random(),
+            field_f64: rng.random(),
+            field_bool: rng.random_bool(1.0 / 3.0),
+            blob_a: slice::<u8>(&rng),
+            blob_b: slice::<u8>(&rng),
+        }
+    }
+}
+
+#[test]
+fn from_reader() {
+    let mut origins = Vec::new();
+    let mut rng = rand::rng();
+    let count = rng.random_range(5..10);
+    for _ in 0..count {
+        origins.push(CustomBlock::rand());
+    }
+    let mut buf: Vec<u8> = Vec::new();
+    for blk in origins.iter() {
+        println!(
+            "write: {} bytes",
+            blk.write(&mut buf).expect("Block is written")
+        );
+    }
+    let size = buf.len() as u64;
+    println!("created: {count}; total size: {size}");
+    let mut restored = Vec::new();
+    let mut reader = BufReader::new(Cursor::new(buf));
+    let mut consumed = 0;
+    loop {
+        match CustomBlock::read(&mut reader, false) {
+            Ok(blk) => {
+                consumed = reader.stream_position().expect("Position is read");
+                restored.push(blk);
+            }
+            Err(err) => {
+                println!("{err}");
+                break;
+            }
+        }
+    }
+    assert_eq!(size, consumed);
+    assert_eq!(origins.len(), restored.len());
+    for (left, right) in restored.iter().zip(origins.iter()) {
+        assert_eq!(left, right);
+    }
+}
+
+#[test]
+fn from_slice() {
+    let mut origins = Vec::new();
+    let mut rng = rand::rng();
+    let count = rng.random_range(5..10);
+    for _ in 0..count {
+        origins.push(CustomBlock::rand());
+    }
+    let mut buf: Vec<u8> = Vec::new();
+    for blk in origins.iter() {
+        println!(
+            "write: {} bytes",
+            blk.write(&mut buf).expect("Block is written")
+        );
+    }
+    let size = buf.len() as u64;
+    println!("created: {count}; total size: {size}");
+    let mut restored: Vec<CustomBlock> = Vec::new();
+    let mut pos: usize = 0;
+    loop {
+        let referred = CustomBlockReferred::read_from_slice(
+            &buf[pos..pos + CustomBlock::size() as usize],
+            true,
+        )
+        .expect("Read from slice");
+        restored.push(referred.into());
+        pos += CustomBlock::size() as usize;
+        println!("read bytes: {pos}; blocks: {}", restored.len());
+        if restored.len() == origins.len() {
+            break;
+        }
+    }
+    assert_eq!(origins.len(), restored.len());
+    for (left, right) in restored.iter().zip(origins.iter()) {
+        assert_eq!(left, right);
+    }
+}
+
+#[test]
+fn from_reader_owned() {
+    let mut origins = Vec::new();
+    let mut rng = rand::rng();
+    let count = rng.random_range(5..10);
+    for _ in 0..count {
+        origins.push(CustomBlock::rand());
+    }
+    let mut buf: Vec<u8> = Vec::new();
+    for blk in origins.iter() {
+        println!(
+            "write: {} bytes",
+            WriteOwned::write(blk.clone(), &mut buf).expect("Block is written")
+        );
+    }
+    let size = buf.len() as u64;
+    println!("created: {count}; total size: {size}");
+    let mut restored = Vec::new();
+    let mut reader = BufReader::new(Cursor::new(buf));
+    let mut consumed = 0;
+    loop {
+        match CustomBlock::read(&mut reader, false) {
+            Ok(blk) => {
+                consumed = reader.stream_position().expect("Position is read");
+                restored.push(blk);
+            }
+            Err(err) => {
+                println!("{err}");
+                break;
+            }
+        }
+    }
+    assert_eq!(size, consumed);
+    assert_eq!(origins.len(), restored.len());
+    for (left, right) in restored.iter().zip(origins.iter()) {
+        assert_eq!(left, right);
+    }
+}
+
+#[test]
+fn from_slice_owned() {
+    let mut origins = Vec::new();
+    let mut rng = rand::rng();
+    let count = rng.random_range(5..10);
+    for _ in 0..count {
+        origins.push(CustomBlock::rand());
+    }
+    let mut buf: Vec<u8> = Vec::new();
+    for blk in origins.iter() {
+        println!(
+            "write: {} bytes",
+            WriteOwned::write(blk.clone(), &mut buf).expect("Block is written")
+        );
+    }
+    let size = buf.len() as u64;
+    println!("created: {count}; total size: {size}");
+    let mut restored: Vec<CustomBlock> = Vec::new();
+    let mut pos: usize = 0;
+    loop {
+        let referred = CustomBlockReferred::read_from_slice(
+            &buf[pos..pos + CustomBlock::size() as usize],
+            true,
+        )
+        .expect("Read from slice");
+        restored.push(referred.into());
+        pos += CustomBlock::size() as usize;
+        println!("read bytes: {pos}; blocks: {}", restored.len());
+        if restored.len() == origins.len() {
+            break;
+        }
+    }
+    assert_eq!(origins.len(), restored.len());
+    for (left, right) in restored.iter().zip(origins.iter()) {
+        assert_eq!(left, right);
+    }
+}
 fn main() {
-    println!("Hello, world!");
+    println!("This is just an example. No sense to run it ;)");
 }

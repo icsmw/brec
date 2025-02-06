@@ -1,7 +1,7 @@
 use crate::*;
 use proc_macro2::TokenStream;
 use proptest::prelude::*;
-use std::{fmt, ops::Deref};
+use std::fmt;
 
 impl Default for Ty {
     fn default() -> Self {
@@ -25,7 +25,7 @@ pub(crate) enum TyValue {
     f32(f32),
     f64(f64),
     bool(bool),
-    Slice(Vec<TyValue>),
+    blob(Vec<u8>),
 }
 
 impl TyValue {
@@ -44,8 +44,11 @@ impl TyValue {
             Self::f32(v) => quote! { #v },
             Self::f64(v) => quote! { #v },
             Self::bool(v) => quote! { #v },
-            Self::Slice(v) => {
-                let vals = v.iter().map(|v| v.into_ts()).collect::<Vec<TokenStream>>();
+            Self::blob(v) => {
+                let vals = v
+                    .iter()
+                    .map(|v| quote! { #v })
+                    .collect::<Vec<TokenStream>>();
                 quote! {[#(#vals,)*]}
             }
         }
@@ -77,7 +80,7 @@ impl fmt::Display for TyValue {
                 Self::f32(v) => v.to_string(),
                 Self::f64(v) => v.to_string(),
                 Self::bool(v) => v.to_string(),
-                Self::Slice(v) => format!(
+                Self::blob(v) => format!(
                     "[{};{}]",
                     v.iter()
                         .map(|n| n.to_string())
@@ -110,50 +113,9 @@ impl Arbitrary for TyValue {
             Ty::f32 => any::<f32>().prop_map(TyValue::f32).boxed(),
             Ty::f64 => any::<f64>().prop_map(TyValue::f64).boxed(),
             Ty::bool => any::<bool>().prop_map(TyValue::bool).boxed(),
-            Ty::Slice(len, ty) => match *ty {
-                Ty::u8 => prop::collection::vec(any::<u8>(), len)
-                    .prop_map(|v| TyValue::Slice(v.into_iter().map(TyValue::u8).collect()))
-                    .boxed(),
-                Ty::u16 => prop::collection::vec(any::<u16>(), len)
-                    .prop_map(|v| TyValue::Slice(v.into_iter().map(TyValue::u16).collect()))
-                    .boxed(),
-                Ty::u32 => prop::collection::vec(any::<u32>(), len)
-                    .prop_map(|v| TyValue::Slice(v.into_iter().map(TyValue::u32).collect()))
-                    .boxed(),
-                Ty::u64 => prop::collection::vec(any::<u64>(), len)
-                    .prop_map(|v| TyValue::Slice(v.into_iter().map(TyValue::u64).collect()))
-                    .boxed(),
-                Ty::u128 => prop::collection::vec(any::<u128>(), len)
-                    .prop_map(|v| TyValue::Slice(v.into_iter().map(TyValue::u128).collect()))
-                    .boxed(),
-                Ty::i8 => prop::collection::vec(any::<i8>(), len)
-                    .prop_map(|v| TyValue::Slice(v.into_iter().map(TyValue::i8).collect()))
-                    .boxed(),
-                Ty::i16 => prop::collection::vec(any::<i16>(), len)
-                    .prop_map(|v| TyValue::Slice(v.into_iter().map(TyValue::i16).collect()))
-                    .boxed(),
-                Ty::i32 => prop::collection::vec(any::<i32>(), len)
-                    .prop_map(|v| TyValue::Slice(v.into_iter().map(TyValue::i32).collect()))
-                    .boxed(),
-                Ty::i64 => prop::collection::vec(any::<i64>(), len)
-                    .prop_map(|v| TyValue::Slice(v.into_iter().map(TyValue::i64).collect()))
-                    .boxed(),
-                Ty::i128 => prop::collection::vec(any::<i128>(), len)
-                    .prop_map(|v| TyValue::Slice(v.into_iter().map(TyValue::i128).collect()))
-                    .boxed(),
-                Ty::f32 => prop::collection::vec(any::<f32>(), len)
-                    .prop_map(|v| TyValue::Slice(v.into_iter().map(TyValue::f32).collect()))
-                    .boxed(),
-                Ty::f64 => prop::collection::vec(any::<f64>(), len)
-                    .prop_map(|v| TyValue::Slice(v.into_iter().map(TyValue::f64).collect()))
-                    .boxed(),
-                Ty::bool => prop::collection::vec(any::<bool>(), len)
-                    .prop_map(|v| TyValue::Slice(v.into_iter().map(TyValue::bool).collect()))
-                    .boxed(),
-                Ty::Slice(..) => prop::collection::vec(any::<u8>(), len)
-                    .prop_map(|v| TyValue::Slice(v.into_iter().map(TyValue::u8).collect()))
-                    .boxed(),
-            },
+            Ty::blob(len) => prop::collection::vec(any::<u8>(), len)
+                .prop_map(|v| TyValue::blob(v.into_iter().collect()))
+                .boxed(),
         }
     }
 }
@@ -163,10 +125,9 @@ impl Arbitrary for Ty {
 
     type Strategy = BoxedStrategy<Self>;
 
-    fn arbitrary_with(incl_slice: bool) -> Self::Strategy {
-        if incl_slice {
+    fn arbitrary_with(incl_blob: bool) -> Self::Strategy {
+        if incl_blob {
             (
-                Ty::arbitrary_with(false).boxed(),
                 (0usize..=1024),
                 prop_oneof![
                     Just(Ty::u8),
@@ -182,12 +143,12 @@ impl Arbitrary for Ty {
                     Just(Ty::f32),
                     Just(Ty::f64),
                     Just(Ty::bool),
-                    Just(Ty::Slice(0, Box::new(Ty::u8)))
+                    Just(Ty::blob(0))
                 ]
                 .boxed(),
             )
-                .prop_map(|(inner_ty, len, ty)| match ty {
-                    Ty::Slice(..) => Ty::Slice(len, Box::new(inner_ty)),
+                .prop_map(|(len, ty)| match ty {
+                    Ty::blob(..) => Ty::blob(len),
                     unchanged => unchanged,
                 })
                 .boxed()

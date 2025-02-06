@@ -8,6 +8,9 @@ use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
 use syn::{Ident, LitInt};
 
+pub(crate) const SIG_LEN: usize = 4;
+pub(crate) const CRC_LEN: usize = 4;
+
 #[derive(Debug, Clone)]
 pub struct Block {
     pub name: String,
@@ -39,8 +42,16 @@ impl Block {
         quote! { [#(#sig),*] }
     }
     pub fn sig_len(&self) -> TokenStream {
-        let len_lit = LitInt::new("4", proc_macro2::Span::call_site());
+        let len_lit = LitInt::new(&SIG_LEN.to_string(), proc_macro2::Span::call_site());
         quote! { #len_lit }
+    }
+    pub fn size(&self) -> usize {
+        self.fields
+            .iter()
+            .map(|f| f.size())
+            .collect::<Vec<usize>>()
+            .iter()
+            .sum::<usize>()
     }
     pub fn const_sig_name(&self) -> Ident {
         format_ident!("{}", self.name.to_ascii_uppercase())

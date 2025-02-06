@@ -10,7 +10,7 @@ impl Base for Block {
             .fields
             .iter()
             .map(|f| {
-                if matches!(f.ty, Ty::Slice(..)) {
+                if matches!(f.ty, Ty::blob(..)) {
                     f.referenced_ty()
                 } else {
                     f.direct_ty()
@@ -23,7 +23,7 @@ impl Base for Block {
             .filter(|f| !f.injected)
             .map(|f| {
                 let field = format_ident!("{}", f.name);
-                let field_path = if matches!(f.ty, Ty::Slice(..)) {
+                let field_path = if matches!(f.ty, Ty::blob(..)) {
                     quote! {
                         *block.#field
                     }
@@ -79,9 +79,10 @@ impl Gen for Block {
         let read_slice = ReadFromSlice::gen(self)?;
         let try_read = TryRead::gen(self)?;
         let try_read_buffered = TryReadBuffered::gen(self)?;
-        let crc = Crc::gen(self);
+        let crc = Crc::gen(self)?;
         let size = Size::gen(self);
         let write = Write::gen(self)?;
+        let write_owned = WriteOwned::gen(self)?;
         Ok(quote! {
             #base
             #crc
@@ -91,6 +92,7 @@ impl Gen for Block {
             #try_read
             #try_read_buffered
             #write
+            #write_owned
         })
     }
 }

@@ -62,9 +62,10 @@ impl TryFrom<&TypeArray> for Ty {
             }
             Err(syn::Error::new_spanned(len, E::MissedArraySize))
         }
-        Ok(Ty::Slice(
-            extract_array_len(&ty.len)?,
-            Box::new(Ty::try_from(&*ty.elem)?),
-        ))
+        if !matches!(Ty::try_from(&*ty.elem)?, Ty::u8) {
+            Err(syn::Error::new_spanned(&*ty.elem, E::UnsupportedType))
+        } else {
+            Ok(Ty::blob(extract_array_len(&ty.len)?))
+        }
     }
 }

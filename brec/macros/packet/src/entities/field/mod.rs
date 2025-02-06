@@ -4,8 +4,8 @@ pub(crate) use attr::*;
 
 use crate::*;
 
-pub const FIELD_SIG: &str = "__sig";
-pub const FIELD_CRC: &str = "__crc";
+pub(crate) const FIELD_SIG: &str = "__sig";
+pub(crate) const FIELD_CRC: &str = "__crc";
 
 #[derive(Debug, Clone)]
 pub struct Field {

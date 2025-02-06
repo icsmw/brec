@@ -1,5 +1,6 @@
 mod block;
 
+use crate::*;
 pub(crate) use block::*;
 
 use proc_macro2::TokenStream;
@@ -9,5 +10,5 @@ pub trait Size {
 }
 
 pub trait Crc {
-    fn gen(&self) -> TokenStream;
+    fn gen(&self) -> Result<TokenStream, E>;
 }

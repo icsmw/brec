@@ -3,42 +3,44 @@ use proc_macro2::TokenStream;
 use quote::quote;
 
 impl Crc for Block {
-    fn gen(&self) -> TokenStream {
+    fn gen(&self) -> Result<TokenStream, E> {
         let packet_name = self.name();
-        let mut hash_pushes = Vec::new();
+        let referred_name = self.referred_name();
+        let mut hash_packet = Vec::new();
+        let mut hash_referred = Vec::new();
         for field in self.fields.iter().filter(|f| !f.injected) {
-            let as_bytes = field.to_bytes().unwrap();
-            let el = if let Ty::Slice(.., inner_ty) = &field.ty {
-                if matches!(**inner_ty, Ty::u8) {
-                    quote! {
-                        hasher.update(#as_bytes);
-                    }
-                } else {
-                    quote! {
-                        let bytes = #as_bytes;
-                        hasher.update(&bytes);
-                    }
-                }
-            } else {
-                quote! {
-                    hasher.update(#as_bytes);
-                }
-            };
-            hash_pushes.push(el);
+            let packet = field.to_bytes(true)?;
+            let referred = field.to_bytes(false)?;
+            hash_packet.push(quote! {
+                hasher.update(#packet);
+            });
+            hash_referred.push(quote! {
+                hasher.update(#referred);
+            });
         }
-        quote! {
+        Ok(quote! {
 
             impl brec::Crc for #packet_name {
 
                 fn crc(&self) -> [u8; 4] {
                     let mut hasher = brec::crc32fast::Hasher::new();
-                    #(#hash_pushes)*
+                    #(#hash_packet)*
                     hasher.finalize().to_le_bytes()
                 }
 
             }
 
-        }
+            impl<'a> brec::Crc for #referred_name<'a> {
+
+                fn crc(&self) -> [u8; 4] {
+                    let mut hasher = brec::crc32fast::Hasher::new();
+                    #(#hash_referred)*
+                    hasher.finalize().to_le_bytes()
+                }
+
+            }
+
+        })
     }
 }
 

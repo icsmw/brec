@@ -21,9 +21,8 @@ impl TypeDefinition for Ty {
                 let ty = format_ident!("{}", self.to_string());
                 quote! { #ty }
             }
-            Self::Slice(len, ty) => {
-                let inner_ty = ty.direct();
-                quote! { [#inner_ty; #len] }
+            Self::blob(len) => {
+                quote! { [u8; #len] }
             }
         }
     }
@@ -45,9 +44,8 @@ impl TypeDefinition for Ty {
                 let ty = format_ident!("{}", self.to_string());
                 quote! { &'a  #ty }
             }
-            Self::Slice(len, ty) => {
-                let inner_ty = ty.direct();
-                quote! { &'a [#inner_ty; #len] }
+            Self::blob(len) => {
+                quote! { &'a [u8; #len] }
             }
         }
     }
@@ -66,9 +64,8 @@ impl TypeDefinition for Ty {
             Self::f32 => quote! { 0f32 },
             Self::f64 => quote! { 0f64 },
             Self::bool => quote! { false },
-            Self::Slice(len, ty) => {
-                let ty = ty.default();
-                quote! { [#ty; #len] }
+            Self::blob(len) => {
+                quote! { [0u8; #len] }
             }
         }
     }

@@ -1,3 +1,1 @@
-- rename `Entity` to `Block`
-- rename current `Block` to `Block`
-- remove `unwrap()`
+- check CRC on Block reading

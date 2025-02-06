@@ -61,12 +61,19 @@ impl ReadFromSlice for Block {
         let src: syn::Ident = format_ident!("buf");
         for field in self.fields.iter() {
             if &field.name == "__sig" {
+                let name = format_ident!("{}", FIELD_SIG);
                 fields.push(quote! {
-                    let __sig = if skip_sig {
+                    let #name = if skip_sig {
                         &#const_sig
                     } else {
-                        <&[u8; 4usize]>::try_from(&#src[0usize..4usize])?
+                        <&[u8; #SIG_LEN]>::try_from(&#src[0usize..#SIG_LEN])?
                     };
+                });
+            } else if field.name == FIELD_CRC {
+                let name = format_ident!("{}", FIELD_CRC);
+                fields.push(quote! {
+                    let #name = <&[u8; #CRC_LEN]>::try_from(&#src[0usize..#CRC_LEN])?;
+                    let crc = #name.clone();
                 });
             } else {
                 fields.push(field.safe(&src, offset, offset + field.ty.size()));
@@ -102,9 +109,15 @@ impl ReadFromSlice for Block {
 
                     #(#fields)*
 
-                    Ok(#referred_name {
+                    let block = #referred_name {
                         #(#fnames,)*
-                    })
+                    };
+
+                    if block.crc() != crc {
+                        return Err(brec::Error::CrcDismatch)
+                    }
+
+                    Ok(block)
                 }
 
             }

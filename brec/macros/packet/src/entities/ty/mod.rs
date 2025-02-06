@@ -3,7 +3,7 @@ mod proptest;
 #[cfg(test)]
 pub(crate) use proptest::*;
 
-use std::{default, fmt};
+use std::fmt;
 
 /// f16 and f128 are unstable
 #[enum_ids::enum_ids(display_variant)]
@@ -23,7 +23,7 @@ pub enum Ty {
     f32,
     f64,
     bool,
-    Slice(usize, Box<Ty>),
+    blob(usize),
 }
 
 impl Ty {
@@ -42,7 +42,7 @@ impl Ty {
             Self::f32 => std::mem::size_of::<f32>(),
             Self::f64 => std::mem::size_of::<f64>(),
             Self::bool => std::mem::size_of::<bool>(),
-            Self::Slice(len, ty) => len * ty.size(),
+            Self::blob(len) => *len,
         }
     }
 }
@@ -66,7 +66,7 @@ impl fmt::Display for Ty {
                 Self::f32 => TyId::f32.to_string(),
                 Self::f64 => TyId::f64.to_string(),
                 Self::bool => TyId::bool.to_string(),
-                Self::Slice(len, ty) => format!("[{ty};{len}]"),
+                Self::blob(len) => format!("[u8;{len}]"),
             }
         )
     }
