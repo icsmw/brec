@@ -102,7 +102,6 @@ impl WriteOwned for Block {
                         let src = crc.as_ptr();
                         std::ptr::copy_nonoverlapping(src, dst, #CRC_LEN);
                     }
-                    buffer[offset..offset + #CRC_LEN].copy_from_slice(&crc);
                     writer.write(&buffer)
                 }
 

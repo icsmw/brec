@@ -98,7 +98,7 @@ impl brec::Crc for CustomBlock {
         hasher.finalize().to_le_bytes()
     }
 }
-impl<'a> brec::Crc for CustomBlockReferred<'a> {
+impl brec::Crc for CustomBlockReferred<'_> {
     fn crc(&self) -> [u8; 4] {
         let mut hasher = brec::crc32fast::Hasher::new();
         hasher.update(&[self.field_u8]);
@@ -246,7 +246,7 @@ impl<'a> brec::ReadFromSlice<'a> for CustomBlockReferred<'a> {
         let blob_a = <&[u8; 100usize]>::try_from(&buf[79usize..179usize])?;
         let blob_b = <&[u8; 100usize]>::try_from(&buf[179usize..279usize])?;
         let __crc = <&[u8; 4usize]>::try_from(&buf[0usize..4usize])?;
-        let crc = __crc.clone();
+        let crc = __crc;
         let block = CustomBlockReferred {
             __sig,
             field_u8,
@@ -266,7 +266,7 @@ impl<'a> brec::ReadFromSlice<'a> for CustomBlockReferred<'a> {
             blob_b,
             __crc,
         };
-        if block.crc() != crc {
+        if block.crc() != *crc {
             return Err(brec::Error::CrcDismatch);
         }
         Ok(block)
@@ -450,7 +450,6 @@ impl brec::WriteOwned for CustomBlock {
             let src = crc.as_ptr();
             std::ptr::copy_nonoverlapping(src, dst, 4usize);
         }
-        buffer[offset..offset + 4usize].copy_from_slice(&crc);
         writer.write(&buffer)
     }
     fn write_all<T: std::io::Write>(self, writer: &mut T) -> std::io::Result<()> {

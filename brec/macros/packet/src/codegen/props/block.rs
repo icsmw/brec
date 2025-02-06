@@ -30,7 +30,7 @@ impl Crc for Block {
 
             }
 
-            impl<'a> brec::Crc for #referred_name<'a> {
+            impl brec::Crc for #referred_name<'_> {
 
                 fn crc(&self) -> [u8; 4] {
                     let mut hasher = brec::crc32fast::Hasher::new();

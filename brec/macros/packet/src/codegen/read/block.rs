@@ -36,7 +36,6 @@ impl Read for Block {
                         let block = #block_name {
                             #(#fnames,)*
                         };
-
                         if block.crc() != crc {
                             return Err(brec::Error::CrcDismatch)
                         }
@@ -72,8 +71,8 @@ impl ReadFromSlice for Block {
             } else if field.name == FIELD_CRC {
                 let name = format_ident!("{}", FIELD_CRC);
                 fields.push(quote! {
-                    let #name = <&[u8; #CRC_LEN]>::try_from(&#src[0usize..#CRC_LEN])?;
-                    let crc = #name.clone();
+                    let #name = <&[u8; #CRC_LEN]>::try_from(&#src[#offset..#offset + #CRC_LEN])?;
+                    let crc = #name;
                 });
             } else {
                 fields.push(field.safe(&src, offset, offset + field.ty.size()));
@@ -113,7 +112,7 @@ impl ReadFromSlice for Block {
                         #(#fnames,)*
                     };
 
-                    if block.crc() != crc {
+                    if block.crc() != *crc {
                         return Err(brec::Error::CrcDismatch)
                     }
 
