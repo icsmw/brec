@@ -1,9 +1,3 @@
-mod base;
-mod props;
-mod read;
-mod write;
+mod block;
 
-pub(crate) use base::*;
-pub(crate) use props::*;
-pub(crate) use read::*;
-pub(crate) use write::*;
+pub(crate) use block::*;
