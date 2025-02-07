@@ -1,7 +1,5 @@
 mod block;
 
-pub(crate) use block::*;
-
 use crate::*;
 use proc_macro2::TokenStream;
 

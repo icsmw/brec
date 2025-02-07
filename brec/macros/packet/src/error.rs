@@ -12,14 +12,10 @@ pub enum E {
     UnsupportedType,
     #[error("Referred types are unsupported")]
     ReferenceUnsupported,
-    #[error("Unsupported field type: {0}")]
-    UnsupportedFieldType(String),
     #[error("Missed array size")]
     MissedArraySize,
     #[error("{0} is reserved field name")]
     ReservedFieldName(String),
-    #[error("Only primite types are supported in the context of slice")]
-    UnsupportedTypeInSlice,
 
     #[error("Cannot detect attribute")]
     NoSuitableAttr,
