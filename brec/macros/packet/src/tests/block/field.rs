@@ -1,7 +1,7 @@
 use crate::*;
 use proc_macro2::TokenStream;
 use proptest::prelude::*;
-use quote::format_ident;
+use quote::{format_ident, quote};
 
 #[derive(Debug, Default)]
 pub struct BlockField {

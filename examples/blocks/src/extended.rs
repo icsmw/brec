@@ -16,21 +16,7 @@ pub enum Level {
     Info,
     Debug,
 }
-#[automatically_derived]
-impl ::core::fmt::Debug for Level {
-    #[inline]
-    fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
-        ::core::fmt::Formatter::write_str(
-            f,
-            match self {
-                Level::Err => "Err",
-                Level::Warn => "Warn",
-                Level::Info => "Info",
-                Level::Debug => "Debug",
-            },
-        )
-    }
-}
+
 impl TryFrom<u8> for Level {
     type Error = String;
     fn try_from(value: u8) -> Result<Self, Self::Error> {
@@ -53,6 +39,7 @@ impl From<&Level> for u8 {
         }
     }
 }
+#[repr(C)]
 pub struct WithEnum {
     pub level: Level,
     data: [u8; 250],
@@ -293,6 +280,7 @@ impl brec::WriteOwned for WithEnum {
         writer.write_all(&buffer)
     }
 }
+#[repr(C)]
 pub struct CustomBlock {
     field_u8: u8,
     field_u16: u16,
@@ -333,6 +321,7 @@ where
     blob_b: &'a [u8; 100usize],
     __crc: &'a [u8; 4usize],
 }
+
 impl<'a> From<CustomBlockReferred<'a>> for CustomBlock {
     fn from(block: CustomBlockReferred<'a>) -> Self {
         CustomBlock {
@@ -787,6 +776,7 @@ impl brec::WriteOwned for CustomBlock {
         writer.write_all(&buffer)
     }
 }
+
 pub enum Block {
     WithEnum(WithEnum),
     CustomBlock(CustomBlock),

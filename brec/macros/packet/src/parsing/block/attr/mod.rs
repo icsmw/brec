@@ -1,8 +1,9 @@
 use crate::*;
+use quote::quote;
 use syn::{
     parse::{self, Parse, ParseStream},
     punctuated::Punctuated,
-    Expr, Token,
+    Expr, Path, Token,
 };
 
 impl Parse for BlockAttrs {

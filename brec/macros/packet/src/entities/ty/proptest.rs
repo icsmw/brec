@@ -1,6 +1,7 @@
 use crate::*;
 use proc_macro2::TokenStream;
 use proptest::prelude::*;
+use quote::quote;
 use std::fmt;
 
 impl Default for Ty {

@@ -5,66 +5,23 @@ mod codegen;
 mod collector;
 mod entities;
 mod error;
+mod modificators;
+mod parser;
 mod parsing;
 mod tokenized;
 
 use codegen::*;
-pub(crate) use collector::*;
+use collector::*;
 use entities::*;
 use error::*;
 use tokenized::*;
 
-use proc_macro as pm;
-use proc_macro2 as pm2;
-use quote::quote;
-use std::convert::TryFrom;
-use syn::{parse_macro_input, DeriveInput, Path};
-
-fn parse(attrs: BlockAttrs, mut input: DeriveInput) -> pm2::TokenStream {
-    let block = match Block::try_from((attrs, &mut input)) {
-        Ok(p) => p,
-        Err(err) => return err.to_compile_error(),
-    };
-    let reflected = match codegen::Gen::gen(&block) {
-        Ok(p) => p,
-        Err(err) => {
-            return syn::Error::new_spanned(&input, err).to_compile_error();
-        }
-    };
-    quote! {
-        #input
-
-        #reflected
-    }
-}
-
-#[test]
-fn test() {
-    use syn::{parse_quote, DeriveInput};
-
-    let input: DeriveInput = parse_quote! {
-        #[block]
-        struct MyBlock {
-            field: u8,
-            #[link_with(LogLevel)]
-            log_level: u8,
-        }
-    };
-
-    let expanded = parse(BlockAttrs::default(), input);
-    let expected = quote! {
-        struct MyBlock {
-            field: u8,
-            log_level: u8,
-        }
-    };
-
-    assert_eq!(expanded.to_string(), expected.to_string());
-}
+use proc_macro::TokenStream;
+use syn::{parse_macro_input, DeriveInput};
 
 #[proc_macro_attribute]
-pub fn block(attr: pm::TokenStream, input: pm::TokenStream) -> pm::TokenStream {
-    let attrs: BlockAttrs = parse_macro_input!(attr as BlockAttrs);
+pub fn block(attr: TokenStream, input: TokenStream) -> TokenStream {
+    let attrs = parse_macro_input!(attr as BlockAttrs);
     let input = parse_macro_input!(input as DeriveInput);
-    parse(attrs, input).into()
+    parser::block::parse(attrs, input).into()
 }
