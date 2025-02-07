@@ -1,5 +1,7 @@
 mod attr;
 
+use syn::Visibility;
+
 use crate::*;
 use std::convert::{TryFrom, TryInto};
 
@@ -28,6 +30,7 @@ impl TryFrom<&mut syn::Field> for Field {
             attrs,
             ty: Ty::try_from(&field.ty)?,
             injected: false,
+            public: matches!(field.vis, Visibility::Public(..)),
         })
     }
 }

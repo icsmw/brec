@@ -64,7 +64,8 @@ impl WriteOwned for Block {
                 | Ty::i128
                 | Ty::f32
                 | Ty::f64
-                | Ty::bool => {
+                | Ty::bool
+                | Ty::linkedToU8(..) => {
                     let as_bytes = field.to_bytes(true)?;
                     buf_fillers.push(quote! {
                         buffer[offset..offset + #size].copy_from_slice(#as_bytes);

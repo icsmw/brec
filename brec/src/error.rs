@@ -18,6 +18,8 @@ pub enum Error {
     MisalignedPointer,
     #[error("Unexpected slice length")]
     UnexpectedSliceLength,
+    #[error("Fail converting \"{0}\" with error: {1}")]
+    FailedConverting(String, String),
     #[error("IO Error: {0}")]
     Io(#[from] std::io::Error),
 }

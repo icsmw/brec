@@ -1,5 +1,5 @@
 use proc_macro2::TokenStream;
-use quote::quote;
+use quote::{format_ident, quote};
 use syn::Ident;
 
 use crate::*;
@@ -32,6 +32,13 @@ impl FromBytes for Ty {
             Ty::blob(len) => quote! {
                 <&[u8; #len]>::try_from(&#src[#from..#to])?
             },
+            Ty::linkedToU8(enum_name) => {
+                let ident = self.direct();
+                quote! {
+                    #ident::try_from(u8::from_le_bytes(#src[#from..#to].try_into()?))
+                        .map_err(|err| brec::Error::FailedConverting(#enum_name.to_owned(), err))?
+                }
+            }
         }
     }
 

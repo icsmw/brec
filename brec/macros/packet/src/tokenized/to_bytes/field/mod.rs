@@ -31,6 +31,7 @@ impl ToBytes for Field {
                 &[self.#name as u8]
             }),
             Ty::blob(..) => Ok(quote! { #by_ref self.#name }),
+            Ty::linkedToU8(_ident) => Ok(quote! { &[(&self.#name).into()] }),
         }
     }
 }

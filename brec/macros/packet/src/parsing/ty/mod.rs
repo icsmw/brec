@@ -43,10 +43,7 @@ impl TryFrom<&Ident> for Ty {
             "f32" => Ty::f32,
             "f64" => Ty::f64,
             "bool" => Ty::bool,
-            unsupported => Err(syn::Error::new_spanned(
-                ident,
-                E::UnsupportedFieldType(unsupported.to_owned()),
-            ))?,
+            _linked => Ty::linkedToU8(ident.to_string()),
         })
     }
 }

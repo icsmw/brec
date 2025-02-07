@@ -24,6 +24,10 @@ impl TypeDefinition for Ty {
             Self::blob(len) => {
                 quote! { [u8; #len] }
             }
+            Self::linkedToU8(ident) => {
+                let ident = format_ident!("{ident}");
+                quote! { #ident }
+            }
         }
     }
     fn referenced(&self) -> TokenStream {
@@ -47,6 +51,10 @@ impl TypeDefinition for Ty {
             Self::blob(len) => {
                 quote! { &'a [u8; #len] }
             }
+            Self::linkedToU8(ident) => {
+                let ident = format_ident!("{ident}");
+                quote! { &'a #ident }
+            }
         }
     }
     fn default(&self) -> TokenStream {
@@ -66,6 +74,9 @@ impl TypeDefinition for Ty {
             Self::bool => quote! { false },
             Self::blob(len) => {
                 quote! { [0u8; #len] }
+            }
+            Self::linkedToU8(ident) => {
+                quote! { #ident::default() }
             }
         }
     }

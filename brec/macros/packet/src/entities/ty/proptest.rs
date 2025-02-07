@@ -116,6 +116,7 @@ impl Arbitrary for TyValue {
             Ty::blob(len) => prop::collection::vec(any::<u8>(), len)
                 .prop_map(|v| TyValue::blob(v.into_iter().collect()))
                 .boxed(),
+            Ty::linkedToU8(_ident) => any::<u8>().prop_map(TyValue::u8).boxed(),
         }
     }
 }

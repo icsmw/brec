@@ -13,6 +13,7 @@ pub struct Field {
     pub attrs: Vec<FieldAttr>,
     pub ty: Ty,
     pub injected: bool,
+    pub public: bool,
 }
 
 impl Field {
@@ -22,6 +23,7 @@ impl Field {
             attrs: Vec::new(),
             ty,
             injected: true,
+            public: false,
         }
     }
     pub fn is_reserved_name<S: AsRef<str>>(name: S) -> bool {

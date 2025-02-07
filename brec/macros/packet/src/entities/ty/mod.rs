@@ -2,6 +2,7 @@
 mod proptest;
 #[cfg(test)]
 pub(crate) use proptest::*;
+use syn::Ident;
 
 use std::fmt;
 
@@ -24,6 +25,7 @@ pub enum Ty {
     f64,
     bool,
     blob(usize),
+    linkedToU8(String),
 }
 
 impl Ty {
@@ -43,6 +45,7 @@ impl Ty {
             Self::f64 => std::mem::size_of::<f64>(),
             Self::bool => std::mem::size_of::<bool>(),
             Self::blob(len) => *len,
+            Self::linkedToU8(..) => std::mem::size_of::<u8>(),
         }
     }
 }
@@ -67,6 +70,7 @@ impl fmt::Display for Ty {
                 Self::f64 => TyId::f64.to_string(),
                 Self::bool => TyId::bool.to_string(),
                 Self::blob(len) => format!("[u8;{len}]"),
+                Self::linkedToU8(ident) => ident.to_string(),
             }
         )
     }

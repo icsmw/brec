@@ -1,5 +1,5 @@
 use std::{
-    fmt::Debug,
+    fmt::{format, Debug},
     io::{BufReader, Cursor, Seek},
     ops::Deref,
 };
@@ -12,6 +12,44 @@ use rand::{
 };
 
 mod extended;
+
+#[derive(Debug)]
+pub enum Level {
+    Err,
+    Warn,
+    Info,
+    Debug,
+}
+
+impl TryFrom<u8> for Level {
+    type Error = String;
+    fn try_from(value: u8) -> Result<Self, Self::Error> {
+        match value {
+            0 => Ok(Level::Err),
+            1 => Ok(Level::Warn),
+            2 => Ok(Level::Debug),
+            3 => Ok(Level::Info),
+            invalid => Err(format!("{invalid} isn't valid value for Level")),
+        }
+    }
+}
+
+impl From<&Level> for u8 {
+    fn from(value: &Level) -> Self {
+        match value {
+            Level::Err => 0,
+            Level::Warn => 1,
+            Level::Debug => 2,
+            Level::Info => 3,
+        }
+    }
+}
+
+#[block]
+pub struct WithEnum {
+    pub level: Level,
+    data: [u8; 250],
+}
 
 #[derive(Debug, PartialEq, Clone)]
 #[block]

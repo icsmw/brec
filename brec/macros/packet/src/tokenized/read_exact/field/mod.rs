@@ -39,6 +39,14 @@ impl ReadExact for Field {
                let mut #name = [0u8; #len];
                #src.read_exact(&mut #name)?;
             }),
+            Ty::linkedToU8(enum_name) => {
+                let ident = self.ty.direct();
+                Ok(quote! {
+                   let mut #name = [0u8; 1];
+                   #src.read_exact(&mut #name)?;
+                   let level = #ident::try_from(#name[0]).map_err(|err| brec::Error::FailedConverting(#enum_name.to_owned(), err))?;
+                })
+            }
         }
     }
 }

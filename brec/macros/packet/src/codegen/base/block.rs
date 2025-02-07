@@ -1,6 +1,7 @@
 use crate::*;
 use proc_macro2::TokenStream;
-use quote::{format_ident, quote};
+use quote::{format_ident, quote, ToTokens};
+use syn::{token, Visibility};
 
 impl Base for Block {
     fn gen(&self) -> Result<TokenStream, E> {
@@ -10,10 +11,18 @@ impl Base for Block {
             .fields
             .iter()
             .map(|f| {
-                if matches!(f.ty, Ty::blob(..)) {
+                let visibility = if f.public {
+                    Visibility::Public(token::Pub::default()).into_token_stream()
+                } else {
+                    TokenStream::new()
+                };
+                let inner = if matches!(f.ty, Ty::blob(..)) {
                     f.referenced_ty()
                 } else {
                     f.direct_ty()
+                };
+                quote! {
+                    #visibility #inner
                 }
             })
             .collect::<Vec<TokenStream>>();
