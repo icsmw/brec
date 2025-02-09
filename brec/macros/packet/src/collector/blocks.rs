@@ -48,7 +48,7 @@ impl Collector {
             }
 
             impl brec::TryRead for Block {
-                fn try_read<T: std::io::Read + std::io::Seek>(buf: &mut T) -> Result<brec::ReadStatus<Self>, Error>
+                fn try_read<T: std::io::Read + std::io::Seek>(buf: &mut T) -> Result<brec::ReadStatus<Self>, brec::Error>
                 where
                     Self: Sized,
                 {

@@ -3,11 +3,13 @@ use thiserror::Error;
 #[derive(Error, Debug)]
 pub enum Error {
     #[error("Not enought data; data len = {0}; required = {1}")]
-    NotEnoughtData(usize, usize),
+    NotEnoughData(usize, usize),
     #[error("Not enought data to read signature; data len = {0}; required = {1}")]
     NotEnoughtSignatureData(usize, usize),
     #[error("Invalid data align; data len = {0}; required = {1}; offset = {2} (expected 0)")]
     InvalidAlign(usize, usize, usize),
+    #[error("Invalid buffer capacity: {0}; expected: {1}")]
+    InvalidCapacity(usize, String),
     #[error("TryFromSliceError: {0}")]
     TryFromSliceError(#[from] std::array::TryFromSliceError),
     #[error("Signature doesn't match to target entity")]
@@ -22,4 +24,10 @@ pub enum Error {
     FailedConverting(String, String),
     #[error("IO Error: {0}")]
     Io(#[from] std::io::Error),
+    #[error("Fail to exctract data from vector for ByteBlock")]
+    FailExtractByteBlock,
+    #[error("Fail to read payload header")]
+    FailToReadPayloadHeader,
+    #[error("Memory allocation failed")]
+    MemoryAllocationFailed,
 }

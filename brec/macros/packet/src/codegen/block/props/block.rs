@@ -20,7 +20,7 @@ impl Crc for Block {
         }
         Ok(quote! {
 
-            impl brec::Crc for #packet_name {
+            impl brec::block::Crc for #packet_name {
 
                 fn crc(&self) -> [u8; 4] {
                     let mut hasher = brec::crc32fast::Hasher::new();
@@ -30,7 +30,7 @@ impl Crc for Block {
 
             }
 
-            impl brec::Crc for #referred_name<'_> {
+            impl brec::block::Crc for #referred_name<'_> {
 
                 fn crc(&self) -> [u8; 4] {
                     let mut hasher = brec::crc32fast::Hasher::new();
@@ -46,16 +46,16 @@ impl Crc for Block {
 
 impl Size for Block {
     fn gen(&self) -> TokenStream {
-        let packet_name = self.name();
+        let block_name = self.name();
         let mut size = 0u64;
         for field in self.fields.iter() {
             size += field.size() as u64;
         }
         quote! {
 
-            impl brec::Size for #packet_name {
+            impl brec::StaticSize for #block_name {
 
-                fn size() -> u64 {
+                fn static_size() -> u64 {
                     #size
                 }
 

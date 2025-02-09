@@ -69,7 +69,7 @@ impl Base for Block {
 
             const #const_sig: [u8; #sig_len] = #sig;
 
-            impl Signature for #referred_name <'_> {
+            impl brec::block::Signature for #referred_name <'_> {
 
                 fn sig() -> &'static [u8; #sig_len] {
                     &#const_sig

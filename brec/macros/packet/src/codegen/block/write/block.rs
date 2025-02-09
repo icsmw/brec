@@ -18,9 +18,10 @@ impl Write for Block {
         let size = self.size();
         Ok(quote! {
 
-            impl brec::Write for #block_name {
+            impl brec::block::Write for #block_name {
 
                 fn write<T: std::io::Write>(&self, writer: &mut T) -> std::io::Result<usize> {
+                    use brec::block::*;
                     let mut buffer = [0u8; #size];
                     let mut offset = 0;
                     buffer[offset..offset + #SIG_LEN].copy_from_slice(&#const_sig);
@@ -31,6 +32,7 @@ impl Write for Block {
                 }
 
                 fn write_all<T: std::io::Write>(&self, writer: &mut T) -> std::io::Result<()> {
+                    use brec::block::*;
                     let mut buffer = [0u8; #size];
                     let mut offset = 0;
                     buffer[offset..offset + #SIG_LEN].copy_from_slice(&#const_sig);
@@ -89,9 +91,10 @@ impl WriteOwned for Block {
         let size = self.size();
         Ok(quote! {
 
-            impl brec::WriteOwned for #block_name {
+            impl brec::block::WriteOwned for #block_name {
 
                 fn write<T: std::io::Write>(self, writer: &mut T) -> std::io::Result<usize> {
+                    use brec::block::*;
                     let mut buffer = [0u8; #size];
                     let mut offset = 0;
                     let crc = self.crc();
@@ -107,6 +110,7 @@ impl WriteOwned for Block {
                 }
 
                 fn write_all<T: std::io::Write>(self, writer: &mut T) -> std::io::Result<()> {
+                    use brec::block::*;
                     let mut buffer = [0u8; #size];
                     let mut offset = 0;
                     let crc = self.crc();

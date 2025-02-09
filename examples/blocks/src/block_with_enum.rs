@@ -3,7 +3,7 @@ use std::{
     io::{BufReader, Cursor, Seek},
 };
 
-use brec::*;
+use brec::{block, block::*};
 
 use rand::{
     distr::{Distribution, StandardUniform},
@@ -77,6 +77,7 @@ impl WithEnum {
 
 #[test]
 fn from_reader() {
+    use brec::block::*;
     let mut origins = Vec::new();
     let mut rng = rand::rng();
     let count = rng.random_range(5..10);
@@ -116,6 +117,7 @@ fn from_reader() {
 
 #[test]
 fn from_slice() {
+    use brec::*;
     let mut origins = Vec::new();
     let mut rng = rand::rng();
     let count = rng.random_range(5..10);
@@ -134,11 +136,13 @@ fn from_slice() {
     let mut restored: Vec<WithEnum> = Vec::new();
     let mut pos: usize = 0;
     loop {
-        let referred =
-            WithEnumReferred::read_from_slice(&buf[pos..pos + WithEnum::size() as usize], true)
-                .expect("Read from slice");
+        let referred = WithEnumReferred::read_from_slice(
+            &buf[pos..pos + WithEnum::static_size() as usize],
+            true,
+        )
+        .expect("Read from slice");
         restored.push(referred.into());
-        pos += WithEnum::size() as usize;
+        pos += WithEnum::static_size() as usize;
         println!("read bytes: {pos}; blocks: {}", restored.len());
         if restored.len() == origins.len() {
             break;
@@ -209,11 +213,13 @@ fn from_slice_owned() {
     let mut restored: Vec<WithEnum> = Vec::new();
     let mut pos: usize = 0;
     loop {
-        let referred =
-            WithEnumReferred::read_from_slice(&buf[pos..pos + WithEnum::size() as usize], true)
-                .expect("Read from slice");
+        let referred = WithEnumReferred::read_from_slice(
+            &buf[pos..pos + WithEnum::static_size() as usize],
+            true,
+        )
+        .expect("Read from slice");
         restored.push(referred.into());
-        pos += WithEnum::size() as usize;
+        pos += WithEnum::static_size() as usize;
         println!("read bytes: {pos}; blocks: {}", restored.len());
         if restored.len() == origins.len() {
             break;
