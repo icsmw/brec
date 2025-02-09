@@ -55,7 +55,7 @@ impl Size for Block {
 
             impl brec::StaticSize for #block_name {
 
-                fn static_size() -> u64 {
+                fn ssize() -> u64 {
                     #size
                 }
 

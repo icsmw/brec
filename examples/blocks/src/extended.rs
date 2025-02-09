@@ -115,7 +115,7 @@ impl brec::block::Crc for CustomBlockReferred<'_> {
     }
 }
 impl brec::StaticSize for CustomBlock {
-    fn static_size() -> u64 {
+    fn ssize() -> u64 {
         283u64
     }
 }
@@ -215,9 +215,9 @@ impl<'a> brec::block::ReadFromSlice<'a> for CustomBlockReferred<'a> {
             }
         }
         let required = if skip_sig {
-            CustomBlock::static_size() - 4
+            CustomBlock::ssize() - 4
         } else {
-            CustomBlock::static_size()
+            CustomBlock::ssize()
         } as usize;
         if buf.len() < required {
             return Err(brec::Error::NotEnoughData(buf.len(), required));
@@ -289,10 +289,8 @@ impl brec::block::TryRead for CustomBlock {
             buf.seek(std::io::SeekFrom::Start(start_pos))?;
             return Ok(brec::ReadStatus::DismatchSignature);
         }
-        if len < CustomBlock::static_size() {
-            return Ok(brec::ReadStatus::NotEnoughData(
-                CustomBlock::static_size() - len,
-            ));
+        if len < CustomBlock::ssize() {
+            return Ok(brec::ReadStatus::NotEnoughData(CustomBlock::ssize() - len));
         }
         Ok(brec::ReadStatus::Success(CustomBlock::read(buf, true)?))
     }
@@ -314,14 +312,14 @@ impl brec::block::TryReadBuffered for CustomBlock {
         if !bytes.starts_with(&CUSTOMBLOCK) {
             return Ok(brec::ReadStatus::DismatchSignature);
         }
-        if (bytes.len() as u64) < CustomBlock::static_size() {
+        if (bytes.len() as u64) < CustomBlock::ssize() {
             return Ok(brec::ReadStatus::NotEnoughData(
-                CustomBlock::static_size() - bytes.len() as u64,
+                CustomBlock::ssize() - bytes.len() as u64,
             ));
         }
         reader.consume(4);
         let blk = CustomBlock::read(&mut reader, true);
-        reader.consume(CustomBlock::static_size() as usize - 4);
+        reader.consume(CustomBlock::ssize() as usize - 4);
         Ok(brec::ReadStatus::Success(blk?))
     }
 }

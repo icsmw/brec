@@ -100,9 +100,9 @@ impl ReadFromSlice for Block {
                         }
                     }
                     let required = if skip_sig {
-                        #block_name::static_size() - #sig_len
+                        #block_name::ssize() - #sig_len
                     } else {
-                        #block_name::static_size()
+                        #block_name::ssize()
                     } as usize;
                     if #src.len() < required {
                         return Err(brec::Error::NotEnoughData(#src.len(), required));
@@ -153,8 +153,8 @@ impl TryRead for Block {
                         buf.seek(std::io::SeekFrom::Start(start_pos))?;
                         return Ok(brec::ReadStatus::DismatchSignature);
                     }
-                    if len < #block_name::static_size() {
-                        return Ok(brec::ReadStatus::NotEnoughData(#block_name::static_size() - len));
+                    if len < #block_name::ssize() {
+                        return Ok(brec::ReadStatus::NotEnoughData(#block_name::ssize() - len));
                     }
                     Ok(brec::ReadStatus::Success(#block_name::read(buf, true)?))
                 }
@@ -192,14 +192,14 @@ impl TryReadBuffered for Block {
                         return Ok(brec::ReadStatus::DismatchSignature);
                     }
 
-                    if (bytes.len() as u64) < #block_name::static_size() {
+                    if (bytes.len() as u64) < #block_name::ssize() {
                         return Ok(brec::ReadStatus::NotEnoughData(
-                            #block_name::static_size() - bytes.len() as u64,
+                            #block_name::ssize() - bytes.len() as u64,
                         ));
                     }
                     reader.consume(#sig_len);
                     let blk = #block_name::read(&mut reader, true);
-                    reader.consume(#block_name::static_size() as usize - #sig_len);
+                    reader.consume(#block_name::ssize() as usize - #sig_len);
                     Ok(brec::ReadStatus::Success(blk?))
                 }
             }

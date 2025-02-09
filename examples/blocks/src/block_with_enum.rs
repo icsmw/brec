@@ -136,13 +136,11 @@ fn from_slice() {
     let mut restored: Vec<WithEnum> = Vec::new();
     let mut pos: usize = 0;
     loop {
-        let referred = WithEnumReferred::read_from_slice(
-            &buf[pos..pos + WithEnum::static_size() as usize],
-            true,
-        )
-        .expect("Read from slice");
+        let referred =
+            WithEnumReferred::read_from_slice(&buf[pos..pos + WithEnum::ssize() as usize], true)
+                .expect("Read from slice");
         restored.push(referred.into());
-        pos += WithEnum::static_size() as usize;
+        pos += WithEnum::ssize() as usize;
         println!("read bytes: {pos}; blocks: {}", restored.len());
         if restored.len() == origins.len() {
             break;
@@ -213,13 +211,11 @@ fn from_slice_owned() {
     let mut restored: Vec<WithEnum> = Vec::new();
     let mut pos: usize = 0;
     loop {
-        let referred = WithEnumReferred::read_from_slice(
-            &buf[pos..pos + WithEnum::static_size() as usize],
-            true,
-        )
-        .expect("Read from slice");
+        let referred =
+            WithEnumReferred::read_from_slice(&buf[pos..pos + WithEnum::ssize() as usize], true)
+                .expect("Read from slice");
         restored.push(referred.into());
-        pos += WithEnum::static_size() as usize;
+        pos += WithEnum::ssize() as usize;
         println!("read bytes: {pos}; blocks: {}", restored.len());
         if restored.len() == origins.len() {
             break;

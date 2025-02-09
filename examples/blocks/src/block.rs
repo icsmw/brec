@@ -127,12 +127,12 @@ fn from_slice() {
     let mut pos: usize = 0;
     loop {
         let referred = CustomBlockReferred::read_from_slice(
-            &buf[pos..pos + CustomBlock::static_size() as usize],
+            &buf[pos..pos + CustomBlock::ssize() as usize],
             true,
         )
         .expect("Read from slice");
         restored.push(referred.into());
-        pos += CustomBlock::static_size() as usize;
+        pos += CustomBlock::ssize() as usize;
         println!("read bytes: {pos}; blocks: {}", restored.len());
         if restored.len() == origins.len() {
             break;
@@ -204,12 +204,12 @@ fn from_slice_owned() {
     let mut pos: usize = 0;
     loop {
         let referred = CustomBlockReferred::read_from_slice(
-            &buf[pos..pos + CustomBlock::static_size() as usize],
+            &buf[pos..pos + CustomBlock::ssize() as usize],
             true,
         )
         .expect("Read from slice");
         restored.push(referred.into());
-        pos += CustomBlock::static_size() as usize;
+        pos += CustomBlock::ssize() as usize;
         println!("read bytes: {pos}; blocks: {}", restored.len());
         if restored.len() == origins.len() {
             break;
