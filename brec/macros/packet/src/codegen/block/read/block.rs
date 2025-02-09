@@ -146,12 +146,12 @@ impl TryRead for Block {
 
                     buf.seek(std::io::SeekFrom::Start(start_pos))?;
                     if len < #sig_len {
-                        return Ok(brec::ReadStatus::NotEnoughDataToReadSig(#sig_len - len));
+                        return Ok(brec::ReadStatus::NotEnoughData(#sig_len - len));
                     }
                     buf.read_exact(&mut sig_buf)?;
                     if sig_buf != #const_sig {
                         buf.seek(std::io::SeekFrom::Start(start_pos))?;
-                        return Ok(brec::ReadStatus::DismatchSignature);
+                        return Err(brec::Error::SignatureDismatch);
                     }
                     if len < #block_name::ssize() {
                         return Ok(brec::ReadStatus::NotEnoughData(#block_name::ssize() - len));
@@ -183,13 +183,13 @@ impl TryReadBuffered for Block {
                     let bytes = reader.fill_buf()?;
 
                     if bytes.len() < #sig_len {
-                        return Ok(brec::ReadStatus::NotEnoughDataToReadSig(
+                        return Ok(brec::ReadStatus::NotEnoughData(
                             (#sig_len - bytes.len()) as u64,
                         ));
                     }
 
                     if !bytes.starts_with(&#const_sig) {
-                        return Ok(brec::ReadStatus::DismatchSignature);
+                        return Err(brec::Error::SignatureDismatch);
                     }
 
                     if (bytes.len() as u64) < #block_name::ssize() {

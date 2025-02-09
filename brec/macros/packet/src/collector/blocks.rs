@@ -37,9 +37,7 @@ impl Collector {
             variants.push(quote! {#fullname(#fullpath)});
             checks.push(quote! {
                 let result = <#fullpath as brec::TryReadBuffered>::try_read(buf)?;
-                if !::core::matches!(result, brec::ReadStatus::DismatchSignature) {
-                    return Ok(result.map(Block::#fullname));
-                }
+                return Ok(result.map(Block::#fullname));
             });
         }
         let enum_block = quote! {
@@ -53,7 +51,7 @@ impl Collector {
                     Self: Sized,
                 {
                     #(#checks)*
-                    Ok(brec::ReadStatus::DismatchSignature)
+                    Err(brec::Error::SignatureDismatch)
                 }
             }
         };
