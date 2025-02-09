@@ -20,7 +20,7 @@ impl Crc for Block {
         }
         Ok(quote! {
 
-            impl brec::block::Crc for #packet_name {
+            impl brec::CrcU32 for #packet_name {
 
                 fn crc(&self) -> [u8; 4] {
                     let mut hasher = brec::crc32fast::Hasher::new();
@@ -30,7 +30,7 @@ impl Crc for Block {
 
             }
 
-            impl brec::block::Crc for #referred_name<'_> {
+            impl brec::CrcU32 for #referred_name<'_> {
 
                 fn crc(&self) -> [u8; 4] {
                     let mut hasher = brec::crc32fast::Hasher::new();

@@ -7,14 +7,14 @@ pub enum Next {
     Bytes(Vec<u8>),
 }
 
-pub struct SafeReader<'a, T: std::io::Read + std::io::Seek> {
+pub struct SafeHeaderReader<'a, T: std::io::Read + std::io::Seek> {
     buf: &'a mut T,
     spos: u64,
     read: u64,
     len: u64,
 }
 
-impl<'a, T: std::io::Read + std::io::Seek> SafeReader<'a, T> {
+impl<'a, T: std::io::Read + std::io::Seek> SafeHeaderReader<'a, T> {
     pub fn new(buf: &'a mut T) -> Result<Self, Error> {
         let spos = buf.stream_position()?;
         let len = buf.seek(std::io::SeekFrom::End(0))? - spos;

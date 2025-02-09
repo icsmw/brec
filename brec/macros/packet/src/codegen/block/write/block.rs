@@ -8,51 +8,6 @@ impl Write for Block {
         let mut buf_fillers = Vec::new();
         for field in self.fields.iter().filter(|f| !f.injected) {
             let size = field.size();
-            let as_bytes = field.to_bytes(true)?;
-            buf_fillers.push(quote! {
-                buffer[offset..offset + #size].copy_from_slice(#as_bytes);
-                offset += #size;
-            });
-        }
-        let const_sig = self.const_sig_name();
-        let size = self.size();
-        Ok(quote! {
-
-            impl brec::block::Write for #block_name {
-
-                fn write<T: std::io::Write>(&self, writer: &mut T) -> std::io::Result<usize> {
-                    use brec::block::*;
-                    let mut buffer = [0u8; #size];
-                    let mut offset = 0;
-                    buffer[offset..offset + #SIG_LEN].copy_from_slice(&#const_sig);
-                    offset += #SIG_LEN;
-                    #(#buf_fillers)*
-                    buffer[offset..offset + #CRC_LEN].copy_from_slice(&self.crc());
-                    writer.write(&buffer)
-                }
-
-                fn write_all<T: std::io::Write>(&self, writer: &mut T) -> std::io::Result<()> {
-                    use brec::block::*;
-                    let mut buffer = [0u8; #size];
-                    let mut offset = 0;
-                    buffer[offset..offset + #SIG_LEN].copy_from_slice(&#const_sig);
-                    offset += #SIG_LEN;
-                    #(#buf_fillers)*
-                    buffer[offset..offset + #CRC_LEN].copy_from_slice(&self.crc());
-                    writer.write_all(&buffer)
-                }
-
-            }
-
-        })
-    }
-}
-impl WriteOwned for Block {
-    fn gen(&self) -> Result<TokenStream, E> {
-        let block_name = self.name();
-        let mut buf_fillers = Vec::new();
-        for field in self.fields.iter().filter(|f| !f.injected) {
-            let size = field.size();
             match field.ty {
                 Ty::u8
                 | Ty::u16
@@ -91,10 +46,10 @@ impl WriteOwned for Block {
         let size = self.size();
         Ok(quote! {
 
-            impl brec::block::WriteOwned for #block_name {
+            impl brec::WriteTo for #block_name {
 
-                fn write<T: std::io::Write>(self, writer: &mut T) -> std::io::Result<usize> {
-                    use brec::block::*;
+                fn write<T: std::io::Write>(&self, writer: &mut T) -> std::io::Result<usize> {
+                    use brec::prelude::*;
                     let mut buffer = [0u8; #size];
                     let mut offset = 0;
                     let crc = self.crc();
@@ -109,8 +64,8 @@ impl WriteOwned for Block {
                     writer.write(&buffer)
                 }
 
-                fn write_all<T: std::io::Write>(self, writer: &mut T) -> std::io::Result<()> {
-                    use brec::block::*;
+                fn write_all<T: std::io::Write>(&self, writer: &mut T) -> std::io::Result<()> {
+                    use brec::prelude::*;
                     let mut buffer = [0u8; #size];
                     let mut offset = 0;
                     let crc = self.crc();

@@ -16,11 +16,11 @@ impl Read for Block {
         }
         Ok(quote! {
 
-            impl brec::block::Read for #block_name {
+            impl brec::ReadBlockFrom for #block_name {
                 fn read<T: std::io::Read>(buf: &mut T, skip_sig: bool) -> Result<Self, brec::Error>
                 where
                     Self: Sized {
-                        use brec::block::*;
+                        use brec::prelude::*;
                         if !skip_sig {
                             let mut sig = [0u8; #sig_len];
                             #src.read_exact(&mut sig)?;
@@ -83,13 +83,13 @@ impl ReadFromSlice for Block {
         }
         Ok(quote! {
 
-            impl<'a> brec::block::ReadFromSlice<'a> for #referred_name <'a> {
+            impl<'a> brec::ReadBlockFromSlice<'a> for #referred_name <'a> {
 
                 fn read_from_slice(#src: &'a [u8], skip_sig: bool) -> Result<Self, brec::Error>
                 where
                     Self: Sized,
                 {
-                    use brec::block::*;
+                    use brec::prelude::*;
                     if !skip_sig {
                         if #src.len() < #sig_len {
                             return Err(brec::Error::NotEnoughtSignatureData(#src.len(), #sig_len));
@@ -133,13 +133,13 @@ impl TryRead for Block {
         let sig_len = self.sig_len();
         Ok(quote! {
 
-            impl brec::block::TryRead for #block_name {
+            impl brec::TryReadFrom for #block_name {
 
                 fn try_read<T: std::io::Read + std::io::Seek>(buf: &mut T) -> Result<brec::ReadStatus<Self>, brec::Error>
                 where
                     Self: Sized,
                 {
-                    use brec::block::*;
+                    use brec::prelude::*;
                     let mut sig_buf = [0u8; #sig_len];
                     let start_pos = buf.stream_position()?;
                     let len = buf.seek(std::io::SeekFrom::End(0))? - start_pos;
@@ -170,14 +170,14 @@ impl TryReadBuffered for Block {
         let sig_len = self.sig_len();
         Ok(quote! {
 
-            impl brec::block::TryReadBuffered for #block_name {
+            impl brec::TryReadFromBuffered for #block_name {
 
                 fn try_read<T: std::io::Read>(buf: &mut T) -> Result<brec::ReadStatus<Self>, brec::Error>
                 where
                     Self: Sized,
                 {
                     use std::io::BufRead;
-                    use brec::block::*;
+                    use brec::prelude::*;
 
                     let mut reader = std::io::BufReader::new(buf);
                     let bytes = reader.fill_buf()?;

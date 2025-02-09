@@ -1,7 +1,7 @@
 mod read;
 mod sreader;
 
-use crate::payload::*;
+use crate::*;
 pub use sreader::*;
 
 /// Represents the header of a payload, containing metadata for verification and identification.
@@ -27,8 +27,14 @@ pub use sreader::*;
 /// - `sig` - Unique signature identifying the payload format.
 /// - `crc` - CRC checksum of the payload for integrity verification.
 /// - `len` - Length of the payload in bytes.
-pub struct Header {
+pub struct PayloadHeader {
     pub sig: ByteBlock,
     pub crc: ByteBlock,
     pub len: u32,
+}
+
+impl PayloadHeader {
+    pub fn len(&self) -> usize {
+        self.len as usize
+    }
 }

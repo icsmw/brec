@@ -69,7 +69,7 @@ impl Base for Block {
 
             const #const_sig: [u8; #sig_len] = #sig;
 
-            impl brec::block::Signature for #referred_name <'_> {
+            impl brec::SignatureU32 for #referred_name <'_> {
 
                 fn sig() -> &'static [u8; #sig_len] {
                     &#const_sig
@@ -91,7 +91,6 @@ impl Gen for Block {
         let crc = Crc::gen(self)?;
         let size = Size::gen(self);
         let write = Write::gen(self)?;
-        let write_owned = WriteOwned::gen(self)?;
         Ok(quote! {
             #base
             #crc
@@ -101,7 +100,6 @@ impl Gen for Block {
             #try_read
             #try_read_buffered
             #write
-            #write_owned
         })
     }
 }

@@ -3,7 +3,7 @@ use std::{
     io::{BufReader, Cursor, Seek},
 };
 
-use brec::{block, block::*};
+use brec::prelude::*;
 
 use rand::{
     distr::{Distribution, StandardUniform},
@@ -77,7 +77,7 @@ impl WithEnum {
 
 #[test]
 fn from_reader() {
-    use brec::block::*;
+    use brec::prelude::*;
     let mut origins = Vec::new();
     let mut rng = rand::rng();
     let count = rng.random_range(5..10);
@@ -129,81 +129,6 @@ fn from_slice() {
         println!(
             "write: {} bytes",
             blk.write(&mut buf).expect("Block is written")
-        );
-    }
-    let size = buf.len() as u64;
-    println!("created: {count}; total size: {size}");
-    let mut restored: Vec<WithEnum> = Vec::new();
-    let mut pos: usize = 0;
-    loop {
-        let referred =
-            WithEnumReferred::read_from_slice(&buf[pos..pos + WithEnum::ssize() as usize], true)
-                .expect("Read from slice");
-        restored.push(referred.into());
-        pos += WithEnum::ssize() as usize;
-        println!("read bytes: {pos}; blocks: {}", restored.len());
-        if restored.len() == origins.len() {
-            break;
-        }
-    }
-    assert_eq!(origins.len(), restored.len());
-    for (left, right) in restored.iter().zip(origins.iter()) {
-        assert_eq!(left, right);
-    }
-}
-
-#[test]
-fn from_reader_owned() {
-    let mut origins = Vec::new();
-    let mut rng = rand::rng();
-    let count = rng.random_range(5..10);
-    for _ in 0..count {
-        origins.push(WithEnum::rand());
-    }
-    let mut buf: Vec<u8> = Vec::new();
-    for blk in origins.iter() {
-        println!(
-            "write: {} bytes",
-            WriteOwned::write(blk.clone(), &mut buf).expect("Block is written")
-        );
-    }
-    let size = buf.len() as u64;
-    println!("created: {count}; total size: {size}");
-    let mut restored = Vec::new();
-    let mut reader = BufReader::new(Cursor::new(buf));
-    let mut consumed = 0;
-    loop {
-        match WithEnum::read(&mut reader, false) {
-            Ok(blk) => {
-                consumed = reader.stream_position().expect("Position is read");
-                restored.push(blk);
-            }
-            Err(err) => {
-                println!("{err}");
-                break;
-            }
-        }
-    }
-    assert_eq!(size, consumed);
-    assert_eq!(origins.len(), restored.len());
-    for (left, right) in restored.iter().zip(origins.iter()) {
-        assert_eq!(left, right);
-    }
-}
-
-#[test]
-fn from_slice_owned() {
-    let mut origins = Vec::new();
-    let mut rng = rand::rng();
-    let count = rng.random_range(5..10);
-    for _ in 0..count {
-        origins.push(WithEnum::rand());
-    }
-    let mut buf: Vec<u8> = Vec::new();
-    for blk in origins.iter() {
-        println!(
-            "write: {} bytes",
-            WriteOwned::write(blk.clone(), &mut buf).expect("Block is written")
         );
     }
     let size = buf.len() as u64;
