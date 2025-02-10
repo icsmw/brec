@@ -1,3 +1,7 @@
+pub mod slices;
+
+pub use slices::*;
+
 pub trait WriteTo {
     fn write<T: std::io::Write>(&self, buf: &mut T) -> std::io::Result<usize>;
     fn write_all<T: std::io::Write>(&self, buf: &mut T) -> std::io::Result<()>;
@@ -5,13 +9,14 @@ pub trait WriteTo {
 
 pub trait WriteVectoredTo {
     fn write_vectored<T: std::io::Write>(&self, buf: &mut T) -> std::io::Result<usize> {
-        buf.write_vectored(&self.slices()?[..])
+        buf.write_vectored(&self.slices()?.get())
     }
 
-    fn slices(&self) -> std::io::Result<Vec<std::io::IoSlice<'_>>>;
+    fn slices(&self) -> std::io::Result<IoSlices>;
 
     fn write_vectored_all<T: std::io::Write>(&self, buf: &mut T) -> std::io::Result<()> {
-        let source = self.slices()?;
+        let bindings = self.slices()?;
+        let source = bindings.get();
         let mut written = 0;
 
         loop {

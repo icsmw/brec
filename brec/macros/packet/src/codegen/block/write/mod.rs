@@ -7,6 +7,6 @@ pub trait Write {
     fn gen(&self) -> Result<TokenStream, E>;
 }
 
-pub trait WriteOwned {
+pub trait WriteVectored {
     fn gen(&self) -> Result<TokenStream, E>;
 }

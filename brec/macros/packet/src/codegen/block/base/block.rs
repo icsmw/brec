@@ -91,6 +91,7 @@ impl Gen for Block {
         let crc = Crc::gen(self)?;
         let size = Size::gen(self);
         let write = Write::gen(self)?;
+        let write_vec = WriteVectored::gen(self)?;
         Ok(quote! {
             #base
             #crc
@@ -100,6 +101,7 @@ impl Gen for Block {
             #try_read
             #try_read_buffered
             #write
+            #write_vec
         })
     }
 }

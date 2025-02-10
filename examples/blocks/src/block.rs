@@ -78,7 +78,7 @@ fn from_reader() {
     for blk in origins.iter() {
         println!(
             "write: {} bytes",
-            blk.write(&mut buf).expect("Block is written")
+            WriteTo::write(blk, &mut buf).expect("Block is written")
         );
     }
     let size = buf.len() as u64;
@@ -117,7 +117,120 @@ fn from_slice() {
     for blk in origins.iter() {
         println!(
             "write: {} bytes",
-            blk.write(&mut buf).expect("Block is written")
+            WriteTo::write(blk, &mut buf).expect("Block is written")
+        );
+    }
+    let size = buf.len() as u64;
+    println!("created: {count}; total size: {size}");
+    let mut restored: Vec<CustomBlock> = Vec::new();
+    let mut pos: usize = 0;
+    loop {
+        let referred = CustomBlockReferred::read_from_slice(
+            &buf[pos..pos + CustomBlock::ssize() as usize],
+            true,
+        )
+        .expect("Read from slice");
+        restored.push(referred.into());
+        pos += CustomBlock::ssize() as usize;
+        println!("read bytes: {pos}; blocks: {}", restored.len());
+        if restored.len() == origins.len() {
+            break;
+        }
+    }
+    assert_eq!(origins.len(), restored.len());
+    for (left, right) in restored.iter().zip(origins.iter()) {
+        assert_eq!(left, right);
+    }
+}
+
+#[test]
+fn from_vectored_reader() {
+    let mut origins = Vec::new();
+    let mut rng = rand::rng();
+    let count = rng.random_range(5..10);
+    for _ in 0..count {
+        origins.push(CustomBlock::rand());
+    }
+    let mut buf: Vec<u8> = Vec::new();
+    for blk in origins.iter() {
+        println!(
+            "write: {} bytes",
+            WriteVectoredTo::write_vectored(blk, &mut buf).expect("Block is written")
+        );
+    }
+    let size = buf.len() as u64;
+    println!("created: {count}; total size: {size}");
+    let mut restored = Vec::new();
+    let mut reader = BufReader::new(Cursor::new(buf));
+    let mut consumed = 0;
+    loop {
+        match CustomBlock::read(&mut reader, false) {
+            Ok(blk) => {
+                consumed = reader.stream_position().expect("Position is read");
+                restored.push(blk);
+            }
+            Err(err) => {
+                println!("{err}");
+                break;
+            }
+        }
+    }
+    assert_eq!(size, consumed);
+    assert_eq!(origins.len(), restored.len());
+    for (left, right) in restored.iter().zip(origins.iter()) {
+        assert_eq!(left, right);
+    }
+}
+
+#[test]
+fn from_vectored_all_reader() {
+    let mut origins = Vec::new();
+    let mut rng = rand::rng();
+    let count = rng.random_range(5..10);
+    for _ in 0..count {
+        origins.push(CustomBlock::rand());
+    }
+    let mut buf: Vec<u8> = Vec::new();
+    for blk in origins.iter() {
+        WriteVectoredTo::write_vectored_all(blk, &mut buf).expect("Block is written")
+    }
+    let size = buf.len() as u64;
+    println!("created: {count}; total size: {size}");
+    let mut restored = Vec::new();
+    let mut reader = BufReader::new(Cursor::new(buf));
+    let mut consumed = 0;
+    loop {
+        match CustomBlock::read(&mut reader, false) {
+            Ok(blk) => {
+                consumed = reader.stream_position().expect("Position is read");
+                restored.push(blk);
+            }
+            Err(err) => {
+                println!("{err}");
+                break;
+            }
+        }
+    }
+    assert_eq!(size, consumed);
+    assert_eq!(origins.len(), restored.len());
+    for (left, right) in restored.iter().zip(origins.iter()) {
+        assert_eq!(left, right);
+    }
+}
+
+#[test]
+fn from_vectored_slice() {
+    let mut origins = Vec::new();
+    let mut rng = rand::rng();
+    let count = rng.random_range(5..10);
+    for _ in 0..count {
+        origins.push(CustomBlock::rand());
+    }
+    let mut buf: Vec<u8> = Vec::new();
+    for blk in origins.iter() {
+        println!(
+            "write: {} bytes",
+            WriteVectoredTo::write_vectored(blk, &mut buf).expect("Block is written")
         );
     }
     let size = buf.len() as u64;
