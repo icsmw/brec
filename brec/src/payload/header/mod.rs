@@ -34,7 +34,9 @@ pub struct PayloadHeader {
 }
 
 impl PayloadHeader {
-    pub fn len(&self) -> usize {
+    pub const LEN: usize = 1 + 4 + 1 + 4 + 4;
+
+    pub fn payload_len(&self) -> usize {
         self.len as usize
     }
 }

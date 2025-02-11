@@ -18,7 +18,7 @@ impl Crc for Vec<u8> {
 impl Signature for Vec<u8> {
     fn sig() -> ByteBlock {
         let mut hasher = crc32fast::Hasher::new();
-        hasher.update("Vec<u8>".as_bytes());
+        hasher.update("String".as_bytes());
         ByteBlock::Len4(hasher.finalize().to_le_bytes())
     }
 }
@@ -28,10 +28,10 @@ impl ReadPayloadFrom for Vec<u8> {
     where
         Self: Sized,
     {
-        if header.sig != Vec::<u8>::sig() {
+        if header.sig != String::sig() {
             return Err(Error::SignatureDismatch);
         }
-        let mut bytes = vec![0u8; header.len()];
+        let mut bytes = vec![0u8; header.payload_len()];
         buf.read_exact(&mut bytes)?;
         if header.crc != bytes.crc() {
             return Err(Error::CrcDismatch);
@@ -64,7 +64,7 @@ impl TryReadPayloadFromBuffered for Vec<u8> {
     }
 }
 
-fn write_header<T: std::io::Write>(src: &Vec<u8>, writer: &mut T) -> std::io::Result<usize> {
+fn write_header(src: &Vec<u8>, buffer: &mut [u8]) -> std::io::Result<()> {
     let blen = src.len();
     if blen > u32::MAX as usize {
         return Err(std::io::Error::new(
@@ -73,7 +73,6 @@ fn write_header<T: std::io::Write>(src: &Vec<u8>, writer: &mut T) -> std::io::Re
         ));
     }
     let blen = blen as u32;
-    let mut buffer = [0u8; 1 + 4 + 1 + 4 + 4];
     let mut offset = 0;
     // Write SIG len
     buffer[offset..offset + 1usize].copy_from_slice(&[4u8]);
@@ -89,18 +88,31 @@ fn write_header<T: std::io::Write>(src: &Vec<u8>, writer: &mut T) -> std::io::Re
     offset += 4usize;
     // Write PAYLOAD len
     buffer[offset..offset + 4usize].copy_from_slice(&blen.to_le_bytes());
-    writer.write(&buffer)
+    Ok(())
 }
 
 impl WriteTo for Vec<u8> {
     fn write<T: std::io::Write>(&self, writer: &mut T) -> std::io::Result<usize> {
-        let mut header = [0u8; 14];
-        write_header(self, &mut &mut header[..])?;
-        let slices = &[std::io::IoSlice::new(&header), std::io::IoSlice::new(self)];
-        writer.write_vectored(slices)
+        let mut header = [0u8; PayloadHeader::LEN];
+        write_header(self, &mut header)?;
+        writer.write_all(&header)?;
+        writer.write(self)
     }
     fn write_all<T: std::io::Write>(&self, writer: &mut T) -> std::io::Result<()> {
-        self.write(writer)?;
-        writer.write_all(&[])
+        let mut header = [0u8; PayloadHeader::LEN];
+        write_header(self, &mut header)?;
+        writer.write_all(&header)?;
+        writer.write_all(self)
+    }
+}
+
+impl WriteVectoredTo for Vec<u8> {
+    fn slices(&self) -> std::io::Result<IoSlices> {
+        let mut slices = IoSlices::default();
+        let mut header = [0u8; PayloadHeader::LEN];
+        write_header(self, &mut header)?;
+        slices.add_buffered(header.to_vec());
+        slices.add_slice(self);
+        Ok(slices)
     }
 }

@@ -31,7 +31,7 @@ impl ReadPayloadFrom for String {
         if header.sig != String::sig() {
             return Err(Error::SignatureDismatch);
         }
-        let mut bytes = vec![0u8; header.len()];
+        let mut bytes = vec![0u8; header.payload_len()];
         buf.read_exact(&mut bytes)?;
         let value = String::from_utf8_lossy(&bytes).to_string();
         if header.crc != value.crc() {
@@ -65,7 +65,7 @@ impl TryReadPayloadFromBuffered for String {
     }
 }
 
-fn write_header<T: std::io::Write>(src: &String, writer: &mut T) -> std::io::Result<usize> {
+fn write_header(src: &String, buffer: &mut [u8]) -> std::io::Result<()> {
     let blen = src.len();
     if blen > u32::MAX as usize {
         return Err(std::io::Error::new(
@@ -74,7 +74,6 @@ fn write_header<T: std::io::Write>(src: &String, writer: &mut T) -> std::io::Res
         ));
     }
     let blen = blen as u32;
-    let mut buffer = [0u8; 1 + 4 + 1 + 4 + 4];
     let mut offset = 0;
     // Write SIG len
     buffer[offset..offset + 1usize].copy_from_slice(&[4u8]);
@@ -90,16 +89,31 @@ fn write_header<T: std::io::Write>(src: &String, writer: &mut T) -> std::io::Res
     offset += 4usize;
     // Write PAYLOAD len
     buffer[offset..offset + 4usize].copy_from_slice(&blen.to_le_bytes());
-    writer.write(&buffer)
+    Ok(())
 }
 
 impl WriteTo for String {
     fn write<T: std::io::Write>(&self, writer: &mut T) -> std::io::Result<usize> {
-        let written = write_header(self, writer)?;
-        writer.write(self.as_bytes()).map(|w| w + written)
+        let mut header = [0u8; PayloadHeader::LEN];
+        write_header(self, &mut header)?;
+        writer.write_all(&header)?;
+        writer.write(self.as_bytes())
     }
     fn write_all<T: std::io::Write>(&self, writer: &mut T) -> std::io::Result<()> {
-        let _ = write_header(self, writer)?;
+        let mut header = [0u8; PayloadHeader::LEN];
+        write_header(self, &mut header)?;
+        writer.write_all(&header)?;
         writer.write_all(self.as_bytes())
+    }
+}
+
+impl WriteVectoredTo for String {
+    fn slices(&self) -> std::io::Result<IoSlices> {
+        let mut slices = IoSlices::default();
+        let mut header = [0u8; PayloadHeader::LEN];
+        write_header(self, &mut header)?;
+        slices.add_buffered(header.to_vec());
+        slices.add_slice(self.as_bytes());
+        Ok(slices)
     }
 }
