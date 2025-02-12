@@ -10,6 +10,7 @@ pub mod traits;
 
 pub use crc32fast;
 pub use packet::*;
+pub use payload::PayloadHeader;
 pub use r#include::*;
 
 pub use crate::error::*;

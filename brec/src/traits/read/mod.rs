@@ -34,7 +34,16 @@ pub trait TryReadPayloadFrom {
         header: &PayloadHeader,
     ) -> Result<ReadStatus<Self>, Error>
     where
-        Self: Sized;
+        Self: Sized + ReadPayloadFrom,
+    {
+        let start_pos = buf.stream_position()?;
+        let len = buf.seek(std::io::SeekFrom::End(0))? - start_pos;
+        buf.seek(std::io::SeekFrom::Start(start_pos))?;
+        if len < header.payload_len() as u64 {
+            return Ok(ReadStatus::NotEnoughData(header.payload_len() as u64 - len));
+        }
+        ReadPayloadFrom::read(buf, header).map(ReadStatus::Success)
+    }
 }
 
 pub trait TryReadPayloadFromBuffered {
@@ -43,7 +52,10 @@ pub trait TryReadPayloadFromBuffered {
         header: &PayloadHeader,
     ) -> Result<ReadStatus<Self>, Error>
     where
-        Self: Sized;
+        Self: Sized + ReadPayloadFrom,
+    {
+        ReadPayloadFrom::read(buf, header).map(ReadStatus::Success)
+    }
 }
 
 pub trait TryReadFrom {

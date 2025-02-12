@@ -39,4 +39,30 @@ impl PayloadHeader {
     pub fn payload_len(&self) -> usize {
         self.len as usize
     }
+    pub fn write<T: Signature + Size + Crc>(src: &T, buffer: &mut [u8]) -> std::io::Result<()> {
+        let blen = src.size();
+        if blen > u32::MAX as u64 {
+            return Err(std::io::Error::new(
+                std::io::ErrorKind::InvalidData,
+                format!("Size of payload cannot be bigger {} bytes", u32::MAX),
+            ));
+        }
+        let blen = blen as u32;
+        let mut offset = 0;
+        // Write SIG len
+        buffer[offset..offset + 1usize].copy_from_slice(&[4u8]);
+        offset += 1usize;
+        // Write SIG
+        buffer[offset..offset + 4usize].copy_from_slice(T::sig().as_slice());
+        offset += 4usize;
+        // Write CRC len
+        buffer[offset..offset + 1usize].copy_from_slice(&[4u8]);
+        offset += 1usize;
+        // Write CRC
+        buffer[offset..offset + 4usize].copy_from_slice(src.crc().as_slice());
+        offset += 4usize;
+        // Write PAYLOAD len
+        buffer[offset..offset + 4usize].copy_from_slice(&blen.to_le_bytes());
+        Ok(())
+    }
 }

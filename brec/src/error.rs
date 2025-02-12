@@ -30,4 +30,6 @@ pub enum Error {
     FailToReadPayloadHeader,
     #[error("Memory allocation failed")]
     MemoryAllocationFailed,
+    #[error("Encoding error: {0}")]
+    EncodeError(String),
 }
