@@ -1,9 +1,9 @@
 use crate::*;
 use payload::*;
 
-impl Size for String {
-    fn size(&self) -> u64 {
-        self.len() as u64
+impl PayloadSize for String {
+    fn size(&self) -> std::io::Result<u64> {
+        Ok(self.len() as u64)
     }
 }
 

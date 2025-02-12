@@ -39,11 +39,11 @@ impl PayloadHeader {
     pub fn payload_len(&self) -> usize {
         self.len as usize
     }
-    pub fn write<T: Signature + Size + PayloadCrc>(
+    pub fn write<T: Signature + PayloadSize + PayloadCrc>(
         src: &T,
         buffer: &mut [u8],
     ) -> std::io::Result<()> {
-        let blen = src.size();
+        let blen = src.size()?;
         if blen > u32::MAX as u64 {
             return Err(std::io::Error::new(
                 std::io::ErrorKind::InvalidData,

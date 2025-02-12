@@ -27,9 +27,10 @@ impl brec::PayloadDecode<MyPayload> for MyPayload {
     }
 }
 
-impl brec::Size for MyPayload {
-    fn size(&self) -> u64 {
-        self.__inner_buf.len() as u64
+impl brec::PayloadSize for MyPayload {
+    fn size(&self) -> std::io::Result<u64> {
+        bincode::serialized_size(self)
+            .map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidData, e.to_string()))
     }
 }
 

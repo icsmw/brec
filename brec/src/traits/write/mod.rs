@@ -23,7 +23,7 @@ pub trait WriteVectoredTo {
 
 pub trait WritePayloadTo
 where
-    Self: Sized + PayloadEncode + PayloadEncodeReferred + Signature + PayloadCrc + Size,
+    Self: Sized + PayloadEncode + PayloadEncodeReferred + Signature + PayloadCrc + PayloadSize,
 {
     fn write<T: std::io::Write>(&mut self, buf: &mut T) -> std::io::Result<usize> {
         let mut header = [0u8; PayloadHeader::LEN];
@@ -50,7 +50,7 @@ where
 
 pub trait WriteVectoredPayloadTo
 where
-    Self: Sized + PayloadEncode + PayloadEncodeReferred + Signature + PayloadCrc + Size,
+    Self: Sized + PayloadEncode + PayloadEncodeReferred + Signature + PayloadCrc + PayloadSize,
 {
     fn write_vectored<T: std::io::Write>(&mut self, buf: &mut T) -> std::io::Result<usize> {
         buf.write_vectored(&self.slices()?.get())

@@ -38,3 +38,7 @@ pub trait StaticSize {
 pub trait Size {
     fn size(&self) -> u64;
 }
+
+pub trait PayloadSize {
+    fn size(&self) -> std::io::Result<u64>;
+}
