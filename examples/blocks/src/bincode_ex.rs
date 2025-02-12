@@ -3,8 +3,6 @@ struct MyPayload {
     pub str: String,
     pub num: u32,
     pub list: Vec<String>,
-    #[serde(skip)]
-    pub __inner_buf: Vec<u8>,
 }
 
 impl brec::PayloadEncode for MyPayload {
