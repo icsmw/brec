@@ -7,92 +7,40 @@ impl Size for Vec<u8> {
     }
 }
 
-impl Crc for Vec<u8> {
-    fn crc(&self) -> ByteBlock {
-        let mut hasher = crc32fast::Hasher::new();
-        hasher.update(self);
-        ByteBlock::Len4(hasher.finalize().to_le_bytes())
-    }
-}
+impl PayloadCrc for Vec<u8> {}
 
 impl Signature for Vec<u8> {
     fn sig() -> ByteBlock {
         let mut hasher = crc32fast::Hasher::new();
-        hasher.update("String".as_bytes());
+        hasher.update("Vec<u8>".as_bytes());
         ByteBlock::Len4(hasher.finalize().to_le_bytes())
     }
 }
 
-impl ReadPayloadFrom for Vec<u8> {
-    fn read<T: std::io::Read>(buf: &mut T, header: &PayloadHeader) -> Result<Self, Error>
-    where
-        Self: Sized,
-    {
-        if header.sig != String::sig() {
-            return Err(Error::SignatureDismatch);
-        }
-
-        let mut bytes = vec![0u8; header.payload_len()];
-        buf.read_exact(&mut bytes)?;
-        if header.crc != bytes.crc() {
-            return Err(Error::CrcDismatch);
-        }
-        Ok(bytes)
+impl PayloadEncode for Vec<u8> {
+    fn encode(&self) -> std::io::Result<Vec<u8>> {
+        Ok(self.clone())
     }
 }
 
-impl TryReadPayloadFrom for Vec<u8> {
-    fn try_read<T: std::io::Read + std::io::Seek>(
-        buf: &mut T,
-        header: &PayloadHeader,
-    ) -> Result<ReadStatus<Self>, Error>
-    where
-        Self: Sized,
-    {
-        let start_pos = buf.stream_position()?;
-        let len = buf.seek(std::io::SeekFrom::End(0))? - start_pos;
-        buf.seek(std::io::SeekFrom::Start(start_pos))?;
-        if len < header.payload_len() as u64 {
-            return Ok(ReadStatus::NotEnoughData(header.payload_len() as u64 - len));
-        }
-        ReadPayloadFrom::read(buf, header).map(ReadStatus::Success)
+impl PayloadEncodeReferred for Vec<u8> {
+    fn encode(&self) -> std::io::Result<Option<&[u8]>> {
+        Ok(Some(self))
     }
 }
 
-impl TryReadPayloadFromBuffered for Vec<u8> {
-    fn try_read<T: std::io::Read>(
-        buf: &mut T,
-        header: &PayloadHeader,
-    ) -> Result<ReadStatus<Self>, Error>
-    where
-        Self: Sized,
-    {
-        ReadPayloadFrom::read(buf, header).map(ReadStatus::Success)
+impl PayloadDecode<Vec<u8>> for Vec<u8> {
+    fn decode(buf: &[u8]) -> std::io::Result<Vec<u8>> {
+        Ok(buf.to_vec())
     }
 }
 
-impl WriteTo for Vec<u8> {
-    fn write<T: std::io::Write>(&self, writer: &mut T) -> std::io::Result<usize> {
-        let mut header = [0u8; PayloadHeader::LEN];
-        PayloadHeader::write(self, &mut header)?;
-        writer.write_all(&header)?;
-        writer.write(self)
-    }
-    fn write_all<T: std::io::Write>(&self, writer: &mut T) -> std::io::Result<()> {
-        let mut header = [0u8; PayloadHeader::LEN];
-        PayloadHeader::write(self, &mut header)?;
-        writer.write_all(&header)?;
-        writer.write_all(self)
-    }
-}
+impl ReadPayloadFrom<Vec<u8>> for Vec<u8> {}
 
-impl WriteVectoredTo for Vec<u8> {
-    fn slices(&self) -> std::io::Result<IoSlices> {
-        let mut slices = IoSlices::default();
-        let mut header = [0u8; PayloadHeader::LEN];
-        PayloadHeader::write(self, &mut header)?;
-        slices.add_buffered(header.to_vec());
-        slices.add_slice(self);
-        Ok(slices)
-    }
-}
+impl TryReadPayloadFrom<Vec<u8>> for Vec<u8> {}
+
+impl TryReadPayloadFromBuffered<Vec<u8>> for Vec<u8> {}
+
+impl WritePayloadTo for Vec<u8> {}
+
+impl WriteVectoredPayloadTo for Vec<u8> {}

@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod block;
 
-mod bincode_ex;
+// mod bincode_ex;
 #[cfg(test)]
 mod block_with_enum;
 mod extended;
