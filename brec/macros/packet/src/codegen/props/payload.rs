@@ -6,11 +6,11 @@ impl Crc for Payload {
     fn gen(&self) -> Result<TokenStream, E> {
         let payload_name = self.name();
         Ok(if self.attrs.is_bincode() {
-            quote! {}
-        } else {
             quote! {
                 impl brec::PayloadCrc for #payload_name {}
             }
+        } else {
+            quote! {}
         })
     }
 }
@@ -19,8 +19,6 @@ impl Size for Payload {
     fn gen(&self) -> TokenStream {
         let payload_name = self.name();
         if self.attrs.is_bincode() {
-            quote! {}
-        } else {
             quote! {
                 impl brec::PayloadSize for #payload_name {
                     fn size(&self) -> std::io::Result<u64> {
@@ -29,6 +27,8 @@ impl Size for Payload {
                     }
                 }
             }
+        } else {
+            quote! {}
         }
     }
 }
