@@ -18,6 +18,7 @@ lazy_static! {
 #[derive(Debug, Default)]
 pub struct Collector {
     blocks: Vec<Block>,
+    payloads: Vec<Payload>,
 }
 
 impl Collector {
@@ -26,6 +27,10 @@ impl Collector {
     }
     pub fn add_block(&mut self, block: Block) -> Result<(), E> {
         self.blocks.push(block);
+        self.write()
+    }
+    pub fn add_payload(&mut self, payload: Payload) -> Result<(), E> {
+        self.payloads.push(payload);
         self.write()
     }
     fn write(&self) -> Result<(), E> {

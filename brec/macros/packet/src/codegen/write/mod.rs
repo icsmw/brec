@@ -1,12 +1,13 @@
 mod block;
+mod payload;
 
 use crate::*;
 use proc_macro2::TokenStream;
 
-pub trait Gen {
+pub trait Write {
     fn gen(&self) -> Result<TokenStream, E>;
 }
 
-pub trait Base {
+pub trait WriteVectored {
     fn gen(&self) -> Result<TokenStream, E>;
 }

@@ -10,6 +10,8 @@ pub enum E {
     GenericTypesNotSupported,
     #[error("Unsupported type")]
     UnsupportedType,
+    #[error("Unsupported type to use with {0}")]
+    NotSupportedBy(String),
     #[error("Referred types are unsupported")]
     ReferenceUnsupported,
     #[error("Missed array size")]

@@ -66,13 +66,13 @@ impl ReadFromSlice for Block {
                     let #name = if skip_sig {
                         &#const_sig
                     } else {
-                        <&[u8; #SIG_LEN]>::try_from(&#src[0usize..#SIG_LEN])?
+                        <&[u8; #BLOCK_SIG_LEN]>::try_from(&#src[0usize..#BLOCK_SIG_LEN])?
                     };
                 });
             } else if field.name == FIELD_CRC {
                 let name = format_ident!("{}", FIELD_CRC);
                 fields.push(quote! {
-                    let #name = <&[u8; #CRC_LEN]>::try_from(&#src[#offset..#offset + #CRC_LEN])?;
+                    let #name = <&[u8; #BLOCK_CRC_LEN]>::try_from(&#src[#offset..#offset + #BLOCK_CRC_LEN])?;
                     let crc = #name;
                 });
             } else {

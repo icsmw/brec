@@ -53,13 +53,13 @@ impl Write for Block {
                     let mut buffer = [0u8; #size];
                     let mut offset = 0;
                     let crc = self.crc();
-                    buffer[offset..offset + #SIG_LEN].copy_from_slice(&#const_sig);
-                    offset += #SIG_LEN;
+                    buffer[offset..offset + #BLOCK_SIG_LEN].copy_from_slice(&#const_sig);
+                    offset += #BLOCK_SIG_LEN;
                     #(#buf_fillers)*
                     unsafe {
                         let dst = buffer.as_mut_ptr().add(offset);
                         let src = crc.as_ptr();
-                        std::ptr::copy_nonoverlapping(src, dst, #CRC_LEN);
+                        std::ptr::copy_nonoverlapping(src, dst, #BLOCK_CRC_LEN);
                     }
                     writer.write(&buffer)
                 }
@@ -69,13 +69,13 @@ impl Write for Block {
                     let mut buffer = [0u8; #size];
                     let mut offset = 0;
                     let crc = self.crc();
-                    buffer[offset..offset + #SIG_LEN].copy_from_slice(&#const_sig);
-                    offset += #SIG_LEN;
+                    buffer[offset..offset + #BLOCK_SIG_LEN].copy_from_slice(&#const_sig);
+                    offset += #BLOCK_SIG_LEN;
                     #(#buf_fillers)*
                     unsafe {
                         let dst = buffer.as_mut_ptr().add(offset);
                         let src = crc.as_ptr();
-                        std::ptr::copy_nonoverlapping(src, dst, #CRC_LEN);
+                        std::ptr::copy_nonoverlapping(src, dst, #BLOCK_CRC_LEN);
                     }
                     writer.write_all(&buffer)
                 }
