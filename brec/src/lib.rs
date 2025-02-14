@@ -1,5 +1,7 @@
 #[cfg(feature = "build")]
 pub mod build;
+#[cfg(feature = "bincode")]
+pub use bincode;
 #[cfg(feature = "build")]
 pub use build::*;
 

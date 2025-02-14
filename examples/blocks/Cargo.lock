@@ -21,6 +21,7 @@ checksum = "8f68f53c83ab957f72c32642f3868eec03eb974d1fb82e453128456482613d36"
 name = "brec"
 version = "0.1.0"
 dependencies = [
+ "bincode",
  "crc32fast",
  "include",
  "packet",
@@ -71,7 +72,6 @@ checksum = "5443807d6dff69373d433ab9ef5378ad8df50ca6298caf15de6e52e24aaf54d5"
 name = "example"
 version = "0.1.0"
 dependencies = [
- "bincode",
  "brec",
  "rand",
  "serde",

@@ -22,7 +22,7 @@ impl Size for Payload {
             quote! {
                 impl brec::PayloadSize for #payload_name {
                     fn size(&self) -> std::io::Result<u64> {
-                        bincode::serialized_size(self)
+                        brec::bincode::serialized_size(self)
                             .map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidData, e.to_string()))
                     }
                 }

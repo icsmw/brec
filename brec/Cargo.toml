@@ -11,11 +11,15 @@ members = [
 ]
 
 [features]
-build = []
+    build = []
+    bincode = ["dep:bincode"]
+
+
 
 [dependencies]
 thiserror.workspace = true
 crc32fast.workspace = true
+bincode = { workspace = true, optional = true }
 packet = { path = "./macros/packet"}
 include = { path = "./macros/include"}
 
