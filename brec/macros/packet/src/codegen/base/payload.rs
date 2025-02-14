@@ -5,7 +5,7 @@ use quote::quote;
 impl Base for Payload {
     fn gen(&self) -> Result<TokenStream, E> {
         let payload_name = self.name();
-        let sig = self.sig();
+        let sig = self.sig()?;
         let sig_impl = if self.attrs.no_default_sig() {
             quote! {}
         } else {

@@ -2,7 +2,7 @@ mod attr;
 
 use crate::*;
 use std::convert::TryFrom;
-use syn::{Data, DeriveInput, Fields};
+use syn::{Data, DeriveInput};
 
 pub const PAYLOAD_ATTR: &str = "payload";
 
@@ -19,29 +19,13 @@ impl TryFrom<(PayloadAttrs, &mut DeriveInput)> for Payload {
         input
             .attrs
             .retain(|attr| !attr.path().is_ident(PAYLOAD_ATTR));
-        let mut extracted = Vec::new();
-        let Data::Struct(data_struct) = &mut input.data else {
+        if !matches!(&input.data, Data::Struct(..) | Data::Enum(..)) {
             return Err(syn::Error::new_spanned(
                 &input,
                 E::NotSupportedBy(PAYLOAD_ATTR.to_string()),
             ));
-        };
-        let Fields::Named(fields) = &mut data_struct.fields else {
-            return Err(syn::Error::new_spanned(
-                &data_struct.fields,
-                E::NotSupportedBy(PAYLOAD_ATTR.to_string()),
-            ));
-        };
-        for field in &mut fields.named {
-            extracted.push(
-                field
-                    .ident
-                    .as_ref()
-                    .ok_or(syn::Error::new_spanned(&field, E::FailExtractIdent))?
-                    .to_string(),
-            );
         }
-        let payload = Self::new(name.to_string(), extracted, attrs);
+        let payload = Self::new(name.to_string(), attrs);
         Collector::get()
             .map_err(|err| syn::Error::new_spanned(&input, err))?
             .add_payload(payload.clone())

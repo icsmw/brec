@@ -14,24 +14,18 @@ pub(crate) const PAYLOAD_CRC_LEN: usize = 4;
 #[derive(Debug, Clone)]
 pub struct Payload {
     pub name: String,
-    pub fields: Vec<String>,
     pub attrs: PayloadAttrs,
 }
 
 impl Payload {
-    pub fn new(name: String, fields: Vec<String>, attrs: PayloadAttrs) -> Self {
-        Self {
-            name,
-            fields,
-            attrs,
-        }
+    pub fn new(name: String, attrs: PayloadAttrs) -> Self {
+        Self { name, attrs }
     }
-    pub fn sig(&self) -> TokenStream {
+    pub fn sig(&self) -> Result<TokenStream, E> {
         let mut hasher = Hasher::new();
-        let snap = format!("{};{}", self.name, self.fields.join(";"));
-        hasher.update(snap.as_bytes());
+        hasher.update(self.fullname()?.to_string().as_bytes());
         let sig = hasher.finalize().to_le_bytes();
-        quote! { [#(#sig),*] }
+        Ok(quote! { [#(#sig),*] })
     }
     pub fn sig_len(&self) -> TokenStream {
         let len_lit = LitInt::new(&PAYLOAD_SIG_LEN.to_string(), proc_macro2::Span::call_site());
