@@ -14,6 +14,8 @@ pub fn gen(blocks: &[Block]) -> Result<TokenStream, E> {
         pub enum Block {
             #(#variants,)*
         }
+
+        impl brec::BlockDef for Block {}
     })
 }
 
@@ -28,5 +30,7 @@ pub fn gen_referred(blocks: &[Block]) -> Result<TokenStream, E> {
         pub enum BlockReferred<'a> {
             #(#variants,)*
         }
+
+        impl<'a> brec::BlockReferredDef<'a, Block> for BlockReferred<'a> {}
     })
 }

@@ -1,6 +1,5 @@
 mod blocks;
-
-pub(crate) use blocks::*;
+mod payloads;
 
 use std::{
     env,
@@ -39,8 +38,10 @@ impl Collector {
     }
     fn write(&self) -> Result<(), E> {
         let block = blocks::gen(&self.blocks)?;
+        let payload = payloads::gen(&self.payloads)?;
         let output = quote! {
             #block
+            #payload
         };
         let out_dir = env::var("OUT_DIR")?;
         let path = PathBuf::from(out_dir).join("brec.rs");

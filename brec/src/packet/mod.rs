@@ -24,21 +24,15 @@ pub trait BlockDef:
 {
 }
 
-pub trait PayloadInnerDef:
-    Sized + PayloadDecode<Self> + Signature + PayloadCrc + ReadPayloadFrom<Self> + PayloadEncode
-{
-}
+pub trait PayloadInnerDef: Sized + ExtractPayloadFrom<Self> {}
 
 pub trait PayloadDef<Inner: PayloadInnerDef>:
-    ReadPayloadFrom<Inner>
-    + TryReadPayloadFrom<Inner>
-    + TryReadPayloadFromBuffered<Inner>
-    + WritePayloadTo
-    + WriteVectoredPayloadTo
-    + Signature
-    + PayloadCrc
+    ExtractPayloadFrom<Inner>
+    + TryExtractPayloadFrom<Inner>
+    + TryExtractPayloadFromBuffered<Inner>
+    + WritingPayloadTo
+    + WritingVectoredPayloadTo
     + PayloadSize
-    + PayloadDecode<Self>
 {
 }
 
@@ -97,9 +91,9 @@ where
             reader,
             header,
             len,
-            _b: PhantomData::default(),
-            _p: PhantomData::default(),
-            _i: PhantomData::default(),
+            _b: PhantomData,
+            _p: PhantomData,
+            _i: PhantomData,
         })))
     }
 
@@ -118,7 +112,7 @@ where
         if self.header.payload {
             match <PayloadHeader as TryReadFromBuffered>::try_read(&mut self.reader)? {
                 ReadStatus::Success(header) => {
-                    match <P as TryReadPayloadFromBuffered<Inner>>::try_read(
+                    match <P as TryExtractPayloadFromBuffered<Inner>>::try_read(
                         &mut self.reader,
                         &header,
                     )? {
@@ -227,8 +221,10 @@ impl<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> Packet<B, P, Inn
         if header.payload {
             match <PayloadHeader as TryReadFromBuffered>::try_read(&mut reader)? {
                 ReadStatus::Success(header) => {
-                    match <P as TryReadPayloadFromBuffered<Inner>>::try_read(&mut reader, &header)?
-                    {
+                    match <P as TryExtractPayloadFromBuffered<Inner>>::try_read(
+                        &mut reader,
+                        &header,
+                    )? {
                         ReadStatus::Success(payload) => {
                             pkg.payload = Some(payload);
                         }
@@ -276,7 +272,7 @@ impl<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> ReadFrom for Pac
         }
         if header.payload {
             let header = <PayloadHeader as ReadFrom>::read(buf)?;
-            let payload = <P as ReadPayloadFrom<Inner>>::read(buf, &header)?;
+            let payload = <P as ExtractPayloadFrom<Inner>>::read(buf, &header)?;
             pkg.payload = Some(payload);
         }
         Ok(pkg)
@@ -325,7 +321,7 @@ impl<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> TryReadFrom
         if header.payload {
             match <PayloadHeader as TryReadFromBuffered>::try_read(buf)? {
                 ReadStatus::Success(header) => {
-                    match <P as TryReadPayloadFromBuffered<Inner>>::try_read(buf, &header) {
+                    match <P as TryExtractPayloadFromBuffered<Inner>>::try_read(buf, &header) {
                         Ok(ReadStatus::Success(payload)) => {
                             pkg.payload = Some(payload);
                         }
@@ -387,8 +383,10 @@ impl<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> TryReadFromBuffe
         if header.payload {
             match <PayloadHeader as TryReadFromBuffered>::try_read(&mut reader)? {
                 ReadStatus::Success(header) => {
-                    match <P as TryReadPayloadFromBuffered<Inner>>::try_read(&mut reader, &header)?
-                    {
+                    match <P as TryExtractPayloadFromBuffered<Inner>>::try_read(
+                        &mut reader,
+                        &header,
+                    )? {
                         ReadStatus::Success(payload) => {
                             pkg.payload = Some(payload);
                         }

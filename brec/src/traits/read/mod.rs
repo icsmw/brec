@@ -40,6 +40,10 @@ pub trait ReadPayloadFrom<T: Sized + PayloadDecode<T> + Signature + PayloadCrc> 
     }
 }
 
+pub trait ExtractPayloadFrom<T: Sized> {
+    fn read<B: std::io::Read>(buf: &mut B, header: &PayloadHeader) -> Result<T, Error>;
+}
+
 pub trait TryReadPayloadFrom<
     T: Sized + PayloadDecode<T> + Signature + PayloadCrc + ReadPayloadFrom<T>,
 >
@@ -58,6 +62,13 @@ pub trait TryReadPayloadFrom<
     }
 }
 
+pub trait TryExtractPayloadFrom<T: Sized> {
+    fn try_read<B: std::io::Read + std::io::Seek>(
+        buf: &mut B,
+        header: &PayloadHeader,
+    ) -> Result<ReadStatus<T>, Error>;
+}
+
 pub trait TryReadPayloadFromBuffered<
     T: Sized + PayloadDecode<T> + Signature + PayloadCrc + ReadPayloadFrom<T>,
 >
@@ -68,6 +79,13 @@ pub trait TryReadPayloadFromBuffered<
     ) -> Result<ReadStatus<T>, Error> {
         <T as ReadPayloadFrom<T>>::read(buf, header).map(ReadStatus::Success)
     }
+}
+
+pub trait TryExtractPayloadFromBuffered<T: Sized + ExtractPayloadFrom<T>> {
+    fn try_read<B: std::io::Read>(
+        buf: &mut B,
+        header: &PayloadHeader,
+    ) -> Result<ReadStatus<T>, Error>;
 }
 
 pub trait TryReadFrom {

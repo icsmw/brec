@@ -1,7 +1,3 @@
-use std::fs::read;
-
-use rand::random;
-
 #[repr(C)]
 struct PayloadA {
     pub str: String,
@@ -619,7 +615,6 @@ where
     c: &'a [u8; 100usize],
     __crc: &'a [u8; 4usize],
 }
-
 impl<'a> From<BlockAReferred<'a>> for BlockA {
     fn from(block: BlockAReferred<'a>) -> Self {
         BlockA {
@@ -854,10 +849,10 @@ impl brec::WriteVectoredTo for BlockA {
 pub enum Block {
     BlockA(BlockA),
 }
+impl brec::BlockDef for Block {}
 pub enum BlockReferred<'a> {
     BlockA(BlockAReferred<'a>),
 }
-impl brec::BlockDef for Block {}
 impl brec::Size for Block {
     fn size(&self) -> u64 {
         use brec::StaticSize;
@@ -1004,11 +999,8 @@ pub enum Payload {
     PayloadA(PayloadA),
     PayloadB(PayloadB),
 }
-
 impl brec::PayloadInnerDef for Payload {}
-
 impl brec::PayloadDef<Payload> for Payload {}
-
 impl brec::PayloadEncode for Payload {
     fn encode(&self) -> std::io::Result<Vec<u8>> {
         match self {
@@ -1017,7 +1009,6 @@ impl brec::PayloadEncode for Payload {
         }
     }
 }
-
 impl brec::PayloadEncodeReferred for Payload {
     fn encode(&self) -> std::io::Result<Option<&[u8]>> {
         match self {
@@ -1026,7 +1017,6 @@ impl brec::PayloadEncodeReferred for Payload {
         }
     }
 }
-
 impl brec::PayloadCrc for Payload {
     fn crc(&self) -> std::io::Result<brec::ByteBlock> {
         match self {
@@ -1035,7 +1025,6 @@ impl brec::PayloadCrc for Payload {
         }
     }
 }
-
 impl brec::PayloadSize for Payload {
     fn size(&self) -> std::io::Result<u64> {
         match self {
@@ -1044,7 +1033,6 @@ impl brec::PayloadSize for Payload {
         }
     }
 }
-
 impl brec::ExtractPayloadFrom<Payload> for Payload {
     fn read<B: std::io::Read>(
         buf: &mut B,
@@ -1056,7 +1044,10 @@ impl brec::ExtractPayloadFrom<Payload> for Payload {
         match <PayloadA as brec::ReadPayloadFrom<PayloadA>>::read(buf, header) {
             Ok(pl) => return Ok(Payload::PayloadA(pl)),
             Err(err) => {
-                if !matches!(err, brec::Error::SignatureDismatch) {
+                if !match err {
+                    brec::Error::SignatureDismatch => true,
+                    _ => false,
+                } {
                     return Err(err);
                 }
             }
@@ -1064,7 +1055,10 @@ impl brec::ExtractPayloadFrom<Payload> for Payload {
         match <PayloadB as brec::ReadPayloadFrom<PayloadB>>::read(buf, header) {
             Ok(pl) => return Ok(Payload::PayloadB(pl)),
             Err(err) => {
-                if !matches!(err, brec::Error::SignatureDismatch) {
+                if !match err {
+                    brec::Error::SignatureDismatch => true,
+                    _ => false,
+                } {
                     return Err(err);
                 }
             }
@@ -1072,7 +1066,6 @@ impl brec::ExtractPayloadFrom<Payload> for Payload {
         Err(brec::Error::SignatureDismatch)
     }
 }
-
 impl brec::TryExtractPayloadFrom<Payload> for Payload {
     fn try_read<B: std::io::Read + std::io::Seek>(
         buf: &mut B,
@@ -1080,26 +1073,32 @@ impl brec::TryExtractPayloadFrom<Payload> for Payload {
     ) -> Result<brec::ReadStatus<Payload>, brec::Error> {
         match <PayloadA as brec::TryReadPayloadFrom<PayloadA>>::try_read(buf, header) {
             Ok(brec::ReadStatus::Success(pl)) => {
-                return Ok(brec::ReadStatus::Success(Payload::PayloadA(pl)))
+                return Ok(brec::ReadStatus::Success(Payload::PayloadA(pl)));
             }
             Ok(brec::ReadStatus::NotEnoughData(needed)) => {
-                return Ok(brec::ReadStatus::NotEnoughData(needed))
+                return Ok(brec::ReadStatus::NotEnoughData(needed));
             }
             Err(err) => {
-                if !matches!(err, brec::Error::SignatureDismatch) {
+                if !match err {
+                    brec::Error::SignatureDismatch => true,
+                    _ => false,
+                } {
                     return Err(err);
                 }
             }
         }
         match <PayloadB as brec::TryReadPayloadFrom<PayloadB>>::try_read(buf, header) {
             Ok(brec::ReadStatus::Success(pl)) => {
-                return Ok(brec::ReadStatus::Success(Payload::PayloadB(pl)))
+                return Ok(brec::ReadStatus::Success(Payload::PayloadB(pl)));
             }
             Ok(brec::ReadStatus::NotEnoughData(needed)) => {
-                return Ok(brec::ReadStatus::NotEnoughData(needed))
+                return Ok(brec::ReadStatus::NotEnoughData(needed));
             }
             Err(err) => {
-                if !matches!(err, brec::Error::SignatureDismatch) {
+                if !match err {
+                    brec::Error::SignatureDismatch => true,
+                    _ => false,
+                } {
                     return Err(err);
                 }
             }
@@ -1107,7 +1106,6 @@ impl brec::TryExtractPayloadFrom<Payload> for Payload {
         Err(brec::Error::SignatureDismatch)
     }
 }
-
 impl brec::TryExtractPayloadFromBuffered<Payload> for Payload {
     fn try_read<B: std::io::Read>(
         buf: &mut B,
@@ -1115,26 +1113,32 @@ impl brec::TryExtractPayloadFromBuffered<Payload> for Payload {
     ) -> Result<brec::ReadStatus<Payload>, brec::Error> {
         match <PayloadA as brec::TryReadPayloadFromBuffered<PayloadA>>::try_read(buf, header) {
             Ok(brec::ReadStatus::Success(pl)) => {
-                return Ok(brec::ReadStatus::Success(Payload::PayloadA(pl)))
+                return Ok(brec::ReadStatus::Success(Payload::PayloadA(pl)));
             }
             Ok(brec::ReadStatus::NotEnoughData(needed)) => {
-                return Ok(brec::ReadStatus::NotEnoughData(needed))
+                return Ok(brec::ReadStatus::NotEnoughData(needed));
             }
             Err(err) => {
-                if !matches!(err, brec::Error::SignatureDismatch) {
+                if !match err {
+                    brec::Error::SignatureDismatch => true,
+                    _ => false,
+                } {
                     return Err(err);
                 }
             }
         }
         match <PayloadB as brec::TryReadPayloadFromBuffered<PayloadB>>::try_read(buf, header) {
             Ok(brec::ReadStatus::Success(pl)) => {
-                return Ok(brec::ReadStatus::Success(Payload::PayloadB(pl)))
+                return Ok(brec::ReadStatus::Success(Payload::PayloadB(pl)));
             }
             Ok(brec::ReadStatus::NotEnoughData(needed)) => {
-                return Ok(brec::ReadStatus::NotEnoughData(needed))
+                return Ok(brec::ReadStatus::NotEnoughData(needed));
             }
             Err(err) => {
-                if !matches!(err, brec::Error::SignatureDismatch) {
+                if !match err {
+                    brec::Error::SignatureDismatch => true,
+                    _ => false,
+                } {
                     return Err(err);
                 }
             }
@@ -1142,7 +1146,6 @@ impl brec::TryExtractPayloadFromBuffered<Payload> for Payload {
         Err(brec::Error::SignatureDismatch)
     }
 }
-
 impl brec::WritingPayloadTo for Payload {
     fn write<T: std::io::Write>(&mut self, buf: &mut T) -> std::io::Result<usize> {
         use brec::WritePayloadTo;
@@ -1151,7 +1154,6 @@ impl brec::WritingPayloadTo for Payload {
             Payload::PayloadB(pl) => pl.write(buf),
         }
     }
-
     fn write_all<T: std::io::Write>(&mut self, buf: &mut T) -> std::io::Result<()> {
         use brec::WritePayloadTo;
         match self {
@@ -1160,7 +1162,6 @@ impl brec::WritingPayloadTo for Payload {
         }
     }
 }
-
 impl brec::WritingVectoredPayloadTo for Payload {
     fn slices(&mut self) -> std::io::Result<brec::IoSlices> {
         use brec::WriteVectoredPayloadTo;

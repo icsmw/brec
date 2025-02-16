@@ -11,8 +11,6 @@ pub fn gen(blocks: &[Block]) -> Result<TokenStream, E> {
         variants.push(quote! {Block::#fullname(..) => #fullpath::ssize()});
     }
     Ok(quote! {
-        impl brec::BlockDef for Block {}
-
         impl brec::Size for Block {
             fn size(&self) -> u64 {
                 use brec::StaticSize;
@@ -32,8 +30,6 @@ pub fn gen_referred(blocks: &[Block]) -> Result<TokenStream, E> {
         variants.push(quote! {BlockReferred::#fullname(..) => #fullpath::ssize()});
     }
     Ok(quote! {
-        impl<'a> brec::BlockReferredDef<'a, Block> for BlockReferred<'a> {}
-
         impl brec::Size for BlockReferred<'_> {
             fn size(&self) -> u64 {
                 use brec::StaticSize;
