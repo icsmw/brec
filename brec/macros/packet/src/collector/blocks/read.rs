@@ -135,9 +135,10 @@ pub fn read_from_slice(blocks: &[Block]) -> Result<TokenStream, E> {
     let mut variants = Vec::new();
     for blk in blocks.iter() {
         let referred_name = blk.referred_name();
+        let fullname = blk.fullname()?;
         variants.push(quote! {
             match #referred_name::read_from_slice(buf, skip_sig) {
-                Ok(blk) => return Ok(BlockRef::referred_name(blk)),
+                Ok(blk) => return Ok(BlockReferred::#fullname(blk)),
                 Err(err) => {
                     if !matches!(err, brec::Error::SignatureDismatch) {
                         return Err(err);
@@ -147,7 +148,7 @@ pub fn read_from_slice(blocks: &[Block]) -> Result<TokenStream, E> {
         });
     }
     Ok(quote! {
-        impl<'a> brec::ReadBlockFromSlice<'a> for BlockRef<'a> {
+        impl<'a> brec::ReadBlockFromSlice<'a> for BlockReferred<'a> {
             fn read_from_slice(buf: &'a [u8], skip_sig: bool) -> Result<Self, brec::Error>
             where
                 Self: Sized,

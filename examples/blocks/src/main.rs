@@ -4,7 +4,7 @@ mod block;
 // mod bincode_ex;
 #[cfg(test)]
 mod block_with_enum;
-mod extended_blocks;
+mod extended_blocks_1;
 // mod extended_block;
 
 // #[brec::payload(bincode)]

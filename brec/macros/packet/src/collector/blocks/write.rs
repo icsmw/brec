@@ -9,10 +9,10 @@ pub fn write_to(blocks: &[Block]) -> Result<TokenStream, E> {
     for blk in blocks.iter() {
         let fullname = blk.fullname()?;
         write.push(quote! {
-            Block::#fullname(blk) => blk.write(buf),
+            Block::#fullname(blk) => blk.write(buf)
         });
         write_all.push(quote! {
-            Block::#fullname(blk) => blk.write_all(buf),
+            Block::#fullname(blk) => blk.write_all(buf)
         });
     }
     Ok(quote! {
@@ -36,7 +36,7 @@ pub fn write_vectored_to(blocks: &[Block]) -> Result<TokenStream, E> {
     for blk in blocks.iter() {
         let fullname = blk.fullname()?;
         slices.push(quote! {
-            Block::#fullname(blk) => blk.slices(buf),
+            Block::#fullname(blk) => blk.slices()
         });
     }
     Ok(quote! {

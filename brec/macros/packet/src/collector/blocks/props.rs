@@ -8,13 +8,14 @@ pub fn gen(blocks: &[Block]) -> Result<TokenStream, E> {
     for blk in blocks.iter() {
         let fullname = blk.fullname()?;
         let fullpath = blk.fullpath()?;
-        variants.push(quote! {#fullname(..) => #fullpath::ssize()});
+        variants.push(quote! {Block::#fullname(..) => #fullpath::ssize()});
     }
     Ok(quote! {
         impl brec::BlockDef for Block {}
 
         impl brec::Size for Block {
             fn size(&self) -> u64 {
+                use brec::StaticSize;
                 match self {
                     #(#variants,)*
                 }
@@ -27,14 +28,15 @@ pub fn gen_referred(blocks: &[Block]) -> Result<TokenStream, E> {
     let mut variants = Vec::new();
     for blk in blocks.iter() {
         let fullpath = blk.fullpath()?;
-        let referred_name = blk.referred_name();
-        variants.push(quote! {#referred_name(..) => #fullpath::ssize()});
+        let fullname = blk.fullname()?;
+        variants.push(quote! {BlockReferred::#fullname(..) => #fullpath::ssize()});
     }
     Ok(quote! {
-        impl<'a> brec::BlockReferredDef<'a, Block> for BlockRef<'a> {}
+        impl<'a> brec::BlockReferredDef<'a, Block> for BlockReferred<'a> {}
 
-        impl brec::Size for BlockRef<'_> {
+        impl brec::Size for BlockReferred<'_> {
             fn size(&self) -> u64 {
+                use brec::StaticSize;
                 match self {
                     #(#variants,)*
                 }
