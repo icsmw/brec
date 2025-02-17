@@ -13,6 +13,7 @@ pub fn gen(blocks: &[Block]) -> Result<TokenStream, E> {
     let block_referred = enums::gen_referred(blocks)?;
     let prop = props::gen(blocks)?;
     let prop_referred = props::gen_referred(blocks)?;
+    let referred_into = props::referred_into(blocks)?;
     let read_from = read::read_from(blocks)?;
     let read_block_from = read::read_block_from(blocks)?;
     let read_from_slice = read::read_from_slice(blocks)?;
@@ -25,6 +26,7 @@ pub fn gen(blocks: &[Block]) -> Result<TokenStream, E> {
         #block_referred
         #prop
         #prop_referred
+        #referred_into
         #read_from
         #read_block_from
         #read_from_slice

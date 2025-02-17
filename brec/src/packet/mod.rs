@@ -6,16 +6,7 @@ use crate::*;
 use std::{io::BufRead, marker::PhantomData};
 
 pub trait BlockReferredDef<'a, B: BlockDef>:
-    ReadBlockFrom
-    + ReadBlockFromSlice<'a>
-    + ReadFrom
-    + TryReadFrom
-    + TryReadFromBuffered
-    + WriteTo
-    + WriteVectoredTo
-    + Size
-    + Sized
-    + Into<B>
+    ReadBlockFromSlice<'a> + Size + Sized + Into<B>
 {
 }
 
@@ -181,7 +172,7 @@ pub struct Packet<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> {
 }
 
 impl<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> Packet<B, P, Inner> {
-    pub fn touch<'a, T: std::io::Read, BR, F: Fn(&[BR]) -> bool>(
+    pub fn touch<'a, T: std::io::Read, BR, F: FnOnce(&[BR]) -> bool>(
         buffer: &'a mut T,
         chk: F,
     ) -> Result<ReadStatus<Option<Packet<B, P, Inner>>>, Error>

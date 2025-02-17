@@ -1171,3 +1171,9 @@ impl brec::WritingVectoredPayloadTo for Payload {
         }
     }
 }
+
+type Packed = brec::Packet<Block, Payload, Payload>;
+
+// fn test<T: std::io::Read>(buf: &mut T) {
+//     Packed::touch(buf, |blks: &[BlockReferred]| true);
+// }
