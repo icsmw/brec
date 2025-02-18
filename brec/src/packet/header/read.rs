@@ -1,6 +1,6 @@
 use crate::*;
 
-impl ReadFrom for PackageHeader {
+impl ReadFrom for PacketHeader {
     fn read<T: std::io::Read>(buf: &mut T) -> Result<Self, Error>
     where
         Self: Sized,
@@ -22,7 +22,7 @@ impl ReadFrom for PackageHeader {
         buf.read_exact(&mut payload)?;
         let payload = payload[0] == 1;
 
-        Ok(PackageHeader {
+        Ok(PacketHeader {
             blocks_len,
             size,
             payload,
@@ -30,15 +30,15 @@ impl ReadFrom for PackageHeader {
     }
 }
 
-impl<'a> ReadBlockFromSlice<'a> for PackageHeader {
+impl<'a> ReadBlockFromSlice<'a> for PacketHeader {
     fn read_from_slice(buf: &'a [u8], _skip_sig: bool) -> Result<Self, Error>
     where
         Self: Sized,
     {
-        if buf.len() < PackageHeader::ssize() as usize {
+        if buf.len() < PacketHeader::ssize() as usize {
             return Err(Error::NotEnoughData(
                 buf.len(),
-                PackageHeader::ssize() as usize,
+                PacketHeader::ssize() as usize,
             ));
         }
         if !buf.starts_with(&PACKET_SIG) {
@@ -47,7 +47,7 @@ impl<'a> ReadBlockFromSlice<'a> for PackageHeader {
         let size = u16::from_le_bytes(buf[8..10].try_into()?) as u64;
         let blocks_len = u16::from_le_bytes(buf[10..12].try_into()?) as u64;
         let payload = buf[12] == 1;
-        Ok(PackageHeader {
+        Ok(PacketHeader {
             blocks_len,
             size,
             payload,
@@ -55,7 +55,7 @@ impl<'a> ReadBlockFromSlice<'a> for PackageHeader {
     }
 }
 
-impl TryReadFrom for PackageHeader {
+impl TryReadFrom for PacketHeader {
     fn try_read<T: std::io::Read + std::io::Seek>(buf: &mut T) -> Result<ReadStatus<Self>, Error>
     where
         Self: Sized,
@@ -63,14 +63,14 @@ impl TryReadFrom for PackageHeader {
         let start_pos = buf.stream_position()?;
         let len = buf.seek(std::io::SeekFrom::End(0))? - start_pos;
         buf.seek(std::io::SeekFrom::Start(start_pos))?;
-        if len < PackageHeader::ssize() {
-            return Ok(ReadStatus::NotEnoughData(PackageHeader::ssize() - len));
+        if len < PacketHeader::ssize() {
+            return Ok(ReadStatus::NotEnoughData(PacketHeader::ssize() - len));
         }
-        Ok(ReadStatus::Success(PackageHeader::read(buf)?))
+        Ok(ReadStatus::Success(PacketHeader::read(buf)?))
     }
 }
 
-impl TryReadFromBuffered for PackageHeader {
+impl TryReadFromBuffered for PacketHeader {
     fn try_read<T: std::io::Read>(buf: &mut T) -> Result<ReadStatus<Self>, Error>
     where
         Self: Sized,
@@ -79,13 +79,13 @@ impl TryReadFromBuffered for PackageHeader {
 
         let mut reader = std::io::BufReader::new(buf);
         let bytes = reader.fill_buf()?;
-        if (bytes.len() as u64) < PackageHeader::ssize() {
+        if (bytes.len() as u64) < PacketHeader::ssize() {
             return Ok(ReadStatus::NotEnoughData(
-                PackageHeader::ssize() - bytes.len() as u64,
+                PacketHeader::ssize() - bytes.len() as u64,
             ));
         }
-        let header = ReadStatus::Success(PackageHeader::read(&mut reader)?);
-        reader.consume(PackageHeader::ssize() as usize);
+        let header = ReadStatus::Success(PacketHeader::read(&mut reader)?);
+        reader.consume(PacketHeader::ssize() as usize);
         Ok(header)
     }
 }

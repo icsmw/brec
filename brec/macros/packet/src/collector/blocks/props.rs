@@ -44,7 +44,6 @@ pub fn gen_referred(blocks: &[Block]) -> Result<TokenStream, E> {
 pub fn referred_into(blocks: &[Block]) -> Result<TokenStream, E> {
     let mut variants = Vec::new();
     for blk in blocks.iter() {
-        let fullpath = blk.fullpath()?;
         let fullname = blk.fullname()?;
         variants.push(quote! {BlockReferred::#fullname(blk) => Block::#fullname(blk.into())});
     }

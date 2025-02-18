@@ -1,3 +1,5 @@
+use std::io::BufRead;
+
 #[repr(C)]
 struct PayloadA {
     pub str: String,
@@ -615,6 +617,7 @@ where
     c: &'a [u8; 100usize],
     __crc: &'a [u8; 4usize],
 }
+
 impl<'a> From<BlockAReferred<'a>> for BlockA {
     fn from(block: BlockAReferred<'a>) -> Self {
         BlockA {
@@ -846,18 +849,272 @@ impl brec::WriteVectoredTo for BlockA {
         Ok(slices)
     }
 }
+#[repr(C)]
+struct BlockC {
+    aa: i32,
+    bb: i64,
+    cc: [u8; 100],
+}
+#[repr(C)]
+struct BlockCReferred<'a>
+where
+    Self: Sized,
+{
+    __sig: &'a [u8; 4usize],
+    aa: i32,
+    bb: i64,
+    cc: &'a [u8; 100usize],
+    __crc: &'a [u8; 4usize],
+}
+
+impl<'a> From<BlockCReferred<'a>> for BlockC {
+    fn from(block: BlockCReferred<'a>) -> Self {
+        BlockC {
+            aa: block.aa,
+            bb: block.bb,
+            cc: *block.cc,
+        }
+    }
+}
+const BLOCKC: [u8; 4] = [198u8, 121u8, 12u8, 80u8];
+impl brec::SignatureU32 for BlockCReferred<'_> {
+    fn sig() -> &'static [u8; 4] {
+        &BLOCKC
+    }
+}
+impl brec::CrcU32 for BlockC {
+    fn crc(&self) -> [u8; 4] {
+        let mut hasher = brec::crc32fast::Hasher::new();
+        hasher.update(&self.aa.to_le_bytes());
+        hasher.update(&self.bb.to_le_bytes());
+        hasher.update(&self.cc);
+        hasher.finalize().to_le_bytes()
+    }
+}
+impl brec::CrcU32 for BlockCReferred<'_> {
+    fn crc(&self) -> [u8; 4] {
+        let mut hasher = brec::crc32fast::Hasher::new();
+        hasher.update(&self.aa.to_le_bytes());
+        hasher.update(&self.bb.to_le_bytes());
+        hasher.update(self.cc);
+        hasher.finalize().to_le_bytes()
+    }
+}
+impl brec::StaticSize for BlockC {
+    fn ssize() -> u64 {
+        120u64
+    }
+}
+impl brec::ReadBlockFrom for BlockC {
+    fn read<T: std::io::Read>(buf: &mut T, skip_sig: bool) -> Result<Self, brec::Error>
+    where
+        Self: Sized,
+    {
+        use brec::prelude::*;
+        if !skip_sig {
+            let mut sig = [0u8; 4];
+            buf.read_exact(&mut sig)?;
+            if sig != BLOCKC {
+                return Err(brec::Error::SignatureDismatch);
+            }
+        }
+        let mut aa = [0u8; 4usize];
+        buf.read_exact(&mut aa)?;
+        let aa = i32::from_le_bytes(aa);
+        let mut bb = [0u8; 8usize];
+        buf.read_exact(&mut bb)?;
+        let bb = i64::from_le_bytes(bb);
+        let mut cc = [0u8; 100usize];
+        buf.read_exact(&mut cc)?;
+        let mut crc = [0u8; 4];
+        buf.read_exact(&mut crc)?;
+        let block = BlockC { aa, bb, cc };
+        if block.crc() != crc {
+            return Err(brec::Error::CrcDismatch);
+        }
+        Ok(block)
+    }
+}
+impl<'a> brec::ReadBlockFromSlice<'a> for BlockCReferred<'a> {
+    fn read_from_slice(buf: &'a [u8], skip_sig: bool) -> Result<Self, brec::Error>
+    where
+        Self: Sized,
+    {
+        use brec::prelude::*;
+        if !skip_sig {
+            if buf.len() < 4 {
+                return Err(brec::Error::NotEnoughtSignatureData(buf.len(), 4));
+            }
+            if buf[..4] != BLOCKC {
+                return Err(brec::Error::SignatureDismatch);
+            }
+        }
+        let required = if skip_sig {
+            BlockC::ssize() - 4
+        } else {
+            BlockC::ssize()
+        } as usize;
+        if buf.len() < required {
+            return Err(brec::Error::NotEnoughData(buf.len(), required));
+        }
+        let __sig = if skip_sig {
+            &BLOCKC
+        } else {
+            <&[u8; 4usize]>::try_from(&buf[0usize..4usize])?
+        };
+        let aa = i32::from_le_bytes(buf[4usize..8usize].try_into()?);
+        let bb = i64::from_le_bytes(buf[8usize..16usize].try_into()?);
+        let cc = <&[u8; 100usize]>::try_from(&buf[16usize..116usize])?;
+        let __crc = <&[u8; 4usize]>::try_from(&buf[116usize..116usize + 4usize])?;
+        let crc = __crc;
+        let block = BlockCReferred {
+            __sig,
+            aa,
+            bb,
+            cc,
+            __crc,
+        };
+        if block.crc() != *crc {
+            return Err(brec::Error::CrcDismatch);
+        }
+        Ok(block)
+    }
+}
+impl brec::TryReadFrom for BlockC {
+    fn try_read<T: std::io::Read + std::io::Seek>(
+        buf: &mut T,
+    ) -> Result<brec::ReadStatus<Self>, brec::Error>
+    where
+        Self: Sized,
+    {
+        use brec::prelude::*;
+        let mut sig_buf = [0u8; 4];
+        let start_pos = buf.stream_position()?;
+        let len = buf.seek(std::io::SeekFrom::End(0))? - start_pos;
+        buf.seek(std::io::SeekFrom::Start(start_pos))?;
+        if len < 4 {
+            return Ok(brec::ReadStatus::NotEnoughData(4 - len));
+        }
+        buf.read_exact(&mut sig_buf)?;
+        if sig_buf != BLOCKC {
+            buf.seek(std::io::SeekFrom::Start(start_pos))?;
+            return Err(brec::Error::SignatureDismatch);
+        }
+        if len < BlockC::ssize() {
+            return Ok(brec::ReadStatus::NotEnoughData(BlockC::ssize() - len));
+        }
+        Ok(brec::ReadStatus::Success(BlockC::read(buf, true)?))
+    }
+}
+impl brec::TryReadFromBuffered for BlockC {
+    fn try_read<T: std::io::Read>(buf: &mut T) -> Result<brec::ReadStatus<Self>, brec::Error>
+    where
+        Self: Sized,
+    {
+        use brec::prelude::*;
+        use std::io::BufRead;
+        let mut reader = std::io::BufReader::new(buf);
+        let bytes = reader.fill_buf()?;
+        if bytes.len() < 4 {
+            return Ok(brec::ReadStatus::NotEnoughData((4 - bytes.len()) as u64));
+        }
+        if !bytes.starts_with(&BLOCKC) {
+            return Err(brec::Error::SignatureDismatch);
+        }
+        if (bytes.len() as u64) < BlockC::ssize() {
+            return Ok(brec::ReadStatus::NotEnoughData(
+                BlockC::ssize() - bytes.len() as u64,
+            ));
+        }
+        reader.consume(4);
+        let blk = BlockC::read(&mut reader, true);
+        reader.consume(BlockC::ssize() as usize - 4);
+        Ok(brec::ReadStatus::Success(blk?))
+    }
+}
+impl brec::WriteTo for BlockC {
+    fn write<T: std::io::Write>(&self, writer: &mut T) -> std::io::Result<usize> {
+        use brec::prelude::*;
+        let mut buffer = [0u8; 120usize];
+        let mut offset = 0;
+        let crc = self.crc();
+        buffer[offset..offset + 4usize].copy_from_slice(&BLOCKC);
+        offset += 4usize;
+        buffer[offset..offset + 4usize].copy_from_slice(&self.aa.to_le_bytes());
+        offset += 4usize;
+        buffer[offset..offset + 8usize].copy_from_slice(&self.bb.to_le_bytes());
+        offset += 8usize;
+        unsafe {
+            let dst = buffer.as_mut_ptr().add(offset);
+            let src = self.cc.as_ptr();
+            std::ptr::copy_nonoverlapping(src, dst, 100usize);
+        }
+        offset += 100usize;
+        unsafe {
+            let dst = buffer.as_mut_ptr().add(offset);
+            let src = crc.as_ptr();
+            std::ptr::copy_nonoverlapping(src, dst, 4usize);
+        }
+        writer.write(&buffer)
+    }
+    fn write_all<T: std::io::Write>(&self, writer: &mut T) -> std::io::Result<()> {
+        use brec::prelude::*;
+        let mut buffer = [0u8; 120usize];
+        let mut offset = 0;
+        let crc = self.crc();
+        buffer[offset..offset + 4usize].copy_from_slice(&BLOCKC);
+        offset += 4usize;
+        buffer[offset..offset + 4usize].copy_from_slice(&self.aa.to_le_bytes());
+        offset += 4usize;
+        buffer[offset..offset + 8usize].copy_from_slice(&self.bb.to_le_bytes());
+        offset += 8usize;
+        unsafe {
+            let dst = buffer.as_mut_ptr().add(offset);
+            let src = self.cc.as_ptr();
+            std::ptr::copy_nonoverlapping(src, dst, 100usize);
+        }
+        offset += 100usize;
+        unsafe {
+            let dst = buffer.as_mut_ptr().add(offset);
+            let src = crc.as_ptr();
+            std::ptr::copy_nonoverlapping(src, dst, 4usize);
+        }
+        writer.write_all(&buffer)
+    }
+}
+impl brec::WriteVectoredTo for BlockC {
+    fn slices(&self) -> std::io::Result<brec::IoSlices> {
+        use brec::prelude::*;
+        let mut slices = brec::IoSlices::default();
+        slices.add_buffered(BLOCKC.to_vec());
+        let mut buffer = [0u8; 12usize];
+        let mut offset = 0;
+        buffer[offset..offset + 4usize].copy_from_slice(&self.aa.to_le_bytes());
+        offset += 4usize;
+        buffer[offset..offset + 8usize].copy_from_slice(&self.bb.to_le_bytes());
+        slices.add_buffered(buffer.to_vec());
+        slices.add_slice(&self.cc);
+        slices.add_buffered(self.crc().to_vec());
+        Ok(slices)
+    }
+}
 pub enum Block {
     BlockA(BlockA),
+    BlockC(BlockC),
 }
 impl brec::BlockDef for Block {}
 pub enum BlockReferred<'a> {
     BlockA(BlockAReferred<'a>),
+    BlockC(BlockCReferred<'a>),
 }
+impl<'a> brec::BlockReferredDef<'a, Block> for BlockReferred<'a> {}
+
 impl brec::Size for Block {
     fn size(&self) -> u64 {
         use brec::StaticSize;
         match self {
             Block::BlockA(..) => BlockA::ssize(),
+            Block::BlockC(..) => BlockC::ssize(),
         }
     }
 }
@@ -866,6 +1123,15 @@ impl brec::Size for BlockReferred<'_> {
         use brec::StaticSize;
         match self {
             BlockReferred::BlockA(..) => BlockA::ssize(),
+            BlockReferred::BlockC(..) => BlockC::ssize(),
+        }
+    }
+}
+impl std::convert::From<BlockReferred<'_>> for Block {
+    fn from(blk: BlockReferred<'_>) -> Self {
+        match blk {
+            BlockReferred::BlockA(blk) => Block::BlockA(blk.into()),
+            BlockReferred::BlockC(blk) => Block::BlockC(blk.into()),
         }
     }
 }
@@ -876,6 +1142,17 @@ impl brec::ReadFrom for Block {
     {
         match <BlockA as brec::ReadBlockFrom>::read(buf, false) {
             Ok(blk) => return Ok(Block::BlockA(blk)),
+            Err(err) => {
+                if !match err {
+                    brec::Error::SignatureDismatch => true,
+                    _ => false,
+                } {
+                    return Err(err);
+                }
+            }
+        }
+        match <BlockC as brec::ReadBlockFrom>::read(buf, false) {
+            Ok(blk) => return Ok(Block::BlockC(blk)),
             Err(err) => {
                 if !match err {
                     brec::Error::SignatureDismatch => true,
@@ -904,6 +1181,17 @@ impl brec::ReadBlockFrom for Block {
                 }
             }
         }
+        match <BlockC as brec::ReadBlockFrom>::read(buf, skip_sig) {
+            Ok(blk) => return Ok(Block::BlockC(blk)),
+            Err(err) => {
+                if !match err {
+                    brec::Error::SignatureDismatch => true,
+                    _ => false,
+                } {
+                    return Err(err);
+                }
+            }
+        }
         Err(brec::Error::SignatureDismatch)
     }
 }
@@ -914,6 +1202,17 @@ impl<'a> brec::ReadBlockFromSlice<'a> for BlockReferred<'a> {
     {
         match BlockAReferred::read_from_slice(buf, skip_sig) {
             Ok(blk) => return Ok(BlockReferred::BlockA(blk)),
+            Err(err) => {
+                if !match err {
+                    brec::Error::SignatureDismatch => true,
+                    _ => false,
+                } {
+                    return Err(err);
+                }
+            }
+        }
+        match BlockCReferred::read_from_slice(buf, skip_sig) {
+            Ok(blk) => return Ok(BlockReferred::BlockC(blk)),
             Err(err) => {
                 if !match err {
                     brec::Error::SignatureDismatch => true,
@@ -936,6 +1235,22 @@ impl brec::TryReadFrom for Block {
         match <BlockA as brec::TryReadFrom>::try_read(buf) {
             Ok(brec::ReadStatus::Success(blk)) => {
                 return Ok(brec::ReadStatus::Success(Block::BlockA(blk)));
+            }
+            Ok(brec::ReadStatus::NotEnoughData(needed)) => {
+                return Ok(brec::ReadStatus::NotEnoughData(needed));
+            }
+            Err(err) => {
+                if !match err {
+                    brec::Error::SignatureDismatch => true,
+                    _ => false,
+                } {
+                    return Err(err);
+                }
+            }
+        }
+        match <BlockC as brec::TryReadFrom>::try_read(buf) {
+            Ok(brec::ReadStatus::Success(blk)) => {
+                return Ok(brec::ReadStatus::Success(Block::BlockC(blk)));
             }
             Ok(brec::ReadStatus::NotEnoughData(needed)) => {
                 return Ok(brec::ReadStatus::NotEnoughData(needed));
@@ -973,6 +1288,22 @@ impl brec::TryReadFromBuffered for Block {
                 }
             }
         }
+        match <BlockC as brec::TryReadFromBuffered>::try_read(buf) {
+            Ok(brec::ReadStatus::Success(blk)) => {
+                return Ok(brec::ReadStatus::Success(Block::BlockC(blk)));
+            }
+            Ok(brec::ReadStatus::NotEnoughData(needed)) => {
+                return Ok(brec::ReadStatus::NotEnoughData(needed));
+            }
+            Err(err) => {
+                if !match err {
+                    brec::Error::SignatureDismatch => true,
+                    _ => false,
+                } {
+                    return Err(err);
+                }
+            }
+        }
         Err(brec::Error::SignatureDismatch)
     }
 }
@@ -980,11 +1311,13 @@ impl brec::WriteTo for Block {
     fn write<T: std::io::Write>(&self, buf: &mut T) -> std::io::Result<usize> {
         match self {
             Block::BlockA(blk) => blk.write(buf),
+            Block::BlockC(blk) => blk.write(buf),
         }
     }
     fn write_all<T: std::io::Write>(&self, buf: &mut T) -> std::io::Result<()> {
         match self {
             Block::BlockA(blk) => blk.write_all(buf),
+            Block::BlockC(blk) => blk.write_all(buf),
         }
     }
 }
@@ -992,6 +1325,7 @@ impl brec::WriteVectoredTo for Block {
     fn slices(&self) -> std::io::Result<brec::IoSlices> {
         match self {
             Block::BlockA(blk) => blk.slices(),
+            Block::BlockC(blk) => blk.slices(),
         }
     }
 }
@@ -1171,9 +1505,168 @@ impl brec::WritingVectoredPayloadTo for Payload {
         }
     }
 }
+type Pack = brec::Packet<Block, Payload, Payload>;
 
-type Packed = brec::Packet<Block, Payload, Payload>;
+// impl<'a> brec::BlockReferredDef<'a, Block> for BlockReferred<'a> {}
 
-// fn test<T: std::io::Read>(buf: &mut T) {
-//     Packed::touch(buf, |blks: &[BlockReferred]| true);
+// impl<B> for<'b> BlockReferredDef<'b, B> for BlockReferred<'_>{
+//     /* ... */
 // }
+
+fn test<T: std::io::Read>(buf: &mut T) {
+    look_in(buf, |blks: &[BlockReferred<'_>]| !blks.is_empty()).unwrap();
+}
+
+pub fn look_in<T: std::io::Read, F>(
+    buf: &mut T,
+    chk: F,
+) -> Result<brec::ReadStatus<Option<Pack>>, brec::Error>
+where
+    F: FnOnce(&[BlockReferred<'_>]) -> bool,
+{
+    let mut reader = std::io::BufReader::new(buf);
+    let bytes = reader.fill_buf()?;
+    match Pack::look_in(bytes, chk)? {
+        brec::LookInStatus::Accepted(consume, pkg) => {
+            reader.consume(consume);
+            Ok(brec::ReadStatus::Success(Some(pkg)))
+        }
+        brec::LookInStatus::Denied(consume) => {
+            reader.consume(consume);
+            Ok(brec::ReadStatus::Success(None))
+        }
+        brec::LookInStatus::NotEnoughData(needed) => {
+            Ok(brec::ReadStatus::NotEnoughData(needed as u64))
+        }
+    }
+}
+
+pub struct PacketReferred<'a> {
+    pub blocks: Vec<BlockReferred<'a>>,
+    pub header: brec::PacketHeader,
+    pub len: u64,
+}
+
+pub struct PacketBufReader<'a, R: std::io::Read> {
+    inner: std::io::BufReader<R>,
+    referred: Option<PacketReferred<'a>>,
+}
+
+impl<'a, R: std::io::Read> PacketBufReader<'a, R> {
+    pub fn new(inner: R) -> Self {
+        Self {
+            inner: std::io::BufReader::new(inner),
+            referred: None,
+        }
+    }
+    pub fn buffer(&self) -> &[u8] {
+        if self.referred.is_some() {
+            &[]
+        } else {
+            self.inner.buffer()
+        }
+    }
+    pub fn capacity(&self) -> usize {
+        if self.referred.is_some() {
+            0
+        } else {
+            self.inner.capacity()
+        }
+    }
+    pub fn fill_buf(&mut self) -> std::io::Result<&[u8]> {
+        if self.referred.is_some() {
+            Err(std::io::Error::new(
+                std::io::ErrorKind::BrokenPipe,
+                "Waiting for accept or refuse",
+            ))
+        } else {
+            self.inner.fill_buf()
+        }
+    }
+    pub fn consume(&mut self, amt: usize) {
+        if self.referred.is_none() {
+            self.inner.consume(amt)
+        }
+    }
+    pub fn look_in(&mut self) -> Result<brec::ReadStatus<&'a PacketReferred<'_>>, brec::Error> {
+        use brec::{ReadBlockFromSlice, Size, StaticSize};
+        let inner = self.inner.fill_buf()?;
+        let len = inner.len() as u64;
+        if len < brec::PacketHeader::ssize() {
+            return Ok(brec::ReadStatus::NotEnoughData(
+                brec::PacketHeader::ssize() - len,
+            ));
+        }
+        let header = brec::PacketHeader::read_from_slice(inner, false)?;
+        if header.size > len {
+            return Ok(brec::ReadStatus::NotEnoughData(header.size - len));
+        }
+        let mut blocks = Vec::new();
+        let mut read = brec::PacketHeader::ssize() as usize;
+        loop {
+            let blk = BlockReferred::read_from_slice(&inner[read..], false)?;
+            read += blk.size() as usize;
+            blocks.push(blk);
+            if read == header.blocks_len as usize {
+                break;
+            }
+        }
+        self.referred = Some(PacketReferred {
+            blocks,
+            header,
+            len,
+        });
+        Ok(brec::ReadStatus::Success(self.referred.as_ref().unwrap()))
+    }
+    pub fn accept(&mut self) -> Result<brec::Packet<Block, Payload, Payload>, brec::Error> {
+        let Some(referred) = self.referred.take() else {
+            return Err(brec::Error::NoPendingPacket);
+        };
+        let blocks = referred
+            .blocks
+            .into_iter()
+            .map(|blk| blk.into())
+            .collect::<Vec<Block>>();
+        let mut pkg = brec::Packet::new(blocks, None);
+        if referred.header.payload {
+            use brec::{TryExtractPayloadFromBuffered, TryReadFromBuffered};
+            // We are not using inner BufReader to prevent usage inner methods and consuming
+            // bytes on inner buffer
+            let bytes = self.inner.fill_buf()?;
+            let mut cursor = std::io::Cursor::new(&bytes[referred.header.blocks_len as usize..]);
+            match brec::PayloadHeader::try_read(&mut cursor)? {
+                brec::ReadStatus::Success(header) => {
+                    match Payload::try_read(&mut cursor, &header)? {
+                        brec::ReadStatus::Success(payload) => {
+                            pkg.payload = Some(payload);
+                        }
+                        brec::ReadStatus::NotEnoughData(needed) => {
+                            return Err(brec::Error::NotEnoughData(
+                                referred.len as usize,
+                                needed as usize,
+                            ))
+                        }
+                    }
+                }
+                brec::ReadStatus::NotEnoughData(needed) => {
+                    return Err(brec::Error::NotEnoughData(
+                        referred.len as usize,
+                        needed as usize,
+                    ))
+                }
+            }
+        }
+        self.inner.consume(referred.header.size as usize);
+        Ok(pkg)
+    }
+    pub fn refuse(&mut self) -> Result<(), std::io::Error> {
+        let Some(referred) = self.referred.take() else {
+            return Err(std::io::Error::new(
+                std::io::ErrorKind::BrokenPipe,
+                "No waiting for accept or refuse packet",
+            ));
+        };
+        self.consume(referred.header.size as usize);
+        Ok(())
+    }
+}

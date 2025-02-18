@@ -1,6 +1,6 @@
 use crate::*;
 
-fn fill_buf(header: &PackageHeader, buffer: &mut [u8]) {
+fn fill_buf(header: &PacketHeader, buffer: &mut [u8]) {
     let mut offset = 0;
     buffer[offset..offset + 8usize].copy_from_slice(&PACKET_SIG);
     offset += 8usize;
@@ -10,14 +10,14 @@ fn fill_buf(header: &PackageHeader, buffer: &mut [u8]) {
     offset += 2usize;
     buffer[offset..offset + 1usize].copy_from_slice(&[header.payload.into()]);
 }
-impl WriteTo for PackageHeader {
+impl WriteTo for PacketHeader {
     fn write<T: std::io::Write>(&self, buf: &mut T) -> std::io::Result<usize> {
-        let mut buffer = [0u8; PackageHeader::SIZE as usize];
+        let mut buffer = [0u8; PacketHeader::SIZE as usize];
         fill_buf(self, &mut buffer);
         buf.write(&buffer)
     }
     fn write_all<T: std::io::Write>(&self, buf: &mut T) -> std::io::Result<()> {
-        let mut buffer = [0u8; PackageHeader::SIZE as usize];
+        let mut buffer = [0u8; PacketHeader::SIZE as usize];
         fill_buf(self, &mut buffer);
         buf.write_all(&buffer)
     }

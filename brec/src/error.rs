@@ -32,4 +32,6 @@ pub enum Error {
     MemoryAllocationFailed,
     #[error("Encoding error: {0}")]
     EncodeError(String),
+    #[error("No pending packet to accept")]
+    NoPendingPacket,
 }

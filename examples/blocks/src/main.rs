@@ -4,9 +4,9 @@ mod block;
 // mod bincode_ex;
 #[cfg(test)]
 mod block_with_enum;
-mod extended_blocks_1;
+// mod extended_blocks_1;
 // mod extended_block;
-// mod extended_blocks_2;
+mod extended_blocks_2;
 // #[brec::payload(bincode)]
 // #[derive(serde::Deserialize, serde::Serialize)]
 // struct PayloadA {
@@ -29,8 +29,6 @@ mod extended_blocks_1;
 //     b: u64,
 //     c: [u8; 100],
 // }
-
-// brec::include_generated!();
 
 // #[brec::block]
 // struct BlockC {
