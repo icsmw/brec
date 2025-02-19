@@ -1,4 +1,6 @@
-use std::io::BufRead;
+use std::io::{BufRead, Read};
+
+use brec::{Packet, StaticSize};
 
 #[repr(C)]
 struct PayloadA {
@@ -1541,132 +1543,253 @@ where
     }
 }
 
+// type PacketReferred<'a> = brec::PacketReferred<'a, Block, BlockReferred<'a>, Payload, Payload>;
+
+// type PacketBufReader<'a, R> =
+//     brec::PacketBufReader<'a, R, Block, BlockReferred<'a>, Payload, Payload>;
+
 pub struct PacketReferred<'a> {
     pub blocks: Vec<BlockReferred<'a>>,
     pub header: brec::PacketHeader,
-    pub len: u64,
 }
 
-pub struct PacketBufReader<'a, R: std::io::Read> {
-    inner: std::io::BufReader<R>,
-    referred: Option<PacketReferred<'a>>,
+enum FnDef<D, S> {
+    Dynamic(D),
+    Static(S),
 }
 
-impl<'a, R: std::io::Read> PacketBufReader<'a, R> {
-    pub fn new(inner: R) -> Self {
+enum FnWriteIgnored {}
+enum Rule<W: std::io::Write> {
+    Ignored(FnDef<Box<dyn Fn(&[u8])>, fn(&[u8])>),
+    WriteIgnored(
+        std::io::BufWriter<W>,
+        FnDef<
+            Box<dyn Fn(&mut std::io::BufWriter<W>, &[u8]) -> std::io::Result<()>>,
+            fn(&mut std::io::BufWriter<W>, &[u8]) -> std::io::Result<()>,
+        >,
+    ),
+    Filter(FnDef<Box<dyn Fn(&PacketReferred<'_>) -> bool>, fn(&PacketReferred<'_>) -> bool>),
+    Map(
+        std::io::BufWriter<W>,
+        FnDef<
+            Box<dyn Fn(&mut std::io::BufWriter<W>, &PacketReferred<'_>) -> std::io::Result<()>>,
+            fn(&mut std::io::BufWriter<W>, &PacketReferred<'_>) -> std::io::Result<()>,
+        >,
+    ),
+}
+
+struct Rules<W: std::io::Write> {
+    pub rules: Vec<Rule<W>>,
+}
+
+impl<W: std::io::Write> Default for Rules<W> {
+    fn default() -> Self {
+        Self { rules: Vec::new() }
+    }
+}
+
+impl<W: std::io::Write> Rules<W> {
+    pub fn ignore(&mut self, buffer: &[u8]) -> Result<(), brec::Error> {
+        for rule in self.rules.iter_mut() {
+            match rule {
+                Rule::Ignored(cb) => match cb {
+                    FnDef::Static(cb) => cb(buffer),
+                    FnDef::Dynamic(cb) => cb(buffer),
+                },
+                Rule::WriteIgnored(dest, cb) => match cb {
+                    FnDef::Static(cb) => {
+                        cb(dest, buffer)?;
+                    }
+                    FnDef::Dynamic(cb) => {
+                        cb(dest, buffer)?;
+                    }
+                },
+                _ignored => {}
+            }
+        }
+        Ok(())
+    }
+    pub fn filter(&mut self, referred: &PacketReferred<'_>) -> bool {
+        let Some(cb) = self.rules.iter().find_map(|r| {
+            if let Rule::Filter(cb) = r {
+                Some(cb)
+            } else {
+                None
+            }
+        }) else {
+            return true;
+        };
+        match cb {
+            FnDef::Static(cb) => cb(referred),
+            FnDef::Dynamic(cb) => cb(referred),
+        }
+    }
+    pub fn map(&mut self, referred: &PacketReferred<'_>) -> Result<(), brec::Error> {
+        let Some((writer, cb)) = self.rules.iter_mut().find_map(|r| {
+            if let Rule::Map(writer, cb) = r {
+                Some((writer, cb))
+            } else {
+                None
+            }
+        }) else {
+            return Ok(());
+        };
+        match cb {
+            FnDef::Static(cb) => cb(writer, referred)?,
+            FnDef::Dynamic(cb) => cb(writer, referred)?,
+        }
+        Ok(())
+    }
+}
+
+enum Next<B: brec::BlockDef, P: brec::PayloadDef<Inner>, Inner: brec::PayloadInnerDef> {
+    NotEnoughData(usize),
+    NoData,
+    NotFound,
+    Ignored,
+    Found(brec::Packet<B, P, Inner>),
+}
+
+enum PacketHeaderState {
+    NotFound,
+    NotEnoughData(usize, usize),
+    Found(brec::PacketHeader, std::ops::RangeInclusive<usize>),
+}
+pub struct PacketBufReader<'a, R: std::io::Read, W: std::io::Write> {
+    inner: std::io::BufReader<&'a mut R>,
+    rules: Rules<W>,
+    recent: Option<brec::PacketHeader>,
+    buffered: Vec<u8>,
+}
+
+impl<'a, R: std::io::Read, W: std::io::Write> PacketBufReader<'a, R, W> {
+    pub fn new(inner: &'a mut R) -> Self {
         Self {
             inner: std::io::BufReader::new(inner),
-            referred: None,
+            rules: Rules::default(),
+            recent: None,
+            buffered: Vec::new(),
         }
     }
-    pub fn buffer(&self) -> &[u8] {
-        if self.referred.is_some() {
-            &[]
-        } else {
-            self.inner.buffer()
+
+    fn next_header(buffer: &[u8]) -> Result<PacketHeaderState, brec::Error> {
+        use brec::ReadBlockFromSlice;
+        let Some(offset) = brec::PacketHeader::get_pos(buffer) else {
+            // Signature of Packet isn't found
+            return Ok(PacketHeaderState::NotFound);
+        };
+        if let Some(needed) = brec::PacketHeader::is_not_enought(&buffer[offset..]) {
+            // Header is detected, but not enough data to load it
+            return Ok(PacketHeaderState::NotEnoughData(offset, needed));
         }
+        Ok(PacketHeaderState::Found(
+            brec::PacketHeader::read_from_slice(&buffer[offset..], false)?,
+            std::ops::RangeInclusive::new(offset, offset + brec::PacketHeader::ssize() as usize),
+        ))
     }
-    pub fn capacity(&self) -> usize {
-        if self.referred.is_some() {
-            0
-        } else {
-            self.inner.capacity()
+
+    pub fn next(&mut self) -> Result<Next<Block, Payload, Payload>, brec::Error> {
+        use brec::{ReadBlockFromSlice, Size};
+
+        let buffer = self.inner.fill_buf()?;
+
+        if buffer.is_empty() {
+            return Ok(Next::NoData);
         }
-    }
-    pub fn fill_buf(&mut self) -> std::io::Result<&[u8]> {
-        if self.referred.is_some() {
-            Err(std::io::Error::new(
-                std::io::ErrorKind::BrokenPipe,
-                "Waiting for accept or refuse",
-            ))
-        } else {
-            self.inner.fill_buf()
-        }
-    }
-    pub fn consume(&mut self, amt: usize) {
-        if self.referred.is_none() {
-            self.inner.consume(amt)
-        }
-    }
-    pub fn look_in(&mut self) -> Result<brec::ReadStatus<&'a PacketReferred<'_>>, brec::Error> {
-        use brec::{ReadBlockFromSlice, Size, StaticSize};
-        let inner = self.inner.fill_buf()?;
-        let len = inner.len() as u64;
-        if len < brec::PacketHeader::ssize() {
-            return Ok(brec::ReadStatus::NotEnoughData(
-                brec::PacketHeader::ssize() - len,
-            ));
-        }
-        let header = brec::PacketHeader::read_from_slice(inner, false)?;
-        if header.size > len {
-            return Ok(brec::ReadStatus::NotEnoughData(header.size - len));
+        let available = buffer.len();
+        let (header, from, mut processed) = match PacketBufReader::<R, W>::next_header(buffer)? {
+            PacketHeaderState::NotFound => {
+                // Nothing found
+                self.rules.ignore(buffer)?;
+                // Consume all ignored data
+                self.inner.consume(available);
+                return Ok(Next::NotFound);
+            }
+            PacketHeaderState::NotEnoughData(from, needed) => {
+                // Not enough data to read packet header
+                if from > 0 {
+                    self.rules.ignore(&buffer[..from])?;
+                    // Consume until valid signature
+                    self.inner.consume(from - 1);
+                }
+                return Ok(Next::NotEnoughData(needed));
+            }
+            PacketHeaderState::Found(header, sgmt) => {
+                // Packet header has been found
+                if sgmt.start() > &0 {
+                    self.rules.ignore(&buffer[..*sgmt.start()])?;
+                }
+                (header, *sgmt.start(), *sgmt.end())
+            }
+        };
+        // Check do we have enough data to load packet
+        let packet_size = header.size as usize;
+        if packet_size + processed > available {
+            // Not enough data to load packet
+            // self.buffered.copy_from_slice(&buffer[processed..]);
+            self.inner.consume(processed);
+            self.recent = Some(header);
+            return Ok(Next::NotEnoughData((packet_size + processed) - available));
         }
         let mut blocks = Vec::new();
-        let mut read = brec::PacketHeader::ssize() as usize;
         loop {
-            let blk = BlockReferred::read_from_slice(&inner[read..], false)?;
-            read += blk.size() as usize;
+            let blk = BlockReferred::read_from_slice(&buffer[processed..], false)?;
+            processed += blk.size() as usize;
             blocks.push(blk);
-            if read == header.blocks_len as usize {
+            if processed == header.blocks_len as usize {
                 break;
             }
         }
-        self.referred = Some(PacketReferred {
-            blocks,
-            header,
-            len,
-        });
-        Ok(brec::ReadStatus::Success(self.referred.as_ref().unwrap()))
-    }
-    pub fn accept(&mut self) -> Result<brec::Packet<Block, Payload, Payload>, brec::Error> {
-        let Some(referred) = self.referred.take() else {
-            return Err(brec::Error::NoPendingPacket);
-        };
+        let referred = PacketReferred { blocks, header };
+        self.rules.map(&referred)?;
+        if !self.rules.filter(&referred) {
+            // Packet marked as ignored
+            let packet_size = referred.header.size as usize;
+            self.inner.consume(from + packet_size);
+            return Ok(Next::Ignored);
+        }
         let blocks = referred
             .blocks
             .into_iter()
             .map(|blk| blk.into())
             .collect::<Vec<Block>>();
-        let mut pkg = brec::Packet::new(blocks, None);
-        if referred.header.payload {
+        let mut pkg: brec::Packet<Block, Payload, Payload> = brec::Packet::new(blocks, None);
+        let header = referred.header;
+        self.inner.consume(processed);
+        // Loading payload if exists
+        if header.payload {
             use brec::{TryExtractPayloadFromBuffered, TryReadFromBuffered};
-            // We are not using inner BufReader to prevent usage inner methods and consuming
-            // bytes on inner buffer
-            let bytes = self.inner.fill_buf()?;
-            let mut cursor = std::io::Cursor::new(&bytes[referred.header.blocks_len as usize..]);
-            match brec::PayloadHeader::try_read(&mut cursor)? {
+            match brec::PayloadHeader::try_read(&mut self.inner)? {
                 brec::ReadStatus::Success(header) => {
-                    match Payload::try_read(&mut cursor, &header)? {
+                    match Payload::try_read(&mut self.inner, &header)? {
                         brec::ReadStatus::Success(payload) => {
                             pkg.payload = Some(payload);
                         }
                         brec::ReadStatus::NotEnoughData(needed) => {
-                            return Err(brec::Error::NotEnoughData(
-                                referred.len as usize,
-                                needed as usize,
-                            ))
+                            // This is error, but not Next::NotEnoughData because length of payload
+                            // already has been check. If we are here - some data is invalid and
+                            // it's an error
+                            return Err(brec::Error::NotEnoughData(available, needed as usize));
                         }
                     }
                 }
                 brec::ReadStatus::NotEnoughData(needed) => {
-                    return Err(brec::Error::NotEnoughData(
-                        referred.len as usize,
-                        needed as usize,
-                    ))
+                    // This is error, but not Next::NotEnoughData because length of payload
+                    // already has been check. If we are here - some data is invalid and
+                    // it's an error
+                    return Err(brec::Error::NotEnoughData(available, needed as usize));
                 }
             }
         }
-        self.inner.consume(referred.header.size as usize);
-        Ok(pkg)
+        // No need to buffering any, because it will be in buffer with next call.
+        Ok(Next::Found(pkg))
     }
-    pub fn refuse(&mut self) -> Result<(), std::io::Error> {
-        let Some(referred) = self.referred.take() else {
-            return Err(std::io::Error::new(
-                std::io::ErrorKind::BrokenPipe,
-                "No waiting for accept or refuse packet",
-            ));
-        };
-        self.consume(referred.header.size as usize);
-        Ok(())
+}
+
+fn test_buf<R: std::io::Read, W: std::io::Write>(inner: &mut R) {
+    let mut reader: PacketBufReader<R, W> = PacketBufReader::new(inner);
+    let mut collected = Vec::new();
+    while let Next::Found(pkg) = reader.next().unwrap() {
+        collected.push(pkg);
     }
 }

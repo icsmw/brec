@@ -30,101 +30,155 @@ pub trait PayloadDef<Inner: PayloadInnerDef>:
 pub struct PacketReferred<
     'a,
     B: BlockDef,
-    BR,
-    T: std::io::Read,
+    BR: BlockReferredDef<'a, B>,
     P: PayloadDef<Inner>,
     Inner: PayloadInnerDef,
-> where
-    BR: for<'b> BlockReferredDef<'b, B>,
-{
+> {
     pub blocks: Vec<BR>,
-    pub reader: std::io::BufReader<&'a mut T>,
     pub header: PacketHeader,
     pub len: u64,
-    _b: PhantomData<B>,
+    _b: PhantomData<&'a B>,
     _p: PhantomData<P>,
     _i: PhantomData<Inner>,
 }
 
-impl<'a, B: BlockDef, BR, T: std::io::Read, P: PayloadDef<Inner>, Inner: PayloadInnerDef>
-    PacketReferred<'a, B, BR, T, P, Inner>
-where
-    BR: for<'b> BlockReferredDef<'b, B>,
+pub struct PacketBufReader<
+    'a,
+    R: std::io::Read,
+    B: BlockDef,
+    BR: BlockReferredDef<'a, B>,
+    P: PayloadDef<Inner>,
+    Inner: PayloadInnerDef,
+> {
+    inner: std::io::BufReader<R>,
+    referred: Option<PacketReferred<'a, B, BR, P, Inner>>,
+}
+
+impl<
+        'a,
+        R: std::io::Read,
+        B: BlockDef,
+        BR: BlockReferredDef<'a, B>,
+        P: PayloadDef<Inner>,
+        Inner: PayloadInnerDef,
+    > PacketBufReader<'a, R, B, BR, P, Inner>
 {
-    pub fn read(
-        buffer: &'a mut T,
-    ) -> Result<ReadStatus<Option<PacketReferred<'a, B, BR, T, P, Inner>>>, Error>
-    where
-        Self: Sized,
-    {
-        let mut reader = std::io::BufReader::new(buffer);
-        let bytes = reader.fill_buf()?;
-        let len = bytes.len() as u64;
+    pub fn new(inner: R) -> Self {
+        Self {
+            inner: std::io::BufReader::new(inner),
+            referred: None,
+        }
+    }
+    pub fn buffer(&self) -> &[u8] {
+        if self.referred.is_some() {
+            &[]
+        } else {
+            self.inner.buffer()
+        }
+    }
+    pub fn capacity(&self) -> usize {
+        if self.referred.is_some() {
+            0
+        } else {
+            self.inner.capacity()
+        }
+    }
+    pub fn fill_buf(&mut self) -> std::io::Result<&[u8]> {
+        if self.referred.is_some() {
+            Err(std::io::Error::new(
+                std::io::ErrorKind::BrokenPipe,
+                "Waiting for accept or refuse",
+            ))
+        } else {
+            self.inner.fill_buf()
+        }
+    }
+    pub fn consume(&mut self, amt: usize) {
+        if self.referred.is_none() {
+            self.inner.consume(amt)
+        }
+    }
+    pub fn look_in(
+        &mut self,
+    ) -> Result<ReadStatus<&'a PacketReferred<'_, B, BR, P, Inner>>, Error> {
+        let inner = self.inner.fill_buf()?;
+        let len = inner.len() as u64;
         if len < PacketHeader::ssize() {
             return Ok(ReadStatus::NotEnoughData(PacketHeader::ssize() - len));
         }
-        let header = PacketHeader::read_from_slice(bytes, false)?;
+        let header = PacketHeader::read_from_slice(inner, false)?;
         if header.size > len {
             return Ok(ReadStatus::NotEnoughData(header.size - len));
         }
         let mut blocks = Vec::new();
         let mut read = PacketHeader::ssize() as usize;
         loop {
-            let blk = <BR as ReadBlockFromSlice>::read_from_slice(&bytes[read..], false)?;
+            let blk = <BR as ReadBlockFromSlice>::read_from_slice(&inner[read..], false)?;
             read += blk.size() as usize;
             blocks.push(blk);
             if read == header.blocks_len as usize {
                 break;
             }
         }
-        Ok(ReadStatus::Success(Some(PacketReferred {
+        self.referred = Some(PacketReferred {
             blocks,
-            reader,
             header,
             len,
+            _i: PhantomData,
             _b: PhantomData,
             _p: PhantomData,
-            _i: PhantomData,
-        })))
+        });
+        Ok(ReadStatus::Success(self.referred.as_ref().unwrap()))
     }
-
-    pub fn refuse(&mut self) {
-        self.reader.consume(self.header.size as usize);
-    }
-
-    pub fn accept(mut self) -> Result<Packet<B, P, Inner>, Error> {
-        let blocks = self
+    pub fn accept(&mut self) -> Result<Packet<B, P, Inner>, Error> {
+        let Some(referred) = self.referred.take() else {
+            return Err(Error::NoPendingPacket);
+        };
+        let blocks = referred
             .blocks
             .into_iter()
             .map(|blk| blk.into())
             .collect::<Vec<B>>();
-        let mut pkg: Packet<B, P, Inner> = Packet {
-            blocks,
-            payload: None,
-            _pi: PhantomData,
-        };
-        if self.header.payload {
-            match <PayloadHeader as TryReadFromBuffered>::try_read(&mut self.reader)? {
+        let mut pkg = Packet::new(blocks, None);
+        if referred.header.payload {
+            // We are not using inner BufReader to prevent usage inner methods and consuming
+            // bytes on inner buffer
+            let bytes = self.inner.fill_buf()?;
+            let mut cursor = std::io::Cursor::new(&bytes[referred.header.blocks_len as usize..]);
+            match <PayloadHeader as TryReadFromBuffered>::try_read(&mut cursor)? {
                 ReadStatus::Success(header) => {
                     match <P as TryExtractPayloadFromBuffered<Inner>>::try_read(
-                        &mut self.reader,
+                        &mut cursor,
                         &header,
                     )? {
                         ReadStatus::Success(payload) => {
                             pkg.payload = Some(payload);
                         }
                         ReadStatus::NotEnoughData(needed) => {
-                            return Err(Error::NotEnoughData(self.len as usize, needed as usize))
+                            return Err(Error::NotEnoughData(
+                                referred.len as usize,
+                                needed as usize,
+                            ))
                         }
                     }
                 }
                 ReadStatus::NotEnoughData(needed) => {
-                    return Err(Error::NotEnoughData(self.len as usize, needed as usize))
+                    return Err(Error::NotEnoughData(referred.len as usize, needed as usize))
                 }
             }
         }
-        self.reader.consume(self.header.size as usize);
+        self.inner.consume(referred.header.size as usize);
         Ok(pkg)
+    }
+    pub fn refuse(&mut self) -> Result<(), std::io::Error> {
+        let Some(referred) = self.referred.take() else {
+            return Err(std::io::Error::new(
+                std::io::ErrorKind::BrokenPipe,
+                "No waiting for accept or refuse packet",
+            ));
+        };
+        self.consume(referred.header.size as usize);
+        Ok(())
     }
 }
 
