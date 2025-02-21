@@ -148,10 +148,10 @@ pub fn read_from_slice(blocks: &[Block]) -> Result<TokenStream, E> {
         });
     }
     Ok(quote! {
-        impl<'a> brec::ReadBlockFromSlice<'a> for BlockReferred<'a> {
-            fn read_from_slice(buf: &'a [u8], skip_sig: bool) -> Result<Self, brec::Error>
+        impl<'a> brec::ReadBlockFromSlice for BlockReferred<'a> {
+            fn read_from_slice<'b>(buf: &'b [u8], skip_sig: bool) -> Result<Self, brec::Error>
             where
-                Self: Sized,
+                Self: 'b + Sized,
             {
                 #(#variants)*
                 Err(brec::Error::SignatureDismatch)

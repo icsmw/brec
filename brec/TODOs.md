@@ -1,1 +1,2 @@
 - check CRC on Block reading
+- add CRC to Packet header to validate sizes

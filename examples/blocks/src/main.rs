@@ -6,7 +6,7 @@ mod block;
 mod block_with_enum;
 // mod extended_blocks_1;
 // mod extended_block;
-mod extended_blocks_2;
+// mod extended_blocks_3;
 // #[brec::payload(bincode)]
 // #[derive(serde::Deserialize, serde::Serialize)]
 // struct PayloadA {

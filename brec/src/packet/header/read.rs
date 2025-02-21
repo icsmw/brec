@@ -30,10 +30,10 @@ impl ReadFrom for PacketHeader {
     }
 }
 
-impl<'a> ReadBlockFromSlice<'a> for PacketHeader {
-    fn read_from_slice(buf: &'a [u8], _skip_sig: bool) -> Result<Self, Error>
+impl ReadBlockFromSlice for PacketHeader {
+    fn read_from_slice<'a>(buf: &'a [u8], _skip_sig: bool) -> Result<Self, Error>
     where
-        Self: Sized,
+        Self: 'a + Sized,
     {
         if buf.len() < PacketHeader::ssize() as usize {
             return Err(Error::NotEnoughData(PacketHeader::ssize() as usize));

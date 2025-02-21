@@ -10,10 +10,10 @@ pub trait ReadFrom {
         Self: Sized;
 }
 
-pub trait ReadBlockFromSlice<'a> {
-    fn read_from_slice(buf: &'a [u8], skip_sig: bool) -> Result<Self, Error>
+pub trait ReadBlockFromSlice {
+    fn read_from_slice<'a>(buf: &'a [u8], skip_sig: bool) -> Result<Self, Error>
     where
-        Self: Sized;
+        Self: 'a + Sized;
 }
 
 pub trait ReadBlockFrom {

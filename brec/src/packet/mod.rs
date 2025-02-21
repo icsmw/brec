@@ -1,14 +1,12 @@
 mod header;
+mod reader;
 
 pub use header::*;
 
 use crate::*;
 use std::{io::BufRead, marker::PhantomData};
 
-pub trait BlockReferredDef<'a, B: BlockDef>:
-    ReadBlockFromSlice<'a> + Size + Sized + Into<B>
-{
-}
+pub trait BlockReferredDef<B: BlockDef>: ReadBlockFromSlice + Size + Sized + Into<B> {}
 
 pub trait BlockDef:
     ReadBlockFrom + ReadFrom + TryReadFrom + TryReadFromBuffered + WriteTo + WriteVectoredTo + Size
@@ -30,23 +28,36 @@ pub trait PayloadDef<Inner: PayloadInnerDef>:
 pub struct PacketReferred<
     'a,
     B: BlockDef,
-    BR: BlockReferredDef<'a, B>,
+    BR: BlockReferredDef<B>,
     P: PayloadDef<Inner>,
     Inner: PayloadInnerDef,
 > {
     pub blocks: Vec<BR>,
     pub header: PacketHeader,
-    pub len: u64,
     _b: PhantomData<&'a B>,
     _p: PhantomData<P>,
     _i: PhantomData<Inner>,
+}
+
+impl<'a, B: BlockDef, BR: BlockReferredDef<B>, P: PayloadDef<Inner>, Inner: PayloadInnerDef>
+    PacketReferred<'a, B, BR, P, Inner>
+{
+    pub fn new(blocks: Vec<BR>, header: PacketHeader) -> Self {
+        Self {
+            blocks,
+            header,
+            _b: PhantomData,
+            _p: PhantomData,
+            _i: PhantomData,
+        }
+    }
 }
 
 pub struct PacketBufReader<
     'a,
     R: std::io::Read,
     B: BlockDef,
-    BR: BlockReferredDef<'a, B>,
+    BR: BlockReferredDef<B>,
     P: PayloadDef<Inner>,
     Inner: PayloadInnerDef,
 > {
@@ -58,7 +69,7 @@ impl<
         'a,
         R: std::io::Read,
         B: BlockDef,
-        BR: BlockReferredDef<'a, B>,
+        BR: BlockReferredDef<B>,
         P: PayloadDef<Inner>,
         Inner: PayloadInnerDef,
     > PacketBufReader<'a, R, B, BR, P, Inner>
@@ -123,7 +134,6 @@ impl<
         self.referred = Some(PacketReferred {
             blocks,
             header,
-            len,
             _i: PhantomData,
             _b: PhantomData,
             _p: PhantomData,
@@ -244,7 +254,7 @@ impl<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> Packet<B, P, Inn
         chk: F,
     ) -> Result<LookInStatus<Packet<B, P, Inner>>, Error>
     where
-        BR: BlockReferredDef<'a, B>,
+        BR: BlockReferredDef<B>,
         F: FnOnce(&[BR]) -> bool,
         Self: Sized,
     {

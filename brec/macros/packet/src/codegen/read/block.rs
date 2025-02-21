@@ -83,11 +83,11 @@ impl ReadFromSlice for Block {
         }
         Ok(quote! {
 
-            impl<'a> brec::ReadBlockFromSlice<'a> for #referred_name <'a> {
+            impl<'a> brec::ReadBlockFromSlice for #referred_name <'a> {
 
-                fn read_from_slice(#src: &'a [u8], skip_sig: bool) -> Result<Self, brec::Error>
+                fn read_from_slice<'b>(#src: &'b [u8], skip_sig: bool) -> Result<Self, brec::Error>
                 where
-                    Self: Sized,
+                    Self: 'b + Sized,
                 {
                     use brec::prelude::*;
                     if !skip_sig {
@@ -105,18 +105,19 @@ impl ReadFromSlice for Block {
                         #block_name::ssize()
                     } as usize;
                     if #src.len() < required {
-                        return Err(brec::Error::NotEnoughData(#src.len(), required));
+                        return Err(brec::Error::NotEnoughData(required));
                     }
 
                     #(#fields)*
 
-                    let block = #referred_name {
+                    let block:#referred_name <'b> = #referred_name {
                         #(#fnames,)*
                     };
 
                     if block.crc() != *crc {
                         return Err(brec::Error::CrcDismatch)
                     }
+                    let block: #referred_name <'a> = unsafe { std::mem::transmute(block) };
 
                     Ok(block)
                 }
