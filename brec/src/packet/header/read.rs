@@ -36,10 +36,7 @@ impl<'a> ReadBlockFromSlice<'a> for PacketHeader {
         Self: Sized,
     {
         if buf.len() < PacketHeader::ssize() as usize {
-            return Err(Error::NotEnoughData(
-                buf.len(),
-                PacketHeader::ssize() as usize,
-            ));
+            return Err(Error::NotEnoughData(PacketHeader::ssize() as usize));
         }
         if !buf.starts_with(&PACKET_SIG) {
             return Err(Error::SignatureDismatch);

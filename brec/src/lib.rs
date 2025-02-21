@@ -7,6 +7,8 @@ pub use build::*;
 
 extern crate packet as packet_macro;
 
+pub const MAX_BLOCKS_COUNT: u8 = u8::MAX;
+
 pub mod error;
 pub mod packet;
 pub mod payload;

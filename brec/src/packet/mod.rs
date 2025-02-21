@@ -155,15 +155,12 @@ impl<
                             pkg.payload = Some(payload);
                         }
                         ReadStatus::NotEnoughData(needed) => {
-                            return Err(Error::NotEnoughData(
-                                referred.len as usize,
-                                needed as usize,
-                            ))
+                            return Err(Error::NotEnoughData(needed as usize))
                         }
                     }
                 }
                 ReadStatus::NotEnoughData(needed) => {
-                    return Err(Error::NotEnoughData(referred.len as usize, needed as usize))
+                    return Err(Error::NotEnoughData(needed as usize))
                 }
             }
         }
@@ -401,7 +398,7 @@ impl<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> TryReadFrom
                 }
                 ReadStatus::NotEnoughData(needed) => {
                     buf.seek(std::io::SeekFrom::Start(start_pos))?;
-                    return Err(Error::NotEnoughData(0, needed as usize));
+                    return Err(Error::NotEnoughData(needed as usize));
                 }
             }
         }
@@ -458,7 +455,7 @@ impl<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> TryReadFromBuffe
                     }
                 }
                 ReadStatus::NotEnoughData(needed) => {
-                    return Err(Error::NotEnoughData(available as usize, needed as usize))
+                    return Err(Error::NotEnoughData(needed as usize))
                 }
             }
         }
