@@ -1,4 +1,4 @@
-use crate::payload::{Next, PayloadHeader, SafeHeaderReader};
+use crate::payload::{NextChunk, PayloadHeader, SafeHeaderReader};
 use crate::*;
 
 impl ReadFrom for PayloadHeader {
@@ -35,30 +35,30 @@ impl TryReadFrom for PayloadHeader {
     {
         let mut reader = SafeHeaderReader::new(buf)?;
         let sig_len = match reader.next_u8()? {
-            Next::NotEnoughData(n) => return Ok(ReadStatus::NotEnoughData(n)),
-            Next::U8(v) => v,
+            NextChunk::NotEnoughData(n) => return Ok(ReadStatus::NotEnoughData(n)),
+            NextChunk::U8(v) => v,
             _ => return Err(Error::FailToReadPayloadHeader),
         };
         ByteBlock::is_valid_capacity(sig_len)?;
         let sig = match reader.next_bytes(sig_len as u64)? {
-            Next::NotEnoughData(n) => return Ok(ReadStatus::NotEnoughData(n)),
-            Next::Bytes(v) => v,
+            NextChunk::NotEnoughData(n) => return Ok(ReadStatus::NotEnoughData(n)),
+            NextChunk::Bytes(v) => v,
             _ => return Err(Error::FailToReadPayloadHeader),
         };
         let crc_len = match reader.next_u8()? {
-            Next::NotEnoughData(n) => return Ok(ReadStatus::NotEnoughData(n)),
-            Next::U8(v) => v,
+            NextChunk::NotEnoughData(n) => return Ok(ReadStatus::NotEnoughData(n)),
+            NextChunk::U8(v) => v,
             _ => return Err(Error::FailToReadPayloadHeader),
         };
         ByteBlock::is_valid_capacity(crc_len)?;
         let crc = match reader.next_bytes(crc_len as u64)? {
-            Next::NotEnoughData(n) => return Ok(ReadStatus::NotEnoughData(n)),
-            Next::Bytes(v) => v,
+            NextChunk::NotEnoughData(n) => return Ok(ReadStatus::NotEnoughData(n)),
+            NextChunk::Bytes(v) => v,
             _ => return Err(Error::FailToReadPayloadHeader),
         };
         let len = match reader.next_u32()? {
-            Next::NotEnoughData(n) => return Ok(ReadStatus::NotEnoughData(n)),
-            Next::U32(v) => v,
+            NextChunk::NotEnoughData(n) => return Ok(ReadStatus::NotEnoughData(n)),
+            NextChunk::U32(v) => v,
             _ => return Err(Error::FailToReadPayloadHeader),
         };
         Ok(ReadStatus::Success(Self {

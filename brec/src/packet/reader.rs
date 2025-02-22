@@ -2,24 +2,24 @@ use std::io::{BufRead, BufReader, Read};
 
 use crate::*;
 
-pub enum FnDef<D, S> {
+pub enum RuleFnDef<D, S> {
     Dynamic(D),
     Static(S),
 }
 
-pub type IgnoredCallback = FnDef<Box<dyn Fn(&[u8])>, fn(&[u8])>;
+pub type IgnoredCallback = RuleFnDef<Box<dyn Fn(&[u8])>, fn(&[u8])>;
 
-pub type WriteIgnoredCallback<W> = FnDef<
+pub type WriteIgnoredCallback<W> = RuleFnDef<
     Box<dyn Fn(&mut std::io::BufWriter<W>, &[u8]) -> std::io::Result<()>>,
     fn(&mut std::io::BufWriter<W>, &[u8]) -> std::io::Result<()>,
 >;
 
-pub type FilterCallback<B, BR, P, Inner> = FnDef<
+pub type FilterCallback<B, BR, P, Inner> = RuleFnDef<
     Box<dyn Fn(&PacketReferred<B, BR, P, Inner>) -> bool>,
     fn(&PacketReferred<B, BR, P, Inner>) -> bool,
 >;
 
-pub type MapCallback<W, B, BR, P, Inner> = FnDef<
+pub type MapCallback<W, B, BR, P, Inner> = RuleFnDef<
     Box<
         dyn Fn(&mut std::io::BufWriter<W>, &PacketReferred<B, BR, P, Inner>) -> std::io::Result<()>,
     >,
@@ -73,14 +73,14 @@ impl<
         for rule in self.rules.iter_mut() {
             match rule {
                 Rule::Ignored(cb) => match cb {
-                    FnDef::Static(cb) => cb(buffer),
-                    FnDef::Dynamic(cb) => cb(buffer),
+                    RuleFnDef::Static(cb) => cb(buffer),
+                    RuleFnDef::Dynamic(cb) => cb(buffer),
                 },
                 Rule::WriteIgnored(dest, cb) => match cb {
-                    FnDef::Static(cb) => {
+                    RuleFnDef::Static(cb) => {
                         cb(dest, buffer)?;
                     }
-                    FnDef::Dynamic(cb) => {
+                    RuleFnDef::Dynamic(cb) => {
                         cb(dest, buffer)?;
                     }
                 },
@@ -100,8 +100,8 @@ impl<
             return true;
         };
         match cb {
-            FnDef::Static(cb) => cb(referred),
-            FnDef::Dynamic(cb) => cb(referred),
+            RuleFnDef::Static(cb) => cb(referred),
+            RuleFnDef::Dynamic(cb) => cb(referred),
         }
     }
     pub fn map(&mut self, referred: &PacketReferred<B, BR, P, Inner>) -> Result<(), Error> {
@@ -115,14 +115,14 @@ impl<
             return Ok(());
         };
         match cb {
-            FnDef::Static(cb) => cb(writer, referred)?,
-            FnDef::Dynamic(cb) => cb(writer, referred)?,
+            RuleFnDef::Static(cb) => cb(writer, referred)?,
+            RuleFnDef::Dynamic(cb) => cb(writer, referred)?,
         }
         Ok(())
     }
 }
 
-pub enum Next<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> {
+pub enum NextPacket<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> {
     NotEnoughData(usize),
     NoData,
     NotFound,
@@ -185,7 +185,7 @@ impl<
         ))
     }
 
-    pub fn read(&mut self) -> Result<Next<B, P, Inner>, Error> {
+    pub fn read(&mut self) -> Result<NextPacket<B, P, Inner>, Error> {
         let (mut reader, header) = if let Some(header) = self.recent.take() {
             let buffer = self.inner.fill_buf()?;
             // Check do we have enough data to load packet
@@ -197,7 +197,7 @@ impl<
                 self.buffered.extend_from_slice(buffer);
                 self.inner.consume(consumed);
                 self.recent = Some(header);
-                return Ok(Next::NotEnoughData(packet_size - available));
+                return Ok(NextPacket::NotEnoughData(packet_size - available));
             }
             let rest_data = packet_size - self.buffered.len();
             // Copy and consume only needed data
@@ -209,7 +209,7 @@ impl<
             self.buffered.clear();
             let buffer = self.inner.fill_buf()?;
             if buffer.is_empty() {
-                return Ok(Next::NoData);
+                return Ok(NextPacket::NoData);
             }
             let available = buffer.len();
             match PacketBufReader::<'a, R, W, B, BR, P, Inner>::read_header(buffer)? {
@@ -218,7 +218,7 @@ impl<
                     self.rules.ignore(buffer)?;
                     // Consume all ignored data
                     self.inner.consume(available);
-                    return Ok(Next::NotFound);
+                    return Ok(NextPacket::NotFound);
                 }
                 PacketHeaderState::NotEnoughData(from, needed) => {
                     // Not enough data to read packet header
@@ -227,7 +227,7 @@ impl<
                         // Consume until valid signature
                         self.inner.consume(from - 1);
                     }
-                    return Ok(Next::NotEnoughData(needed));
+                    return Ok(NextPacket::NotEnoughData(needed));
                 }
                 PacketHeaderState::Found(header, sgmt) => {
                     // Packet header has been found
@@ -241,7 +241,7 @@ impl<
                         self.buffered.extend_from_slice(&buffer[*sgmt.end()..]);
                         self.inner.consume(*sgmt.end());
                         self.recent = Some(header);
-                        return Ok(Next::NotEnoughData(needs - available));
+                        return Ok(NextPacket::NotEnoughData(needs - available));
                     }
                     (
                         BufReader::new(&buffer[*sgmt.end()..*sgmt.start() + header.size as usize]),
@@ -286,7 +286,7 @@ impl<
             // Packet marked as ignored
             self.inner.consume(rest_for_pkg);
             self.buffered.clear();
-            return Ok(Next::Ignored);
+            return Ok(NextPacket::Ignored);
         }
         let blocks = referred
             .blocks
@@ -307,7 +307,7 @@ impl<
                             pkg.payload = Some(payload);
                         }
                         ReadStatus::NotEnoughData(needed) => {
-                            // This is error, but not Next::NotEnoughData because length of payload
+                            // This is error, but not NextPacket::NotEnoughData because length of payload
                             // already has been check. If we are here - some data is invalid and
                             // it's an error
                             return Err(Error::NotEnoughData(needed as usize));
@@ -315,7 +315,7 @@ impl<
                     }
                 }
                 Ok(ReadStatus::NotEnoughData(needed)) => {
-                    // This is error, but not Next::NotEnoughData because length of payload
+                    // This is error, but not NextPacket::NotEnoughData because length of payload
                     // already has been check. If we are here - some data is invalid and
                     // it's an error
                     return Err(Error::NotEnoughData(needed as usize));
@@ -329,6 +329,6 @@ impl<
         }
         self.inner.consume(rest_for_pkg);
         self.buffered.clear();
-        Ok(Next::Found(pkg))
+        Ok(NextPacket::Found(pkg))
     }
 }

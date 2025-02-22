@@ -1,6 +1,6 @@
 use crate::*;
 
-pub enum Next {
+pub enum NextChunk {
     NotEnoughData(u64),
     U8(u8),
     U32(u32),
@@ -26,34 +26,34 @@ impl<'a, T: std::io::Read + std::io::Seek> SafeHeaderReader<'a, T> {
             read: 0,
         })
     }
-    pub fn next_u8(&mut self) -> Result<Next, Error> {
+    pub fn next_u8(&mut self) -> Result<NextChunk, Error> {
         if self.len < self.read + 1 {
             self.buf.seek(std::io::SeekFrom::Start(self.spos))?;
-            return Ok(Next::NotEnoughData(self.read + 1 - self.len));
+            return Ok(NextChunk::NotEnoughData(self.read + 1 - self.len));
         }
         let mut dest = [0u8; 1];
         self.buf.read_exact(&mut dest)?;
         self.read += 1;
-        Ok(Next::U8(dest[0]))
+        Ok(NextChunk::U8(dest[0]))
     }
-    pub fn next_u32(&mut self) -> Result<Next, Error> {
+    pub fn next_u32(&mut self) -> Result<NextChunk, Error> {
         if self.len < self.read + 4u64 {
             self.buf.seek(std::io::SeekFrom::Start(self.spos))?;
-            return Ok(Next::NotEnoughData(self.read + 4u64 - self.len));
+            return Ok(NextChunk::NotEnoughData(self.read + 4u64 - self.len));
         }
         let mut dest = [0u8; 4];
         self.buf.read_exact(&mut dest)?;
         self.read += 4u64;
-        Ok(Next::U32(u32::from_le_bytes(dest)))
+        Ok(NextChunk::U32(u32::from_le_bytes(dest)))
     }
-    pub fn next_bytes(&mut self, capacity: u64) -> Result<Next, Error> {
+    pub fn next_bytes(&mut self, capacity: u64) -> Result<NextChunk, Error> {
         if self.len < self.read + capacity {
             self.buf.seek(std::io::SeekFrom::Start(self.spos))?;
-            return Ok(Next::NotEnoughData(self.read + capacity - self.len));
+            return Ok(NextChunk::NotEnoughData(self.read + capacity - self.len));
         }
         let mut dest = vec![0u8; capacity as usize];
         self.buf.read_exact(&mut dest)?;
         self.read += capacity;
-        Ok(Next::Bytes(dest))
+        Ok(NextChunk::Bytes(dest))
     }
 }

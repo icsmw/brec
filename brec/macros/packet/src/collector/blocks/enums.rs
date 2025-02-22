@@ -31,6 +31,6 @@ pub fn gen_referred(blocks: &[Block]) -> Result<TokenStream, E> {
             #(#variants,)*
         }
 
-        impl<'a> brec::BlockReferredDef<'a, Block> for BlockReferred<'a> {}
+        impl<'a> brec::BlockReferredDef<Block> for BlockReferred<'a> {}
     })
 }
