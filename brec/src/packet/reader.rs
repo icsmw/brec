@@ -2,47 +2,43 @@ use std::io::{BufRead, BufReader, Read};
 
 use crate::*;
 
-enum FnDef<D, S> {
+pub enum FnDef<D, S> {
     Dynamic(D),
     Static(S),
 }
 
-enum Rule<
+pub type IgnoredCallback = FnDef<Box<dyn Fn(&[u8])>, fn(&[u8])>;
+
+pub type WriteIgnoredCallback<W> = FnDef<
+    Box<dyn Fn(&mut std::io::BufWriter<W>, &[u8]) -> std::io::Result<()>>,
+    fn(&mut std::io::BufWriter<W>, &[u8]) -> std::io::Result<()>,
+>;
+
+pub type FilterCallback<B, BR, P, Inner> = FnDef<
+    Box<dyn Fn(&PacketReferred<B, BR, P, Inner>) -> bool>,
+    fn(&PacketReferred<B, BR, P, Inner>) -> bool,
+>;
+
+pub type MapCallback<W, B, BR, P, Inner> = FnDef<
+    Box<
+        dyn Fn(&mut std::io::BufWriter<W>, &PacketReferred<B, BR, P, Inner>) -> std::io::Result<()>,
+    >,
+    fn(&mut std::io::BufWriter<W>, &PacketReferred<B, BR, P, Inner>) -> std::io::Result<()>,
+>;
+pub enum Rule<
     W: std::io::Write,
     B: BlockDef,
     BR: BlockReferredDef<B>,
     P: PayloadDef<Inner>,
     Inner: PayloadInnerDef,
 > {
-    Ignored(FnDef<Box<dyn Fn(&[u8])>, fn(&[u8])>),
-    WriteIgnored(
-        std::io::BufWriter<W>,
-        FnDef<
-            Box<dyn Fn(&mut std::io::BufWriter<W>, &[u8]) -> std::io::Result<()>>,
-            fn(&mut std::io::BufWriter<W>, &[u8]) -> std::io::Result<()>,
-        >,
-    ),
-    Filter(
-        FnDef<
-            Box<dyn Fn(&PacketReferred<B, BR, P, Inner>) -> bool>,
-            fn(&PacketReferred<B, BR, P, Inner>) -> bool,
-        >,
-    ),
-    Map(
-        std::io::BufWriter<W>,
-        FnDef<
-            Box<
-                dyn Fn(
-                    &mut std::io::BufWriter<W>,
-                    &PacketReferred<B, BR, P, Inner>,
-                ) -> std::io::Result<()>,
-            >,
-            fn(&mut std::io::BufWriter<W>, &PacketReferred<B, BR, P, Inner>) -> std::io::Result<()>,
-        >,
-    ),
+    Ignored(IgnoredCallback),
+    WriteIgnored(std::io::BufWriter<W>, WriteIgnoredCallback<W>),
+    Filter(FilterCallback<B, BR, P, Inner>),
+    Map(std::io::BufWriter<W>, MapCallback<W, B, BR, P, Inner>),
 }
 
-struct Rules<
+pub struct Rules<
     W: std::io::Write,
     B: BlockDef,
     BR: BlockReferredDef<B>,
@@ -126,7 +122,7 @@ impl<
     }
 }
 
-enum Next<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> {
+pub enum Next<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> {
     NotEnoughData(usize),
     NoData,
     NotFound,
@@ -134,7 +130,7 @@ enum Next<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> {
     Found(Packet<B, P, Inner>),
 }
 
-enum PacketHeaderState {
+pub enum PacketHeaderState {
     NotFound,
     NotEnoughData(usize, usize),
     Found(PacketHeader, std::ops::RangeInclusive<usize>),
@@ -174,7 +170,7 @@ impl<
         }
     }
 
-    fn next_header(buffer: &[u8]) -> Result<PacketHeaderState, Error> {
+    fn read_header(buffer: &[u8]) -> Result<PacketHeaderState, Error> {
         let Some(offset) = PacketHeader::get_pos(buffer) else {
             // Signature of Packet isn't found
             return Ok(PacketHeaderState::NotFound);
@@ -189,7 +185,7 @@ impl<
         ))
     }
 
-    pub fn next(&mut self) -> Result<Next<B, P, Inner>, Error> {
+    pub fn read(&mut self) -> Result<Next<B, P, Inner>, Error> {
         let (mut reader, header) = if let Some(header) = self.recent.take() {
             let buffer = self.inner.fill_buf()?;
             // Check do we have enough data to load packet
@@ -216,7 +212,7 @@ impl<
                 return Ok(Next::NoData);
             }
             let available = buffer.len();
-            match PacketBufReader::<'a, R, W, B, BR, P, Inner>::next_header(buffer)? {
+            match PacketBufReader::<'a, R, W, B, BR, P, Inner>::read_header(buffer)? {
                 PacketHeaderState::NotFound => {
                     // Nothing found
                     self.rules.ignore(buffer)?;
