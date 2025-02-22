@@ -41,6 +41,6 @@ impl TryReadPayloadFrom<Vec<u8>> for Vec<u8> {}
 
 impl TryReadPayloadFromBuffered<Vec<u8>> for Vec<u8> {}
 
-impl WritePayloadTo for Vec<u8> {}
+impl WritePayloadWithHeaderTo for Vec<u8> {}
 
-impl WriteVectoredPayloadTo for Vec<u8> {}
+impl WriteVectoredPayloadWithHeaderTo for Vec<u8> {}

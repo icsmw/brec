@@ -14,14 +14,14 @@ pub fn writing_to(payloads: &[Payload]) -> Result<TokenStream, E> {
     Ok(quote! {
         impl brec::WritingPayloadTo for Payload {
             fn write<T: std::io::Write>(&mut self, buf: &mut T) -> std::io::Result<usize> {
-                use brec::WritePayloadTo;
+                use brec::WritePayloadWithHeaderTo;
                 match self {
                     #(#write,)*
                 }
             }
 
             fn write_all<T: std::io::Write>(&mut self, buf: &mut T) -> std::io::Result<()> {
-                use brec::WritePayloadTo;
+                use brec::WritePayloadWithHeaderTo;
                 match self {
                     #(#write_all,)*
                 }
@@ -39,7 +39,7 @@ pub fn writing_vectored_to(payloads: &[Payload]) -> Result<TokenStream, E> {
     Ok(quote! {
         impl brec::WritingVectoredPayloadTo for Payload {
             fn slices(&mut self) -> std::io::Result<brec::IoSlices> {
-                use brec::WriteVectoredPayloadTo;
+                use brec::WriteVectoredPayloadWithHeaderTo;
                 match self {
                     #(#slices,)*
                 }

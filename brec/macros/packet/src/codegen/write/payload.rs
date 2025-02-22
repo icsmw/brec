@@ -6,7 +6,7 @@ impl Write for Payload {
     fn gen(&self) -> Result<TokenStream, E> {
         let payload_name = self.name();
         Ok(quote! {
-            impl brec::WritePayloadTo for #payload_name {}
+            impl brec::WritePayloadWithHeaderTo for #payload_name {}
         })
     }
 }
@@ -15,7 +15,7 @@ impl WriteVectored for Payload {
     fn gen(&self) -> Result<TokenStream, E> {
         let payload_name = self.name();
         Ok(quote! {
-            impl brec::WriteVectoredPayloadTo for #payload_name {}
+            impl brec::WriteVectoredPayloadWithHeaderTo for #payload_name {}
         })
     }
 }

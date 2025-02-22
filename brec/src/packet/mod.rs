@@ -2,6 +2,7 @@ mod header;
 mod read;
 mod reader;
 mod referred;
+mod write;
 
 pub use header::*;
 pub use reader::*;
@@ -18,14 +19,19 @@ pub trait BlockDef:
 {
 }
 
-pub trait PayloadInnerDef: Sized + ExtractPayloadFrom<Self> {}
+pub trait PayloadInnerDef:
+    Sized + PayloadEncode + PayloadEncodeReferred + PayloadSize 
+    // In code generator will be forced usage of WritePayloadWithHeaderTo
+    + WriteMutTo
+    // In code generator will be forced usage of WriteVectoredPayloadWithHeaderTo
+    + WriteVectoredMutTo
+{
+}
 
 pub trait PayloadDef<Inner: PayloadInnerDef>:
     ExtractPayloadFrom<Inner>
     + TryExtractPayloadFrom<Inner>
     + TryExtractPayloadFromBuffered<Inner>
-    + WritingPayloadTo
-    + WritingVectoredPayloadTo
     + PayloadSize
 {
 }

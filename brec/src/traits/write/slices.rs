@@ -4,7 +4,7 @@ pub enum SliceSlot<'a> {
 }
 #[derive(Default)]
 pub struct IoSlices<'a> {
-    slots: Vec<SliceSlot<'a>>,
+    pub slots: Vec<SliceSlot<'a>>,
 }
 
 impl<'a> IoSlices<'a> {
@@ -22,6 +22,9 @@ impl<'a> IoSlices<'a> {
                 SliceSlot::Buf(buf) => std::io::IoSlice::new(buf),
             })
             .collect::<Vec<std::io::IoSlice>>()
+    }
+    pub fn append(&mut self, mut another: IoSlices<'a>) {
+        self.slots.append(&mut another.slots);
     }
     pub fn write_vectored_all<T: std::io::Write>(&self, buf: &mut T) -> std::io::Result<()> {
         let source = self.get();

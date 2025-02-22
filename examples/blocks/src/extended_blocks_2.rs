@@ -300,8 +300,8 @@ impl brec::PayloadSize for PayloadA {
 impl brec::ReadPayloadFrom<PayloadA> for PayloadA {}
 impl brec::TryReadPayloadFrom<PayloadA> for PayloadA {}
 impl brec::TryReadPayloadFromBuffered<PayloadA> for PayloadA {}
-impl brec::WritePayloadTo for PayloadA {}
-impl brec::WriteVectoredPayloadTo for PayloadA {}
+impl brec::WritePayloadWithHeaderTo for PayloadA {}
+impl brec::WriteVectoredPayloadWithHeaderTo for PayloadA {}
 #[repr(C)]
 struct PayloadB {
     pub str: String,
@@ -600,8 +600,8 @@ impl brec::PayloadSize for PayloadB {
 impl brec::ReadPayloadFrom<PayloadB> for PayloadB {}
 impl brec::TryReadPayloadFrom<PayloadB> for PayloadB {}
 impl brec::TryReadPayloadFromBuffered<PayloadB> for PayloadB {}
-impl brec::WritePayloadTo for PayloadB {}
-impl brec::WriteVectoredPayloadTo for PayloadB {}
+impl brec::WritePayloadWithHeaderTo for PayloadB {}
+impl brec::WriteVectoredPayloadWithHeaderTo for PayloadB {}
 #[repr(C)]
 struct BlockA {
     a: u32,
@@ -1484,31 +1484,32 @@ impl brec::TryExtractPayloadFromBuffered<Payload> for Payload {
         Err(brec::Error::SignatureDismatch)
     }
 }
-impl brec::WritingPayloadTo for Payload {
+impl brec::WriteMutTo for Payload {
     fn write<T: std::io::Write>(&mut self, buf: &mut T) -> std::io::Result<usize> {
-        use brec::WritePayloadTo;
+        use brec::WritePayloadWithHeaderTo;
         match self {
             Payload::PayloadA(pl) => pl.write(buf),
             Payload::PayloadB(pl) => pl.write(buf),
         }
     }
     fn write_all<T: std::io::Write>(&mut self, buf: &mut T) -> std::io::Result<()> {
-        use brec::WritePayloadTo;
+        use brec::WritePayloadWithHeaderTo;
         match self {
             Payload::PayloadA(pl) => pl.write_all(buf),
             Payload::PayloadB(pl) => pl.write_all(buf),
         }
     }
 }
-impl brec::WritingVectoredPayloadTo for Payload {
+impl brec::WriteVectoredMutTo for Payload {
     fn slices(&mut self) -> std::io::Result<brec::IoSlices> {
-        use brec::WriteVectoredPayloadTo;
+        use brec::WriteVectoredPayloadWithHeaderTo;
         match self {
             Payload::PayloadA(pl) => pl.slices(),
             Payload::PayloadB(pl) => pl.slices(),
         }
     }
 }
+
 type Pack = brec::Packet<Block, Payload, Payload>;
 
 // impl<'a> brec::BlockReferredDef<'a, Block> for BlockReferred<'a> {}

@@ -9,6 +9,11 @@ pub trait WriteTo {
     fn write_all<T: std::io::Write>(&self, buf: &mut T) -> std::io::Result<()>;
 }
 
+pub trait WriteMutTo {
+    fn write<T: std::io::Write>(&mut self, buf: &mut T) -> std::io::Result<usize>;
+    fn write_all<T: std::io::Write>(&mut self, buf: &mut T) -> std::io::Result<()>;
+}
+
 pub trait WriteVectoredTo {
     fn write_vectored<T: std::io::Write>(&self, buf: &mut T) -> std::io::Result<usize> {
         buf.write_vectored(&self.slices()?.get())
@@ -21,7 +26,19 @@ pub trait WriteVectoredTo {
     }
 }
 
-pub trait WritePayloadTo
+pub trait WriteVectoredMutTo {
+    fn write_vectored<T: std::io::Write>(&mut self, buf: &mut T) -> std::io::Result<usize> {
+        buf.write_vectored(&self.slices()?.get())
+    }
+
+    fn slices(&mut self) -> std::io::Result<IoSlices>;
+
+    fn write_vectored_all<T: std::io::Write>(&mut self, buf: &mut T) -> std::io::Result<()> {
+        self.slices()?.write_vectored_all(buf)
+    }
+}
+
+pub trait WritePayloadWithHeaderTo
 where
     Self: Sized + PayloadEncode + PayloadEncodeReferred + Signature + PayloadCrc + PayloadSize,
 {
@@ -48,15 +65,15 @@ where
     }
 }
 
-pub trait WritingPayloadTo
-where
-    Self: Sized,
-{
-    fn write<T: std::io::Write>(&mut self, buf: &mut T) -> std::io::Result<usize>;
-    fn write_all<T: std::io::Write>(&mut self, buf: &mut T) -> std::io::Result<()>;
-}
+// pub trait WritingPayloadTo
+// where
+//     Self: Sized,
+// {
+//     fn write<T: std::io::Write>(&mut self, buf: &mut T) -> std::io::Result<usize>;
+//     fn write_all<T: std::io::Write>(&mut self, buf: &mut T) -> std::io::Result<()>;
+// }
 
-pub trait WriteVectoredPayloadTo
+pub trait WriteVectoredPayloadWithHeaderTo
 where
     Self: Sized + PayloadEncode + PayloadEncodeReferred + Signature + PayloadCrc + PayloadSize,
 {
@@ -82,17 +99,17 @@ where
     }
 }
 
-pub trait WritingVectoredPayloadTo
-where
-    Self: Sized,
-{
-    fn write_vectored<T: std::io::Write>(&mut self, buf: &mut T) -> std::io::Result<usize> {
-        buf.write_vectored(&self.slices()?.get())
-    }
+// pub trait WritingVectoredPayloadTo
+// where
+//     Self: Sized,
+// {
+//     fn write_vectored<T: std::io::Write>(&mut self, buf: &mut T) -> std::io::Result<usize> {
+//         buf.write_vectored(&self.slices()?.get())
+//     }
 
-    fn slices(&mut self) -> std::io::Result<IoSlices>;
+//     fn slices(&mut self) -> std::io::Result<IoSlices>;
 
-    fn write_vectored_all<T: std::io::Write>(&mut self, buf: &mut T) -> std::io::Result<()> {
-        self.slices()?.write_vectored_all(buf)
-    }
-}
+//     fn write_vectored_all<T: std::io::Write>(&mut self, buf: &mut T) -> std::io::Result<()> {
+//         self.slices()?.write_vectored_all(buf)
+//     }
+// }

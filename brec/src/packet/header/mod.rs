@@ -22,7 +22,25 @@ impl PacketHeader {
         + std::mem::size_of::<u16>()
         + 1
         + std::mem::size_of::<u32>()) as u64;
-
+    pub fn new<B: BlockDef, Inner: PayloadInnerDef>(
+        blocks: &[B],
+        payload: Option<&Inner>,
+    ) -> std::io::Result<Self> {
+        let blocks_len: u64 = blocks.iter().map(|blk| blk.size()).sum();
+        let payload_len: u64 = payload.as_ref().map(|p| p.size()).unwrap_or(Ok(0))?;
+        let size = blocks_len + payload_len + Self::SIZE;
+        let mut hasher = crc32fast::Hasher::new();
+        hasher.update(&size.to_le_bytes());
+        hasher.update(&blocks_len.to_le_bytes());
+        hasher.update(if payload.is_some() { &[1] } else { &[0] });
+        let crc = hasher.finalize();
+        Ok(Self {
+            size,
+            blocks_len,
+            payload: payload.is_some(),
+            crc,
+        })
+    }
     pub fn get_pos(buffer: &[u8]) -> Option<usize> {
         let mut offset = 0;
         while buffer.len() > offset + PACKET_SIG.len() {

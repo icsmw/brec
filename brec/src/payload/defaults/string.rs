@@ -41,6 +41,6 @@ impl TryReadPayloadFrom<String> for String {}
 
 impl TryReadPayloadFromBuffered<String> for String {}
 
-impl WritePayloadTo for String {}
+impl WritePayloadWithHeaderTo for String {}
 
-impl WriteVectoredPayloadTo for String {}
+impl WriteVectoredPayloadWithHeaderTo for String {}

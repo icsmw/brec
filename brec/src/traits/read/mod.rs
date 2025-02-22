@@ -81,7 +81,7 @@ pub trait TryReadPayloadFromBuffered<
     }
 }
 
-pub trait TryExtractPayloadFromBuffered<T: Sized + ExtractPayloadFrom<T>> {
+pub trait TryExtractPayloadFromBuffered<T: Sized> {
     fn try_read<B: std::io::Read>(
         buf: &mut B,
         header: &PayloadHeader,
