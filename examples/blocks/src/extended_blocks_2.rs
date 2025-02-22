@@ -688,10 +688,10 @@ impl brec::ReadBlockFrom for BlockA {
         Ok(block)
     }
 }
-impl<'a> brec::ReadBlockFromSlice<'a> for BlockAReferred<'a> {
-    fn read_from_slice(buf: &'a [u8], skip_sig: bool) -> Result<Self, brec::Error>
+impl<'a> brec::ReadBlockFromSlice for BlockAReferred<'a> {
+    fn read_from_slice<'s>(buf: &'s [u8], skip_sig: bool) -> Result<Self, brec::Error>
     where
-        Self: Sized,
+        Self: 's + Sized,
     {
         use brec::prelude::*;
         if !skip_sig {
@@ -720,7 +720,7 @@ impl<'a> brec::ReadBlockFromSlice<'a> for BlockAReferred<'a> {
         let c = <&[u8; 100usize]>::try_from(&buf[16usize..116usize])?;
         let __crc = <&[u8; 4usize]>::try_from(&buf[116usize..116usize + 4usize])?;
         let crc = __crc;
-        let block = BlockAReferred {
+        let block: BlockAReferred<'s> = BlockAReferred {
             __sig,
             a,
             b,
@@ -730,6 +730,7 @@ impl<'a> brec::ReadBlockFromSlice<'a> for BlockAReferred<'a> {
         if block.crc() != *crc {
             return Err(brec::Error::CrcDismatch);
         }
+        let block: BlockAReferred<'a> = unsafe { std::mem::transmute(block) };
         Ok(block)
     }
 }
@@ -937,10 +938,10 @@ impl brec::ReadBlockFrom for BlockC {
         Ok(block)
     }
 }
-impl<'a> brec::ReadBlockFromSlice<'a> for BlockCReferred<'a> {
-    fn read_from_slice(buf: &'a [u8], skip_sig: bool) -> Result<Self, brec::Error>
+impl<'a> brec::ReadBlockFromSlice for BlockCReferred<'a> {
+    fn read_from_slice<'s>(buf: &'s [u8], skip_sig: bool) -> Result<Self, brec::Error>
     where
-        Self: Sized,
+        Self: 's + Sized,
     {
         use brec::prelude::*;
         if !skip_sig {
@@ -969,7 +970,7 @@ impl<'a> brec::ReadBlockFromSlice<'a> for BlockCReferred<'a> {
         let cc = <&[u8; 100usize]>::try_from(&buf[16usize..116usize])?;
         let __crc = <&[u8; 4usize]>::try_from(&buf[116usize..116usize + 4usize])?;
         let crc = __crc;
-        let block = BlockCReferred {
+        let block: BlockCReferred<'s> = BlockCReferred {
             __sig,
             aa,
             bb,
@@ -979,6 +980,7 @@ impl<'a> brec::ReadBlockFromSlice<'a> for BlockCReferred<'a> {
         if block.crc() != *crc {
             return Err(brec::Error::CrcDismatch);
         }
+        let block: BlockCReferred<'a> = unsafe { std::mem::transmute(block) };
         Ok(block)
     }
 }
@@ -1109,7 +1111,7 @@ pub enum BlockReferred<'a> {
     BlockA(BlockAReferred<'a>),
     BlockC(BlockCReferred<'a>),
 }
-impl<'a> brec::BlockReferredDef<'a, Block> for BlockReferred<'a> {}
+impl<'a> brec::BlockReferredDef<Block> for BlockReferred<'a> {}
 
 impl brec::Size for Block {
     fn size(&self) -> u64 {
@@ -1197,10 +1199,10 @@ impl brec::ReadBlockFrom for Block {
         Err(brec::Error::SignatureDismatch)
     }
 }
-impl<'a> brec::ReadBlockFromSlice<'a> for BlockReferred<'a> {
-    fn read_from_slice(buf: &'a [u8], skip_sig: bool) -> Result<Self, brec::Error>
+impl<'a> brec::ReadBlockFromSlice for BlockReferred<'a> {
+    fn read_from_slice<'s>(buf: &'s [u8], skip_sig: bool) -> Result<Self, brec::Error>
     where
-        Self: Sized,
+        Self: 's + Sized,
     {
         match BlockAReferred::read_from_slice(buf, skip_sig) {
             Ok(blk) => return Ok(BlockReferred::BlockA(blk)),

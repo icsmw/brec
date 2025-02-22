@@ -22,11 +22,20 @@ impl ReadFrom for PacketHeader {
         buf.read_exact(&mut payload)?;
         let payload = payload[0] == 1;
 
-        Ok(PacketHeader {
+        let mut crc = [0u8; 4usize];
+        buf.read_exact(&mut crc)?;
+        let crc = u32::from_le_bytes(crc);
+        let pkg = PacketHeader {
             blocks_len,
             size,
             payload,
-        })
+            crc,
+        };
+        if pkg.crc.to_le_bytes() == pkg.crc() {
+            Ok(pkg)
+        } else {
+            Err(Error::CrcDismatch)
+        }
     }
 }
 
@@ -44,11 +53,18 @@ impl ReadBlockFromSlice for PacketHeader {
         let size = u16::from_le_bytes(buf[8..10].try_into()?) as u64;
         let blocks_len = u16::from_le_bytes(buf[10..12].try_into()?) as u64;
         let payload = buf[12] == 1;
-        Ok(PacketHeader {
+        let crc = u32::from_le_bytes(buf[13..17].try_into()?);
+        let pkg = PacketHeader {
             blocks_len,
             size,
             payload,
-        })
+            crc,
+        };
+        if pkg.crc.to_le_bytes() == pkg.crc() {
+            Ok(pkg)
+        } else {
+            Err(Error::CrcDismatch)
+        }
     }
 }
 

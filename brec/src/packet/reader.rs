@@ -1,7 +1,4 @@
-use std::{
-    io::{BufRead, BufReader, Read},
-    marker::PhantomData,
-};
+use std::io::{BufRead, BufReader, Read};
 
 use crate::*;
 
