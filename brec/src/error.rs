@@ -16,6 +16,8 @@ pub enum Error {
     SignatureDismatch,
     #[error("Crc doesn't match to target entity")]
     CrcDismatch,
+    #[error("Same rule has been added already")]
+    RuleDuplicate,
     #[error("Block has zero length")]
     ZeroLengthBlock,
     #[error("Attempt to read more blocks than allowed")]

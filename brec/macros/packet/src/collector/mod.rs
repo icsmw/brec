@@ -1,4 +1,5 @@
 mod blocks;
+mod packet;
 mod payloads;
 
 use std::{
@@ -39,9 +40,11 @@ impl Collector {
     fn write(&self) -> Result<(), E> {
         let block = blocks::gen(&self.blocks)?;
         let payload = payloads::gen(&self.payloads)?;
+        let packet = packet::gen()?;
         let output = quote! {
             #block
             #payload
+            #packet
         };
         let out_dir = env::var("OUT_DIR")?;
         let path = PathBuf::from(out_dir).join("brec.rs");

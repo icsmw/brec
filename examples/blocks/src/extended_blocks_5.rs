@@ -1,4 +1,3 @@
-mod extended_blocks_4 {}
 #[repr(C)]
 struct PayloadA {
     pub str: String,
@@ -1503,25 +1502,9 @@ impl brec::WriteVectoredMutTo for Payload {
         }
     }
 }
-
 pub type Packet = brec::Packet<Block, Payload, Payload>;
-
 pub type PacketBufReader<'a, R, W> =
     brec::PacketBufReader<'a, R, W, Block, BlockReferred<'a>, Payload, Payload>;
-
 pub type Rules<'a, W> = brec::Rules<W, Block, BlockReferred<'a>, Payload, Payload>;
-
 pub type Rule<'a, W> = brec::Rule<W, Block, BlockReferred<'a>, Payload, Payload>;
-
 pub type RuleFnDef<D, S> = brec::RuleFnDef<D, S>;
-
-fn test_buf<R: std::io::Read, W: std::io::Write>(inner: &mut R) {
-    let mut reader: PacketBufReader<R, W> = PacketBufReader::new(inner);
-    reader.add_rule(Rule::Ignored(RuleFnDef::Static(|buf| {
-        println!("ingored: {}bytes", buf.len());
-    })));
-    let mut collected = Vec::new();
-    while let brec::NextPacket::Found(pkg) = reader.read().unwrap() {
-        collected.push(pkg);
-    }
-}

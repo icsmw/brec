@@ -25,6 +25,8 @@ pub type MapCallback<W, B, BR, P, Inner> = RuleFnDef<
     >,
     fn(&mut std::io::BufWriter<W>, &PacketReferred<B, BR, P, Inner>) -> std::io::Result<()>,
 >;
+
+#[enum_ids::enum_ids(display)]
 pub enum Rule<
     W: std::io::Write,
     B: BlockDef,
@@ -69,6 +71,42 @@ impl<
         Inner: PayloadInnerDef,
     > Rules<W, B, BR, P, Inner>
 {
+    pub fn add_rule(&mut self, rule: Rule<W, B, BR, P, Inner>) -> Result<(), Error> {
+        match &rule {
+            Rule::Filter(..) => {
+                if self.rules.iter().any(|r| matches!(r, Rule::Filter(..))) {
+                    return Err(Error::RuleDuplicate);
+                }
+            }
+            Rule::Ignored(..) => {
+                if self.rules.iter().any(|r| matches!(r, Rule::Ignored(..))) {
+                    return Err(Error::RuleDuplicate);
+                }
+            }
+            Rule::Map(..) => {
+                if self.rules.iter().any(|r| matches!(r, Rule::Map(..))) {
+                    return Err(Error::RuleDuplicate);
+                }
+            }
+            Rule::WriteIgnored(..) => {
+                if self
+                    .rules
+                    .iter()
+                    .any(|r| matches!(r, Rule::WriteIgnored(..)))
+                {
+                    return Err(Error::RuleDuplicate);
+                }
+            }
+        };
+        self.rules.push(rule);
+        Ok(())
+    }
+
+    pub fn remove_rule(&mut self, rule: RuleId) {
+        self.rules
+            .retain(|r| r.id().to_string() != rule.to_string());
+    }
+
     pub fn ignore(&mut self, buffer: &[u8]) -> Result<(), Error> {
         for rule in self.rules.iter_mut() {
             match rule {
@@ -168,6 +206,14 @@ impl<
             recent: None,
             buffered: Vec::with_capacity(u16::MAX as usize),
         }
+    }
+
+    pub fn add_rule(&mut self, rule: Rule<W, B, BR, P, Inner>) -> Result<(), Error> {
+        self.rules.add_rule(rule)
+    }
+
+    pub fn remove_rule(&mut self, rule: RuleId) {
+        self.rules.remove_rule(rule);
     }
 
     fn read_header(buffer: &[u8]) -> Result<PacketHeaderState, Error> {
