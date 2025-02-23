@@ -17,6 +17,8 @@ pub fn writing_to(payloads: &[Payload]) -> Result<TokenStream, E> {
                 use brec::WritePayloadWithHeaderTo;
                 match self {
                     #(#write,)*
+                    Payload::Bytes(pl) => pl.write(buf),
+                    Payload::String(pl) => pl.write(buf),
                 }
             }
 
@@ -24,6 +26,8 @@ pub fn writing_to(payloads: &[Payload]) -> Result<TokenStream, E> {
                 use brec::WritePayloadWithHeaderTo;
                 match self {
                     #(#write_all,)*
+                    Payload::Bytes(pl) => pl.write_all(buf),
+                    Payload::String(pl) => pl.write_all(buf),
                 }
             }
         }
@@ -42,6 +46,8 @@ pub fn writing_vectored_to(payloads: &[Payload]) -> Result<TokenStream, E> {
                 use brec::WriteVectoredPayloadWithHeaderTo;
                 match self {
                     #(#slices,)*
+                    Payload::Bytes(pl) => pl.slices(),
+                    Payload::String(pl) => pl.slices(),
                 }
             }
         }

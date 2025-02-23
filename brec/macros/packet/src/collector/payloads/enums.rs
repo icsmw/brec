@@ -13,6 +13,8 @@ pub fn gen(payloads: &[Payload]) -> Result<TokenStream, E> {
     Ok(quote! {
         pub enum Payload {
             #(#variants,)*
+            Bytes(Vec<u8>),
+            String(String),
         }
 
         impl brec::PayloadInnerDef for Payload {}
