@@ -2,8 +2,7 @@
 members = [
     "blocks",
     "enums",
-    "payloads",
-    "playground"
+    "payloads"
 ]
 
 [workspace.dependencies]
