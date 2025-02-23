@@ -9,8 +9,14 @@ impl PayloadSize for String {
 
 impl PayloadCrc for String {}
 
-impl Signature for String {
-    fn sig() -> ByteBlock {
+impl PayloadSignature for String {
+    fn sig(&self) -> ByteBlock {
+        <String as StaticPayloadSignature>::ssig()
+    }
+}
+
+impl StaticPayloadSignature for String {
+    fn ssig() -> ByteBlock {
         let mut hasher = crc32fast::Hasher::new();
         hasher.update("String".as_bytes());
         ByteBlock::Len4(hasher.finalize().to_le_bytes())

@@ -11,8 +11,13 @@ impl Base for Payload {
         } else {
             quote! {
 
-                impl brec::Signature for #payload_name {
-                    fn sig() -> brec::ByteBlock {
+                impl brec::PayloadSignature for #payload_name {
+                    fn sig(&self) -> brec::ByteBlock {
+                        brec::ByteBlock::Len4(#sig)
+                    }
+                }
+                impl brec::StaticPayloadSignature for #payload_name {
+                    fn ssig() -> brec::ByteBlock {
                         brec::ByteBlock::Len4(#sig)
                     }
                 }

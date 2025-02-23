@@ -22,12 +22,12 @@ pub trait ReadBlockFrom {
         Self: Sized;
 }
 
-pub trait ReadPayloadFrom<T: Sized + PayloadDecode<T> + Signature + PayloadCrc> {
+pub trait ReadPayloadFrom<T: Sized + PayloadDecode<T> + StaticPayloadSignature + PayloadCrc> {
     fn read<B: std::io::Read>(buf: &mut B, header: &PayloadHeader) -> Result<T, Error>
     where
-        Self: Sized + PayloadDecode<Self> + Signature,
+        Self: Sized + PayloadDecode<Self> + StaticPayloadSignature,
     {
-        if header.sig != T::sig() {
+        if header.sig != T::ssig() {
             return Err(Error::SignatureDismatch);
         }
         let mut bytes = vec![0u8; header.payload_len()];
@@ -45,7 +45,7 @@ pub trait ExtractPayloadFrom<T: Sized> {
 }
 
 pub trait TryReadPayloadFrom<
-    T: Sized + PayloadDecode<T> + Signature + PayloadCrc + ReadPayloadFrom<T>,
+    T: Sized + PayloadDecode<T> + StaticPayloadSignature + PayloadCrc + ReadPayloadFrom<T>,
 >
 {
     fn try_read<B: std::io::Read + std::io::Seek>(
@@ -70,7 +70,7 @@ pub trait TryExtractPayloadFrom<T: Sized> {
 }
 
 pub trait TryReadPayloadFromBuffered<
-    T: Sized + PayloadDecode<T> + Signature + PayloadCrc + ReadPayloadFrom<T>,
+    T: Sized + PayloadDecode<T> + StaticPayloadSignature + PayloadCrc + ReadPayloadFrom<T>,
 >
 {
     fn try_read<B: std::io::Read>(

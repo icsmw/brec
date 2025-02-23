@@ -9,8 +9,14 @@ impl PayloadSize for Vec<u8> {
 
 impl PayloadCrc for Vec<u8> {}
 
-impl Signature for Vec<u8> {
-    fn sig() -> ByteBlock {
+impl PayloadSignature for Vec<u8> {
+    fn sig(&self) -> ByteBlock {
+        <Vec<u8> as StaticPayloadSignature>::ssig()
+    }
+}
+
+impl StaticPayloadSignature for Vec<u8> {
+    fn ssig() -> ByteBlock {
         let mut hasher = crc32fast::Hasher::new();
         hasher.update("Vec<u8>".as_bytes());
         ByteBlock::Len4(hasher.finalize().to_le_bytes())

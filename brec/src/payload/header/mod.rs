@@ -34,38 +34,45 @@ pub struct PayloadHeader {
 }
 
 impl PayloadHeader {
-    pub const LEN: usize = 1 + 4 + 1 + 4 + 4;
-
-    pub fn payload_len(&self) -> usize {
-        self.len as usize
-    }
-    pub fn write<T: Signature + PayloadSize + PayloadCrc>(
-        src: &T,
-        buffer: &mut [u8],
-    ) -> std::io::Result<()> {
-        let blen = src.size()?;
-        if blen > u32::MAX as u64 {
+    pub fn new<T: PayloadSignature + PayloadSize + PayloadCrc>(src: &T) -> std::io::Result<Self> {
+        let len = src.size()?;
+        if len > u32::MAX as u64 {
             return Err(std::io::Error::new(
                 std::io::ErrorKind::InvalidData,
                 format!("Size of payload cannot be bigger {} bytes", u32::MAX),
             ));
         }
-        let blen = blen as u32;
-        let mut offset = 0;
+        Ok(Self {
+            sig: src.sig(),
+            crc: src.crc()?,
+            len: len as u32,
+        })
+    }
+    pub fn payload_len(&self) -> usize {
+        self.len as usize
+    }
+    pub fn size(&self) -> usize {
+        1 + self.sig.size() + 1 + self.crc.size() + std::mem::size_of::<u32>()
+    }
+    pub fn ssize<T: PayloadSignature + PayloadSize + PayloadCrc>(
+        src: &T,
+    ) -> std::io::Result<usize> {
+        Ok(1 + src.size()? as usize + 1 + T::crc_size() + std::mem::size_of::<u32>())
+    }
+    pub fn as_vec(&self) -> Vec<u8> {
+        let sig = self.sig.as_slice();
+        let crc = self.crc.as_slice();
+        let mut buffer = Vec::new();
         // Write SIG len
-        buffer[offset..offset + 1usize].copy_from_slice(&[4u8]);
-        offset += 1usize;
+        buffer.push(sig.len() as u8);
         // Write SIG
-        buffer[offset..offset + 4usize].copy_from_slice(T::sig().as_slice());
-        offset += 4usize;
+        buffer.extend_from_slice(sig);
         // Write CRC len
-        buffer[offset..offset + 1usize].copy_from_slice(&[4u8]);
-        offset += 1usize;
+        buffer.push(crc.len() as u8);
         // Write CRC
-        buffer[offset..offset + 4usize].copy_from_slice(src.crc()?.as_slice());
-        offset += 4usize;
+        buffer.extend_from_slice(crc);
         // Write PAYLOAD len
-        buffer[offset..offset + 4usize].copy_from_slice(&blen.to_le_bytes());
-        Ok(())
+        buffer.extend_from_slice(&self.len.to_le_bytes());
+        buffer
     }
 }

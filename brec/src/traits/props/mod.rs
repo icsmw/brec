@@ -25,10 +25,17 @@ where
         }
         Ok(ByteBlock::Len4(hasher.finalize().to_le_bytes()))
     }
+    fn crc_size() -> usize {
+        4
+    }
 }
 
-pub trait Signature {
-    fn sig() -> ByteBlock;
+pub trait PayloadSignature {
+    fn sig(&self) -> ByteBlock;
+}
+
+pub trait StaticPayloadSignature {
+    fn ssig() -> ByteBlock;
 }
 
 pub trait StaticSize {

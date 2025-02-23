@@ -20,7 +20,7 @@ pub trait BlockDef:
 }
 
 pub trait PayloadInnerDef:
-    Sized + PayloadEncode + PayloadEncodeReferred + PayloadSize 
+    Sized + PayloadEncode + PayloadEncodeReferred + PayloadSize + PayloadCrc + PayloadSignature
     // In code generator will be forced usage of WritePayloadWithHeaderTo
     + WriteMutTo
     // In code generator will be forced usage of WriteVectoredPayloadWithHeaderTo
@@ -56,7 +56,10 @@ impl<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> PacketDef<B, P, 
             _pi: PhantomData,
         }
     }
-    pub fn look_in<BR, F>(bytes: &[u8], chk: F) -> Result<LookInStatus<PacketDef<B, P, Inner>>, Error>
+    pub fn look_in<BR, F>(
+        bytes: &[u8],
+        chk: F,
+    ) -> Result<LookInStatus<PacketDef<B, P, Inner>>, Error>
     where
         BR: BlockReferredDef<B>,
         F: FnOnce(&[BR]) -> bool,

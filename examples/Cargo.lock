@@ -18,6 +18,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8f68f53c83ab957f72c32642f3868eec03eb974d1fb82e453128456482613d36"
 
 [[package]]
+name = "blocks"
+version = "0.1.0"
+dependencies = [
+ "brec",
+ "rand",
+ "serde",
+]
+
+[[package]]
 name = "brec"
 version = "0.1.0"
 dependencies = [
@@ -64,19 +73,19 @@ dependencies = [
 ]
 
 [[package]]
-name = "equivalent"
-version = "1.0.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "877a4ace8713b0bcf2a4e7eec82529c029f1d0619886d18145fea96c3ffe5c0f"
-
-[[package]]
-name = "example"
+name = "enums"
 version = "0.1.0"
 dependencies = [
  "brec",
  "rand",
  "serde",
 ]
+
+[[package]]
+name = "equivalent"
+version = "1.0.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "877a4ace8713b0bcf2a4e7eec82529c029f1d0619886d18145fea96c3ffe5c0f"
 
 [[package]]
 name = "getrandom"
@@ -158,6 +167,24 @@ dependencies = [
  "serde",
  "syn",
  "thiserror",
+]
+
+[[package]]
+name = "payloads"
+version = "0.1.0"
+dependencies = [
+ "brec",
+ "rand",
+ "serde",
+]
+
+[[package]]
+name = "playground"
+version = "0.1.0"
+dependencies = [
+ "brec",
+ "rand",
+ "serde",
 ]
 
 [[package]]

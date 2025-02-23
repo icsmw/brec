@@ -19,7 +19,7 @@ impl<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> WriteMutTo
         }
         if let Some(payload) = self.payload.as_mut() {
             let written = payload.write(buf)?;
-            if written < payload.size()? as usize + PayloadHeader::LEN {
+            if written < payload.size()? as usize + PayloadHeader::ssize(payload)? {
                 return Ok(total + written);
             } else {
                 total += written

@@ -1,0 +1,12 @@
+[workspace]
+members = [
+    "blocks",
+    "enums",
+    "payloads",
+    "playground"
+]
+
+[workspace.dependencies]
+brec = { path = "../brec" }
+serde = "1.0"
+rand = "0.9"

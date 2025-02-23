@@ -40,22 +40,21 @@ pub trait WriteVectoredMutTo {
 
 pub trait WritePayloadWithHeaderTo
 where
-    Self: Sized + PayloadEncode + PayloadEncodeReferred + Signature + PayloadCrc + PayloadSize,
+    Self:
+        Sized + PayloadEncode + PayloadEncodeReferred + PayloadSignature + PayloadCrc + PayloadSize,
 {
     fn write<T: std::io::Write>(&mut self, buf: &mut T) -> std::io::Result<usize> {
-        let mut header = [0u8; PayloadHeader::LEN];
-        PayloadHeader::write(self, &mut header)?;
+        let header = PayloadHeader::new(self)?.as_vec();
         buf.write_all(&header)?;
         if let Some(bytes) = PayloadEncodeReferred::encode(self)? {
             buf.write(bytes)
         } else {
             buf.write(&PayloadEncode::encode(self)?)
         }
-        .map(|s| s + PayloadHeader::LEN)
+        .map(|s| s + header.len())
     }
     fn write_all<T: std::io::Write>(&mut self, buf: &mut T) -> std::io::Result<()> {
-        let mut header = [0u8; PayloadHeader::LEN];
-        PayloadHeader::write(self, &mut header)?;
+        let header = PayloadHeader::new(self)?.as_vec();
         buf.write_all(&header)?;
         if let Some(bytes) = PayloadEncodeReferred::encode(self)? {
             buf.write_all(bytes)
@@ -67,7 +66,8 @@ where
 
 pub trait WriteVectoredPayloadWithHeaderTo
 where
-    Self: Sized + PayloadEncode + PayloadEncodeReferred + Signature + PayloadCrc + PayloadSize,
+    Self:
+        Sized + PayloadEncode + PayloadEncodeReferred + PayloadSignature + PayloadCrc + PayloadSize,
 {
     fn write_vectored<T: std::io::Write>(&mut self, buf: &mut T) -> std::io::Result<usize> {
         buf.write_vectored(&self.slices()?.get())
@@ -75,8 +75,7 @@ where
 
     fn slices(&mut self) -> std::io::Result<IoSlices> {
         let mut slices = IoSlices::default();
-        let mut header = [0u8; PayloadHeader::LEN];
-        PayloadHeader::write(self, &mut header)?;
+        let header = PayloadHeader::new(self)?.as_vec();
         slices.add_buffered(header.to_vec());
         if let Some(bytes) = PayloadEncodeReferred::encode(self)? {
             slices.add_slice(bytes);
