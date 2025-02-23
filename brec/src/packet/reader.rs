@@ -27,7 +27,7 @@ pub type MapCallback<W, B, BR, P, Inner> = RuleFnDef<
 >;
 
 #[enum_ids::enum_ids(display)]
-pub enum Rule<
+pub enum RuleDef<
     W: std::io::Write,
     B: BlockDef,
     BR: BlockReferredDef<B>,
@@ -40,14 +40,14 @@ pub enum Rule<
     Map(std::io::BufWriter<W>, MapCallback<W, B, BR, P, Inner>),
 }
 
-pub struct Rules<
+pub struct RulesDef<
     W: std::io::Write,
     B: BlockDef,
     BR: BlockReferredDef<B>,
     P: PayloadDef<Inner>,
     Inner: PayloadInnerDef,
 > {
-    pub rules: Vec<Rule<W, B, BR, P, Inner>>,
+    pub rules: Vec<RuleDef<W, B, BR, P, Inner>>,
 }
 
 impl<
@@ -56,7 +56,7 @@ impl<
         BR: BlockReferredDef<B>,
         P: PayloadDef<Inner>,
         Inner: PayloadInnerDef,
-    > Default for Rules<W, B, BR, P, Inner>
+    > Default for RulesDef<W, B, BR, P, Inner>
 {
     fn default() -> Self {
         Self { rules: Vec::new() }
@@ -69,30 +69,30 @@ impl<
         BR: BlockReferredDef<B>,
         P: PayloadDef<Inner>,
         Inner: PayloadInnerDef,
-    > Rules<W, B, BR, P, Inner>
+    > RulesDef<W, B, BR, P, Inner>
 {
-    pub fn add_rule(&mut self, rule: Rule<W, B, BR, P, Inner>) -> Result<(), Error> {
+    pub fn add_rule(&mut self, rule: RuleDef<W, B, BR, P, Inner>) -> Result<(), Error> {
         match &rule {
-            Rule::Filter(..) => {
-                if self.rules.iter().any(|r| matches!(r, Rule::Filter(..))) {
+            RuleDef::Filter(..) => {
+                if self.rules.iter().any(|r| matches!(r, RuleDef::Filter(..))) {
                     return Err(Error::RuleDuplicate);
                 }
             }
-            Rule::Ignored(..) => {
-                if self.rules.iter().any(|r| matches!(r, Rule::Ignored(..))) {
+            RuleDef::Ignored(..) => {
+                if self.rules.iter().any(|r| matches!(r, RuleDef::Ignored(..))) {
                     return Err(Error::RuleDuplicate);
                 }
             }
-            Rule::Map(..) => {
-                if self.rules.iter().any(|r| matches!(r, Rule::Map(..))) {
+            RuleDef::Map(..) => {
+                if self.rules.iter().any(|r| matches!(r, RuleDef::Map(..))) {
                     return Err(Error::RuleDuplicate);
                 }
             }
-            Rule::WriteIgnored(..) => {
+            RuleDef::WriteIgnored(..) => {
                 if self
                     .rules
                     .iter()
-                    .any(|r| matches!(r, Rule::WriteIgnored(..)))
+                    .any(|r| matches!(r, RuleDef::WriteIgnored(..)))
                 {
                     return Err(Error::RuleDuplicate);
                 }
@@ -102,7 +102,7 @@ impl<
         Ok(())
     }
 
-    pub fn remove_rule(&mut self, rule: RuleId) {
+    pub fn remove_rule(&mut self, rule: RuleDefId) {
         self.rules
             .retain(|r| r.id().to_string() != rule.to_string());
     }
@@ -110,11 +110,11 @@ impl<
     pub fn ignore(&mut self, buffer: &[u8]) -> Result<(), Error> {
         for rule in self.rules.iter_mut() {
             match rule {
-                Rule::Ignored(cb) => match cb {
+                RuleDef::Ignored(cb) => match cb {
                     RuleFnDef::Static(cb) => cb(buffer),
                     RuleFnDef::Dynamic(cb) => cb(buffer),
                 },
-                Rule::WriteIgnored(dest, cb) => match cb {
+                RuleDef::WriteIgnored(dest, cb) => match cb {
                     RuleFnDef::Static(cb) => {
                         cb(dest, buffer)?;
                     }
@@ -129,7 +129,7 @@ impl<
     }
     pub fn filter(&mut self, referred: &PacketReferred<B, BR, P, Inner>) -> bool {
         let Some(cb) = self.rules.iter().find_map(|r| {
-            if let Rule::Filter(cb) = r {
+            if let RuleDef::Filter(cb) = r {
                 Some(cb)
             } else {
                 None
@@ -144,7 +144,7 @@ impl<
     }
     pub fn map(&mut self, referred: &PacketReferred<B, BR, P, Inner>) -> Result<(), Error> {
         let Some((writer, cb)) = self.rules.iter_mut().find_map(|r| {
-            if let Rule::Map(writer, cb) = r {
+            if let RuleDef::Map(writer, cb) = r {
                 Some((writer, cb))
             } else {
                 None
@@ -165,7 +165,7 @@ pub enum NextPacket<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> {
     NoData,
     NotFound,
     Ignored,
-    Found(Packet<B, P, Inner>),
+    Found(PacketDef<B, P, Inner>),
 }
 
 pub enum PacketHeaderState {
@@ -174,7 +174,7 @@ pub enum PacketHeaderState {
     Found(PacketHeader, std::ops::RangeInclusive<usize>),
 }
 
-pub struct PacketBufReader<
+pub struct PacketBufReaderDef<
     'a,
     R: std::io::Read,
     W: std::io::Write,
@@ -184,7 +184,7 @@ pub struct PacketBufReader<
     Inner: PayloadInnerDef,
 > {
     inner: std::io::BufReader<&'a mut R>,
-    rules: Rules<W, B, BR, P, Inner>,
+    rules: RulesDef<W, B, BR, P, Inner>,
     recent: Option<PacketHeader>,
     buffered: Vec<u8>,
 }
@@ -197,28 +197,28 @@ impl<
         BR: BlockReferredDef<B>,
         P: PayloadDef<Inner>,
         Inner: PayloadInnerDef,
-    > PacketBufReader<'a, R, W, B, BR, P, Inner>
+    > PacketBufReaderDef<'a, R, W, B, BR, P, Inner>
 {
     pub fn new(inner: &'a mut R) -> Self {
         Self {
             inner: std::io::BufReader::new(inner),
-            rules: Rules::default(),
+            rules: RulesDef::default(),
             recent: None,
             buffered: Vec::with_capacity(u16::MAX as usize),
         }
     }
 
-    pub fn add_rule(&mut self, rule: Rule<W, B, BR, P, Inner>) -> Result<(), Error> {
+    pub fn add_rule(&mut self, rule: RuleDef<W, B, BR, P, Inner>) -> Result<(), Error> {
         self.rules.add_rule(rule)
     }
 
-    pub fn remove_rule(&mut self, rule: RuleId) {
+    pub fn remove_rule(&mut self, rule: RuleDefId) {
         self.rules.remove_rule(rule);
     }
 
     fn read_header(buffer: &[u8]) -> Result<PacketHeaderState, Error> {
         let Some(offset) = PacketHeader::get_pos(buffer) else {
-            // Signature of Packet isn't found
+            // Signature of PacketDef isn't found
             return Ok(PacketHeaderState::NotFound);
         };
         if let Some(needed) = PacketHeader::is_not_enought(&buffer[offset..]) {
@@ -258,7 +258,7 @@ impl<
                 return Ok(NextPacket::NoData);
             }
             let available = buffer.len();
-            match PacketBufReader::<'a, R, W, B, BR, P, Inner>::read_header(buffer)? {
+            match PacketBufReaderDef::<'a, R, W, B, BR, P, Inner>::read_header(buffer)? {
                 PacketHeaderState::NotFound => {
                     // Nothing found
                     self.rules.ignore(buffer)?;
@@ -276,7 +276,7 @@ impl<
                     return Ok(NextPacket::NotEnoughData(needed));
                 }
                 PacketHeaderState::Found(header, sgmt) => {
-                    // Packet header has been found
+                    // PacketDef header has been found
                     if sgmt.start() > &0 {
                         self.rules.ignore(&buffer[..*sgmt.start()])?;
                     }
@@ -329,7 +329,7 @@ impl<
         let referred = PacketReferred::new(blocks, header);
         self.rules.map(&referred)?;
         if !self.rules.filter(&referred) {
-            // Packet marked as ignored
+            // PacketDef marked as ignored
             self.inner.consume(rest_for_pkg);
             self.buffered.clear();
             return Ok(NextPacket::Ignored);
@@ -339,7 +339,7 @@ impl<
             .into_iter()
             .map(|blk| blk.into())
             .collect::<Vec<B>>();
-        let mut pkg: Packet<B, P, Inner> = Packet::new(blocks, None);
+        let mut pkg: PacketDef<B, P, Inner> = PacketDef::new(blocks, None);
         let header = referred.header;
         // Loading payload if exists
         if header.payload {

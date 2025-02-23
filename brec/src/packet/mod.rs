@@ -42,13 +42,13 @@ pub enum LookInStatus<T> {
     NotEnoughData(usize),
 }
 
-pub struct Packet<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> {
+pub struct PacketDef<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> {
     pub blocks: Vec<B>,
     pub payload: Option<Inner>,
     _pi: PhantomData<P>,
 }
 
-impl<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> Packet<B, P, Inner> {
+impl<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> PacketDef<B, P, Inner> {
     pub fn new(blocks: Vec<B>, payload: Option<Inner>) -> Self {
         Self {
             blocks,
@@ -56,7 +56,7 @@ impl<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> Packet<B, P, Inn
             _pi: PhantomData,
         }
     }
-    pub fn look_in<BR, F>(bytes: &[u8], chk: F) -> Result<LookInStatus<Packet<B, P, Inner>>, Error>
+    pub fn look_in<BR, F>(bytes: &[u8], chk: F) -> Result<LookInStatus<PacketDef<B, P, Inner>>, Error>
     where
         BR: BlockReferredDef<B>,
         F: FnOnce(&[BR]) -> bool,
@@ -88,7 +88,7 @@ impl<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> Packet<B, P, Inn
             return Ok(LookInStatus::Denied(header.size as usize));
         }
         let blocks = blocks.into_iter().map(|blk| blk.into()).collect::<Vec<B>>();
-        let mut pkg: Packet<B, P, Inner> = Packet {
+        let mut pkg: PacketDef<B, P, Inner> = PacketDef {
             blocks,
             payload: None,
             _pi: PhantomData,
@@ -118,7 +118,7 @@ impl<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> Packet<B, P, Inn
     }
 }
 
-impl<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> Default for Packet<B, P, Inner> {
+impl<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> Default for PacketDef<B, P, Inner> {
     fn default() -> Self {
         Self {
             blocks: Vec::new(),

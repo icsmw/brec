@@ -1,13 +1,15 @@
 use crate::*;
 use std::io::BufRead;
 
-impl<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> ReadFrom for Packet<B, P, Inner> {
+impl<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> ReadFrom
+    for PacketDef<B, P, Inner>
+{
     fn read<T: std::io::Read>(buf: &mut T) -> Result<Self, Error>
     where
         Self: Sized,
     {
         let header = PacketHeader::read(buf)?;
-        let mut pkg = Packet::default();
+        let mut pkg = PacketDef::default();
         let mut read = 0;
         loop {
             // TODO: Error::SignatureDismatch should be covered in enum's context
@@ -28,7 +30,7 @@ impl<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> ReadFrom for Pac
 }
 
 impl<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> TryReadFrom
-    for Packet<B, P, Inner>
+    for PacketDef<B, P, Inner>
 {
     fn try_read<T: std::io::Read + std::io::Seek>(buf: &mut T) -> Result<ReadStatus<Self>, Error>
     where
@@ -44,7 +46,7 @@ impl<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> TryReadFrom
         if header.size > available {
             return Ok(ReadStatus::NotEnoughData(header.size - available));
         }
-        let mut pkg = Packet::default();
+        let mut pkg = PacketDef::default();
         let mut read = 0;
         loop {
             // TODO: Error::SignatureDismatch should be covered in enum's context
@@ -94,7 +96,7 @@ impl<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> TryReadFrom
 }
 
 impl<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> TryReadFromBuffered
-    for Packet<B, P, Inner>
+    for PacketDef<B, P, Inner>
 {
     fn try_read<T: std::io::Read>(buf: &mut T) -> Result<ReadStatus<Self>, Error>
     where
@@ -111,7 +113,7 @@ impl<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> TryReadFromBuffe
             return Ok(ReadStatus::NotEnoughData(header.size - available));
         }
         reader.consume(PacketHeader::ssize() as usize);
-        let mut pkg = Packet::default();
+        let mut pkg = PacketDef::default();
         let mut read = 0;
         loop {
             // TODO: Error::SignatureDismatch should be covered in enum's context

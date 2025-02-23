@@ -1,6 +1,8 @@
 use crate::*;
 
-impl<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> WriteMutTo for Packet<B, P, Inner> {
+impl<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> WriteMutTo
+    for PacketDef<B, P, Inner>
+{
     fn write<T: std::io::Write>(&mut self, buf: &mut T) -> std::io::Result<usize> {
         let header = PacketHeader::new(&self.blocks, self.payload.as_ref())?;
         let mut total = header.write(buf)?;
@@ -39,7 +41,7 @@ impl<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> WriteMutTo for P
 }
 
 impl<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> WriteVectoredMutTo
-    for Packet<B, P, Inner>
+    for PacketDef<B, P, Inner>
 {
     fn slices(&mut self) -> std::io::Result<IoSlices> {
         let header = PacketHeader::new(&self.blocks, self.payload.as_ref())?;
