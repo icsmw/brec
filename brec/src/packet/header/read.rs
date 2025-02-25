@@ -10,13 +10,13 @@ impl ReadFrom for PacketHeader {
         if sig != PACKET_SIG {
             return Err(Error::SignatureDismatch);
         }
-        let mut size = [0u8; 2usize];
+        let mut size = [0u8; 8usize];
         buf.read_exact(&mut size)?;
-        let size = u16::from_le_bytes(size) as u64;
+        let size = u64::from_le_bytes(size);
 
-        let mut blocks_len = [0u8; 2usize];
+        let mut blocks_len = [0u8; 8usize];
         buf.read_exact(&mut blocks_len)?;
-        let blocks_len = u16::from_le_bytes(blocks_len) as u64;
+        let blocks_len = u64::from_le_bytes(blocks_len);
 
         let mut payload = [0u8; 1usize];
         buf.read_exact(&mut payload)?;
@@ -50,10 +50,14 @@ impl ReadBlockFromSlice for PacketHeader {
         if !buf.starts_with(&PACKET_SIG) {
             return Err(Error::SignatureDismatch);
         }
-        let size = u16::from_le_bytes(buf[8..10].try_into()?) as u64;
-        let blocks_len = u16::from_le_bytes(buf[10..12].try_into()?) as u64;
-        let payload = buf[12] == 1;
-        let crc = u32::from_le_bytes(buf[13..17].try_into()?);
+        let mut offset = 8;
+        let size = u64::from_le_bytes(buf[offset..offset + 8].try_into()?);
+        offset += 8;
+        let blocks_len = u64::from_le_bytes(buf[offset..offset + 8].try_into()?);
+        offset += 8;
+        let payload = buf[offset] == 1;
+        offset += 1;
+        let crc = u32::from_le_bytes(buf[offset..offset + 4].try_into()?);
         let pkg = PacketHeader {
             blocks_len,
             size,

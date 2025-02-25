@@ -110,6 +110,7 @@ fn write_read() {
                 break;
             }
         };
+        println!("Read header for payload {} bytes", header.len);
         restored.push(Payload::read(&mut reader, &header).expect("Payload has been read"));
         n += 1;
     }

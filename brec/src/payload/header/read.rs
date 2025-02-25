@@ -114,7 +114,7 @@ impl TryReadFromBuffered for PayloadHeader {
             return Ok(rs);
         }
 
-        let header = PayloadHeader::read(&mut reader)?;
+        let header = PayloadHeader::read(&mut std::io::Cursor::new(buffer))?;
         Ok(ReadStatus::Success(header))
     }
 }

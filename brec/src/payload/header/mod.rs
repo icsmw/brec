@@ -57,7 +57,7 @@ impl PayloadHeader {
     pub fn ssize<T: PayloadSignature + PayloadSize + PayloadCrc>(
         src: &T,
     ) -> std::io::Result<usize> {
-        Ok(1 + src.size()? as usize + 1 + T::crc_size() + std::mem::size_of::<u32>())
+        Ok(1 + src.sig().size() + 1 + T::crc_size() + std::mem::size_of::<u32>())
     }
     pub fn as_vec(&self) -> Vec<u8> {
         let sig = self.sig.as_slice();

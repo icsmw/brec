@@ -296,34 +296,36 @@ impl<
                 }
             }
         };
-        let rest_for_pkg = (header.size - PacketHeader::SIZE) as usize;
+        let rest_for_pkg = header.size as usize;
         let mut buffer = vec![0u8; header.blocks_len as usize];
         reader.read_exact(&mut buffer)?;
         let mut blocks = Vec::new();
         let mut processed = 0;
         let mut count = 0;
-        loop {
-            if count == MAX_BLOCKS_COUNT {
-                self.buffered.clear();
-                return Err(Error::MaxBlocksCount);
-            }
-            let blk = match BR::read_from_slice(&buffer[processed..], false) {
-                Ok(blk) => blk,
-                Err(err) => {
-                    self.inner.consume(rest_for_pkg);
+        if !buffer.is_empty() {
+            loop {
+                if count == MAX_BLOCKS_COUNT {
                     self.buffered.clear();
-                    return Err(err);
+                    return Err(Error::MaxBlocksCount);
                 }
-            };
-            if blk.size() == 0 {
-                self.buffered.clear();
-                return Err(Error::ZeroLengthBlock);
-            }
-            processed += blk.size() as usize;
-            count += 1;
-            blocks.push(blk);
-            if processed == buffer.len() {
-                break;
+                let blk = match BR::read_from_slice(&buffer[processed..], false) {
+                    Ok(blk) => blk,
+                    Err(err) => {
+                        self.inner.consume(rest_for_pkg);
+                        self.buffered.clear();
+                        return Err(err);
+                    }
+                };
+                if blk.size() == 0 {
+                    self.buffered.clear();
+                    return Err(Error::ZeroLengthBlock);
+                }
+                processed += blk.size() as usize;
+                count += 1;
+                blocks.push(blk);
+                if processed == buffer.len() {
+                    break;
+                }
             }
         }
         let referred = PacketReferred::new(blocks, header);
@@ -343,13 +345,17 @@ impl<
         let header = referred.header;
         // Loading payload if exists
         if header.payload {
-            match <PayloadHeader as TryReadFromBuffered>::try_read(&mut reader) {
+            let mut buffer = reader.fill_buf()?;
+            match <PayloadHeader as TryReadFromBuffered>::try_read(&mut buffer) {
                 Ok(ReadStatus::Success(header)) => {
+                    reader.consume(header.size());
+                    let buffer = reader.fill_buf()?;
                     match <P as TryExtractPayloadFromBuffered<Inner>>::try_read(
                         &mut reader,
                         &header,
                     )? {
                         ReadStatus::Success(payload) => {
+                            reader.consume(header.payload_len());
                             pkg.payload = Some(payload);
                         }
                         ReadStatus::NotEnoughData(needed) => {
