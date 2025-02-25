@@ -1,4 +1,4 @@
-use brec::prelude::*;
+use brec::{packet, prelude::*};
 
 #[payload(bincode)]
 #[derive(serde::Deserialize, serde::Serialize, PartialEq, PartialOrd, Debug)]
@@ -17,6 +17,7 @@ pub struct PayloadB {
 }
 
 #[block]
+#[derive(Debug, PartialEq, PartialOrd)]
 pub struct BlockA {
     a: u32,
     b: u64,
@@ -24,6 +25,7 @@ pub struct BlockA {
 }
 
 #[block]
+#[derive(Debug, PartialEq, PartialOrd)]
 pub struct BlockB {
     aa: i32,
     bb: i64,
@@ -194,6 +196,28 @@ fn write_read() {
         println!("Read packet");
     }
     assert_eq!(packets.len(), restored.len());
+    for (a, b) in packets.iter().zip(restored.iter()) {
+        for (a, b) in a.blocks.iter().zip(b.blocks.iter()) {
+            if let (Block::BlockA(a), Block::BlockA(b)) = (a, b) {
+                assert_eq!(a, b);
+            } else if let (Block::BlockB(a), Block::BlockB(b)) = (a, b) {
+                assert_eq!(a, b);
+            } else {
+                panic!("Blocks are dismatch")
+            }
+        }
+        if let (Some(a), Some(b)) = (a.payload.as_ref(), b.payload.as_ref()) {
+            if let (Payload::PayloadA(a), Payload::PayloadA(b)) = (a, b) {
+                assert_eq!(a, b);
+            } else if let (Payload::PayloadB(a), Payload::PayloadB(b)) = (a, b) {
+                assert_eq!(a, b);
+            } else {
+                panic!("Payloads are dismatch")
+            }
+        } else if a.payload.is_some() || b.payload.is_some() {
+            panic!("Payloads are dismatch")
+        }
+    }
 }
 
 fn main() {}

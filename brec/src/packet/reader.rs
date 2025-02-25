@@ -349,9 +349,9 @@ impl<
             match <PayloadHeader as TryReadFromBuffered>::try_read(&mut buffer) {
                 Ok(ReadStatus::Success(header)) => {
                     reader.consume(header.size());
-                    let buffer = reader.fill_buf()?;
+                    let mut buffer = reader.fill_buf()?;
                     match <P as TryExtractPayloadFromBuffered<Inner>>::try_read(
-                        &mut reader,
+                        &mut buffer,
                         &header,
                     )? {
                         ReadStatus::Success(payload) => {
