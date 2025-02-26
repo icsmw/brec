@@ -9,7 +9,8 @@ mod read;
 mod write;
 
 pub fn gen(payloads: &[Payload]) -> Result<TokenStream, E> {
-    let payload = enums::gen(payloads)?;
+    let derives = Derives::common(payloads.iter().map(|p| &p.derives).collect());
+    let payload = enums::gen(payloads, derives)?;
     let encode = props::encode(payloads)?;
     let encode_referred = props::encode_referred(payloads)?;
     let sig = props::sig(payloads)?;

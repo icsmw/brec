@@ -16,14 +16,16 @@ pub struct Block {
     pub name: String,
     pub fields: Vec<Field>,
     pub attrs: BlockAttrs,
+    pub derives: Derives,
 }
 
 impl Block {
-    pub fn new(name: String, fields: Vec<Field>, attrs: BlockAttrs) -> Self {
+    pub fn new(name: String, fields: Vec<Field>, attrs: BlockAttrs, derives: Derives) -> Self {
         Self {
             name,
             fields,
             attrs,
+            derives,
         }
     }
     pub fn sig(&self) -> TokenStream {

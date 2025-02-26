@@ -15,11 +15,16 @@ pub(crate) const PAYLOAD_CRC_LEN: usize = 4;
 pub struct Payload {
     pub name: String,
     pub attrs: PayloadAttrs,
+    pub derives: Derives,
 }
 
 impl Payload {
-    pub fn new(name: String, attrs: PayloadAttrs) -> Self {
-        Self { name, attrs }
+    pub fn new(name: String, attrs: PayloadAttrs, derives: Derives) -> Self {
+        Self {
+            name,
+            attrs,
+            derives,
+        }
     }
     pub fn sig(&self) -> Result<TokenStream, E> {
         let mut hasher = Hasher::new();

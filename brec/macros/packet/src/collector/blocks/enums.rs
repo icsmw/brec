@@ -1,16 +1,23 @@
 use crate::*;
 
 use proc_macro2::TokenStream;
-use quote::quote;
+use quote::{format_ident, quote};
 
-pub fn gen(blocks: &[Block]) -> Result<TokenStream, E> {
+pub fn gen(blocks: &[Block], derives: Vec<String>) -> Result<TokenStream, E> {
     let mut variants = Vec::new();
     for blk in blocks.iter() {
         let fullname = blk.fullname()?;
         let fullpath = blk.fullpath()?;
         variants.push(quote! {#fullname(#fullpath)});
     }
+    let derives = if derives.is_empty() {
+        quote! {}
+    } else {
+        let ders = derives.into_iter().map(|der| format_ident!("{der}"));
+        quote! {#[derive(#(#ders,)*)]}
+    };
     Ok(quote! {
+        #derives
         pub enum Block {
             #(#variants,)*
         }

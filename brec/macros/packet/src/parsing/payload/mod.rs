@@ -25,7 +25,7 @@ impl TryFrom<(PayloadAttrs, &mut DeriveInput)> for Payload {
                 E::NotSupportedBy(PAYLOAD_ATTR.to_string()),
             ));
         }
-        let payload = Self::new(name.to_string(), attrs);
+        let payload = Self::new(name.to_string(), attrs, (&*input).into());
         Collector::get()
             .map_err(|err| syn::Error::new_spanned(&input, err))?
             .add_payload(payload.clone())
