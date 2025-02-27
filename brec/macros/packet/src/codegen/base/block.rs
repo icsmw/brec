@@ -15,12 +15,9 @@ impl Base for Block {
             } else {
                 field.direct_ty()
             };
-            struct_fields.push(
-                quote! {
-                    #visibility #inner
-                }
-                .into(),
-            );
+            struct_fields.push(quote! {
+                #visibility #inner
+            });
         }
         let derefed = self
             .fields
