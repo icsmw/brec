@@ -2,7 +2,7 @@ use crate::*;
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
 use std::fmt;
-use syn::{parse_str, Attribute, Ident, Path};
+use syn::{Attribute, Ident};
 
 #[derive(Debug, Clone, Default)]
 pub struct PayloadAttrs(pub Vec<PayloadAttr>);
@@ -16,9 +16,7 @@ impl PayloadAttrs {
         else {
             return Ok(quote! {#name});
         };
-        let fullpath = format!("{path}::{name}");
-        let fullpath: Path = parse_str(&fullpath).map_err(|_err| E::FailParseFullpath)?;
-        Ok(quote! { #fullpath })
+        path.join(format_ident!("{name}"))
     }
     pub fn fullname(&self, name: Ident) -> Result<Ident, E> {
         Ok(format_ident!(

@@ -2,7 +2,7 @@ use brec::prelude::*;
 use proptest::prelude::*;
 
 #[derive(Debug, PartialEq, Clone)]
-#[block]
+#[block(path = "crate::block_blob")]
 pub struct BlockBlob {
     blob: [u8; 100],
 }

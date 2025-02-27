@@ -1,13 +1,29 @@
+use proc_macro2::TokenStream;
+use quote::{quote, ToTokens};
 use std::{convert::TryFrom, fmt};
-
-use quote::ToTokens;
-use syn::{Expr, ExprPath, Lit};
+use syn::{parse_str, Expr, ExprPath, Ident, Lit, LitStr, Path};
 
 use crate::*;
 
 #[derive(Debug, Clone)]
 pub struct ModulePath {
     inner: String,
+}
+
+impl ModulePath {
+    pub fn join(&self, ident: Ident) -> Result<TokenStream, E> {
+        if let Ok(path) = parse_str::<Path>(&self.inner) {
+            Ok(quote! { #path::#ident })
+        } else if let Ok(lit) = parse_str::<LitStr>(&self.inner) {
+            let path: TokenStream = match lit.value().parse() {
+                Ok(tk) => tk,
+                Err(_) => return Err(E::FailParseFullpath),
+            };
+            Ok(quote! { #path::#ident })
+        } else {
+            Err(E::FailParseFullpath)
+        }
+    }
 }
 
 impl TryFrom<&Expr> for ModulePath {

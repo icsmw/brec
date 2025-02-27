@@ -3,7 +3,7 @@ use proptest::prelude::*;
 
 use crate::block_blob::*;
 
-brec::include_generated!("crate::block_blob::*");
+brec::include_generated!();
 
 // impl Arbitrary for Block {
 //     type Parameters = ();
