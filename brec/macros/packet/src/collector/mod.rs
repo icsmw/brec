@@ -3,6 +3,7 @@ mod packet;
 mod payloads;
 
 use std::{
+    collections::HashMap,
     env,
     fs::File,
     io::Write,
@@ -19,10 +20,14 @@ lazy_static! {
     static ref COLLECTOR: Mutex<Collector> = Mutex::new(Collector::default());
 }
 
+pub fn get_pkg_name() -> String {
+    std::env::var("CARGO_PKG_NAME").unwrap_or_else(|_| "unknown".to_string())
+}
+
 #[derive(Debug, Default)]
 pub struct Collector {
-    blocks: Vec<Block>,
-    payloads: Vec<Payload>,
+    blocks: HashMap<String, Vec<Block>>,
+    payloads: HashMap<String, Vec<Payload>>,
 }
 
 impl Collector {
@@ -30,17 +35,36 @@ impl Collector {
         COLLECTOR.lock().map_err(|_| E::NoAccessToCollector)
     }
     pub fn add_block(&mut self, block: Block) -> Result<(), E> {
-        self.blocks.push(block);
+        self.blocks.entry(get_pkg_name()).or_default().push(block);
         self.write()
     }
     pub fn add_payload(&mut self, payload: Payload) -> Result<(), E> {
-        self.payloads.push(payload);
+        self.payloads
+            .entry(get_pkg_name())
+            .or_default()
+            .push(payload);
         self.write()
     }
+    pub fn has_payloads(&self) -> bool {
+        self.payloads.contains_key(&get_pkg_name())
+    }
     fn write(&self) -> Result<(), E> {
-        let block = blocks::gen(&self.blocks)?;
-        let payload = payloads::gen(&self.payloads)?;
-        let packet = packet::gen()?;
+        let pkg_name = get_pkg_name();
+        let block = self
+            .blocks
+            .get(&pkg_name)
+            .map(|blks| blocks::gen(blks))
+            .unwrap_or(Ok(quote! {}))?;
+        let payload = self
+            .payloads
+            .get(&pkg_name)
+            .map(|plds| payloads::gen(plds))
+            .unwrap_or(Ok(quote! {}))?;
+        let packet = if self.has_payloads() {
+            packet::gen()?
+        } else {
+            quote! {}
+        };
         let output = quote! {
             #block
             #payload
