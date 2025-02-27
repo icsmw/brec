@@ -51,7 +51,7 @@ impl PayloadAttrs {
 #[enum_ids::enum_ids(display_variant_snake)]
 #[derive(Debug, Clone)]
 pub enum PayloadAttr {
-    Path(String),
+    Path(ModulePath),
     NoDefaultSig,
     Bincode,
 }

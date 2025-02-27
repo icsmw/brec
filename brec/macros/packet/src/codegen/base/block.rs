@@ -1,7 +1,6 @@
 use crate::*;
 use proc_macro2::TokenStream;
-use quote::{format_ident, quote, ToTokens};
-use syn::{token, Visibility};
+use quote::{format_ident, quote};
 
 impl Base for Block {
     fn gen(&self) -> Result<TokenStream, E> {

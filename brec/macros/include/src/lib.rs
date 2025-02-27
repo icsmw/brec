@@ -8,10 +8,19 @@ pub fn include_generated(input: TokenStream) -> TokenStream {
         let import_path = if let Ok(path) = syn::parse::<Path>(input.clone()) {
             quote!(#path)
         } else {
-            let path_tokens: proc_macro2::TokenStream = parse_macro_input!(input as LitStr)
-                .value()
-                .parse()
-                .expect("Invalid Rust path");
+            let cloned = input.clone();
+            let path_tokens: proc_macro2::TokenStream =
+                match parse_macro_input!(input as LitStr).value().parse() {
+                    Ok(tk) => tk,
+                    Err(err) => {
+                        return syn::Error::new_spanned::<
+                            &proc_macro2::TokenStream,
+                            proc_macro2::LexError,
+                        >(&cloned.into(), err)
+                        .to_compile_error()
+                        .into();
+                    }
+                };
             quote!(#path_tokens)
         };
         let out_dir = match std::env::var("OUT_DIR") {

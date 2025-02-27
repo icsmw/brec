@@ -15,12 +15,12 @@ pub enum Vis {
 impl Vis {
     pub fn as_token(&self) -> Result<TokenStream, E> {
         Ok(match self {
-            Self::Public => token::Pub::default().into_token_stream().into(),
+            Self::Public => token::Pub::default().into_token_stream(),
             Self::Private => TokenStream::new(),
             Self::Restricted(rstr) => {
                 let vis: Visibility =
                     syn::parse_str(rstr).map_err(|_| E::FailParseVisibility(rstr.to_owned()))?;
-                quote! { #vis }.into()
+                quote! { #vis }
             }
         })
     }

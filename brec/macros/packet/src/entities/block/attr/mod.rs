@@ -1,8 +1,8 @@
 use crate::*;
 use proc_macro2::TokenStream;
-use quote::{format_ident, quote};
+use quote::{format_ident, quote, ToTokens};
 use std::fmt;
-use syn::{parse_str, Attribute, Ident, Path};
+use syn::{parse, parse_str, Attribute, Expr, ExprPath, Ident, Lit, Path};
 
 #[derive(Debug, Clone, Default)]
 pub struct BlockAttrs(pub Vec<BlockAttr>);
@@ -41,7 +41,7 @@ impl BlockAttrs {
 #[enum_ids::enum_ids(display_variant_snake)]
 #[derive(Debug, Clone)]
 pub enum BlockAttr {
-    Path(String),
+    Path(ModulePath),
 }
 
 impl BlockAttr {

@@ -1,3 +1,5 @@
+use std::convert::TryFrom;
+
 use crate::*;
 use quote::quote;
 use syn::{
@@ -24,18 +26,13 @@ impl Parse for PayloadAttrs {
                         ))?
                         .to_string();
                     if key == PayloadAttrId::Path.to_string() {
-                        let Expr::Path(path) = *assign.right else {
-                            return Err(syn::Error::new_spanned(assign.right, E::UnsupportedAttr));
-                        };
-                        let path: Path = path.path;
-                        attrs.push(PayloadAttr::Path(quote! { #path }.to_string()));
+                        attrs.push(PayloadAttr::Path(ModulePath::try_from(&*assign.right)?));
                     } else {
                         return Err(syn::Error::new_spanned(assign, E::UnsupportedAttr));
                     }
                 }
-                Expr::Path(path) => {
-                    let path: Path = path.path;
-                    if let Some(ident) = path.get_ident() {
+                Expr::Path(expr) => {
+                    if let Some(ident) = expr.path.clone().get_ident() {
                         let as_str = ident.to_string();
                         if as_str == PayloadAttrId::NoDefaultSig.to_string() {
                             attrs.push(PayloadAttr::NoDefaultSig)
@@ -43,7 +40,7 @@ impl Parse for PayloadAttrs {
                             attrs.push(PayloadAttr::Bincode)
                         }
                     } else {
-                        attrs.push(PayloadAttr::Path(quote! { #path }.to_string()));
+                        attrs.push(PayloadAttr::Path(ModulePath::from(&expr)));
                     }
                 }
                 unknown => {

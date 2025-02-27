@@ -1,9 +1,10 @@
+use std::convert::TryFrom;
+
 use crate::*;
-use quote::quote;
 use syn::{
     parse::{self, Parse, ParseStream},
     punctuated::Punctuated,
-    Expr, Path, Token,
+    Expr, Token,
 };
 
 impl Parse for BlockAttrs {
@@ -24,18 +25,13 @@ impl Parse for BlockAttrs {
                         ))?
                         .to_string();
                     if key == BlockAttrId::Path.to_string() {
-                        let Expr::Path(path) = *assign.right else {
-                            return Err(syn::Error::new_spanned(assign.right, E::UnsupportedAttr));
-                        };
-                        let path: Path = path.path;
-                        attrs.push(BlockAttr::Path(quote! { #path }.to_string()));
+                        attrs.push(BlockAttr::Path(ModulePath::try_from(&*assign.right)?));
                     } else {
                         return Err(syn::Error::new_spanned(assign, E::UnsupportedAttr));
                     }
                 }
-                Expr::Path(path) => {
-                    let path: Path = path.path;
-                    attrs.push(BlockAttr::Path(quote! { #path }.to_string()));
+                Expr::Path(inner) => {
+                    attrs.push(BlockAttr::Path(ModulePath::from(&inner)));
                 }
                 unknown => {
                     return Err(syn::Error::new_spanned(unknown, E::UnsupportedAttr));
