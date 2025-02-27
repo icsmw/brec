@@ -5,8 +5,8 @@ pub(crate) use attr::*;
 use crate::*;
 use crc32fast::Hasher;
 use proc_macro2::TokenStream;
-use quote::{format_ident, quote};
-use syn::{Ident, LitInt};
+use quote::{format_ident, quote, ToTokens};
+use syn::{token, Ident, LitInt, Visibility};
 
 pub(crate) const BLOCK_SIG_LEN: usize = 4;
 pub(crate) const BLOCK_CRC_LEN: usize = 4;
@@ -17,15 +17,23 @@ pub struct Block {
     pub fields: Vec<Field>,
     pub attrs: BlockAttrs,
     pub derives: Derives,
+    pub vis: Vis,
 }
 
 impl Block {
-    pub fn new(name: String, fields: Vec<Field>, attrs: BlockAttrs, derives: Derives) -> Self {
+    pub fn new(
+        name: String,
+        fields: Vec<Field>,
+        attrs: BlockAttrs,
+        derives: Derives,
+        vis: Vis,
+    ) -> Self {
         Self {
             name,
             fields,
             attrs,
             derives,
+            vis,
         }
     }
     pub fn sig(&self) -> TokenStream {
@@ -69,5 +77,8 @@ impl Block {
     }
     pub fn fullpath(&self) -> Result<TokenStream, E> {
         self.attrs.fullpath(self.name())
+    }
+    pub fn vis_token(&self) -> Result<TokenStream, E> {
+        self.vis.as_token()
     }
 }

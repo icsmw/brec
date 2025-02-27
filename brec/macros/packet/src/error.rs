@@ -18,6 +18,8 @@ pub enum E {
     MissedArraySize,
     #[error("{0} is reserved field name")]
     ReservedFieldName(String),
+    #[error("{0} is unknown visibility")]
+    FailParseVisibility(String),
 
     #[error("Cannot detect attribute")]
     NoSuitableAttr,

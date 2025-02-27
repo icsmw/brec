@@ -7,25 +7,21 @@ impl Base for Block {
     fn gen(&self) -> Result<TokenStream, E> {
         let referred_name = self.referred_name();
         let block_name = self.name();
-        let struct_fields = self
-            .fields
-            .iter()
-            .map(|f| {
-                let visibility = if f.public {
-                    Visibility::Public(token::Pub::default()).into_token_stream()
-                } else {
-                    TokenStream::new()
-                };
-                let inner = if matches!(f.ty, Ty::blob(..)) {
-                    f.referenced_ty()
-                } else {
-                    f.direct_ty()
-                };
+        let mut struct_fields: Vec<TokenStream> = Vec::new();
+        for field in self.fields.iter() {
+            let visibility = field.vis_token()?;
+            let inner = if matches!(field.ty, Ty::blob(..)) {
+                field.referenced_ty()
+            } else {
+                field.direct_ty()
+            };
+            struct_fields.push(
                 quote! {
                     #visibility #inner
                 }
-            })
-            .collect::<Vec<TokenStream>>();
+                .into(),
+            );
+        }
         let derefed = self
             .fields
             .iter()
@@ -49,11 +45,12 @@ impl Base for Block {
         let const_sig = self.const_sig_name();
         let sig = self.sig();
         let sig_len = self.sig_len();
+        let vis = self.vis_token()?;
         Ok(quote! {
 
             #[repr(C)]
             #[derive(Debug)]
-            struct #referred_name <'a>
+            #vis struct #referred_name <'a>
                 where Self: Sized
             {
                 #(#struct_fields)*

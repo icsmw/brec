@@ -1,2 +1,3 @@
 - check CRC on Block reading
 - add CRC to Packet header to validate sizes
+- tracking visablity supports only `pub`, but should support also restrictions `pub(crate)`, `pub(self)` etc

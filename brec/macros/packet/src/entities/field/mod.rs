@@ -1,6 +1,7 @@
 mod attr;
 
 pub(crate) use attr::*;
+use proc_macro2::TokenStream;
 
 use crate::*;
 
@@ -13,7 +14,7 @@ pub struct Field {
     pub attrs: Vec<FieldAttr>,
     pub ty: Ty,
     pub injected: bool,
-    pub public: bool,
+    pub vis: Vis,
 }
 
 impl Field {
@@ -23,7 +24,7 @@ impl Field {
             attrs: Vec::new(),
             ty,
             injected: true,
-            public: false,
+            vis: Vis::default(),
         }
     }
     pub fn is_reserved_name<S: AsRef<str>>(name: S) -> bool {
@@ -31,5 +32,8 @@ impl Field {
     }
     pub fn size(&self) -> usize {
         self.ty.size()
+    }
+    pub fn vis_token(&self) -> Result<TokenStream, E> {
+        self.vis.as_token()
     }
 }
