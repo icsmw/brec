@@ -26,8 +26,8 @@ pub fn get_pkg_name() -> String {
 
 #[derive(Debug, Default)]
 pub struct Collector {
-    blocks: HashMap<String, Vec<Block>>,
-    payloads: HashMap<String, Vec<Payload>>,
+    blocks: HashMap<String, HashMap<String, Block>>,
+    payloads: HashMap<String, HashMap<String, Payload>>,
 }
 
 impl Collector {
@@ -35,14 +35,15 @@ impl Collector {
         COLLECTOR.lock().map_err(|_| E::NoAccessToCollector)
     }
     pub fn add_block(&mut self, block: Block) -> Result<(), E> {
-        self.blocks.entry(get_pkg_name()).or_default().push(block);
+        let blocks = self.blocks.entry(get_pkg_name()).or_default();
+        let fname = block.fullname()?.to_string();
+        blocks.entry(fname).or_insert(block);
         self.write()
     }
     pub fn add_payload(&mut self, payload: Payload) -> Result<(), E> {
-        self.payloads
-            .entry(get_pkg_name())
-            .or_default()
-            .push(payload);
+        let payloads = self.payloads.entry(get_pkg_name()).or_default();
+        let fname = payload.fullname()?.to_string();
+        payloads.entry(fname).or_insert(payload);
         self.write()
     }
     pub fn has_payloads(&self) -> bool {
@@ -53,12 +54,12 @@ impl Collector {
         let block = self
             .blocks
             .get(&pkg_name)
-            .map(|blks| blocks::gen(blks))
+            .map(|blks| blocks::gen(blks.values().collect::<Vec<&Block>>()))
             .unwrap_or(Ok(quote! {}))?;
         let payload = self
             .payloads
             .get(&pkg_name)
-            .map(|plds| payloads::gen(plds))
+            .map(|plds| payloads::gen(plds.values().collect::<Vec<&Payload>>()))
             .unwrap_or(Ok(quote! {}))?;
         let packet = if self.has_payloads() {
             packet::gen()?

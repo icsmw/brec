@@ -5,8 +5,8 @@ pub(crate) use attr::*;
 use crate::*;
 use crc32fast::Hasher;
 use proc_macro2::TokenStream;
-use quote::{format_ident, quote, ToTokens};
-use syn::{token, Ident, LitInt, Visibility};
+use quote::{format_ident, quote};
+use syn::{Ident, LitInt};
 
 pub(crate) const BLOCK_SIG_LEN: usize = 4;
 pub(crate) const BLOCK_CRC_LEN: usize = 4;
@@ -37,6 +37,7 @@ impl Block {
         }
     }
     pub fn sig(&self) -> TokenStream {
+        // TODO: might be a conflict if do not consider a path
         let mut hasher = Hasher::new();
         let snap = format!(
             "{};{}",

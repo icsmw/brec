@@ -3,7 +3,7 @@ use crate::*;
 use proc_macro2::TokenStream;
 use quote::quote;
 
-pub fn encode(payloads: &[Payload]) -> Result<TokenStream, E> {
+pub fn encode(payloads: &[&Payload]) -> Result<TokenStream, E> {
     let mut variants = Vec::new();
     for payload in payloads.iter() {
         let fullname = payload.fullname()?;
@@ -22,7 +22,7 @@ pub fn encode(payloads: &[Payload]) -> Result<TokenStream, E> {
     })
 }
 
-pub fn encode_referred(payloads: &[Payload]) -> Result<TokenStream, E> {
+pub fn encode_referred(payloads: &[&Payload]) -> Result<TokenStream, E> {
     let mut variants = Vec::new();
     for payload in payloads.iter() {
         let fullname = payload.fullname()?;
@@ -41,7 +41,7 @@ pub fn encode_referred(payloads: &[Payload]) -> Result<TokenStream, E> {
     })
 }
 
-pub fn sig(payloads: &[Payload]) -> Result<TokenStream, E> {
+pub fn sig(payloads: &[&Payload]) -> Result<TokenStream, E> {
     let mut variants = Vec::new();
     for payload in payloads.iter() {
         let fullname = payload.fullname()?;
@@ -60,7 +60,7 @@ pub fn sig(payloads: &[Payload]) -> Result<TokenStream, E> {
     })
 }
 
-pub fn crc(payloads: &[Payload]) -> Result<TokenStream, E> {
+pub fn crc(payloads: &[&Payload]) -> Result<TokenStream, E> {
     let mut variants = Vec::new();
     for payload in payloads.iter() {
         let fullname = payload.fullname()?;
@@ -79,7 +79,7 @@ pub fn crc(payloads: &[Payload]) -> Result<TokenStream, E> {
     })
 }
 
-pub fn size(payloads: &[Payload]) -> Result<TokenStream, E> {
+pub fn size(payloads: &[&Payload]) -> Result<TokenStream, E> {
     let mut variants = Vec::new();
     for payload in payloads.iter() {
         let fullname = payload.fullname()?;

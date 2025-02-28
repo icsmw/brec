@@ -3,7 +3,7 @@ use crate::*;
 use proc_macro2::TokenStream;
 use quote::quote;
 
-pub fn write_to(blocks: &[Block]) -> Result<TokenStream, E> {
+pub fn write_to(blocks: &[&Block]) -> Result<TokenStream, E> {
     let mut write = Vec::new();
     let mut write_all = Vec::new();
     for blk in blocks.iter() {
@@ -31,7 +31,7 @@ pub fn write_to(blocks: &[Block]) -> Result<TokenStream, E> {
     })
 }
 
-pub fn write_vectored_to(blocks: &[Block]) -> Result<TokenStream, E> {
+pub fn write_vectored_to(blocks: &[&Block]) -> Result<TokenStream, E> {
     let mut slices = Vec::new();
     for blk in blocks.iter() {
         let fullname = blk.fullname()?;

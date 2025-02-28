@@ -3,7 +3,7 @@ use crate::*;
 use proc_macro2::TokenStream;
 use quote::quote;
 
-pub fn gen(blocks: &[Block]) -> Result<TokenStream, E> {
+pub fn gen(blocks: &[&Block]) -> Result<TokenStream, E> {
     let mut variants = Vec::new();
     for blk in blocks.iter() {
         let fullname = blk.fullname()?;
@@ -22,7 +22,7 @@ pub fn gen(blocks: &[Block]) -> Result<TokenStream, E> {
     })
 }
 
-pub fn gen_referred(blocks: &[Block]) -> Result<TokenStream, E> {
+pub fn gen_referred(blocks: &[&Block]) -> Result<TokenStream, E> {
     let mut variants = Vec::new();
     for blk in blocks.iter() {
         let fullpath = blk.fullpath()?;
@@ -41,7 +41,7 @@ pub fn gen_referred(blocks: &[Block]) -> Result<TokenStream, E> {
     })
 }
 
-pub fn referred_into(blocks: &[Block]) -> Result<TokenStream, E> {
+pub fn referred_into(blocks: &[&Block]) -> Result<TokenStream, E> {
     let mut variants = Vec::new();
     for blk in blocks.iter() {
         let fullname = blk.fullname()?;

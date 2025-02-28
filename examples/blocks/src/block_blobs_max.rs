@@ -1,8 +1,8 @@
 use brec::prelude::*;
 use proptest::prelude::*;
 
-#[derive(Debug, PartialEq, Clone)]
 #[block]
+#[derive(Debug, PartialEq, Clone)]
 pub struct BlockBlobs {
     blob_a: [u8; 1],             // 1B
     blob_b: [u8; 1_024],         // 1Kb

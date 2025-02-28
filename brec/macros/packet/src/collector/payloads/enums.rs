@@ -3,7 +3,7 @@ use crate::*;
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
 
-pub fn gen(payloads: &[Payload], derives: Vec<String>) -> Result<TokenStream, E> {
+pub fn gen(payloads: &[&Payload], derives: Vec<String>) -> Result<TokenStream, E> {
     let mut variants = Vec::new();
     for pl in payloads.iter() {
         let fullname = pl.fullname()?;

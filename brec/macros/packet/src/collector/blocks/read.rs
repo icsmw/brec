@@ -3,7 +3,7 @@ use crate::*;
 use proc_macro2::TokenStream;
 use quote::quote;
 
-pub fn read_from(blocks: &[Block]) -> Result<TokenStream, E> {
+pub fn read_from(blocks: &[&Block]) -> Result<TokenStream, E> {
     let mut variants = Vec::new();
     for blk in blocks.iter() {
         let fullname = blk.fullname()?;
@@ -32,7 +32,7 @@ pub fn read_from(blocks: &[Block]) -> Result<TokenStream, E> {
     })
 }
 
-pub fn read_block_from(blocks: &[Block]) -> Result<TokenStream, E> {
+pub fn read_block_from(blocks: &[&Block]) -> Result<TokenStream, E> {
     let mut variants = Vec::new();
     for blk in blocks.iter() {
         let fullname = blk.fullname()?;
@@ -61,7 +61,7 @@ pub fn read_block_from(blocks: &[Block]) -> Result<TokenStream, E> {
     })
 }
 
-pub fn try_read_from(blocks: &[Block]) -> Result<TokenStream, E> {
+pub fn try_read_from(blocks: &[&Block]) -> Result<TokenStream, E> {
     let mut variants = Vec::new();
     for blk in blocks.iter() {
         let fullname = blk.fullname()?;
@@ -97,7 +97,7 @@ pub fn try_read_from(blocks: &[Block]) -> Result<TokenStream, E> {
     })
 }
 
-pub fn try_read_from_buffered(blocks: &[Block]) -> Result<TokenStream, E> {
+pub fn try_read_from_buffered(blocks: &[&Block]) -> Result<TokenStream, E> {
     let mut variants = Vec::new();
     for blk in blocks.iter() {
         let fullname = blk.fullname()?;
@@ -131,7 +131,7 @@ pub fn try_read_from_buffered(blocks: &[Block]) -> Result<TokenStream, E> {
     })
 }
 
-pub fn read_from_slice(blocks: &[Block]) -> Result<TokenStream, E> {
+pub fn read_from_slice(blocks: &[&Block]) -> Result<TokenStream, E> {
     let mut variants = Vec::new();
     for blk in blocks.iter() {
         let referred_name = blk.referred_name();

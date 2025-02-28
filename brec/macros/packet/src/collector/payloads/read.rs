@@ -3,7 +3,7 @@ use crate::*;
 use proc_macro2::TokenStream;
 use quote::quote;
 
-pub fn extract_from(payloads: &[Payload]) -> Result<TokenStream, E> {
+pub fn extract_from(payloads: &[&Payload]) -> Result<TokenStream, E> {
     let mut variants = Vec::new();
     for payload in payloads.iter() {
         let fullname = payload.fullname()?;
@@ -51,7 +51,7 @@ pub fn extract_from(payloads: &[Payload]) -> Result<TokenStream, E> {
     })
 }
 
-pub fn try_extract_from(payloads: &[Payload]) -> Result<TokenStream, E> {
+pub fn try_extract_from(payloads: &[&Payload]) -> Result<TokenStream, E> {
     let mut variants = Vec::new();
     for payload in payloads.iter() {
         let fullname = payload.fullname()?;
@@ -111,7 +111,7 @@ pub fn try_extract_from(payloads: &[Payload]) -> Result<TokenStream, E> {
     })
 }
 
-pub fn try_extract_from_buffered(payloads: &[Payload]) -> Result<TokenStream, E> {
+pub fn try_extract_from_buffered(payloads: &[&Payload]) -> Result<TokenStream, E> {
     let mut variants = Vec::new();
     for payload in payloads.iter() {
         let fullname = payload.fullname()?;

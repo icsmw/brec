@@ -1,8 +1,8 @@
 use brec::prelude::*;
 use proptest::prelude::*;
 
-#[derive(Debug, PartialEq, Clone)]
 #[block]
+#[derive(Debug, PartialEq, Clone)]
 pub struct BlockI32 {
     field: i32,
 }
