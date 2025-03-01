@@ -13,6 +13,9 @@ impl Arbitrary for BlockF32 {
     type Strategy = BoxedStrategy<Self>;
 
     fn arbitrary_with(_: ()) -> Self::Strategy {
-        any::<f32>().prop_map(|field| BlockF32 { field }).boxed()
+        any::<f32>()
+            .prop_filter("no NaNs or infinite", |f| f.is_finite())
+            .prop_map(|field| BlockF32 { field })
+            .boxed()
     }
 }

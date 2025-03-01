@@ -2,7 +2,7 @@ use brec::prelude::*;
 use proptest::prelude::*;
 
 #[block]
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone)]
 pub struct BlockU8 {
     field: u8,
 }
