@@ -73,7 +73,7 @@ pub trait TryReadPayloadFromBuffered<
     T: Sized + PayloadDecode<T> + StaticPayloadSignature + PayloadCrc + ReadPayloadFrom<T>,
 >
 {
-    fn try_read<B: std::io::Read>(
+    fn try_read<B: std::io::BufRead>(
         buf: &mut B,
         header: &PayloadHeader,
     ) -> Result<ReadStatus<T>, Error> {
@@ -82,7 +82,7 @@ pub trait TryReadPayloadFromBuffered<
 }
 
 pub trait TryExtractPayloadFromBuffered<T: Sized> {
-    fn try_read<B: std::io::Read>(
+    fn try_read<B: std::io::BufRead>(
         buf: &mut B,
         header: &PayloadHeader,
     ) -> Result<ReadStatus<T>, Error>;

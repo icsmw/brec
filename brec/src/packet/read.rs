@@ -70,7 +70,7 @@ impl<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> TryReadFrom
         if header.payload {
             match <PayloadHeader as TryReadFrom>::try_read(buf)? {
                 ReadStatus::Success(header) => {
-                    match <P as TryExtractPayloadFromBuffered<Inner>>::try_read(buf, &header) {
+                    match <P as TryExtractPayloadFrom<Inner>>::try_read(buf, &header) {
                         Ok(ReadStatus::Success(payload)) => {
                             pkg.payload = Some(payload);
                         }

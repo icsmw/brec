@@ -134,7 +134,7 @@ pub fn try_extract_from_buffered(payloads: &[&Payload]) -> Result<TokenStream, E
     }
     Ok(quote! {
         impl brec::TryExtractPayloadFromBuffered<Payload> for Payload {
-            fn try_read<B: std::io::Read>(
+            fn try_read<B: std::io::BufRead>(
                 buf: &mut B,
                 header: &brec::PayloadHeader,
             ) -> Result<brec::ReadStatus<Payload>, brec::Error> {
