@@ -120,7 +120,7 @@ pub fn try_read_from_buffered(blocks: &[&Block]) -> Result<TokenStream, E> {
     }
     Ok(quote! {
         impl brec::TryReadFromBuffered for Block {
-            fn try_read<T: std::io::Read>(buf: &mut T) -> Result<brec::ReadStatus<Self>, brec::Error>
+            fn try_read<T: std::io::BufRead>(buf: &mut T) -> Result<brec::ReadStatus<Self>, brec::Error>
             where
                 Self: Sized,
             {

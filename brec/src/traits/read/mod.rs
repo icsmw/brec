@@ -95,7 +95,7 @@ pub trait TryReadFrom {
 }
 
 pub trait TryReadFromBuffered {
-    fn try_read<T: std::io::Read>(buf: &mut T) -> Result<ReadStatus<Self>, Error>
+    fn try_read<T: std::io::BufRead>(buf: &mut T) -> Result<ReadStatus<Self>, Error>
     where
         Self: Sized;
 }

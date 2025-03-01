@@ -88,20 +88,17 @@ impl TryReadFrom for PacketHeader {
 }
 
 impl TryReadFromBuffered for PacketHeader {
-    fn try_read<T: std::io::Read>(buf: &mut T) -> Result<ReadStatus<Self>, Error>
+    fn try_read<T: std::io::BufRead>(reader: &mut T) -> Result<ReadStatus<Self>, Error>
     where
         Self: Sized,
     {
-        use std::io::BufRead;
-
-        let mut reader = std::io::BufReader::new(buf);
         let bytes = reader.fill_buf()?;
         if (bytes.len() as u64) < PacketHeader::ssize() {
             return Ok(ReadStatus::NotEnoughData(
                 PacketHeader::ssize() - bytes.len() as u64,
             ));
         }
-        let header = ReadStatus::Success(PacketHeader::read(&mut reader)?);
+        let header = ReadStatus::Success(PacketHeader::read(reader)?);
         reader.consume(PacketHeader::ssize() as usize);
         Ok(header)
     }

@@ -1,4 +1,4 @@
-use std::io::{BufReader, Cursor, Seek};
+use std::io::{BufRead, BufReader, Cursor, Seek};
 
 use brec::prelude::*;
 use proptest::prelude::*;
@@ -51,7 +51,7 @@ proptest! {
 
 
     #[test]
-    fn test(blks in proptest::collection::vec(any::<Block>(), 1..100)) {
+    fn try_read_from(blks in proptest::collection::vec(any::<Block>(), 1..100)) {
         println!("created: {};", blks.len());
         let mut buf = Vec::new();
         write_to_buf(&mut buf, &blks);
@@ -80,27 +80,42 @@ proptest! {
         assert_eq!(size, consumed);
         assert_eq!(blks.len(), restored.len());
         for (left, right) in restored.iter().zip(blks.iter()) {
-            // if let (Block::BlockCombination(left), Block::BlockCombination(right)) = (left, right) {
-            //     assert_eq!(left.field_u8, right.field_u8);
-            //     assert_eq!(left.field_u16, right.field_u16);
-            //     assert_eq!(left.field_u32, right.field_u32);
-            //     assert_eq!(left.field_u64, right.field_u64);
-            //     assert_eq!(left.field_u128, right.field_u128);
-            //     assert_eq!(left.field_i8, right.field_i8);
-            //     assert_eq!(left.field_i16, right.field_i16);
-            //     assert_eq!(left.field_i32, right.field_i32);
-            //     assert_eq!(left.field_i64, right.field_i64);
-            //     assert_eq!(left.field_i128, right.field_i128);
-            //     assert_eq!(left.field_f32, right.field_f32);
-            //     assert_eq!(left.field_f64, right.field_f64);
-            //     assert_eq!(left.field_bool, right.field_bool);
-            //     assert_eq!(left.blob_a.len(), right.blob_a.len());
-            //     assert_eq!(left.blob_b.len(), right.blob_b.len());
-            //     assert_eq!(left.blob_c.len(), right.blob_c.len());
-            //     assert_eq!(left.blob_d.len(), right.blob_d.len());
-            // } else {
-            //     assert_eq!(left, right);
-            // }
+            assert_eq!(left, right);
+        }
+    }
+
+    #[test]
+    fn try_read_from_buffered(blks in proptest::collection::vec(any::<Block>(), 1..100)) {
+        println!("created: {};", blks.len());
+        let mut buf = Vec::new();
+        write_to_buf(&mut buf, &blks);
+        let size = buf.len() as u64;
+        let mut restored = Vec::new();
+        let mut reader = BufReader::new(Cursor::new(&buf));
+        let mut consumed = 0;
+        println!("start reading from total size: {size}");
+        loop {
+            println!("read attempt from {}", reader.stream_position().expect("Position is read"));
+            match <Block as TryReadFromBuffered>::try_read(&mut reader) {
+                Ok(ReadStatus::Success(blk)) => {
+                    consumed = reader.stream_position().expect("Position is read");
+                    restored.push(blk);
+                    println!("consumed: {consumed}");
+                },
+                Ok(ReadStatus::NotEnoughData(n)) => {
+                    println!("NotEnoughData: {n}");
+                    break;
+                }
+                Err(err) => {
+                    println!("Fail to read: {err}");
+                    break;
+                }
+            }
+        }
+        println!("pos: {}",reader.stream_position().expect("Position is read"));
+        assert_eq!(size, consumed);
+        assert_eq!(blks.len(), restored.len());
+        for (left, right) in restored.iter().zip(blks.iter()) {
             assert_eq!(left, right);
         }
     }

@@ -70,11 +70,10 @@ impl TryReadFrom for PayloadHeader {
 }
 
 impl TryReadFromBuffered for PayloadHeader {
-    fn try_read<T: std::io::Read>(buf: &mut T) -> Result<ReadStatus<Self>, Error>
+    fn try_read<T: std::io::BufRead>(reader: &mut T) -> Result<ReadStatus<Self>, Error>
     where
         Self: Sized,
     {
-        use std::io::{BufRead, BufReader};
         fn ensure_available(buffer: &[u8], required: usize) -> Option<ReadStatus<PayloadHeader>> {
             if buffer.len() < required {
                 Some(ReadStatus::NotEnoughData((required - buffer.len()) as u64))
@@ -82,7 +81,6 @@ impl TryReadFromBuffered for PayloadHeader {
                 None
             }
         }
-        let mut reader = BufReader::new(buf);
         let buffer = reader.fill_buf()?;
         let mut required = 1; // Signature size (u8)
         if let Some(rs) = ensure_available(buffer, required) {

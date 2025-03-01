@@ -1,5 +1,4 @@
 use crate::*;
-use std::io::BufRead;
 
 impl<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> ReadFrom
     for PacketDef<B, P, Inner>
@@ -50,7 +49,7 @@ impl<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> TryReadFrom
         let mut read = 0;
         loop {
             // TODO: Error::SignatureDismatch should be covered in enum's context
-            match <B as TryReadFromBuffered>::try_read(buf) {
+            match <B as TryReadFrom>::try_read(buf) {
                 Ok(ReadStatus::Success(blk)) => {
                     read += blk.size();
                     pkg.blocks.push(blk);
@@ -69,7 +68,7 @@ impl<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> TryReadFrom
             }
         }
         if header.payload {
-            match <PayloadHeader as TryReadFromBuffered>::try_read(buf)? {
+            match <PayloadHeader as TryReadFrom>::try_read(buf)? {
                 ReadStatus::Success(header) => {
                     match <P as TryExtractPayloadFromBuffered<Inner>>::try_read(buf, &header) {
                         Ok(ReadStatus::Success(payload)) => {
@@ -98,11 +97,10 @@ impl<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> TryReadFrom
 impl<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> TryReadFromBuffered
     for PacketDef<B, P, Inner>
 {
-    fn try_read<T: std::io::Read>(buf: &mut T) -> Result<ReadStatus<Self>, Error>
+    fn try_read<T: std::io::BufRead>(reader: &mut T) -> Result<ReadStatus<Self>, Error>
     where
         Self: Sized,
     {
-        let mut reader = std::io::BufReader::new(buf);
         let bytes = reader.fill_buf()?;
         let available = bytes.len() as u64;
         if available < PacketHeader::ssize() {
@@ -117,7 +115,7 @@ impl<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> TryReadFromBuffe
         let mut read = 0;
         loop {
             // TODO: Error::SignatureDismatch should be covered in enum's context
-            match <B as TryReadFromBuffered>::try_read(&mut reader)? {
+            match <B as TryReadFromBuffered>::try_read(reader)? {
                 ReadStatus::Success(blk) => {
                     read += blk.size();
                     pkg.blocks.push(blk);
@@ -129,12 +127,9 @@ impl<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> TryReadFromBuffe
             }
         }
         if header.payload {
-            match <PayloadHeader as TryReadFromBuffered>::try_read(&mut reader)? {
+            match <PayloadHeader as TryReadFromBuffered>::try_read(reader)? {
                 ReadStatus::Success(header) => {
-                    match <P as TryExtractPayloadFromBuffered<Inner>>::try_read(
-                        &mut reader,
-                        &header,
-                    )? {
+                    match <P as TryExtractPayloadFromBuffered<Inner>>::try_read(reader, &header)? {
                         ReadStatus::Success(payload) => {
                             pkg.payload = Some(payload);
                         }

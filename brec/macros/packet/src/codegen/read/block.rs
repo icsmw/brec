@@ -173,14 +173,13 @@ impl TryReadBuffered for Block {
 
             impl brec::TryReadFromBuffered for #block_name {
 
-                fn try_read<T: std::io::Read>(buf: &mut T) -> Result<brec::ReadStatus<Self>, brec::Error>
+                fn try_read<T: std::io::BufRead>(reader: &mut T) -> Result<brec::ReadStatus<Self>, brec::Error>
                 where
                     Self: Sized,
                 {
                     use std::io::BufRead;
                     use brec::prelude::*;
 
-                    let mut reader = std::io::BufReader::new(buf);
                     let bytes = reader.fill_buf()?;
 
                     if bytes.len() < #sig_len {
@@ -193,14 +192,8 @@ impl TryReadBuffered for Block {
                         return Err(brec::Error::SignatureDismatch);
                     }
 
-                    if (bytes.len() as u64) < #block_name::ssize() {
-                        return Ok(brec::ReadStatus::NotEnoughData(
-                            #block_name::ssize() - bytes.len() as u64,
-                        ));
-                    }
                     reader.consume(#sig_len);
-                    let blk = #block_name::read(&mut reader, true);
-                    reader.consume(#block_name::ssize() as usize - #sig_len);
+                    let blk = #block_name::read(reader, true);
                     Ok(brec::ReadStatus::Success(blk?))
                 }
             }
