@@ -1,5 +1,3 @@
-use std::io::{BufRead, BufReader, Cursor, Seek};
-
 use brec::prelude::*;
 use proptest::prelude::*;
 
@@ -28,6 +26,7 @@ impl Arbitrary for Block {
             BlockF64::arbitrary().prop_map(Block::BlockF64),
             BlockBool::arbitrary().prop_map(Block::BlockBool),
             BlockBlob::arbitrary().prop_map(Block::BlockBlob),
+            BlockBlobs::arbitrary().prop_map(Block::BlockBlobs),
             BlockCombination::arbitrary().prop_map(Block::BlockCombination),
         ]
         .boxed()
@@ -42,7 +41,7 @@ fn write_to_buf<W: std::io::Write>(buf: &mut W, blks: &[Block]) -> std::io::Resu
 }
 
 fn read_all_blocks(buffer: &[u8]) -> std::io::Result<(Vec<Block>, u64)> {
-    use std::io::{BufReader, Cursor};
+    use std::io::{BufReader, Cursor, Seek};
 
     let mut blocks = Vec::new();
     let mut reader = BufReader::new(Cursor::new(buffer));
