@@ -43,6 +43,34 @@ fn write_to_buf<W: std::io::Write>(buf: &mut W, blks: &[Block]) {
     }
 }
 
+fn read_all_blocks(buffer: &[u8]) -> std::io::Result<(Vec<Block>, usize)> {
+    use brec::BufferedReader;
+    use std::io::Cursor;
+
+    let mut inner = Cursor::new(buffer);
+    let mut reader = BufferedReader::new(&mut inner);
+    let mut blocks = Vec::new();
+    loop {
+        if reader.buffer_len().unwrap() < 4 {
+            reader.refill().unwrap();
+        }
+        match <Block as TryReadFromBuffered>::try_read(&mut reader) {
+            Ok(ReadStatus::Success(blk)) => {
+                blocks.push(blk);
+            }
+            Ok(ReadStatus::NotEnoughData(_needed)) => {
+                reader.refill()?;
+                break;
+            }
+            Err(_err) => {
+                // All read or error
+                break;
+            }
+        }
+    }
+    Ok((blocks, reader.consumed()))
+}
+
 proptest! {
     #![proptest_config(ProptestConfig {
         max_shrink_iters: 50,
@@ -89,35 +117,9 @@ proptest! {
         println!("created: {};", blks.len());
         let mut buf = Vec::new();
         write_to_buf(&mut buf, &blks);
-        let size = buf.len() as u64;
-        let mut restored = Vec::new();
-        let mut inner = BufReader::new(Cursor::new(&buf));
-        let mut reader = BufferedReader::new(&mut inner);
-        let mut consumed = 0;
-        println!("start reading from total size: {size}");
-        loop {
-            // println!("read attempt from {}", reader.stream_position().expect("Position is read"));
-            if reader.buffer_len().unwrap() < 4 {
-                reader.refill().unwrap();
-            }
-            match <Block as TryReadFromBuffered>::try_read(&mut reader) {
-                Ok(ReadStatus::Success(blk)) => {
-                    // consumed = reader.stream_position().expect("Position is read");
-                    restored.push(blk);
-                    // println!("consumed: {consumed}");
-                },
-                Ok(ReadStatus::NotEnoughData(n)) => {
-                    println!("NotEnoughData: {n}");
-                    break;
-                }
-                Err(err) => {
-                    println!("Fail to read: {err}");
-                    break;
-                }
-            }
-        }
-        // println!("pos: {}",reader.stream_position().expect("Position is read"));
-        // assert_eq!(size, consumed);
+        let write = buf.len() as u64;
+        let (restored, read) = read_all_blocks(&buf)?;
+        assert_eq!(write, read as u64);
         assert_eq!(blks.len(), restored.len());
         for (left, right) in restored.iter().zip(blks.iter()) {
             assert_eq!(left, right);

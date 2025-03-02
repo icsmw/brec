@@ -57,6 +57,7 @@ pub struct BufferedReader<'a, R: std::io::BufRead> {
     buffer: Vec<u8>,
     filled: Vec<u8>,
     inner_len: usize,
+    consumed: usize,
 }
 
 impl<'a, R: std::io::BufRead> BufferedReader<'a, R> {
@@ -101,6 +102,7 @@ impl<'a, R: std::io::BufRead> BufferedReader<'a, R> {
             buffer: Vec::new(),
             filled: Vec::new(),
             inner_len: 0,
+            consumed: 0,
         }
     }
 
@@ -141,6 +143,11 @@ impl<'a, R: std::io::BufRead> BufferedReader<'a, R> {
         self.inner.consume(self.buffer.len());
         Ok(())
     }
+
+    /// Returns amount of consumed bytes
+    pub fn consumed(&self) -> usize {
+        self.consumed
+    }
 }
 
 impl<R: std::io::BufRead> std::io::Read for BufferedReader<'_, R> {
@@ -166,6 +173,7 @@ impl<R: std::io::BufRead> std::io::Read for BufferedReader<'_, R> {
             let from_inner = self.inner.read(&mut buf[total_read..])?;
             total_read += from_inner;
         }
+        self.consumed += total_read;
         Ok(total_read)
     }
 }
@@ -200,6 +208,7 @@ impl<R: std::io::BufRead> std::io::BufRead for BufferedReader<'_, R> {
     fn consume(&mut self, mut amt: usize) {
         if self.buffer.is_empty() {
             self.inner.consume(amt);
+            self.consumed += amt;
             return;
         }
         self.filled.clear();
@@ -207,6 +216,7 @@ impl<R: std::io::BufRead> std::io::BufRead for BufferedReader<'_, R> {
         let buf_len = self.buffer.len();
         if amt <= buf_len {
             self.buffer.drain(..amt);
+            self.consumed += amt;
             return;
         }
 
@@ -216,10 +226,12 @@ impl<R: std::io::BufRead> std::io::BufRead for BufferedReader<'_, R> {
         if amt <= self.inner_len {
             self.inner.consume(amt);
             self.inner_len -= amt;
+            self.consumed += amt;
         } else {
             let leftover = amt - self.inner_len;
             self.inner_len = 0;
             self.inner.consume(leftover);
+            self.consumed += leftover;
         }
     }
 }
