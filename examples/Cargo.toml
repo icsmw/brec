@@ -11,4 +11,4 @@ brec = { path = "../brec" }
 serde = "1.0"
 rand = "0.9"
 proptest = "1.4"
-
+num-format = "0.4"

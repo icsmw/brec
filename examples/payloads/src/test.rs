@@ -62,6 +62,37 @@ fn read_payloads_from_buffered(buffer: &[u8]) -> std::io::Result<(Vec<Payload>, 
     Ok((payloads, reader.consumed()))
 }
 
+use std::sync::atomic::{AtomicUsize, Ordering};
+
+static BYTES: AtomicUsize = AtomicUsize::new(0);
+static INSTANCES: AtomicUsize = AtomicUsize::new(0);
+
+fn report(bytes: usize, instance: usize) {
+    use num_format::{Locale, ToFormattedString};
+
+    BYTES.fetch_add(bytes, Ordering::Relaxed);
+    INSTANCES.fetch_add(instance, Ordering::Relaxed);
+    let bytes = BYTES.load(Ordering::Relaxed);
+    println!(
+        "Generated {} blocks ({}, {} B)",
+        INSTANCES.load(Ordering::Relaxed),
+        if bytes > 1024 * 1024 {
+            format!(
+                "{} Mb",
+                (bytes / (1024 * 1024)).to_formatted_string(&Locale::en)
+            )
+        } else if bytes > 1024 {
+            format!(
+                "{} Kb",
+                (bytes / (1024 * 1024)).to_formatted_string(&Locale::en)
+            )
+        } else {
+            format!("{} B", bytes.to_formatted_string(&Locale::en))
+        },
+        bytes.to_formatted_string(&Locale::en)
+    );
+}
+
 proptest! {
     #![proptest_config(ProptestConfig {
         max_shrink_iters: 50,
@@ -78,7 +109,7 @@ proptest! {
         for (left, right) in restored.iter().zip(payloads.iter()) {
             assert_eq!(left, right);
         }
-        println!("Generated {} payloads ({} bytes)", payloads.len(), buf.len());
+        report(buf.len(), restored.len());
     }
 
 
@@ -93,7 +124,7 @@ proptest! {
         for (left, right) in restored.iter().zip(payloads.iter()) {
             assert_eq!(left, right);
         }
-        println!("Generated {} payloads ({} bytes)", payloads.len(), buf.len());
+        report(buf.len(), restored.len());
     }
 
 
