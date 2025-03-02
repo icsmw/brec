@@ -8,5 +8,8 @@ brec = { workspace = true, features=["bincode"]  }
 rand.workspace = true
 serde = { workspace = true, features = ["derive"] }
 
+[dev-dependencies]
+proptest.workspace = true
+
 [build-dependencies]
 brec = { workspace = true, features=["build"] }

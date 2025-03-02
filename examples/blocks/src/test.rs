@@ -41,7 +41,7 @@ fn write_to_buf<W: std::io::Write>(buf: &mut W, blks: &[Block]) -> std::io::Resu
     Ok(())
 }
 
-fn read_all_blocks(buffer: &[u8]) -> std::io::Result<(Vec<Block>, u64)> {
+fn read_blocks(buffer: &[u8]) -> std::io::Result<(Vec<Block>, u64)> {
     use std::io::{BufReader, Cursor, Seek};
 
     let mut blocks = Vec::new();
@@ -67,7 +67,7 @@ fn read_all_blocks(buffer: &[u8]) -> std::io::Result<(Vec<Block>, u64)> {
     Ok((blocks, consumed))
 }
 
-fn read_all_blocks_from_buffered(buffer: &[u8]) -> std::io::Result<(Vec<Block>, usize)> {
+fn read_blocks_from_buffered(buffer: &[u8]) -> std::io::Result<(Vec<Block>, usize)> {
     use brec::BufferedReader;
     use std::io::Cursor;
 
@@ -105,29 +105,31 @@ proptest! {
 
 
     #[test]
-    fn try_read_from(blks in proptest::collection::vec(any::<Block>(), 1..100)) {
+    fn try_read_from(blks in proptest::collection::vec(any::<Block>(), 1..1000)) {
         let mut buf = Vec::new();
         write_to_buf(&mut buf, &blks)?;
         let size = buf.len() as u64;
-        let (restored, consumed) = read_all_blocks(&buf)?;
+        let (restored, consumed) = read_blocks(&buf)?;
         assert_eq!(size, consumed);
         assert_eq!(blks.len(), restored.len());
         for (left, right) in restored.iter().zip(blks.iter()) {
             assert_eq!(left, right);
         }
+        println!("Generated {} blocks ({} bytes)", blks.len(), buf.len());
     }
 
     #[test]
-    fn try_read_from_buffered(blks in proptest::collection::vec(any::<Block>(), 1..100)) {
+    fn try_read_from_buffered(blks in proptest::collection::vec(any::<Block>(), 1..1000)) {
         let mut buf = Vec::new();
         write_to_buf(&mut buf, &blks)?;
         let write = buf.len() as u64;
-        let (restored, read) = read_all_blocks_from_buffered(&buf)?;
+        let (restored, read) = read_blocks_from_buffered(&buf)?;
         assert_eq!(write, read as u64);
         assert_eq!(blks.len(), restored.len());
         for (left, right) in restored.iter().zip(blks.iter()) {
             assert_eq!(left, right);
         }
+        println!("Generated {} blocks ({} bytes)", blks.len(), buf.len());
     }
 
 }

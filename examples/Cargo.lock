@@ -259,6 +259,7 @@ name = "payloads"
 version = "0.1.0"
 dependencies = [
  "brec",
+ "proptest",
  "rand 0.9.0",
  "serde",
 ]

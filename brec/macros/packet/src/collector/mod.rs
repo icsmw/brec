@@ -49,6 +49,9 @@ impl Collector {
     pub fn has_payloads(&self) -> bool {
         self.payloads.contains_key(&get_pkg_name())
     }
+    pub fn has_blocks(&self) -> bool {
+        self.blocks.contains_key(&get_pkg_name())
+    }
     fn write(&self) -> Result<(), E> {
         let pkg_name = get_pkg_name();
         let block = self
@@ -61,7 +64,7 @@ impl Collector {
             .get(&pkg_name)
             .map(|plds| payloads::gen(plds.values().collect::<Vec<&Payload>>()))
             .unwrap_or(Ok(quote! {}))?;
-        let packet = if self.has_payloads() {
+        let packet = if self.has_payloads() && self.has_blocks() {
             packet::gen()?
         } else {
             quote! {}
