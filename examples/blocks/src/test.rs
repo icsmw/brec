@@ -27,6 +27,7 @@ impl Arbitrary for Block {
             BlockBool::arbitrary().prop_map(Block::BlockBool),
             BlockBlob::arbitrary().prop_map(Block::BlockBlob),
             BlockBlobs::arbitrary().prop_map(Block::BlockBlobs),
+            BlockEnums::arbitrary().prop_map(Block::BlockEnums),
             BlockCombination::arbitrary().prop_map(Block::BlockCombination),
         ]
         .boxed()

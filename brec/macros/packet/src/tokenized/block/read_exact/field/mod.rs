@@ -44,7 +44,7 @@ impl ReadExact for Field {
                 Ok(quote! {
                    let mut #name = [0u8; 1];
                    #src.read_exact(&mut #name)?;
-                   let level = #ident::try_from(#name[0]).map_err(|err| brec::Error::FailedConverting(#enum_name.to_owned(), err))?;
+                   let #name = #ident::try_from(#name[0]).map_err(|err| brec::Error::FailedConverting(#enum_name.to_owned(), err))?;
                 })
             }
         }

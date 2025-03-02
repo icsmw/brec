@@ -47,6 +47,7 @@ impl From<&Level> for u8 {
 #[block]
 pub struct WithEnum {
     pub level: Level,
+
     data: [u8; 200],
 }
 
