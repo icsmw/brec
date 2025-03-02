@@ -24,10 +24,10 @@
 /// # Example
 ///
 /// ```
-/// fn read_all_blocks(buffer: &[u8]) -> std::io::Result<Vec<Block>> {
+/// fn read_all_blocks(buffer: &[u8]) -> std::io::Result<(Vec<Block>, usize)> {
 ///     use brec::BufferedReader;
 ///     use std::io::Cursor;
-///     
+///
 ///     let mut inner = Cursor::new(buffer);
 ///     let mut reader = BufferedReader::new(&mut inner);
 ///     let mut blocks = Vec::new();
@@ -43,14 +43,16 @@
 ///                 reader.refill()?;
 ///                 break;
 ///             }
-///             Err(_err) => {
-///                 // All read or error
-///                 break;
+///             Err(err) => {
+///                 return Err(std::io::Error::new(
+///                     std::io::ErrorKind::InvalidData,
+///                     err.to_string(),
+///                 ));
 ///             }
 ///         }
 ///     }
-///     Ok(blocks)
-///     }
+///     Ok((blocks, reader.consumed()))
+/// }
 /// ```
 pub struct BufferedReader<'a, R: std::io::BufRead> {
     inner: &'a mut R,
@@ -68,10 +70,10 @@ impl<'a, R: std::io::BufRead> BufferedReader<'a, R> {
     /// # Example
     ///
     /// ```
-    /// fn read_all_blocks(buffer: &[u8]) -> std::io::Result<Vec<Block>> {
+    /// fn read_all_blocks(buffer: &[u8]) -> std::io::Result<(Vec<Block>, usize)> {
     ///     use brec::BufferedReader;
     ///     use std::io::Cursor;
-    ///     
+    ///
     ///     let mut inner = Cursor::new(buffer);
     ///     let mut reader = BufferedReader::new(&mut inner);
     ///     let mut blocks = Vec::new();
@@ -87,14 +89,16 @@ impl<'a, R: std::io::BufRead> BufferedReader<'a, R> {
     ///                 reader.refill()?;
     ///                 break;
     ///             }
-    ///             Err(_err) => {
-    ///                 // All read or error
-    ///                 break;
+    ///             Err(err) => {
+    ///                 return Err(std::io::Error::new(
+    ///                     std::io::ErrorKind::InvalidData,
+    ///                     err.to_string(),
+    ///                 ));
     ///             }
     ///         }
     ///     }
-    ///     Ok(blocks)
-    ///     }
+    ///     Ok((blocks, reader.consumed()))
+    /// }
     /// ```
     pub fn new(inner: &'a mut R) -> Self {
         Self {
