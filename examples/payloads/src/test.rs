@@ -74,7 +74,7 @@ fn report(bytes: usize, instance: usize) {
     INSTANCES.fetch_add(instance, Ordering::Relaxed);
     let bytes = BYTES.load(Ordering::Relaxed);
     println!(
-        "Generated {} blocks ({}, {} B)",
+        "Generated {} payloads ({}, {} B)",
         INSTANCES.load(Ordering::Relaxed),
         if bytes > 1024 * 1024 {
             format!(
