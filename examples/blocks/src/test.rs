@@ -34,16 +34,40 @@ impl Arbitrary for Block {
     }
 }
 
-fn write_to_buf<W: std::io::Write>(buf: &mut W, blks: &[Block]) {
+fn write_to_buf<W: std::io::Write>(buf: &mut W, blks: &[Block]) -> std::io::Result<()> {
     for blk in blks.iter() {
-        println!(
-            "write: {} bytes",
-            WriteTo::write(blk, buf).expect("Block is written")
-        );
+        WriteTo::write(blk, buf)?;
     }
+    Ok(())
 }
 
-fn read_all_blocks(buffer: &[u8]) -> std::io::Result<(Vec<Block>, usize)> {
+fn read_all_blocks(buffer: &[u8]) -> std::io::Result<(Vec<Block>, u64)> {
+    use std::io::{BufReader, Cursor};
+
+    let mut blocks = Vec::new();
+    let mut reader = BufReader::new(Cursor::new(buffer));
+    let mut consumed = 0;
+    loop {
+        match <Block as TryReadFrom>::try_read(&mut reader) {
+            Ok(ReadStatus::Success(blk)) => {
+                consumed = reader.stream_position()?;
+                blocks.push(blk);
+            }
+            Ok(ReadStatus::NotEnoughData(_needed)) => {
+                break;
+            }
+            Err(err) => {
+                return Err(std::io::Error::new(
+                    std::io::ErrorKind::InvalidData,
+                    err.to_string(),
+                ));
+            }
+        }
+    }
+    Ok((blocks, consumed))
+}
+
+fn read_all_blocks_from_buffered(buffer: &[u8]) -> std::io::Result<(Vec<Block>, usize)> {
     use brec::BufferedReader;
     use std::io::Cursor;
 
@@ -62,9 +86,11 @@ fn read_all_blocks(buffer: &[u8]) -> std::io::Result<(Vec<Block>, usize)> {
                 reader.refill()?;
                 break;
             }
-            Err(_err) => {
-                // All read or error
-                break;
+            Err(err) => {
+                return Err(std::io::Error::new(
+                    std::io::ErrorKind::InvalidData,
+                    err.to_string(),
+                ));
             }
         }
     }
@@ -80,31 +106,10 @@ proptest! {
 
     #[test]
     fn try_read_from(blks in proptest::collection::vec(any::<Block>(), 1..100)) {
-        println!("created: {};", blks.len());
         let mut buf = Vec::new();
-        write_to_buf(&mut buf, &blks);
+        write_to_buf(&mut buf, &blks)?;
         let size = buf.len() as u64;
-        let mut restored = Vec::new();
-        let mut reader = BufReader::new(Cursor::new(buf));
-        let mut consumed = 0;
-        println!("start reading from total size: {size}");
-        loop {
-            match <Block as TryReadFrom>::try_read(&mut reader) {
-                Ok(ReadStatus::Success(blk)) => {
-                    consumed = reader.stream_position().expect("Position is read");
-                    restored.push(blk);
-                    println!("consumed: {consumed}");
-                },
-                Ok(ReadStatus::NotEnoughData(n)) => {
-                    println!("NotEnoughData: {n}");
-                    break;
-                }
-                Err(err) => {
-                    println!("Fail to read: {err}");
-                    break;
-                }
-            }
-        }
+        let (restored, consumed) = read_all_blocks(&buf)?;
         assert_eq!(size, consumed);
         assert_eq!(blks.len(), restored.len());
         for (left, right) in restored.iter().zip(blks.iter()) {
@@ -114,11 +119,10 @@ proptest! {
 
     #[test]
     fn try_read_from_buffered(blks in proptest::collection::vec(any::<Block>(), 1..100)) {
-        println!("created: {};", blks.len());
         let mut buf = Vec::new();
-        write_to_buf(&mut buf, &blks);
+        write_to_buf(&mut buf, &blks)?;
         let write = buf.len() as u64;
-        let (restored, read) = read_all_blocks(&buf)?;
+        let (restored, read) = read_all_blocks_from_buffered(&buf)?;
         assert_eq!(write, read as u64);
         assert_eq!(blks.len(), restored.len());
         for (left, right) in restored.iter().zip(blks.iter()) {
