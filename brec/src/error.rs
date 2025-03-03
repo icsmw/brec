@@ -40,4 +40,8 @@ pub enum Error {
     EncodeError(String),
     #[error("No pending packet to accept")]
     NoPendingPacket,
+    #[error("Fail to read packet header")]
+    FailToReadPacketHeader,
+    #[error("PacketBufReader fall down into invalid logic")]
+    InvalidPacketReaderLogic,
 }

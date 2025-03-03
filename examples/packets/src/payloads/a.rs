@@ -14,10 +14,10 @@ pub struct PayloadA {
     pub field_i32: i32,
     pub field_i64: i64,
     pub field_i128: i128,
-    // pub field_f32: f32,
-    // pub field_f64: f64,
+    pub field_f32: f32,
+    pub field_f64: f64,
     pub field_bool: bool,
-    // pub field_str: String,
+    pub field_str: String,
     pub vec_u8: Vec<u8>,
     pub vec_u16: Vec<u16>,
     pub vec_u32: Vec<u32>,
@@ -28,7 +28,7 @@ pub struct PayloadA {
     pub vec_i32: Vec<i32>,
     pub vec_i64: Vec<i64>,
     pub vec_i128: Vec<i128>,
-    // pub vec_str: Vec<String>,
+    pub vec_str: Vec<String>,
 }
 
 impl Arbitrary for PayloadA {
@@ -49,7 +49,7 @@ impl Arbitrary for PayloadA {
                 prop::collection::vec(any::<i32>(), 0..100).boxed(),
                 prop::collection::vec(any::<i64>(), 0..100).boxed(),
                 prop::collection::vec(any::<i128>(), 0..100).boxed(),
-                // prop::collection::vec(any::<String>(), 0..50).boxed(),
+                prop::collection::vec(any::<String>(), 0..50).boxed(),
             )
                 .boxed(),
             (
@@ -63,14 +63,14 @@ impl Arbitrary for PayloadA {
                 proptest::num::i32::ANY,
                 proptest::num::i64::ANY,
                 proptest::num::i128::ANY,
-                // proptest::num::f32::ANY.prop_filter("no NaNs or infinite", |f| f.is_finite()),
+                proptest::num::f32::ANY.prop_filter("no NaNs or infinite", |f| f.is_finite()),
                 proptest::bool::ANY,
             )
                 .boxed(),
-            // proptest::num::f64::ANY
-            //     .prop_filter("no NaNs or infinite", |f| f.is_finite())
-            //     .boxed(),
-            // any::<String>(),
+            proptest::num::f64::ANY
+                .prop_filter("no NaNs or infinite", |f| f.is_finite())
+                .boxed(),
+            any::<String>(),
         )
             .prop_map(
                 move |(
@@ -85,7 +85,7 @@ impl Arbitrary for PayloadA {
                         vec_i32,
                         vec_i64,
                         vec_i128,
-                        // vec_str,
+                        vec_str,
                     ),
                     (
                         field_u8,
@@ -98,11 +98,11 @@ impl Arbitrary for PayloadA {
                         field_i32,
                         field_i64,
                         field_i128,
-                        // field_f32,
+                        field_f32,
                         field_bool,
                     ),
-                    // field_f64,
-                    // field_str,
+                    field_f64,
+                    field_str,
                 )| {
                     PayloadA {
                         field_u8,
@@ -115,10 +115,10 @@ impl Arbitrary for PayloadA {
                         field_i32,
                         field_i64,
                         field_i128,
-                        // field_f32,
-                        // field_f64,
+                        field_f32,
+                        field_f64,
                         field_bool,
-                        // field_str,
+                        field_str,
                         vec_u8,
                         vec_u16,
                         vec_u32,
@@ -129,7 +129,7 @@ impl Arbitrary for PayloadA {
                         vec_i32,
                         vec_i64,
                         vec_i128,
-                        // vec_str,
+                        vec_str,
                     }
                 },
             )

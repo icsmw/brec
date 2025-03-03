@@ -21,12 +21,11 @@ impl Arbitrary for Payload {
     type Strategy = BoxedStrategy<Self>;
 
     fn arbitrary_with(_: ()) -> Self::Strategy {
-        PayloadA::arbitrary().prop_map(Payload::PayloadA).boxed()
-        //         prop_oneof![
-        //     PayloadA::arbitrary().prop_map(Payload::PayloadA),
-        //     PayloadB::arbitrary().prop_map(Payload::PayloadB),
-        //     PayloadC::arbitrary().prop_map(Payload::PayloadC),
-        // ]
-        // .boxed()
+        prop_oneof![
+            PayloadA::arbitrary().prop_map(Payload::PayloadA),
+            PayloadB::arbitrary().prop_map(Payload::PayloadB),
+            PayloadC::arbitrary().prop_map(Payload::PayloadC),
+        ]
+        .boxed()
     }
 }

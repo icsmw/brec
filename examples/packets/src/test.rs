@@ -66,8 +66,8 @@ fn read_packets(buffer: &[u8]) -> std::io::Result<Vec<Packet>> {
                 NextPacket::NotFound => {
                     println!("NotFound");
                 }
-                NextPacket::NotEnoughData(needed) => {
-                    println!("NotEnoughData: {needed}");
+                NextPacket::NotEnoughData(_needed) => {
+                    // Data will be refilled with next call
                 }
                 _ => {
                     break;
@@ -119,11 +119,11 @@ fn report(bytes: usize, instance: usize) {
 proptest! {
     #![proptest_config(ProptestConfig {
         max_shrink_iters: 50,
-        ..ProptestConfig::with_cases(50)
+        ..ProptestConfig::with_cases(500)
     })]
 
     #[test]
-    fn try_read_from(packets in proptest::collection::vec(any::<WrappedPacket>(), 1..100)) {
+    fn try_read_from(packets in proptest::collection::vec(any::<WrappedPacket>(), 1..1000)) {
         let mut buf = Vec::new();
         write_to_buf(&mut buf, &packets)?;
         println!("READING: {} packets", packets.len());

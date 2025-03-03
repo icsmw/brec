@@ -29,26 +29,14 @@ pub trait ReadPayloadFrom<T: Sized + PayloadDecode<T> + StaticPayloadSignature +
     where
         Self: Sized + PayloadDecode<Self> + StaticPayloadSignature,
     {
-        println!(
-            ">>>>>>>>>>>>>>>>>>>>>>>>> ReadPayloadFrom: {}",
-            header.payload_len()
-        );
         if header.sig != T::ssig() {
             return Err(Error::SignatureDismatch);
         }
         let mut bytes = vec![0u8; header.payload_len()];
-        println!(">>>>>>>>>>>>>>>>>>>>>>>>> ReadPayloadFrom: before read",);
         buf.read_exact(&mut bytes)?;
-        println!(">>>>>>>>>>>>>>>>>>>>>>>>> ReadPayloadFrom: after read",);
         let value = T::decode(&bytes)?;
-        println!(">>>>>>>>>>>>>>>>>>>>>>>>> ReadPayloadFrom: after decode",);
         let crc = value.crc()?;
-        println!(">>>>>>>>>>>>>>>>>>>>>>>>> ReadPayloadFrom: after crc",);
         if header.crc != crc {
-            println!(
-                ">>>>>>>>>>>>>>>>> PAYLOAD IS DISMATCH: {crc:?} / {:?}",
-                header.crc
-            );
             return Err(Error::CrcDismatch);
         }
         Ok(value)
