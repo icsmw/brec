@@ -5,6 +5,7 @@ use crate::*;
 
 pub const PACKET_SIG: [u8; 8] = [236u8, 37u8, 94u8, 136u8, 236u8, 37u8, 94u8, 136u8];
 
+#[derive(Debug)]
 pub struct PacketHeader {
     /// Size of full packet (PacketHeader + Blocks + Payload)
     pub size: u64,
@@ -51,6 +52,11 @@ impl PacketHeader {
             payload: payload.is_some(),
             crc,
         })
+    }
+    pub fn payload_size<Inner: PayloadInnerDef>(payload: &Inner) -> std::io::Result<u64> {
+        let payload_header_len: u64 = PayloadHeader::ssize(payload).map(|s| s as u64)?;
+        let payload_body_len: u64 = payload.size()?;
+        Ok(payload_body_len + payload_header_len)
     }
     pub fn get_pos(buffer: &[u8]) -> Option<usize> {
         let mut offset = 0;

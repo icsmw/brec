@@ -34,39 +34,39 @@ mod block_u64;
 mod block_u8;
 
 #[cfg(test)]
-pub use block_blob::*;
+pub(crate) use block_blob::*;
 #[cfg(test)]
-pub use block_blobs_max::*;
+pub(crate) use block_blobs_max::*;
 #[cfg(test)]
-pub use block_bool::*;
+pub(crate) use block_bool::*;
 #[cfg(test)]
-pub use block_comb::*;
+pub(crate) use block_comb::*;
 #[cfg(test)]
-pub use block_enums::*;
+pub(crate) use block_enums::*;
 #[cfg(test)]
-pub use block_f32::*;
+pub(crate) use block_f32::*;
 #[cfg(test)]
-pub use block_f64::*;
+pub(crate) use block_f64::*;
 #[cfg(test)]
-pub use block_i128::*;
+pub(crate) use block_i128::*;
 #[cfg(test)]
-pub use block_i16::*;
+pub(crate) use block_i16::*;
 #[cfg(test)]
-pub use block_i32::*;
+pub(crate) use block_i32::*;
 #[cfg(test)]
-pub use block_i64::*;
+pub(crate) use block_i64::*;
 #[cfg(test)]
-pub use block_i8::*;
+pub(crate) use block_i8::*;
 #[cfg(test)]
-pub use block_u128::*;
+pub(crate) use block_u128::*;
 #[cfg(test)]
-pub use block_u16::*;
+pub(crate) use block_u16::*;
 #[cfg(test)]
-pub use block_u32::*;
+pub(crate) use block_u32::*;
 #[cfg(test)]
-pub use block_u64::*;
+pub(crate) use block_u64::*;
 #[cfg(test)]
-pub use block_u8::*;
+pub(crate) use block_u8::*;
 
 #[cfg(test)]
 mod test;

@@ -101,6 +101,19 @@ proptest! {
 
 
     #[test]
+    fn check_sizes(mut payloads in proptest::collection::vec(any::<Payload>(), 1..1000)) {
+        let mut bytes = 0;
+        for payload in payloads.iter_mut() {
+            let mut buffer = Vec::new();
+            payload.write_all(&mut buffer)?;
+            let expected_size = PacketHeader::payload_size(payload)?;
+            assert_eq!(buffer.len(), expected_size as usize);
+            bytes += buffer.len();
+        }
+        report(bytes, payloads.len());
+    }
+
+    #[test]
     fn try_read_from(mut payloads in proptest::collection::vec(any::<Payload>(), 1..1000)) {
         let mut buf = Vec::new();
         write_to_buf(&mut buf, &mut payloads)?;
@@ -111,7 +124,6 @@ proptest! {
         }
         report(buf.len(), restored.len());
     }
-
 
     #[test]
     fn try_read_from_buffered(mut payloads in proptest::collection::vec(any::<Payload>(), 1..1000)) {
