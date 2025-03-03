@@ -1,4 +1,4 @@
-use std::io::{BufRead, BufReader, Cursor, Read};
+use std::io::BufRead;
 
 use crate::*;
 
@@ -251,7 +251,7 @@ impl<
 
     pub fn read(&mut self) -> Result<NextPacket<B, P, Inner>, Error> {
         let recent = std::mem::replace(&mut self.recent, HeaderReadState::Empty);
-        let (cursor, header, consume) = match recent {
+        let (packet_buffer, header, consume) = match recent {
             HeaderReadState::Ready(Some(header)) => {
                 let buffer = self.inner.fill_buf()?;
                 // Check do we have enough data to load packet
@@ -269,8 +269,7 @@ impl<
                 // Copy and consume only needed data
                 self.buffered.extend_from_slice(&buffer[..rest_data]);
                 self.inner.consume(rest_data);
-                let cursor = Cursor::new(self.buffered.as_slice());
-                (cursor, header, None)
+                (self.buffered.as_slice(), header, None)
             }
             HeaderReadState::Reading(Some((mut buffer, needed))) => {
                 let extracted = self.inner.fill_buf()?;
@@ -344,7 +343,7 @@ impl<
                         }
                         let consume = Some(*sgmt.end() + header.size as usize);
                         (
-                            Cursor::new(&buffer[*sgmt.end()..*sgmt.end() + header.size as usize]),
+                            &buffer[*sgmt.end()..*sgmt.end() + header.size as usize],
                             header,
                             consume,
                         )
@@ -358,7 +357,7 @@ impl<
             }
         };
         let blocks_len = header.blocks_len as usize;
-        let blocks_buffer = &cursor.get_ref()[..blocks_len];
+        let blocks_buffer = &packet_buffer[..blocks_len];
         let mut blocks = Vec::new();
         let mut processed = 0;
         let mut count = 0;
@@ -400,10 +399,10 @@ impl<
         let header = referred.header;
         // Loading payload if exists
         if header.payload {
-            let mut payload_buffer = &cursor.get_ref()[blocks_len..];
+            let mut payload_buffer = &packet_buffer[blocks_len..];
             match <PayloadHeader as TryReadFromBuffered>::try_read(&mut payload_buffer) {
                 Ok(ReadStatus::Success(header)) => {
-                    let mut payload_buffer = &cursor.get_ref()[blocks_len + header.size()..];
+                    let mut payload_buffer = &packet_buffer[blocks_len + header.size()..];
                     match <P as TryExtractPayloadFromBuffered<Inner>>::try_read(
                         &mut payload_buffer,
                         &header,
