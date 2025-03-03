@@ -204,7 +204,7 @@ impl<
             inner: std::io::BufReader::new(inner),
             rules: RulesDef::default(),
             recent: None,
-            buffered: Vec::with_capacity(u16::MAX as usize),
+            buffered: Vec::with_capacity(u32::MAX as usize),
         }
     }
 
@@ -223,6 +223,7 @@ impl<
         };
         if let Some(needed) = PacketHeader::is_not_enought(&buffer[offset..]) {
             // Header is detected, but not enough data to load it
+            println!(">>>>>>>>>>>>>>>>>>>>>>> 000006");
             return Ok(PacketHeaderState::NotEnoughData(offset, needed));
         }
         Ok(PacketHeaderState::Found(
@@ -232,7 +233,7 @@ impl<
     }
 
     pub fn read(&mut self) -> Result<NextPacket<B, P, Inner>, Error> {
-        let (mut reader, header) = if let Some(header) = self.recent.take() {
+        let (mut reader, header, consume) = if let Some(header) = self.recent.take() {
             let buffer = self.inner.fill_buf()?;
             // Check do we have enough data to load packet
             let packet_size = header.size as usize;
@@ -243,23 +244,40 @@ impl<
                 self.buffered.extend_from_slice(buffer);
                 self.inner.consume(consumed);
                 self.recent = Some(header);
+                println!(">>>>>>>>>>>>>>>>>>>>>>> 000001");
                 return Ok(NextPacket::NotEnoughData(packet_size - available));
             }
             let rest_data = packet_size - self.buffered.len();
+            println!(">>>>>>>>>>>>>>>>>>>>>>> 000007 with header: {header:?}; in buf: {}; rest (to be consumed): {rest_data}", self.buffered.len());
             // Copy and consume only needed data
             self.buffered.extend_from_slice(&buffer[..rest_data]);
+            if buffer.len() >= rest_data + 2 {
+                println!(
+                    ">>>>>>>>>>>>>>>>>>>>>>> end on: {:?}",
+                    &buffer[rest_data..rest_data + 2]
+                );
+            }
             self.inner.consume(rest_data);
             let reader = BufReader::new(self.buffered.as_slice());
-            (reader, header)
+            println!(
+                ">>>>>>>>>>>>>>>>>>>>>>> 000007 in buf after: {};",
+                self.buffered.len(),
+            );
+            (reader, header, None)
         } else {
             self.buffered.clear();
             let buffer = self.inner.fill_buf()?;
             if buffer.is_empty() {
                 return Ok(NextPacket::NoData);
             }
+            println!(">>>>>>>>>>>>>>>>>>>>>>> reading from {:?}", &buffer[..2]);
             let available = buffer.len();
             match PacketBufReaderDef::<'a, R, W, B, BR, P, Inner>::read_header(buffer)? {
                 PacketHeaderState::NotFound => {
+                    println!(
+                        ">>>>>>>>>>>>>>>>>> NOT FOUND IN BUF: {} bytes",
+                        buffer.len()
+                    );
                     // Nothing found
                     self.rules.ignore(buffer)?;
                     // Consume all ignored data
@@ -273,6 +291,7 @@ impl<
                         // Consume until valid signature
                         self.inner.consume(from - 1);
                     }
+                    println!(">>>>>>>>>>>>>>>>>>>>>>> 000002");
                     return Ok(NextPacket::NotEnoughData(needed));
                 }
                 PacketHeaderState::Found(header, sgmt) => {
@@ -280,23 +299,42 @@ impl<
                     if sgmt.start() > &0 {
                         self.rules.ignore(&buffer[..*sgmt.start()])?;
                     }
+                    println!("HEADER READ: {header:?}: {sgmt:?}");
                     let packet_size = header.size as usize;
-                    let needs = packet_size + *sgmt.start();
+                    let needs = packet_size + *sgmt.end();
                     if needs > available {
+                        println!(
+                            ">>>>>>>>>>>>>>>>>>>>>>> before 000003, buffer = {}",
+                            self.buffered.len()
+                        );
                         // Not enough data to load packet
                         self.buffered.extend_from_slice(&buffer[*sgmt.end()..]);
-                        self.inner.consume(*sgmt.end());
+                        self.inner.consume(available);
                         self.recent = Some(header);
+                        println!(
+                            ">>>>>>>>>>>>>>>>>>>>>>> 000003, buffer = {}",
+                            self.buffered.len()
+                        );
                         return Ok(NextPacket::NotEnoughData(needs - available));
                     }
+                    // Consume header
+                    self.inner.consume(*sgmt.end());
+                    // Again fill buffer
+                    let buffer = self.inner.fill_buf()?;
+                    if buffer.len() < header.size as usize {
+                        println!("**** IMPOSSIBLE **** ");
+                        panic!("**** IMPOSSIBLE **** ");
+                    }
+                    println!(">>>>>>>>>>>>>>>>>>>>>>> all good, reading");
+                    let consume = Some(header.size);
                     (
-                        BufReader::new(&buffer[*sgmt.end()..*sgmt.start() + header.size as usize]),
+                        BufReader::new(&buffer[..header.size as usize]),
                         header,
+                        consume,
                     )
                 }
             }
         };
-        let rest_for_pkg = header.size as usize;
         let mut buffer = vec![0u8; header.blocks_len as usize];
         reader.read_exact(&mut buffer)?;
         let mut blocks = Vec::new();
@@ -311,13 +349,14 @@ impl<
                 let blk = match BR::read_from_slice(&buffer[processed..], false) {
                     Ok(blk) => blk,
                     Err(err) => {
-                        self.inner.consume(rest_for_pkg);
                         self.buffered.clear();
+                        consume.map(|s| self.inner.consume(s as usize));
                         return Err(err);
                     }
                 };
                 if blk.size() == 0 {
                     self.buffered.clear();
+                    consume.map(|s| self.inner.consume(s as usize));
                     return Err(Error::ZeroLengthBlock);
                 }
                 processed += blk.size() as usize;
@@ -328,12 +367,13 @@ impl<
                 }
             }
         }
+        println!(">>>>>>>>>>>>>>>>>>>>>>> blocks: {}", blocks.len());
         let referred = PacketReferred::new(blocks, header);
         self.rules.map(&referred)?;
         if !self.rules.filter(&referred) {
             // PacketDef marked as ignored
-            self.inner.consume(rest_for_pkg);
             self.buffered.clear();
+            consume.map(|s| self.inner.consume(s as usize));
             return Ok(NextPacket::Ignored);
         }
         let blocks = referred
@@ -345,11 +385,25 @@ impl<
         let header = referred.header;
         // Loading payload if exists
         if header.payload {
+            println!(
+                ">>>>>>>>>>>>>>>>>>>>>>> reading payload; needs: {}",
+                header.size - header.blocks_len
+            );
             let mut buffer = reader.fill_buf()?;
+            println!(
+                ">>>>>>>>>>>>>>>>>>>>>>> reading payload; has: {}",
+                buffer.len()
+            );
             match <PayloadHeader as TryReadFromBuffered>::try_read(&mut buffer) {
                 Ok(ReadStatus::Success(header)) => {
                     reader.consume(header.size());
                     let mut buffer = reader.fill_buf()?;
+                    println!(
+                        ">>>>>>>>>>>>>>>>>>>>>>> payload header read: paylaod size: {} / {} / {}",
+                        header.size(),
+                        header.payload_len(),
+                        buffer.len()
+                    );
                     match <P as TryExtractPayloadFromBuffered<Inner>>::try_read(
                         &mut buffer,
                         &header,
@@ -357,11 +411,15 @@ impl<
                         ReadStatus::Success(payload) => {
                             reader.consume(header.payload_len());
                             pkg.payload = Some(payload);
+                            println!(">>>>>>>>>>>>>>>>>>>>>>> PAYLOAD EXTRACTED");
                         }
                         ReadStatus::NotEnoughData(needed) => {
                             // This is error, but not NextPacket::NotEnoughData because length of payload
                             // already has been check. If we are here - some data is invalid and
                             // it's an error
+                            println!(">>>>>>>>>>>>>>>>>>>>>>> 000004");
+                            self.buffered.clear();
+                            consume.map(|s| self.inner.consume(s as usize));
                             return Err(Error::NotEnoughData(needed as usize));
                         }
                     }
@@ -370,17 +428,20 @@ impl<
                     // This is error, but not NextPacket::NotEnoughData because length of payload
                     // already has been check. If we are here - some data is invalid and
                     // it's an error
+                    println!(">>>>>>>>>>>>>>>>>>>>>>> 000005");
+                    self.buffered.clear();
+                    consume.map(|s| self.inner.consume(s as usize));
                     return Err(Error::NotEnoughData(needed as usize));
                 }
                 Err(err) => {
-                    self.inner.consume(rest_for_pkg);
                     self.buffered.clear();
+                    consume.map(|s| self.inner.consume(s as usize));
                     return Err(err);
                 }
             }
         }
-        self.inner.consume(rest_for_pkg);
         self.buffered.clear();
+        consume.map(|s| self.inner.consume(s as usize));
         Ok(NextPacket::Found(pkg))
     }
 }

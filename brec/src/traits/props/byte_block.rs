@@ -1,6 +1,6 @@
 use crate::*;
 
-#[derive(PartialEq, Eq)]
+#[derive(PartialEq, Eq, Debug)]
 pub enum ByteBlock {
     Len4([u8; 4]),
     Len8([u8; 8]),

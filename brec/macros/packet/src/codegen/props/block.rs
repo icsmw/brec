@@ -4,15 +4,15 @@ use quote::quote;
 
 impl Crc for Block {
     fn gen(&self) -> Result<TokenStream, E> {
-        let packet_name = self.name();
+        let block_name = self.name();
         let referred_name = self.referred_name();
         let mut hash_packet = Vec::new();
         let mut hash_referred = Vec::new();
         for field in self.fields.iter().filter(|f| !f.injected) {
-            let packet = field.to_bytes(true)?;
+            let value = field.to_bytes(true)?;
             let referred = field.to_bytes(false)?;
             hash_packet.push(quote! {
-                hasher.update(#packet);
+                hasher.update(#value);
             });
             hash_referred.push(quote! {
                 hasher.update(#referred);
@@ -20,7 +20,7 @@ impl Crc for Block {
         }
         Ok(quote! {
 
-            impl brec::CrcU32 for #packet_name {
+            impl brec::CrcU32 for #block_name {
 
                 fn crc(&self) -> [u8; 4] {
                     let mut hasher = brec::crc32fast::Hasher::new();

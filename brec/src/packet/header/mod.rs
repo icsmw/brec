@@ -35,12 +35,11 @@ impl PacketHeader {
         payload: Option<&Inner>,
     ) -> std::io::Result<Self> {
         let blocks_len: u64 = blocks.iter().map(|blk| blk.size()).sum();
-        let payload_header_len: u64 = payload
+        let payload_len: u64 = payload
             .as_ref()
-            .map(|p| PayloadHeader::ssize(*p).map(|s| s as u64))
+            .map(|payload| Self::payload_size(*payload))
             .unwrap_or(Ok(0))?;
-        let payload_body_len: u64 = payload.as_ref().map(|p| p.size()).unwrap_or(Ok(0))?;
-        let size = blocks_len + payload_header_len + payload_body_len + Self::SIZE;
+        let size = blocks_len + payload_len;
         let mut hasher = crc32fast::Hasher::new();
         hasher.update(&size.to_le_bytes());
         hasher.update(&blocks_len.to_le_bytes());

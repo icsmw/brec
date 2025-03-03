@@ -34,6 +34,7 @@ impl ReadFrom for PacketHeader {
         if pkg.crc.to_le_bytes() == pkg.crc() {
             Ok(pkg)
         } else {
+            println!(">>>>>>>>>>>>>>>>> HEADER IS DISMATCH");
             Err(Error::CrcDismatch)
         }
     }
@@ -67,6 +68,7 @@ impl ReadBlockFromSlice for PacketHeader {
         if pkg.crc.to_le_bytes() == pkg.crc() {
             Ok(pkg)
         } else {
+            println!(">>>>>>>>>>>>>>>>> HEADER IS DISMATCH");
             Err(Error::CrcDismatch)
         }
     }
