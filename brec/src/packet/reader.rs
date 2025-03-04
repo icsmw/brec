@@ -73,6 +73,15 @@ pub enum ResolveHeaderReady<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInn
 /// and mixed streams where `brec` packets are interspersed with other data. The `Rules` mechanism
 /// allows users to handle non-`brec` data instead of discarding it, enabling logging or reprocessing
 /// if necessary.
+///
+/// It is important to note that there is no need to use `PacketBufReaderDef` directly.
+/// When invoking the `include_generated!()` macro, a wrapper type `PacketBufReader<R: std::io::Read, W: std::io::Write>`
+/// is generated, eliminating the requirement to specify all generic parameters manually. Users should
+/// prefer `PacketBufReader` when creating a reader instance.
+///
+/// The generic parameters `<B, BR, P, Inner>` are automatically bound to the `Block` and `Payload`
+/// types defined by the user using the corresponding `#[block]` and `#[payload]` macros.
+/// This abstraction frees the user from the need to explicitly propagate these types.
 pub struct PacketBufReaderDef<
     'a,
     R: std::io::Read,
@@ -102,6 +111,12 @@ impl<
         Inner: PayloadInnerDef,
     > PacketBufReaderDef<'a, R, W, B, BR, P, Inner>
 {
+    /// Parses a packet header from the provided buffer.
+    ///
+    /// This function attempts to locate the `brec` packet signature in the given byte slice.
+    /// If a signature is found but there is insufficient data to parse the full header,
+    /// it returns `PacketHeaderState::NotEnoughData`. If the header is successfully parsed,
+    /// it returns `PacketHeaderState::Found`.
     fn read_header(buffer: &[u8]) -> Result<PacketHeaderState, Error> {
         let Some(offset) = PacketHeader::get_pos(buffer) else {
             // Signature of PacketDef isn't found
@@ -117,6 +132,10 @@ impl<
         ))
     }
 
+    /// Clears the internal buffer and consumes a specified number of bytes from the reader.
+    ///
+    /// This function is used to maintain the correct reading position while ensuring
+    /// that previously processed data does not interfere with subsequent reads.
     fn drop_and_consume(
         &mut self,
         consume: Option<usize>,
@@ -129,6 +148,11 @@ impl<
         result
     }
 
+    /// Attempts to process a previously detected header when sufficient data is available.
+    ///
+    /// If enough data is present in the buffer, the method confirms the presence of the packet
+    /// and returns `ResolveHeaderReady::Resolved`. Otherwise, it buffers additional data and
+    /// signals `ResolveHeaderReady::Next` with `NotEnoughData`.
     fn resolve_header_ready(
         &mut self,
         header: PacketHeader,
@@ -154,6 +178,10 @@ impl<
         Ok(ResolveHeaderReady::Resolved(header))
     }
 
+    /// Processes buffered data when more input is required to complete header parsing.
+    ///
+    /// This method is used in cases where an incomplete header was previously encountered.
+    /// It attempts to read additional data and, if successful, resumes header parsing.
     fn resolve_header_refill(
         &mut self,
         mut buffer: Vec<u8>,
