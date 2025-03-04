@@ -1,190 +1,78 @@
-use std::{io::BufRead, ops::RangeInclusive};
+use std::io::BufRead;
 
 use crate::*;
 
-pub enum RuleFnDef<D, S> {
-    Dynamic(D),
-    Static(S),
-}
-
-pub type IgnoredCallback = RuleFnDef<Box<dyn Fn(&[u8])>, fn(&[u8])>;
-
-pub type WriteIgnoredCallback<W> = RuleFnDef<
-    Box<dyn Fn(&mut std::io::BufWriter<W>, &[u8]) -> std::io::Result<()>>,
-    fn(&mut std::io::BufWriter<W>, &[u8]) -> std::io::Result<()>,
->;
-
-pub type FilterCallback<B, BR, P, Inner> = RuleFnDef<
-    Box<dyn Fn(&PacketReferred<B, BR, P, Inner>) -> bool>,
-    fn(&PacketReferred<B, BR, P, Inner>) -> bool,
->;
-
-pub type MapCallback<W, B, BR, P, Inner> = RuleFnDef<
-    Box<
-        dyn Fn(&mut std::io::BufWriter<W>, &PacketReferred<B, BR, P, Inner>) -> std::io::Result<()>,
-    >,
-    fn(&mut std::io::BufWriter<W>, &PacketReferred<B, BR, P, Inner>) -> std::io::Result<()>,
->;
-
-#[enum_ids::enum_ids(display)]
-pub enum RuleDef<
-    W: std::io::Write,
-    B: BlockDef,
-    BR: BlockReferredDef<B>,
-    P: PayloadDef<Inner>,
-    Inner: PayloadInnerDef,
-> {
-    Ignored(IgnoredCallback),
-    WriteIgnored(std::io::BufWriter<W>, WriteIgnoredCallback<W>),
-    Filter(FilterCallback<B, BR, P, Inner>),
-    Map(std::io::BufWriter<W>, MapCallback<W, B, BR, P, Inner>),
-}
-
-pub struct RulesDef<
-    W: std::io::Write,
-    B: BlockDef,
-    BR: BlockReferredDef<B>,
-    P: PayloadDef<Inner>,
-    Inner: PayloadInnerDef,
-> {
-    pub rules: Vec<RuleDef<W, B, BR, P, Inner>>,
-}
-
-impl<
-        W: std::io::Write,
-        B: BlockDef,
-        BR: BlockReferredDef<B>,
-        P: PayloadDef<Inner>,
-        Inner: PayloadInnerDef,
-    > Default for RulesDef<W, B, BR, P, Inner>
-{
-    fn default() -> Self {
-        Self { rules: Vec::new() }
-    }
-}
-
-impl<
-        W: std::io::Write,
-        B: BlockDef,
-        BR: BlockReferredDef<B>,
-        P: PayloadDef<Inner>,
-        Inner: PayloadInnerDef,
-    > RulesDef<W, B, BR, P, Inner>
-{
-    pub fn add_rule(&mut self, rule: RuleDef<W, B, BR, P, Inner>) -> Result<(), Error> {
-        match &rule {
-            RuleDef::Filter(..) => {
-                if self.rules.iter().any(|r| matches!(r, RuleDef::Filter(..))) {
-                    return Err(Error::RuleDuplicate);
-                }
-            }
-            RuleDef::Ignored(..) => {
-                if self.rules.iter().any(|r| matches!(r, RuleDef::Ignored(..))) {
-                    return Err(Error::RuleDuplicate);
-                }
-            }
-            RuleDef::Map(..) => {
-                if self.rules.iter().any(|r| matches!(r, RuleDef::Map(..))) {
-                    return Err(Error::RuleDuplicate);
-                }
-            }
-            RuleDef::WriteIgnored(..) => {
-                if self
-                    .rules
-                    .iter()
-                    .any(|r| matches!(r, RuleDef::WriteIgnored(..)))
-                {
-                    return Err(Error::RuleDuplicate);
-                }
-            }
-        };
-        self.rules.push(rule);
-        Ok(())
-    }
-
-    pub fn remove_rule(&mut self, rule: RuleDefId) {
-        self.rules
-            .retain(|r| r.id().to_string() != rule.to_string());
-    }
-
-    pub fn ignore(&mut self, buffer: &[u8]) -> Result<(), Error> {
-        for rule in self.rules.iter_mut() {
-            match rule {
-                RuleDef::Ignored(cb) => match cb {
-                    RuleFnDef::Static(cb) => cb(buffer),
-                    RuleFnDef::Dynamic(cb) => cb(buffer),
-                },
-                RuleDef::WriteIgnored(dest, cb) => match cb {
-                    RuleFnDef::Static(cb) => {
-                        cb(dest, buffer)?;
-                    }
-                    RuleFnDef::Dynamic(cb) => {
-                        cb(dest, buffer)?;
-                    }
-                },
-                _ignored => {}
-            }
-        }
-        Ok(())
-    }
-    pub fn filter(&mut self, referred: &PacketReferred<B, BR, P, Inner>) -> bool {
-        let Some(cb) = self.rules.iter().find_map(|r| {
-            if let RuleDef::Filter(cb) = r {
-                Some(cb)
-            } else {
-                None
-            }
-        }) else {
-            return true;
-        };
-        match cb {
-            RuleFnDef::Static(cb) => cb(referred),
-            RuleFnDef::Dynamic(cb) => cb(referred),
-        }
-    }
-    pub fn map(&mut self, referred: &PacketReferred<B, BR, P, Inner>) -> Result<(), Error> {
-        let Some((writer, cb)) = self.rules.iter_mut().find_map(|r| {
-            if let RuleDef::Map(writer, cb) = r {
-                Some((writer, cb))
-            } else {
-                None
-            }
-        }) else {
-            return Ok(());
-        };
-        match cb {
-            RuleFnDef::Static(cb) => cb(writer, referred)?,
-            RuleFnDef::Dynamic(cb) => cb(writer, referred)?,
-        }
-        Ok(())
-    }
-}
-
+/// Represents the result of reading from `PacketBufReaderDef`.
 pub enum NextPacket<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> {
+    /// Not enough data available to read the current packet.
+    /// This does not necessarily mean that a `brec` packet was detected but rather that
+    /// additional data is required to determine its presence.
+    ///
+    /// `PacketBufReaderDef` may also return `NotEnoughData(0)` if a previous iteration
+    /// was unable to read a `brec` header. In such cases, reading should continue.
     NotEnoughData(usize),
+
+    /// Returned when `PacketBufReaderDef` is unable to obtain new data.
+    /// If this result is received, there is no point in continuing the read operation
+    /// as the data source appears to be exhausted.
     NoData,
+
+    /// Returned if `PacketBufReaderDef` reads a segment of data but does not detect a `brec` packet.
+    /// Reading may continue in the next iteration.
+    ///
+    /// If a non-`brec` segment is detected in the same iteration where a `brec` packet is found,
+    /// `NoData` will not be returned. Instead, `NotEnoughData`, `Ignored`, or `Found` will be used.
     NotFound,
+
+    /// Returned when `PacketBufReaderDef` recognizes a `brec` packet but it was ignored according to the rules.
     Ignored,
+
+    /// Indicates successful parsing of a `brec` packet that has passed filtering rules (if any exist).
     Found(PacketDef<B, P, Inner>),
 }
-
+/// Internal structure used by `PacketBufReaderDef` when reading packet headers.
 pub enum PacketHeaderState {
+    /// Header was not found.
     NotFound,
+    /// Not enough data available to read the header.
     NotEnoughData(usize, usize),
+    /// Header was successfully read.
+    ///
+    /// Contains:
+    /// - The parsed `PacketHeader`.
+    /// - The position of the header within the provided data slice.
     Found(PacketHeader, std::ops::RangeInclusive<usize>),
 }
 
+/// Internal structure used by `PacketBufReaderDef` when reading packet headers.
+/// This structure is utilized in rare cases when there is insufficient data to read a header.
 pub enum HeaderReadState {
+    /// The header has been successfully read.
     Ready(Option<PacketHeader>),
+    /// More data is required.
+    ///
+    /// Contains:
+    /// - A buffer storing previously received data.
+    /// - The size of the missing data required to complete the header read.
     Refill(Option<(Vec<u8>, usize)>),
+    /// Default state. Indicates that no additional data loading is required for reading a header.
     Empty,
 }
 
+/// Internal structure used by `PacketBufReaderDef` for handling packet header resolution.
 pub enum ResolveHeaderReady<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> {
+    /// Indicates that the next action should be taken in processing.
     Next(NextPacket<B, P, Inner>),
+    /// The packet header has been successfully resolved.
     Resolved(PacketHeader),
 }
 
+/// A stream reader for extracting `brec` packets.
+///
+/// `PacketBufReaderDef` supports reading from both "pure" streams containing only `brec` packets
+/// and mixed streams where `brec` packets are interspersed with other data. The `Rules` mechanism
+/// allows users to handle non-`brec` data instead of discarding it, enabling logging or reprocessing
+/// if necessary.
 pub struct PacketBufReaderDef<
     'a,
     R: std::io::Read,
@@ -194,9 +82,13 @@ pub struct PacketBufReaderDef<
     P: PayloadDef<Inner>,
     Inner: PayloadInnerDef,
 > {
+    /// Buffered reader for handling input stream operations.
     inner: std::io::BufReader<&'a mut R>,
+    /// Collection of processing rules applied to incoming data.
     rules: RulesDef<W, B, BR, P, Inner>,
+    /// Stores the current state of the header reading process.
     recent: HeaderReadState,
+    /// Internal buffer for accumulating data before processing.
     buffered: Vec<u8>,
 }
 
@@ -210,23 +102,6 @@ impl<
         Inner: PayloadInnerDef,
     > PacketBufReaderDef<'a, R, W, B, BR, P, Inner>
 {
-    pub fn new(inner: &'a mut R) -> Self {
-        Self {
-            inner: std::io::BufReader::new(inner),
-            rules: RulesDef::default(),
-            recent: HeaderReadState::Empty,
-            buffered: Vec::with_capacity(u32::MAX as usize),
-        }
-    }
-
-    pub fn add_rule(&mut self, rule: RuleDef<W, B, BR, P, Inner>) -> Result<(), Error> {
-        self.rules.add_rule(rule)
-    }
-
-    pub fn remove_rule(&mut self, rule: RuleDefId) {
-        self.rules.remove_rule(rule);
-    }
-
     fn read_header(buffer: &[u8]) -> Result<PacketHeaderState, Error> {
         let Some(offset) = PacketHeader::get_pos(buffer) else {
             // Signature of PacketDef isn't found
@@ -306,6 +181,33 @@ impl<
         }
     }
 
+    /// Creates a new instance of the reader.
+    pub fn new(inner: &'a mut R) -> Self {
+        Self {
+            inner: std::io::BufReader::new(inner),
+            rules: RulesDef::default(),
+            recent: HeaderReadState::Empty,
+            buffered: Vec::with_capacity(u32::MAX as usize),
+        }
+    }
+
+    /// Adds a processing rule. See `RuleDef` for more details.
+    pub fn add_rule(&mut self, rule: RuleDef<W, B, BR, P, Inner>) -> Result<(), Error> {
+        self.rules.add_rule(rule)
+    }
+
+    /// Removes a previously added rule. See `RuleDef` for more details.
+    pub fn remove_rule(&mut self, rule: RuleDefId) {
+        self.rules.remove_rule(rule);
+    }
+
+    /// Reads the current portion of data available in the internal `BufReader`.
+    ///
+    /// This method does **not** invoke `read` or otherwise fetch additional data into the internal buffer.
+    /// Instead, it processes only the existing buffered data. However, `consume` **will be called** to advance
+    /// the read position.
+    ///
+    /// To continue reading, the user must call `read` on `PacketBufReaderDef` again to process more data.
     pub fn read(&mut self) -> Result<NextPacket<B, P, Inner>, Error> {
         let recent = std::mem::replace(&mut self.recent, HeaderReadState::Empty);
         let (packet_buffer, header, consume) = match recent {

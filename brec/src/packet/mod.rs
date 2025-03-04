@@ -2,11 +2,13 @@ mod header;
 mod read;
 mod reader;
 mod referred;
+mod rules;
 mod write;
 
 pub use header::*;
 pub use reader::*;
 pub use referred::*;
+pub use rules::*;
 
 use crate::*;
 
