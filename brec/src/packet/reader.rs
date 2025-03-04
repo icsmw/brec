@@ -1,4 +1,4 @@
-use std::io::BufRead;
+use std::{io::BufRead, ops::RangeInclusive};
 
 use crate::*;
 
@@ -176,8 +176,13 @@ pub enum PacketHeaderState {
 
 pub enum HeaderReadState {
     Ready(Option<PacketHeader>),
-    Reading(Option<(Vec<u8>, usize)>),
+    Refill(Option<(Vec<u8>, usize)>),
     Empty,
+}
+
+pub enum ResolveHeaderReady<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> {
+    Next(NextPacket<B, P, Inner>),
+    Resolved(PacketHeader),
 }
 
 pub struct PacketBufReaderDef<
@@ -249,49 +254,67 @@ impl<
         result
     }
 
+    fn resolve_header_ready(
+        &mut self,
+        header: PacketHeader,
+    ) -> Result<ResolveHeaderReady<B, P, Inner>, Error> {
+        let buffer = self.inner.fill_buf()?;
+        // Check do we have enough data to load packet
+        let packet_size = header.size as usize;
+        let available = self.buffered.len() + buffer.len();
+        if packet_size > available {
+            // Not enough data to load packet
+            let consumed = buffer.len();
+            self.buffered.extend_from_slice(buffer);
+            self.inner.consume(consumed);
+            self.recent = HeaderReadState::Ready(Some(header));
+            return Ok(ResolveHeaderReady::Next(NextPacket::NotEnoughData(
+                packet_size - available,
+            )));
+        }
+        let rest_data = packet_size - self.buffered.len();
+        // Copy and consume only needed data
+        self.buffered.extend_from_slice(&buffer[..rest_data]);
+        self.inner.consume(rest_data);
+        Ok(ResolveHeaderReady::Resolved(header))
+    }
+
+    fn resolve_header_refill(
+        &mut self,
+        mut buffer: Vec<u8>,
+        needed: usize,
+    ) -> Result<NextPacket<B, P, Inner>, Error> {
+        let extracted = self.inner.fill_buf()?;
+        if extracted.is_empty() {
+            return Ok(NextPacket::NoData);
+        }
+        let extracted_len = extracted.len();
+        if extracted_len < needed {
+            buffer.extend_from_slice(extracted);
+            self.inner.consume(extracted_len);
+            self.recent = HeaderReadState::Refill(Some((buffer, needed - extracted_len)));
+            return Ok(NextPacket::NotEnoughData(needed - extracted_len));
+        }
+        buffer.extend_from_slice(&extracted[..needed]);
+        self.inner.consume(needed);
+        match PacketBufReaderDef::<'a, R, W, B, BR, P, Inner>::read_header(&buffer)? {
+            PacketHeaderState::Found(header, _sgmt) => {
+                self.recent = HeaderReadState::Ready(Some(header));
+                Ok(NextPacket::NotEnoughData(0))
+            }
+            _ => Err(Error::FailToReadPacketHeader),
+        }
+    }
+
     pub fn read(&mut self) -> Result<NextPacket<B, P, Inner>, Error> {
         let recent = std::mem::replace(&mut self.recent, HeaderReadState::Empty);
         let (packet_buffer, header, consume) = match recent {
-            HeaderReadState::Ready(Some(header)) => {
-                let buffer = self.inner.fill_buf()?;
-                // Check do we have enough data to load packet
-                let packet_size = header.size as usize;
-                let available = self.buffered.len() + buffer.len();
-                if packet_size > available {
-                    // Not enough data to load packet
-                    let consumed = buffer.len();
-                    self.buffered.extend_from_slice(buffer);
-                    self.inner.consume(consumed);
-                    self.recent = HeaderReadState::Ready(Some(header));
-                    return Ok(NextPacket::NotEnoughData(packet_size - available));
-                }
-                let rest_data = packet_size - self.buffered.len();
-                // Copy and consume only needed data
-                self.buffered.extend_from_slice(&buffer[..rest_data]);
-                self.inner.consume(rest_data);
-                (self.buffered.as_slice(), header, None)
-            }
-            HeaderReadState::Reading(Some((mut buffer, needed))) => {
-                let extracted = self.inner.fill_buf()?;
-                if extracted.is_empty() {
-                    return Ok(NextPacket::NoData);
-                }
-                let extracted_len = extracted.len();
-                if extracted_len < needed {
-                    buffer.extend_from_slice(extracted);
-                    self.inner.consume(extracted_len);
-                    self.recent = HeaderReadState::Reading(Some((buffer, needed - extracted_len)));
-                    return Ok(NextPacket::NotEnoughData(needed - extracted_len));
-                }
-                buffer.extend_from_slice(&extracted[..needed]);
-                self.inner.consume(needed);
-                match PacketBufReaderDef::<'a, R, W, B, BR, P, Inner>::read_header(&buffer)? {
-                    PacketHeaderState::Found(header, _sgmt) => {
-                        self.recent = HeaderReadState::Ready(Some(header));
-                        return Ok(NextPacket::NotEnoughData(0));
-                    }
-                    _ => return Err(Error::FailToReadPacketHeader),
-                }
+            HeaderReadState::Ready(Some(header)) => match self.resolve_header_ready(header)? {
+                ResolveHeaderReady::Next(next) => return Ok(next),
+                ResolveHeaderReady::Resolved(header) => (self.buffered.as_slice(), header, None),
+            },
+            HeaderReadState::Refill(Some((buffer, needed))) => {
+                return self.resolve_header_refill(buffer, needed);
             }
             HeaderReadState::Empty => {
                 self.buffered.clear();
@@ -304,7 +327,7 @@ impl<
                     let needed = (PacketHeader::ssize() as usize) - available;
                     let mut data: Vec<u8> = Vec::with_capacity(buffer.len());
                     data.extend_from_slice(buffer);
-                    self.recent = HeaderReadState::Reading(Some((data, needed)));
+                    self.recent = HeaderReadState::Refill(Some((data, needed)));
                     self.inner.consume(available);
                     return Ok(NextPacket::NotEnoughData(needed));
                 }
@@ -323,7 +346,7 @@ impl<
                         }
                         let mut data: Vec<u8> = Vec::with_capacity(buffer.len() - from);
                         data.extend_from_slice(&buffer[from..]);
-                        self.recent = HeaderReadState::Reading(Some((data, needed)));
+                        self.recent = HeaderReadState::Refill(Some((data, needed)));
                         self.inner.consume(available);
                         return Ok(NextPacket::NotEnoughData(needed));
                     }
