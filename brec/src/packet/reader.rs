@@ -25,7 +25,7 @@ pub enum NextPacket<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> {
     NotFound,
 
     /// Returned when `PacketBufReaderDef` recognizes a `brec` packet but it was ignored according to the rules.
-    Ignored,
+    Skipped,
 
     /// Indicates successful parsing of a `brec` packet that has passed filtering rules (if any exist).
     Found(PacketDef<B, P, Inner>),
@@ -171,6 +171,9 @@ impl<
                 packet_size - available,
             )));
         }
+        if packet_size < self.buffered.len() {
+            return Err(Error::InvalidPacketReaderLogic);
+        }
         let rest_data = packet_size - self.buffered.len();
         // Copy and consume only needed data
         self.buffered.extend_from_slice(&buffer[..rest_data]);
@@ -189,6 +192,7 @@ impl<
     ) -> Result<NextPacket<B, P, Inner>, Error> {
         let extracted = self.inner.fill_buf()?;
         if extracted.is_empty() {
+            self.rules.ignore(&buffer)?;
             return Ok(NextPacket::NoData);
         }
         let extracted_len = extracted.len();
@@ -203,6 +207,9 @@ impl<
         buffer.extend_from_slice(&extracted[..needed]);
         match PacketBufReaderDef::<'a, R, W, B, BR, P, Inner>::read_header(&buffer)? {
             PacketHeaderState::Found(header, sgmt) => {
+                if sgmt.start() > &0 {
+                    self.rules.ignore(&buffer[..*sgmt.start()])?;
+                }
                 self.inner.consume(sgmt.end() - buffered);
                 self.recent = HeaderReadState::Ready(Some(header));
                 return Ok(NextPacket::NotEnoughData(0));
@@ -216,32 +223,30 @@ impl<
         let header_len = PacketHeader::ssize() as usize;
         match PacketBufReaderDef::<'a, R, W, B, BR, P, Inner>::read_header(&buffer)? {
             PacketHeaderState::Found(header, sgmt) => {
-                self.inner.consume(sgmt.end() - buffered);
-                self.recent = HeaderReadState::Ready(Some(header));
                 if sgmt.start() > &0 {
                     self.rules.ignore(&buffer[..*sgmt.start()])?;
                 }
+                self.inner.consume(sgmt.end() - buffered);
+                self.recent = HeaderReadState::Ready(Some(header));
                 Ok(NextPacket::NotEnoughData(0))
             }
             PacketHeaderState::NotEnoughData(from, needed) => {
-                self.inner.consume(extracted_len);
                 if from > 0 {
-                    self.rules.ignore(&buffer[..from])?;
-                }
-                if buffer.len() > header_len {
                     // We can drain most bytes in buffer and left only length of header signature
-                    buffer.drain(..(buffer.len() - header_len));
+                    self.rules.ignore(&buffer[..from])?;
+                    buffer.drain(..from);
                 }
+                self.inner.consume(extracted_len);
                 self.recent = HeaderReadState::Refill(Some((buffer, needed)));
                 Ok(NextPacket::NotEnoughData(needed))
             }
             PacketHeaderState::NotFound => {
-                self.inner.consume(extracted_len);
                 if buffer.len() > header_len {
-                    self.rules.ignore(&buffer[buffer.len() - header_len..])?;
+                    self.rules.ignore(&buffer[..buffer.len() - header_len])?;
                     // We can drain most bytes in buffer and left only length of header signature
                     buffer.drain(..(buffer.len() - header_len));
                 }
+                self.inner.consume(extracted_len);
                 self.recent = HeaderReadState::Refill(Some((buffer, header_len)));
                 Ok(NextPacket::NotFound)
             }
@@ -294,7 +299,7 @@ impl<
                 let available = buffer.len();
                 if available < PacketHeader::ssize() as usize {
                     let needed = (PacketHeader::ssize() as usize) - available;
-                    let mut data: Vec<u8> = Vec::with_capacity(buffer.len());
+                    let mut data: Vec<u8> = Vec::with_capacity(available);
                     data.extend_from_slice(buffer);
                     self.recent = HeaderReadState::Refill(Some((data, needed)));
                     self.inner.consume(available);
@@ -388,7 +393,7 @@ impl<
         self.rules.map(&referred)?;
         if !self.rules.filter(&referred) {
             // PacketDef marked as ignored
-            return self.drop_and_consume(consume, Ok(NextPacket::Ignored));
+            return self.drop_and_consume(consume, Ok(NextPacket::Skipped));
         }
         let blocks = referred
             .blocks

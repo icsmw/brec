@@ -2,6 +2,10 @@ use brec::prelude::*;
 use proptest::prelude::*;
 
 use crate::*;
+use std::sync::{
+    atomic::{AtomicUsize, Ordering},
+    Arc,
+};
 
 brec::include_generated!("crate::*");
 
@@ -82,34 +86,38 @@ fn write_to_buf<W: std::io::Write>(
 fn write_to_buf_with_litter<W: std::io::Write>(
     buffer: &mut W,
     packets: &[LitteredPacket],
-) -> std::io::Result<()> {
+) -> std::io::Result<usize> {
+    let mut litter_len = 0;
     for wrapped in packets.iter() {
         let mut packet: Packet = (&wrapped.packet).into();
         if let Some(litter) = wrapped.before.as_ref() {
-            buffer.write_all(litter)?
+            litter_len += litter.len();
+            buffer.write_all(litter)?;
         }
         packet.write_all(buffer)?;
         if let Some(litter) = wrapped.after.as_ref() {
-            buffer.write_all(litter)?
+            litter_len += litter.len();
+            buffer.write_all(litter)?;
         }
     }
-    Ok(())
+    Ok(litter_len)
 }
 
-fn read_packets(buffer: &[u8]) -> std::io::Result<Vec<Packet>> {
+fn read_packets(buffer: &[u8]) -> std::io::Result<(usize, Vec<Packet>)> {
     use std::io::{BufReader, Cursor};
 
     let mut packets: Vec<Packet> = Vec::new();
     let mut inner = BufReader::new(Cursor::new(buffer));
     let mut reader: PacketBufReader<_, std::io::BufWriter<Vec<u8>>> =
         PacketBufReader::new(&mut inner);
-    let mut ignored = 0;
-    let mut cb = |bytes: &[u8]| {
-        println!("ignored: {}", bytes.len());
+    let litter_len: Arc<AtomicUsize> = Arc::new(AtomicUsize::new(0));
+    let inner = litter_len.clone();
+    let cb = move |bytes: &[u8]| {
+        inner.fetch_add(bytes.len(), Ordering::SeqCst);
     };
-    // reader
-    //     .add_rule(Rule::Ignored(brec::RuleFnDef::Dynamic(Box::new(cb))))
-    //     .unwrap();
+    reader
+        .add_rule(Rule::Ignored(brec::RuleFnDef::Dynamic(Box::new(cb))))
+        .unwrap();
     loop {
         match reader.read() {
             Ok(next) => match next {
@@ -120,8 +128,11 @@ fn read_packets(buffer: &[u8]) -> std::io::Result<Vec<Packet>> {
                 NextPacket::NotEnoughData(_needed) => {
                     // Data will be refilled with next call
                 }
-                _ => {
+                NextPacket::NoData => {
                     break;
+                }
+                NextPacket::Skipped => {
+                    //
                 }
             },
             Err(err) => {
@@ -133,10 +144,8 @@ fn read_packets(buffer: &[u8]) -> std::io::Result<Vec<Packet>> {
             }
         };
     }
-    Ok(packets)
+    Ok((litter_len.load(Ordering::SeqCst), packets))
 }
-
-use std::sync::atomic::{AtomicUsize, Ordering};
 
 static BYTES: AtomicUsize = AtomicUsize::new(0);
 static INSTANCES: AtomicUsize = AtomicUsize::new(0);
@@ -177,7 +186,7 @@ proptest! {
     fn try_read_from(packets in proptest::collection::vec(any::<WrappedPacket>(), 1..1000)) {
         let mut buf = Vec::new();
         write_to_buf(&mut buf, &packets)?;
-        let restored = read_packets(&buf)?;
+        let (_, restored) = read_packets(&buf)?;
         let count = restored.len();
         assert_eq!(packets.len(), count);
         for (left, right) in restored.into_iter().map(|pkg|pkg.into()).collect::<Vec<WrappedPacket>>().iter().zip(packets.iter()) {
@@ -187,10 +196,11 @@ proptest! {
     }
 
     #[test]
-    fn try_read_with_litter(packets in proptest::collection::vec(any::<LitteredPacket>(), 1..2000)) {
+    fn try_read_with_litter(packets in proptest::collection::vec(any::<LitteredPacket>(), 1..1000)) {
         let mut buf = Vec::new();
-        write_to_buf_with_litter(&mut buf, &packets)?;
-        let restored = read_packets(&buf)?;
+        let litter_len = write_to_buf_with_litter(&mut buf, &packets)?;
+        let (read_litter_len, restored) = read_packets(&buf)?;
+        assert_eq!(litter_len, read_litter_len);
         let count = restored.len();
         let packets = packets.into_iter().map(|p| p.packet).collect::<Vec<WrappedPacket>>();
         assert_eq!(packets.len(), count);
