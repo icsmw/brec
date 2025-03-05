@@ -9,11 +9,11 @@ pub enum RuleFnDef<D, S> {
 }
 
 /// Callback type for the `Ignored` rule. For more details on rules, see `RuleDef`.
-pub type IgnoredCallback = RuleFnDef<Box<dyn Fn(&[u8])>, fn(&[u8])>;
+pub type IgnoredCallback = RuleFnDef<Box<dyn FnMut(&[u8])>, fn(&[u8])>;
 
 /// Callback type for the `WriteIgnored` rule. For more details on rules, see `RuleDef`.
 pub type WriteIgnoredCallback<W> = RuleFnDef<
-    Box<dyn Fn(&mut std::io::BufWriter<W>, &[u8]) -> std::io::Result<()>>,
+    Box<dyn FnMut(&mut std::io::BufWriter<W>, &[u8]) -> std::io::Result<()>>,
     fn(&mut std::io::BufWriter<W>, &[u8]) -> std::io::Result<()>,
 >;
 
@@ -26,7 +26,10 @@ pub type FilterCallback<B, BR, P, Inner> = RuleFnDef<
 /// Callback type for the `Map` rule. For more details on rules, see `RuleDef`.
 pub type MapCallback<W, B, BR, P, Inner> = RuleFnDef<
     Box<
-        dyn Fn(&mut std::io::BufWriter<W>, &PacketReferred<B, BR, P, Inner>) -> std::io::Result<()>,
+        dyn FnMut(
+            &mut std::io::BufWriter<W>,
+            &PacketReferred<B, BR, P, Inner>,
+        ) -> std::io::Result<()>,
     >,
     fn(&mut std::io::BufWriter<W>, &PacketReferred<B, BR, P, Inner>) -> std::io::Result<()>,
 >;

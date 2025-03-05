@@ -198,14 +198,53 @@ impl<
             self.recent = HeaderReadState::Refill(Some((buffer, needed - extracted_len)));
             return Ok(NextPacket::NotEnoughData(needed - extracted_len));
         }
+        let buffered = buffer.len();
+        // First make attempt to read header without possible litter
         buffer.extend_from_slice(&extracted[..needed]);
-        self.inner.consume(needed);
         match PacketBufReaderDef::<'a, R, W, B, BR, P, Inner>::read_header(&buffer)? {
-            PacketHeaderState::Found(header, _sgmt) => {
+            PacketHeaderState::Found(header, sgmt) => {
+                self.inner.consume(sgmt.end() - buffered);
                 self.recent = HeaderReadState::Ready(Some(header));
+                return Ok(NextPacket::NotEnoughData(0));
+            }
+            _ => {
+                // Do nothing, because it might be litter in stream
+            }
+        }
+        // Second, if buffer has litter, header might be in next bytes. Trying all available bytes
+        buffer.extend_from_slice(&extracted[needed..]);
+        let header_len = PacketHeader::ssize() as usize;
+        match PacketBufReaderDef::<'a, R, W, B, BR, P, Inner>::read_header(&buffer)? {
+            PacketHeaderState::Found(header, sgmt) => {
+                self.inner.consume(sgmt.end() - buffered);
+                self.recent = HeaderReadState::Ready(Some(header));
+                if sgmt.start() > &0 {
+                    self.rules.ignore(&buffer[..*sgmt.start()])?;
+                }
                 Ok(NextPacket::NotEnoughData(0))
             }
-            _ => Err(Error::FailToReadPacketHeader),
+            PacketHeaderState::NotEnoughData(from, needed) => {
+                self.inner.consume(extracted_len);
+                if from > 0 {
+                    self.rules.ignore(&buffer[..from])?;
+                }
+                if buffer.len() > header_len {
+                    // We can drain most bytes in buffer and left only length of header signature
+                    buffer.drain(..(buffer.len() - header_len));
+                }
+                self.recent = HeaderReadState::Refill(Some((buffer, needed)));
+                Ok(NextPacket::NotEnoughData(needed))
+            }
+            PacketHeaderState::NotFound => {
+                self.inner.consume(extracted_len);
+                if buffer.len() > header_len {
+                    self.rules.ignore(&buffer[buffer.len() - header_len..])?;
+                    // We can drain most bytes in buffer and left only length of header signature
+                    buffer.drain(..(buffer.len() - header_len));
+                }
+                self.recent = HeaderReadState::Refill(Some((buffer, header_len)));
+                Ok(NextPacket::NotFound)
+            }
         }
     }
 
@@ -263,9 +302,17 @@ impl<
                 }
                 match PacketBufReaderDef::<'a, R, W, B, BR, P, Inner>::read_header(buffer)? {
                     PacketHeaderState::NotFound => {
-                        // Nothing found
-                        self.rules.ignore(buffer)?;
-                        // Consume all ignored data
+                        let header_len = PacketHeader::ssize() as usize;
+                        if available > header_len {
+                            self.rules.ignore(&buffer[..available - header_len])?;
+                            self.recent = HeaderReadState::Refill(Some((
+                                buffer[available - header_len..].to_vec(),
+                                header_len,
+                            )));
+                        } else {
+                            self.recent =
+                                HeaderReadState::Refill(Some((buffer.to_vec(), header_len)));
+                        }
                         self.inner.consume(available);
                         return Ok(NextPacket::NotFound);
                     }
