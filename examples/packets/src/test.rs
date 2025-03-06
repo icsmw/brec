@@ -157,7 +157,7 @@ fn report(bytes: usize, instance: usize) {
     INSTANCES.fetch_add(instance, Ordering::Relaxed);
     let bytes = BYTES.load(Ordering::Relaxed);
     println!(
-        "Generated {} payloads ({}, {} B)",
+        "Generated {} packets ({}, {} B)",
         INSTANCES.load(Ordering::Relaxed),
         if bytes > 1024 * 1024 {
             format!(
@@ -179,11 +179,11 @@ fn report(bytes: usize, instance: usize) {
 proptest! {
     #![proptest_config(ProptestConfig {
         max_shrink_iters: 50,
-        ..ProptestConfig::with_cases(200)
+        ..ProptestConfig::with_cases(500)
     })]
 
     #[test]
-    fn try_read_from(packets in proptest::collection::vec(any::<WrappedPacket>(), 1..1000)) {
+    fn try_read_from(packets in proptest::collection::vec(any::<WrappedPacket>(), 1..2000)) {
         let mut buf = Vec::new();
         write_to_buf(&mut buf, &packets)?;
         let (_, restored) = read_packets(&buf)?;
@@ -196,7 +196,7 @@ proptest! {
     }
 
     #[test]
-    fn try_read_with_litter(packets in proptest::collection::vec(any::<LitteredPacket>(), 1..1000)) {
+    fn try_read_with_litter(packets in proptest::collection::vec(any::<LitteredPacket>(), 1..2000)) {
         let mut buf = Vec::new();
         let litter_len = write_to_buf_with_litter(&mut buf, &packets)?;
         let (read_litter_len, restored) = read_packets(&buf)?;

@@ -96,12 +96,12 @@ fn report(bytes: usize, instance: usize) {
 proptest! {
     #![proptest_config(ProptestConfig {
         max_shrink_iters: 50,
-        ..ProptestConfig::with_cases(100)
+        ..ProptestConfig::with_cases(500)
     })]
 
 
     #[test]
-    fn check_sizes(mut payloads in proptest::collection::vec(any::<Payload>(), 1..1000)) {
+    fn check_sizes(mut payloads in proptest::collection::vec(any::<Payload>(), 1..2000)) {
         let mut bytes = 0;
         for payload in payloads.iter_mut() {
             let mut buffer = Vec::new();
@@ -114,7 +114,7 @@ proptest! {
     }
 
     #[test]
-    fn try_read_from(mut payloads in proptest::collection::vec(any::<Payload>(), 1..1000)) {
+    fn try_read_from(mut payloads in proptest::collection::vec(any::<Payload>(), 1..2000)) {
         let mut buf = Vec::new();
         write_to_buf(&mut buf, &mut payloads)?;
         let restored = read_payloads(&buf)?;

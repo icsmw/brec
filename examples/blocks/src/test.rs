@@ -131,12 +131,12 @@ fn report(bytes: usize, instance: usize) {
 proptest! {
     #![proptest_config(ProptestConfig {
         max_shrink_iters: 50,
-        ..ProptestConfig::with_cases(100)
+        ..ProptestConfig::with_cases(500)
     })]
 
 
     #[test]
-    fn try_read_from(blks in proptest::collection::vec(any::<Block>(), 1..1000)) {
+    fn try_read_from(blks in proptest::collection::vec(any::<Block>(), 1..2000)) {
         let mut buf = Vec::new();
         write_to_buf(&mut buf, &blks)?;
         let size = buf.len() as u64;
@@ -150,7 +150,7 @@ proptest! {
     }
 
     #[test]
-    fn try_read_from_buffered(blks in proptest::collection::vec(any::<Block>(), 1..1000)) {
+    fn try_read_from_buffered(blks in proptest::collection::vec(any::<Block>(), 1..2000)) {
         let mut buf = Vec::new();
         write_to_buf(&mut buf, &blks)?;
         let write = buf.len() as u64;
