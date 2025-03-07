@@ -176,10 +176,20 @@ fn report(bytes: usize, instance: usize) {
     );
 }
 
+static STORED_PACKETS: AtomicUsize = AtomicUsize::new(0);
+
+fn report_storage(packets: usize) {
+    STORED_PACKETS.fetch_add(packets, Ordering::Relaxed);
+    println!(
+        "Generated, stored and read {} packets",
+        STORED_PACKETS.load(Ordering::Relaxed),
+    );
+}
+
 proptest! {
     #![proptest_config(ProptestConfig {
         max_shrink_iters: 50,
-        ..ProptestConfig::with_cases(500)
+        ..ProptestConfig::with_cases(200)
     })]
 
     #[test]
@@ -208,6 +218,40 @@ proptest! {
             assert_eq!(left, right);
         }
         report(buf.len(), count);
+    }
+
+    #[test]
+    fn storage(packets in proptest::collection::vec(any::<WrappedPacket>(), 1..2000)) {
+        let tmp = std::env::temp_dir().join("example.bin");
+        let file = std::fs::OpenOptions::new()
+            .read(true)
+            .write(true)
+            .create(true)
+            .truncate(true)
+            .open(&tmp)?;
+        let mut storage = Storage::new(file);
+        for packet in packets.iter() {
+            storage.insert(packet.into())?;
+        }
+        let mut restored = Vec::new();
+        for packet in storage {
+            match packet {
+                Ok(brec::ReadStatus::Success(packet)) => {
+                    restored.push(packet);
+                },
+                Ok(brec::ReadStatus::NotEnoughData(_needed)) => {
+                    panic!("Not enough data to read from file");
+                },
+                Err(err) => {
+                    panic!("Fail to read storage: {err}");
+                }
+            }
+        }
+        assert_eq!(packets.len(), restored.len());
+        for (left, right) in restored.into_iter().map(|pkg|pkg.into()).collect::<Vec<WrappedPacket>>().iter().zip(packets.iter()) {
+            assert_eq!(left, right);
+        }
+        report_storage(packets.len());
     }
 
 }

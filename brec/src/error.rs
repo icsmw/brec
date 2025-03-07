@@ -44,4 +44,8 @@ pub enum Error {
     FailToReadPacketHeader,
     #[error("PacketBufReader fall down into invalid logic")]
     InvalidPacketReaderLogic,
+    #[error("Fail to find free slot")]
+    CannotFindFreeSlot,
+    #[error("Fail to insert data into slot")]
+    CannotInsertIntoSlot,
 }

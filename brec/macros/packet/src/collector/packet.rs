@@ -15,5 +15,7 @@ pub fn gen() -> Result<TokenStream, E> {
         pub type Rule<'a, W> = brec::RuleDef<W, Block, BlockReferred<'a>, Payload, Payload>;
 
         pub type RuleFnDef<D, S> = brec::RuleFnDef<D, S>;
+
+        pub type Storage<S: std::io::Read + std::io::Write + std::io::Seek> = brec::StorageDef<S, Block, Payload, Payload>;
     })
 }

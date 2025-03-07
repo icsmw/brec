@@ -1,5 +1,6 @@
 use crate::*;
 
+// TODO: needs a proptest
 impl<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> ReadFrom
     for PacketDef<B, P, Inner>
 {
@@ -28,6 +29,7 @@ impl<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> ReadFrom
     }
 }
 
+// TODO: needs a proptest
 impl<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> TryReadFrom
     for PacketDef<B, P, Inner>
 {
@@ -94,6 +96,7 @@ impl<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> TryReadFrom
     }
 }
 
+// TODO: needs a proptest
 impl<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> TryReadFromBuffered
     for PacketDef<B, P, Inner>
 {

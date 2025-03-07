@@ -13,12 +13,14 @@ pub mod error;
 pub mod packet;
 pub mod payload;
 pub mod prelude;
+pub mod storage;
 pub mod traits;
 
 pub use crc32fast;
 pub use packet_macro::*;
 pub use payload::{PayloadDecode, PayloadEncode, PayloadEncodeReferred, PayloadHeader};
 pub use r#include::*;
+pub use storage::*;
 
 pub use crate::error::*;
 pub use crate::packet::*;
