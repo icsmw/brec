@@ -1,11 +1,13 @@
-mod error;
 mod iters;
+mod locator;
+mod range;
 mod slot;
 
 use crate::*;
-pub use error::*;
 pub(crate) use iters::*;
-pub use slot::*;
+pub(crate) use locator::*;
+pub(crate) use range::*;
+pub(crate) use slot::*;
 
 pub struct StorageDef<
     S: std::io::Read + std::io::Write + std::io::Seek,
@@ -15,8 +17,8 @@ pub struct StorageDef<
 > {
     pub slots: Vec<Slot>,
     inner: S,
-    packets: PacketLocator,
     locator: FreeSlotLocator,
+    loaded: bool,
     _block: std::marker::PhantomData<B>,
     _payload: std::marker::PhantomData<P>,
     _payload_inner: std::marker::PhantomData<Inner>,
@@ -33,14 +35,14 @@ impl<
         Self {
             slots: Vec::new(),
             inner,
-            packets: PacketLocator::default(),
             locator: FreeSlotLocator::default(),
+            loaded: false,
             _block: std::marker::PhantomData,
             _payload: std::marker::PhantomData,
             _payload_inner: std::marker::PhantomData,
         }
     }
-    pub fn load(&mut self) -> Result<(), StorageError> {
+    pub fn load(&mut self) -> Result<(), Error> {
         let mut offset = 0;
         loop {
             self.inner.seek(std::io::SeekFrom::Start(offset))?;
@@ -53,23 +55,26 @@ impl<
                     break;
                 }
                 Err(Error::CrcDismatch) => {
-                    return Err(StorageError::DamagedSlot(Error::CrcDismatch))
+                    return Err(Error::DamagedSlot(Box::new(Error::CrcDismatch)))
                 }
                 Err(Error::SignatureDismatch) => {
-                    return Err(StorageError::DamagedSlot(Error::SignatureDismatch))
+                    return Err(Error::DamagedSlot(Box::new(Error::SignatureDismatch)))
                 }
-                Err(err) => return Err(err.into()),
+                Err(err) => return Err(err),
             }
         }
         Ok(())
     }
+    pub fn read_nth(&mut self, nth: usize) -> Result<Option<PacketDef<B, P, Inner>>, Error> {
+        Ok(None)
+    }
     pub fn insert(&mut self, mut packet: PacketDef<B, P, Inner>) -> Result<(), Error> {
-        let offset = match self.locator.next(&mut self.slots) {
+        let offset = match self.locator.next(&self.slots) {
             Some(offset) => offset,
             None => {
                 self.slots.push(Slot::default());
                 self.locator
-                    .next(&mut self.slots)
+                    .next(&self.slots)
                     .ok_or(Error::CannotFindFreeSlot)?
             }
         };
@@ -95,24 +100,8 @@ impl<
         self.inner.flush()?;
         Ok(())
     }
-}
 
-impl<
-        S: std::io::Read + std::io::Write + std::io::Seek,
-        B: BlockDef,
-        P: PayloadDef<Inner>,
-        Inner: PayloadInnerDef,
-    > Iterator for StorageDef<S, B, P, Inner>
-{
-    type Item = Result<ReadStatus<PacketDef<B, P, Inner>>, Error>;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        let location = self.packets.next(&mut self.slots)?;
-        if let Err(err) = self.inner.seek(std::io::SeekFrom::Start(*location.start())) {
-            return Some(Err(err.into()));
-        }
-        Some(<PacketDef<B, P, Inner> as TryReadFrom>::try_read(
-            &mut self.inner,
-        ))
+    pub fn iter(&mut self) -> StorageIterator<'_, S, B, P, Inner> {
+        StorageIterator::new(&mut self.inner, &self.slots)
     }
 }

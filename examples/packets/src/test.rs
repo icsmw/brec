@@ -222,7 +222,7 @@ proptest! {
 
     #[test]
     fn storage(packets in proptest::collection::vec(any::<WrappedPacket>(), 1..2000)) {
-        let tmp = std::env::temp_dir().join("example.bin");
+        let tmp = std::env::temp_dir().join("brec_storage_test.bin");
         let file = std::fs::OpenOptions::new()
             .read(true)
             .write(true)
@@ -234,7 +234,7 @@ proptest! {
             storage.insert(packet.into())?;
         }
         let mut restored = Vec::new();
-        for packet in storage {
+        for packet in storage.iter() {
             match packet {
                 Ok(brec::ReadStatus::Success(packet)) => {
                     restored.push(packet);

@@ -48,4 +48,6 @@ pub enum Error {
     CannotFindFreeSlot,
     #[error("Fail to insert data into slot")]
     CannotInsertIntoSlot,
+    #[error("Damaged slot: {0}")]
+    DamagedSlot(Box<Error>),
 }

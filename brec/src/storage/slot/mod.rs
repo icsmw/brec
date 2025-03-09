@@ -15,8 +15,6 @@ pub struct Slot {
     pub lenghts: Vec<u64>,
     pub capacity: u64,
     pub crc: [u8; 4],
-    next_packet: usize,
-    offset_packets: u64,
 }
 
 impl Slot {
@@ -25,8 +23,6 @@ impl Slot {
             lenghts,
             capacity,
             crc,
-            next_packet: 0,
-            offset_packets: 0,
         }
     }
     pub fn width(&self) -> u64 {
@@ -40,22 +36,8 @@ impl Slot {
         };
         self.lenghts[..free_pos].iter().sum()
     }
-    pub fn next_packet_position(&mut self) -> Option<RangeInclusive<u64>> {
-        let ln = self.lenghts.get(self.next_packet)?;
-        if ln == &0 {
-            return None;
-        }
-        let range = RangeInclusive::new(
-            self.offset_packets + self.size(),
-            self.offset_packets + *ln + self.size(),
-        );
-        self.next_packet += 1;
-        self.offset_packets += *ln;
-        Some(range)
-    }
-    pub fn drop_packet_position(&mut self) {
-        self.next_packet = 0;
-        self.offset_packets = 0;
+    pub fn iter(&self) -> SlotIterator {
+        SlotIterator::new(self)
     }
     pub fn get_free_slot_offset(&self) -> Option<u64> {
         if let Some(ln) = self.lenghts.last() {
@@ -92,6 +74,7 @@ impl Default for Slot {
         slot
     }
 }
+
 impl Size for Slot {
     fn size(&self) -> u64 {
         SlotHeader::ssize()
@@ -112,5 +95,39 @@ impl CrcU32 for Slot {
                 .collect::<Vec<u8>>(),
         );
         hasher.finalize().to_le_bytes()
+    }
+}
+
+pub struct SlotIterator<'a> {
+    slot: &'a Slot,
+    next: usize,
+    offset: u64,
+}
+
+impl<'a> SlotIterator<'a> {
+    pub fn new(slot: &'a Slot) -> Self {
+        SlotIterator {
+            slot,
+            next: 0,
+            offset: 0,
+        }
+    }
+}
+
+impl Iterator for SlotIterator<'_> {
+    type Item = RangeInclusive<u64>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let ln = self.slot.lenghts.get(self.next)?;
+        if ln == &0 {
+            return None;
+        }
+        let range = RangeInclusive::new(
+            self.offset + self.slot.size(),
+            self.offset + *ln + self.slot.size(),
+        );
+        self.next += 1;
+        self.offset += *ln;
+        Some(range)
     }
 }
