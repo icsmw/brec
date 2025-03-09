@@ -11,13 +11,15 @@ impl<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> ReadFrom
         let header = PacketHeader::read(buf)?;
         let mut pkg = PacketDef::default();
         let mut read = 0;
-        loop {
-            // TODO: Error::SignatureDismatch should be covered in enum's context
-            let blk = <B as ReadFrom>::read(buf)?;
-            read += blk.size();
-            pkg.blocks.push(blk);
-            if read == header.blocks_len {
-                break;
+        if header.blocks_len > 0 {
+            loop {
+                // TODO: Error::SignatureDismatch should be covered in enum's context
+                let blk = <B as ReadFrom>::read(buf)?;
+                read += blk.size();
+                pkg.blocks.push(blk);
+                if read == header.blocks_len {
+                    break;
+                }
             }
         }
         if header.payload {
@@ -48,22 +50,24 @@ impl<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> TryReadFrom
         }
         let mut pkg = PacketDef::default();
         let mut read = 0;
-        loop {
-            match <B as TryReadFrom>::try_read(buf) {
-                Ok(ReadStatus::Success(blk)) => {
-                    read += blk.size();
-                    pkg.blocks.push(blk);
-                    if read == header.blocks_len {
-                        break;
+        if header.blocks_len > 0 {
+            loop {
+                match <B as TryReadFrom>::try_read(buf) {
+                    Ok(ReadStatus::Success(blk)) => {
+                        read += blk.size();
+                        pkg.blocks.push(blk);
+                        if read == header.blocks_len {
+                            break;
+                        }
                     }
-                }
-                Ok(ReadStatus::NotEnoughData(needed)) => {
-                    buf.seek(std::io::SeekFrom::Start(start_pos))?;
-                    return Ok(ReadStatus::NotEnoughData(needed));
-                }
-                Err(err) => {
-                    buf.seek(std::io::SeekFrom::Start(start_pos))?;
-                    return Err(err);
+                    Ok(ReadStatus::NotEnoughData(needed)) => {
+                        buf.seek(std::io::SeekFrom::Start(start_pos))?;
+                        return Ok(ReadStatus::NotEnoughData(needed));
+                    }
+                    Err(err) => {
+                        buf.seek(std::io::SeekFrom::Start(start_pos))?;
+                        return Err(err);
+                    }
                 }
             }
         }
@@ -113,16 +117,20 @@ impl<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> TryReadFromBuffe
         reader.consume(PacketHeader::ssize() as usize);
         let mut pkg = PacketDef::default();
         let mut read = 0;
-        loop {
-            match <B as TryReadFromBuffered>::try_read(reader)? {
-                ReadStatus::Success(blk) => {
-                    read += blk.size();
-                    pkg.blocks.push(blk);
-                    if read == header.blocks_len {
-                        break;
+        if header.blocks_len > 0 {
+            loop {
+                match <B as TryReadFromBuffered>::try_read(reader)? {
+                    ReadStatus::Success(blk) => {
+                        read += blk.size();
+                        pkg.blocks.push(blk);
+                        if read == header.blocks_len {
+                            break;
+                        }
+                    }
+                    ReadStatus::NotEnoughData(needed) => {
+                        return Ok(ReadStatus::NotEnoughData(needed))
                     }
                 }
-                ReadStatus::NotEnoughData(needed) => return Ok(ReadStatus::NotEnoughData(needed)),
             }
         }
         if header.payload {

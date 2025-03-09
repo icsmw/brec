@@ -73,20 +73,22 @@ impl<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> PacketDef<B, P, 
         };
         let mut pkg = PacketDef::default();
         let mut read = 0;
-        loop {
-            match <B as TryReadFrom>::try_read(reader) {
-                Ok(ReadStatus::Success(blk)) => {
-                    read += blk.size();
-                    pkg.blocks.push(blk);
-                    if read == header.blocks_len {
-                        break;
+        if header.blocks_len > 0 {
+            loop {
+                match <B as TryReadFrom>::try_read(reader) {
+                    Ok(ReadStatus::Success(blk)) => {
+                        read += blk.size();
+                        pkg.blocks.push(blk);
+                        if read == header.blocks_len {
+                            break;
+                        }
                     }
-                }
-                Ok(ReadStatus::NotEnoughData(needed)) => {
-                    return Err(Error::NotEnoughData(needed as usize));
-                }
-                Err(err) => {
-                    return Err(err);
+                    Ok(ReadStatus::NotEnoughData(needed)) => {
+                        return Err(Error::NotEnoughData(needed as usize));
+                    }
+                    Err(err) => {
+                        return Err(err);
+                    }
                 }
             }
         }
