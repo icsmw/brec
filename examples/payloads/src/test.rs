@@ -75,7 +75,9 @@ fn report(bytes: usize, instance: usize) {
     let bytes = BYTES.load(Ordering::Relaxed);
     println!(
         "Generated {} payloads ({}, {} B)",
-        INSTANCES.load(Ordering::Relaxed),
+        INSTANCES
+            .load(Ordering::Relaxed)
+            .to_formatted_string(&Locale::en),
         if bytes > 1024 * 1024 {
             format!(
                 "{} Mb",

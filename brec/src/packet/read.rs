@@ -94,7 +94,6 @@ impl<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> TryReadFrom
     }
 }
 
-// TODO: needs a proptest
 impl<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> TryReadFromBuffered
     for PacketDef<B, P, Inner>
 {
@@ -138,13 +137,13 @@ impl<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> TryReadFromBuffe
                             return Ok(ReadStatus::NotEnoughData(needed))
                         }
                     }
+                    reader.consume(header.payload_len());
                 }
                 ReadStatus::NotEnoughData(needed) => {
                     return Err(Error::NotEnoughData(needed as usize))
                 }
             }
         }
-        reader.consume((header.size - PacketHeader::ssize()) as usize);
         Ok(ReadStatus::Success(pkg))
     }
 }
