@@ -31,17 +31,26 @@ impl From<Packet> for WrappedPacket {
 }
 
 impl Arbitrary for WrappedPacket {
-    type Parameters = ();
+    type Parameters = bool;
 
     type Strategy = BoxedStrategy<Self>;
 
-    fn arbitrary_with(_: ()) -> Self::Strategy {
-        (
-            prop::collection::vec(Block::arbitrary(), 1..10),
-            prop::option::of(Payload::arbitrary()),
-        )
-            .prop_map(|(blocks, payload)| WrappedPacket { blocks, payload })
-            .boxed()
+    fn arbitrary_with(no_blocks: bool) -> Self::Strategy {
+        if no_blocks {
+            prop::option::of(Payload::arbitrary())
+                .prop_map(|payload| WrappedPacket {
+                    blocks: Vec::new(),
+                    payload,
+                })
+                .boxed()
+        } else {
+            (
+                prop::collection::vec(Block::arbitrary(), 1..20),
+                prop::option::of(Payload::arbitrary()),
+            )
+                .prop_map(|(blocks, payload)| WrappedPacket { blocks, payload })
+                .boxed()
+        }
     }
 }
 
@@ -53,13 +62,13 @@ struct LitteredPacket {
 }
 
 impl Arbitrary for LitteredPacket {
-    type Parameters = ();
+    type Parameters = bool;
 
     type Strategy = BoxedStrategy<Self>;
 
-    fn arbitrary_with(_: ()) -> Self::Strategy {
+    fn arbitrary_with(no_blocks: bool) -> Self::Strategy {
         (
-            WrappedPacket::arbitrary(),
+            WrappedPacket::arbitrary_with(no_blocks),
             prop::option::of(prop::collection::vec(any::<u8>(), 1..2500)),
             prop::option::of(prop::collection::vec(any::<u8>(), 1..2500)),
         )
@@ -229,118 +238,204 @@ fn report_storage(packets: usize, blocks_visited: Option<usize>) {
     }
 }
 
+fn try_read_from(packets: Vec<WrappedPacket>) -> std::io::Result<()> {
+    let mut buf = Vec::new();
+    write_to_buf(&mut buf, &packets)?;
+    let (_, restored) = read_packets(&buf)?;
+    let count = restored.len();
+    assert_eq!(packets.len(), count);
+    for (left, right) in restored
+        .into_iter()
+        .map(|pkg| pkg.into())
+        .collect::<Vec<WrappedPacket>>()
+        .iter()
+        .zip(packets.iter())
+    {
+        assert_eq!(left, right);
+    }
+    report(buf.len(), count);
+    Ok(())
+}
+
+fn try_read_with_litter(packets: Vec<LitteredPacket>) -> std::io::Result<()> {
+    let mut buf = Vec::new();
+    let litter_len = write_to_buf_with_litter(&mut buf, &packets)?;
+    let (read_litter_len, restored) = read_packets(&buf)?;
+    assert_eq!(litter_len, read_litter_len);
+    let count = restored.len();
+    let packets = packets
+        .into_iter()
+        .map(|p| p.packet)
+        .collect::<Vec<WrappedPacket>>();
+    assert_eq!(packets.len(), count);
+    for (left, right) in restored
+        .into_iter()
+        .map(|pkg| pkg.into())
+        .collect::<Vec<WrappedPacket>>()
+        .iter()
+        .zip(packets.iter())
+    {
+        assert_eq!(left, right);
+    }
+    report(buf.len(), count);
+    Ok(())
+}
+
+fn try_reading_one_by_one(packets: Vec<WrappedPacket>) -> std::io::Result<()> {
+    let mut bufs = Vec::new();
+    let mut bytes = 0;
+    for wrapped in packets.iter() {
+        let mut buf: Vec<u8> = Vec::new();
+        let mut packet: Packet = wrapped.into();
+        packet.write_all(&mut buf)?;
+        bytes += buf.len();
+        bufs.push(buf);
+    }
+    let restored = read_packets_one_by_one(&bufs)
+        .map_err(|err| std::io::Error::new(std::io::ErrorKind::InvalidData, err.to_string()))?;
+    assert_eq!(packets.len(), restored.len());
+    for (left, right) in restored.iter().zip(packets.iter()) {
+        assert_eq!(left, right);
+    }
+    report(bytes, packets.len());
+    Ok(())
+}
+
+fn storage_write_read_filter(packets: Vec<WrappedPacket>, filename: &str) -> std::io::Result<()> {
+    let tmp = std::env::temp_dir().join(filename);
+    let file = std::fs::OpenOptions::new()
+        .read(true)
+        .write(true)
+        .create(true)
+        .truncate(true)
+        .open(&tmp)?;
+    let mut storage = Storage::new(file)
+        .map_err(|err| std::io::Error::new(std::io::ErrorKind::InvalidData, err.to_string()))?;
+    for packet in packets.iter() {
+        storage
+            .insert(packet.into())
+            .map_err(|err| std::io::Error::new(std::io::ErrorKind::InvalidData, err.to_string()))?;
+    }
+    let mut restored = Vec::new();
+    for packet in storage.iter() {
+        match packet {
+            Ok(packet) => {
+                restored.push(packet);
+            }
+            Err(err) => {
+                panic!("Fail to read storage: {err}");
+            }
+        }
+    }
+    assert_eq!(packets.len(), restored.len());
+    for (left, right) in restored
+        .into_iter()
+        .map(|pkg| pkg.into())
+        .collect::<Vec<WrappedPacket>>()
+        .iter()
+        .zip(packets.iter())
+    {
+        assert_eq!(left, right);
+    }
+    let mut blocks_visited = 0;
+    // Read each 2th and 3th packets
+    for n in 0..packets.len() {
+        if n % 2 != 0 && n % 3 != 0 {
+            continue;
+        }
+        // Test nth packet reading
+        if let Some(packet) = storage
+            .nth(n)
+            .map_err(|err| std::io::Error::new(std::io::ErrorKind::InvalidData, err.to_string()))?
+        {
+            assert_eq!(Into::<WrappedPacket>::into(packet), packets[n]);
+        }
+        // Test range reading
+        if n + 10 < packets.len() - 1 {
+            for (i, packet) in storage.range(n..=n + 10).enumerate() {
+                assert_eq!(
+                    Into::<WrappedPacket>::into(packet.map_err(|err| std::io::Error::new(
+                        std::io::ErrorKind::InvalidData,
+                        err.to_string()
+                    ))?),
+                    packets[n + i]
+                );
+            }
+            for (i, packet) in storage
+                .range_filtered(n..=n + 10, |blks| {
+                    blocks_visited += blks.len();
+                    false
+                })
+                .enumerate()
+            {
+                assert_eq!(
+                    Into::<WrappedPacket>::into(packet.map_err(|err| std::io::Error::new(
+                        std::io::ErrorKind::InvalidData,
+                        err.to_string()
+                    ))?),
+                    packets[n + i]
+                );
+            }
+        }
+    }
+    // Read with filter
+    for packet in storage.filtered(|blks| {
+        blocks_visited += blks.len();
+        false
+    }) {
+        packet
+            .map_err(|err| std::io::Error::new(std::io::ErrorKind::InvalidData, err.to_string()))?;
+    }
+    report_storage(packets.len(), Some(blocks_visited));
+    Ok(())
+}
+
 proptest! {
     #![proptest_config(ProptestConfig {
         max_shrink_iters: 50,
         ..ProptestConfig::with_cases(200)
     })]
 
+
+
     #[test]
-    fn try_read_from(packets in proptest::collection::vec(any::<WrappedPacket>(), 1..2000)) {
-        let mut buf = Vec::new();
-        write_to_buf(&mut buf, &packets)?;
-        let (_, restored) = read_packets(&buf)?;
-        let count = restored.len();
-        assert_eq!(packets.len(), count);
-        for (left, right) in restored.into_iter().map(|pkg|pkg.into()).collect::<Vec<WrappedPacket>>().iter().zip(packets.iter()) {
-            assert_eq!(left, right);
-        }
-        report(buf.len(), count);
+    fn try_read_from_no_blocks(packets in proptest::collection::vec(WrappedPacket::arbitrary_with(true), 1..2000)) {
+        try_read_from(packets)?;
     }
 
     #[test]
-    fn try_read_with_litter(packets in proptest::collection::vec(any::<LitteredPacket>(), 1..2000)) {
-        let mut buf = Vec::new();
-        let litter_len = write_to_buf_with_litter(&mut buf, &packets)?;
-        let (read_litter_len, restored) = read_packets(&buf)?;
-        assert_eq!(litter_len, read_litter_len);
-        let count = restored.len();
-        let packets = packets.into_iter().map(|p| p.packet).collect::<Vec<WrappedPacket>>();
-        assert_eq!(packets.len(), count);
-        for (left, right) in restored.into_iter().map(|pkg|pkg.into()).collect::<Vec<WrappedPacket>>().iter().zip(packets.iter()) {
-            assert_eq!(left, right);
-        }
-        report(buf.len(), count);
+    fn try_read_from_with_blocks(packets in proptest::collection::vec(WrappedPacket::arbitrary_with(false), 1..2000)) {
+        try_read_from(packets)?;
     }
 
     #[test]
-    fn try_reading_one_by_one(packets in proptest::collection::vec(any::<WrappedPacket>(), 1..2000)) {
-        let mut bufs = Vec::new();
-        let mut bytes = 0;
-        for wrapped in packets.iter() {
-            let mut buf: Vec<u8> = Vec::new();
-            let mut packet: Packet = wrapped.into();
-            packet.write_all(&mut buf)?;
-            bytes += buf.len();
-            bufs.push(buf);
-        }
-        let restored = read_packets_one_by_one(&bufs)?;
-        assert_eq!(packets.len(), restored.len());
-        for (left, right) in restored.iter().zip(packets.iter()) {
-            assert_eq!(left, right);
-        }
-        report(bytes, packets.len());
+    fn try_read_with_litter_no_blocks(packets in proptest::collection::vec(LitteredPacket::arbitrary_with(true), 1..2000)) {
+        try_read_with_litter(packets)?;
     }
 
     #[test]
-    fn storage(packets in proptest::collection::vec(any::<WrappedPacket>(), 1..2000)) {
-        let tmp = std::env::temp_dir().join("brec_storage_test.bin");
-        let file = std::fs::OpenOptions::new()
-            .read(true)
-            .write(true)
-            .create(true)
-            .truncate(true)
-            .open(&tmp)?;
-        let mut storage = Storage::new(file)?;
-        for packet in packets.iter() {
-            storage.insert(packet.into())?;
-        }
-        let mut restored = Vec::new();
-        for packet in storage.iter() {
-            match packet {
-                Ok(packet) => {
-                    restored.push(packet);
-                },
-                Err(err) => {
-                    panic!("Fail to read storage: {err}");
-                }
-            }
-        }
-        assert_eq!(packets.len(), restored.len());
-        for (left, right) in restored.into_iter().map(|pkg|pkg.into()).collect::<Vec<WrappedPacket>>().iter().zip(packets.iter()) {
-            assert_eq!(left, right);
-        }
-        let mut blocks_visited = 0;
-        // Read each 2th and 3th packets
-        for n in 0..packets.len() {
-            if n % 2 != 0 && n % 3 != 0 {
-                continue;
-            }
-            // Test nth packet reading
-            if let Some(packet) = storage.nth(n)? {
-                assert_eq!(Into::<WrappedPacket>::into(packet), packets[n]);
-            }
-            // Test range reading
-            if n + 10 < packets.len() - 1 {
-                for (i, packet) in storage.range(n..=n + 10).enumerate() {
-                    assert_eq!(Into::<WrappedPacket>::into(packet?), packets[n + i]);
-                }
-                for (i, packet) in storage.range_filtered(n..=n + 10, |blks| {
-                    blocks_visited += blks.len();
-                    false
-                }).enumerate() {
-                    assert_eq!(Into::<WrappedPacket>::into(packet?), packets[n + i]);
-                }
-            }
-        }
-        // Read with filter
-        for packet in storage.filtered(|blks| {
-            blocks_visited += blks.len();
-            false
-        }) {
-            packet?;
-        }
-        report_storage(packets.len(), Some(blocks_visited));
+    fn try_read_with_litter_with_blocks(packets in proptest::collection::vec(LitteredPacket::arbitrary_with(false), 1..2000)) {
+        try_read_with_litter(packets)?;
+    }
+
+    #[test]
+    fn try_reading_one_by_one_no_blocks(packets in proptest::collection::vec(WrappedPacket::arbitrary_with(true), 1..2000)) {
+        try_reading_one_by_one(packets)?;
+    }
+
+    #[test]
+    fn try_reading_one_by_one_with_blocks(packets in proptest::collection::vec(WrappedPacket::arbitrary_with(false), 1..2000)) {
+        try_reading_one_by_one(packets)?;
+    }
+
+    #[test]
+    fn storage_write_read_filter_no_blocks(packets in proptest::collection::vec(WrappedPacket::arbitrary_with(true), 1..2000)) {
+        storage_write_read_filter(packets, "test_storage_write_read_filter_no_blocks.bin")?;
+    }
+
+    #[test]
+    fn storage_write_read_filter_with_blocks(packets in proptest::collection::vec(WrappedPacket::arbitrary_with(false), 1..2000)) {
+        storage_write_read_filter(packets, "test_storage_write_read_filter_with_blocks.bin")?;
     }
 
 }
