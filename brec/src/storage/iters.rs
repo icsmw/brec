@@ -84,7 +84,7 @@ impl<
         Inner: PayloadInnerDef,
     > Iterator for StorageIterator<'_, S, B, P, Inner>
 {
-    type Item = Result<ReadStatus<PacketDef<B, P, Inner>>, Error>;
+    type Item = Result<PacketDef<B, P, Inner>, Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
         let location = self.locator.next()?;
@@ -94,9 +94,81 @@ impl<
         {
             return Some(Err(err.into()));
         }
-        Some(<PacketDef<B, P, Inner> as TryReadFrom>::try_read(
-            &mut self.source,
-        ))
+        match <PacketDef<B, P, Inner> as TryReadFrom>::try_read(&mut self.source) {
+            Err(err) => Some(Err(err)),
+            Ok(ReadStatus::Success(pkg)) => Some(Ok(pkg)),
+            Ok(ReadStatus::NotEnoughData(needed)) => {
+                Some(Err(Error::NotEnoughData(needed as usize)))
+            }
+        }
+    }
+}
+
+pub struct StorageIteratorFiltered<
+    'a,
+    S: std::io::Read + std::io::Seek,
+    F: FnMut(&[B]) -> bool,
+    B: BlockDef,
+    P: PayloadDef<Inner>,
+    Inner: PayloadInnerDef,
+> {
+    locator: PacketsLocatorIterator<'a>,
+    source: &'a mut S,
+    predicate: F,
+    _block: std::marker::PhantomData<B>,
+    _payload: std::marker::PhantomData<P>,
+    _payload_inner: std::marker::PhantomData<Inner>,
+}
+
+impl<
+        'a,
+        S: std::io::Read + std::io::Seek,
+        F: FnMut(&[B]) -> bool,
+        B: BlockDef,
+        P: PayloadDef<Inner>,
+        Inner: PayloadInnerDef,
+    > StorageIteratorFiltered<'a, S, F, B, P, Inner>
+{
+    pub fn new(source: &'a mut S, slots: &'a [Slot], predicate: F) -> Self {
+        Self {
+            locator: PacketsLocatorIterator::new(slots),
+            source,
+            predicate,
+            _block: std::marker::PhantomData,
+            _payload: std::marker::PhantomData,
+            _payload_inner: std::marker::PhantomData,
+        }
+    }
+}
+
+impl<
+        S: std::io::Read + std::io::Seek,
+        F: FnMut(&[B]) -> bool,
+        B: BlockDef,
+        P: PayloadDef<Inner>,
+        Inner: PayloadInnerDef,
+    > Iterator for StorageIteratorFiltered<'_, S, F, B, P, Inner>
+{
+    type Item = Result<PacketDef<B, P, Inner>, Error>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        loop {
+            let location = self.locator.next()?;
+            if let Err(err) = self
+                .source
+                .seek(std::io::SeekFrom::Start(*location.start()))
+            {
+                return Some(Err(err.into()));
+            }
+            match PacketDef::<B, P, Inner>::filtered(self.source, &mut self.predicate) {
+                Err(err) => return Some(Err(err)),
+                Ok(LookInStatus::Accepted(_, pkg)) => return Some(Ok(pkg)),
+                Ok(LookInStatus::Denied(_)) => continue,
+                Ok(LookInStatus::NotEnoughData(needed)) => {
+                    return Some(Err(Error::NotEnoughData(needed)))
+                }
+            }
+        }
     }
 }
 

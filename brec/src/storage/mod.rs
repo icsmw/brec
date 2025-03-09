@@ -68,31 +68,6 @@ impl<
         }
         Ok(self)
     }
-    pub fn nth(&mut self, nth: usize) -> Result<Option<PacketDef<B, P, Inner>>, Error> {
-        let slot_index = nth / DEFAULT_SLOT_CAPACITY;
-        let index_in_slot = nth % DEFAULT_SLOT_CAPACITY;
-        let Some(slot) = self.slots.get(slot_index) else {
-            return Ok(None);
-        };
-        let Some(mut offset) = slot.get_slot_offset(index_in_slot) else {
-            return Ok(None);
-        };
-        offset += self.slots[..slot_index]
-            .iter()
-            .map(|slot| slot.width() + slot.size())
-            .sum::<u64>();
-        self.inner.seek(std::io::SeekFrom::Start(offset))?;
-        match <PacketDef<B, P, Inner> as TryReadFrom>::try_read(&mut self.inner)? {
-            ReadStatus::Success(slot) => Ok(Some(slot)),
-            ReadStatus::NotEnoughData(needed) => Err(Error::NotEnoughData(needed as usize)),
-        }
-    }
-    pub fn range(
-        &mut self,
-        range: RangeInclusive<usize>,
-    ) -> StorageRangeIterator<'_, S, B, P, Inner> {
-        StorageRangeIterator::new(self, range)
-    }
     pub fn insert(&mut self, mut packet: PacketDef<B, P, Inner>) -> Result<(), Error> {
         let offset = match self.locator.next(&self.slots) {
             Some(offset) => offset,
@@ -128,5 +103,37 @@ impl<
 
     pub fn iter(&mut self) -> StorageIterator<'_, S, B, P, Inner> {
         StorageIterator::new(&mut self.inner, &self.slots)
+    }
+
+    pub fn filtered<F: FnMut(&[B]) -> bool>(
+        &mut self,
+        predicate: F,
+    ) -> StorageIteratorFiltered<'_, S, F, B, P, Inner> {
+        StorageIteratorFiltered::new(&mut self.inner, &self.slots, predicate)
+    }
+    pub fn nth(&mut self, nth: usize) -> Result<Option<PacketDef<B, P, Inner>>, Error> {
+        let slot_index = nth / DEFAULT_SLOT_CAPACITY;
+        let index_in_slot = nth % DEFAULT_SLOT_CAPACITY;
+        let Some(slot) = self.slots.get(slot_index) else {
+            return Ok(None);
+        };
+        let Some(mut offset) = slot.get_slot_offset(index_in_slot) else {
+            return Ok(None);
+        };
+        offset += self.slots[..slot_index]
+            .iter()
+            .map(|slot| slot.width() + slot.size())
+            .sum::<u64>();
+        self.inner.seek(std::io::SeekFrom::Start(offset))?;
+        match <PacketDef<B, P, Inner> as TryReadFrom>::try_read(&mut self.inner)? {
+            ReadStatus::Success(slot) => Ok(Some(slot)),
+            ReadStatus::NotEnoughData(needed) => Err(Error::NotEnoughData(needed as usize)),
+        }
+    }
+    pub fn range(
+        &mut self,
+        range: RangeInclusive<usize>,
+    ) -> StorageRangeIterator<'_, S, B, P, Inner> {
+        StorageRangeIterator::new(self, range)
     }
 }

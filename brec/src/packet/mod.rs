@@ -58,13 +58,71 @@ impl<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> PacketDef<B, P, 
             _pi: PhantomData,
         }
     }
+    pub fn filtered<R, F>(
+        reader: &mut R,
+        mut filter: F,
+    ) -> Result<LookInStatus<PacketDef<B, P, Inner>>, Error>
+    where
+        R: std::io::Read + std::io::Seek,
+        F: FnMut(&[B]) -> bool,
+        Self: Sized,
+    {
+        let header = match <PacketHeader as TryReadFrom>::try_read(reader)? {
+            ReadStatus::NotEnoughData(needed) => return Err(Error::NotEnoughData(needed as usize)),
+            ReadStatus::Success(header) => header,
+        };
+        let mut pkg = PacketDef::default();
+        let mut read = 0;
+        loop {
+            match <B as TryReadFrom>::try_read(reader) {
+                Ok(ReadStatus::Success(blk)) => {
+                    read += blk.size();
+                    pkg.blocks.push(blk);
+                    if read == header.blocks_len {
+                        break;
+                    }
+                }
+                Ok(ReadStatus::NotEnoughData(needed)) => {
+                    return Err(Error::NotEnoughData(needed as usize));
+                }
+                Err(err) => {
+                    return Err(err);
+                }
+            }
+        }
+        if !filter(&pkg.blocks) {
+            return Ok(LookInStatus::Denied(header.size as usize));
+        }
+        if header.payload {
+            match <PayloadHeader as TryReadFrom>::try_read(reader)? {
+                ReadStatus::Success(header) => {
+                    match <P as TryExtractPayloadFrom<Inner>>::try_read(reader, &header) {
+                        Ok(ReadStatus::Success(payload)) => {
+                            pkg.payload = Some(payload);
+                        }
+                        Ok(ReadStatus::NotEnoughData(needed)) => {
+                            return Err(Error::NotEnoughData(needed as usize));
+                        }
+                        Err(err) => {
+                            return Err(err);
+                        }
+                    }
+                }
+                ReadStatus::NotEnoughData(needed) => {
+                    return Err(Error::NotEnoughData(needed as usize));
+                }
+            }
+        }
+        Ok(LookInStatus::Accepted(header.size as usize, pkg))
+    }
+
     pub fn look_in<BR, F>(
         bytes: &[u8],
         chk: F,
     ) -> Result<LookInStatus<PacketDef<B, P, Inner>>, Error>
     where
         BR: BlockReferredDef<B>,
-        F: FnOnce(&[BR]) -> bool,
+        F: Fn(&[BR]) -> bool,
         Self: Sized,
     {
         let available = bytes.len() as u64;

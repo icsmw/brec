@@ -177,13 +177,23 @@ fn report(bytes: usize, instance: usize) {
 }
 
 static STORED_PACKETS: AtomicUsize = AtomicUsize::new(0);
+static BLOCKS_VISITED: AtomicUsize = AtomicUsize::new(0);
 
-fn report_storage(packets: usize) {
+fn report_storage(packets: usize, blocks_visited: Option<usize>) {
     STORED_PACKETS.fetch_add(packets, Ordering::Relaxed);
-    println!(
-        "Generated, stored and read {} packets",
-        STORED_PACKETS.load(Ordering::Relaxed),
-    );
+    if let Some(visited) = blocks_visited {
+        BLOCKS_VISITED.fetch_add(visited, Ordering::Relaxed);
+        println!(
+            "Generated, stored and read {} packets; blocks visited: {}",
+            STORED_PACKETS.load(Ordering::Relaxed),
+            BLOCKS_VISITED.load(Ordering::Relaxed),
+        );
+    } else {
+        println!(
+            "Generated, stored and read {} packets;",
+            STORED_PACKETS.load(Ordering::Relaxed),
+        );
+    }
 }
 
 proptest! {
@@ -236,11 +246,8 @@ proptest! {
         let mut restored = Vec::new();
         for packet in storage.iter() {
             match packet {
-                Ok(brec::ReadStatus::Success(packet)) => {
+                Ok(packet) => {
                     restored.push(packet);
-                },
-                Ok(brec::ReadStatus::NotEnoughData(_needed)) => {
-                    panic!("Not enough data to read from file");
                 },
                 Err(err) => {
                     panic!("Fail to read storage: {err}");
@@ -267,7 +274,15 @@ proptest! {
                 }
             }
         }
-        report_storage(packets.len());
+        // Read with filter
+        let mut blocks_visited = 0;
+        for packet in storage.filtered(|blks| {
+            blocks_visited += blks.len();
+            false
+        }) {
+            packet?;
+        }
+        report_storage(packets.len(), Some(blocks_visited));
     }
 
 }

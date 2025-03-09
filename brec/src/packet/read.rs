@@ -29,7 +29,6 @@ impl<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> ReadFrom
     }
 }
 
-// TODO: needs a proptest
 impl<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> TryReadFrom
     for PacketDef<B, P, Inner>
 {
@@ -50,7 +49,6 @@ impl<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> TryReadFrom
         let mut pkg = PacketDef::default();
         let mut read = 0;
         loop {
-            // TODO: Error::SignatureDismatch should be covered in enum's context
             match <B as TryReadFrom>::try_read(buf) {
                 Ok(ReadStatus::Success(blk)) => {
                     read += blk.size();
