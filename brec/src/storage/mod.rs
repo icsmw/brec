@@ -3,6 +3,8 @@ mod locator;
 mod range;
 mod slot;
 
+use std::ops::RangeInclusive;
+
 use crate::*;
 pub(crate) use iters::*;
 pub(crate) use locator::*;
@@ -84,6 +86,12 @@ impl<
             ReadStatus::Success(slot) => Ok(Some(slot)),
             ReadStatus::NotEnoughData(needed) => Err(Error::NotEnoughData(needed as usize)),
         }
+    }
+    pub fn range(
+        &mut self,
+        range: RangeInclusive<usize>,
+    ) -> StorageRangeIterator<'_, S, B, P, Inner> {
+        StorageRangeIterator::new(self, range)
     }
     pub fn insert(&mut self, mut packet: PacketDef<B, P, Inner>) -> Result<(), Error> {
         let offset = match self.locator.next(&self.slots) {

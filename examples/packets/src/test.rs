@@ -256,8 +256,15 @@ proptest! {
             if n % 2 != 0 && n % 3 != 0 {
                 continue;
             }
+            // Test nth packet reading
             if let Some(packet) = storage.nth(n)? {
                 assert_eq!(Into::<WrappedPacket>::into(packet), packets[n]);
+            }
+            // Test range reading
+            if n + 10 < packets.len() - 1 {
+                for (i, packet) in storage.range(n..=n + 10).enumerate() {
+                    assert_eq!(Into::<WrappedPacket>::into(packet?), packets[n + i]);
+                }
             }
         }
         report_storage(packets.len());

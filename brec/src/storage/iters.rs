@@ -99,3 +99,61 @@ impl<
         ))
     }
 }
+
+pub struct StorageRangeIterator<
+    'a,
+    S: std::io::Read + std::io::Write + std::io::Seek,
+    B: BlockDef,
+    P: PayloadDef<Inner>,
+    Inner: PayloadInnerDef,
+> {
+    storage: &'a mut StorageDef<S, B, P, Inner>,
+    end: usize,
+    current: usize,
+    _block: std::marker::PhantomData<B>,
+    _payload: std::marker::PhantomData<P>,
+    _payload_inner: std::marker::PhantomData<Inner>,
+}
+
+impl<
+        'a,
+        S: std::io::Read + std::io::Write + std::io::Seek,
+        B: BlockDef,
+        P: PayloadDef<Inner>,
+        Inner: PayloadInnerDef,
+    > StorageRangeIterator<'a, S, B, P, Inner>
+{
+    pub fn new(storage: &'a mut StorageDef<S, B, P, Inner>, range: RangeInclusive<usize>) -> Self {
+        Self {
+            storage,
+            end: *range.end(),
+            current: *range.start(),
+            _block: std::marker::PhantomData,
+            _payload: std::marker::PhantomData,
+            _payload_inner: std::marker::PhantomData,
+        }
+    }
+}
+
+impl<
+        S: std::io::Read + std::io::Write + std::io::Seek,
+        B: BlockDef,
+        P: PayloadDef<Inner>,
+        Inner: PayloadInnerDef,
+    > Iterator for StorageRangeIterator<'_, S, B, P, Inner>
+{
+    type Item = Result<PacketDef<B, P, Inner>, Error>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.current >= self.end {
+            return None;
+        }
+        let item = self.storage.nth(self.current);
+        self.current += 1;
+        match item {
+            Ok(None) => None,
+            Ok(Some(packet)) => Some(Ok(packet)),
+            Err(err) => Some(Err(err)),
+        }
+    }
+}
