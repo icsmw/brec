@@ -130,10 +130,41 @@ impl<
             ReadStatus::NotEnoughData(needed) => Err(Error::NotEnoughData(needed as usize)),
         }
     }
+    pub fn nth_filtered<F: FnMut(&[B]) -> bool>(
+        &mut self,
+        nth: usize,
+        mut predicate: F,
+    ) -> Result<Option<LookInStatus<PacketDef<B, P, Inner>>>, Error> {
+        let slot_index = nth / DEFAULT_SLOT_CAPACITY;
+        let index_in_slot = nth % DEFAULT_SLOT_CAPACITY;
+        let Some(slot) = self.slots.get(slot_index) else {
+            return Ok(None);
+        };
+        let Some(mut offset) = slot.get_slot_offset(index_in_slot) else {
+            return Ok(None);
+        };
+        offset += self.slots[..slot_index]
+            .iter()
+            .map(|slot| slot.width() + slot.size())
+            .sum::<u64>();
+        self.inner.seek(std::io::SeekFrom::Start(offset))?;
+        Ok(Some(PacketDef::<B, P, Inner>::filtered(
+            &mut self.inner,
+            &mut predicate,
+        )?))
+    }
     pub fn range(
         &mut self,
         range: RangeInclusive<usize>,
     ) -> StorageRangeIterator<'_, S, B, P, Inner> {
         StorageRangeIterator::new(self, range)
+    }
+
+    pub fn range_filtered<F: FnMut(&[B]) -> bool>(
+        &mut self,
+        range: RangeInclusive<usize>,
+        predicate: F,
+    ) -> StorageRangeIteratorFiltered<'_, S, F, B, P, Inner> {
+        StorageRangeIteratorFiltered::new(self, range, predicate)
     }
 }

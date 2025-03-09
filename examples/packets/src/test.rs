@@ -258,6 +258,7 @@ proptest! {
         for (left, right) in restored.into_iter().map(|pkg|pkg.into()).collect::<Vec<WrappedPacket>>().iter().zip(packets.iter()) {
             assert_eq!(left, right);
         }
+        let mut blocks_visited = 0;
         // Read each 2th and 3th packets
         for n in 0..packets.len() {
             if n % 2 != 0 && n % 3 != 0 {
@@ -272,10 +273,15 @@ proptest! {
                 for (i, packet) in storage.range(n..=n + 10).enumerate() {
                     assert_eq!(Into::<WrappedPacket>::into(packet?), packets[n + i]);
                 }
+                for (i, packet) in storage.range_filtered(n..=n + 10, |blks| {
+                    blocks_visited += blks.len();
+                    false
+                }).enumerate() {
+                    assert_eq!(Into::<WrappedPacket>::into(packet?), packets[n + i]);
+                }
             }
         }
         // Read with filter
-        let mut blocks_visited = 0;
         for packet in storage.filtered(|blks| {
             blocks_visited += blks.len();
             false
