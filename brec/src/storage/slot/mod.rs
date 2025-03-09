@@ -7,7 +7,7 @@ use std::ops::RangeInclusive;
 use crate::*;
 pub(crate) use header::*;
 
-pub static DEFAULT_CAPACITY: usize = 100;
+pub static DEFAULT_SLOT_CAPACITY: usize = 100;
 pub static STORAGE_SLOT_SIG: [u8; 8] = [166u8, 177u8, 188u8, 199u8, 199u8, 188u8, 177u8, 166u8];
 
 #[derive(Debug)]
@@ -39,6 +39,13 @@ impl Slot {
     pub fn iter(&self) -> SlotIterator {
         SlotIterator::new(self)
     }
+    pub fn get_slot_offset(&self, nth: usize) -> Option<u64> {
+        if nth >= self.lenghts.len() {
+            return None;
+        }
+        Some(self.lenghts[..nth].iter().sum::<u64>() + self.size())
+    }
+
     pub fn get_free_slot_offset(&self) -> Option<u64> {
         if let Some(ln) = self.lenghts.last() {
             if ln > &0 {
@@ -66,8 +73,8 @@ impl Slot {
 impl Default for Slot {
     fn default() -> Self {
         let mut slot = Self::new(
-            vec![0u64; DEFAULT_CAPACITY],
-            DEFAULT_CAPACITY as u64,
+            vec![0u64; DEFAULT_SLOT_CAPACITY],
+            DEFAULT_SLOT_CAPACITY as u64,
             [0u8; 4],
         );
         slot.overwrite_crc();

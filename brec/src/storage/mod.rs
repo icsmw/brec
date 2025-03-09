@@ -31,7 +31,7 @@ impl<
         Inner: PayloadInnerDef,
     > StorageDef<S, B, P, Inner>
 {
-    pub fn new(inner: S) -> Self {
+    pub fn new(inner: S) -> Result<Self, Error> {
         Self {
             slots: Vec::new(),
             inner,
@@ -41,8 +41,9 @@ impl<
             _payload: std::marker::PhantomData,
             _payload_inner: std::marker::PhantomData,
         }
+        .load()
     }
-    pub fn load(&mut self) -> Result<(), Error> {
+    fn load(mut self) -> Result<Self, Error> {
         let mut offset = 0;
         loop {
             self.inner.seek(std::io::SeekFrom::Start(offset))?;
@@ -63,10 +64,26 @@ impl<
                 Err(err) => return Err(err),
             }
         }
-        Ok(())
+        Ok(self)
     }
-    pub fn read_nth(&mut self, nth: usize) -> Result<Option<PacketDef<B, P, Inner>>, Error> {
-        Ok(None)
+    pub fn nth(&mut self, nth: usize) -> Result<Option<PacketDef<B, P, Inner>>, Error> {
+        let slot_index = nth / DEFAULT_SLOT_CAPACITY;
+        let index_in_slot = nth % DEFAULT_SLOT_CAPACITY;
+        let Some(slot) = self.slots.get(slot_index) else {
+            return Ok(None);
+        };
+        let Some(mut offset) = slot.get_slot_offset(index_in_slot) else {
+            return Ok(None);
+        };
+        offset += self.slots[..slot_index]
+            .iter()
+            .map(|slot| slot.width() + slot.size())
+            .sum::<u64>();
+        self.inner.seek(std::io::SeekFrom::Start(offset))?;
+        match <PacketDef<B, P, Inner> as TryReadFrom>::try_read(&mut self.inner)? {
+            ReadStatus::Success(slot) => Ok(Some(slot)),
+            ReadStatus::NotEnoughData(needed) => Err(Error::NotEnoughData(needed as usize)),
+        }
     }
     pub fn insert(&mut self, mut packet: PacketDef<B, P, Inner>) -> Result<(), Error> {
         let offset = match self.locator.next(&self.slots) {

@@ -229,7 +229,7 @@ proptest! {
             .create(true)
             .truncate(true)
             .open(&tmp)?;
-        let mut storage = Storage::new(file);
+        let mut storage = Storage::new(file)?;
         for packet in packets.iter() {
             storage.insert(packet.into())?;
         }
@@ -250,6 +250,15 @@ proptest! {
         assert_eq!(packets.len(), restored.len());
         for (left, right) in restored.into_iter().map(|pkg|pkg.into()).collect::<Vec<WrappedPacket>>().iter().zip(packets.iter()) {
             assert_eq!(left, right);
+        }
+        // Read each 2th and 3th packets
+        for n in 0..packets.len() {
+            if n % 2 != 0 && n % 3 != 0 {
+                continue;
+            }
+            if let Some(packet) = storage.nth(n)? {
+                assert_eq!(Into::<WrappedPacket>::into(packet), packets[n]);
+            }
         }
         report_storage(packets.len());
     }
