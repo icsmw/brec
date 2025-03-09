@@ -147,6 +147,32 @@ fn read_packets(buffer: &[u8]) -> std::io::Result<(usize, Vec<Packet>)> {
     Ok((litter_len.load(Ordering::SeqCst), packets))
 }
 
+fn read_packets_one_by_one(bytes: &[Vec<u8>]) -> Result<Vec<WrappedPacket>, brec::Error> {
+    let mut packets = Vec::new();
+    for inner in bytes.iter() {
+        let a = match <Packet as TryReadFrom>::try_read(&mut std::io::Cursor::new(inner)) {
+            Ok(res) => res,
+            Err(err) => {
+                println!("Err: {err}");
+                return Err(err);
+            }
+        };
+        let b = match <Packet as TryReadFromBuffered>::try_read(&mut std::io::Cursor::new(inner)) {
+            Ok(res) => res,
+            Err(err) => {
+                println!("Err: {err}");
+                return Err(err);
+            }
+        };
+        if let (ReadStatus::Success(a), ReadStatus::Success(b)) = (a, b) {
+            let a = Into::<WrappedPacket>::into(a);
+            assert_eq!(a, Into::<WrappedPacket>::into(b));
+            packets.push(a);
+        }
+    }
+    Ok(packets)
+}
+
 static BYTES: AtomicUsize = AtomicUsize::new(0);
 static INSTANCES: AtomicUsize = AtomicUsize::new(0);
 
@@ -180,18 +206,25 @@ static STORED_PACKETS: AtomicUsize = AtomicUsize::new(0);
 static BLOCKS_VISITED: AtomicUsize = AtomicUsize::new(0);
 
 fn report_storage(packets: usize, blocks_visited: Option<usize>) {
+    use num_format::{Locale, ToFormattedString};
     STORED_PACKETS.fetch_add(packets, Ordering::Relaxed);
     if let Some(visited) = blocks_visited {
         BLOCKS_VISITED.fetch_add(visited, Ordering::Relaxed);
         println!(
             "Generated, stored and read {} packets; blocks visited: {}",
-            STORED_PACKETS.load(Ordering::Relaxed),
-            BLOCKS_VISITED.load(Ordering::Relaxed),
+            STORED_PACKETS
+                .load(Ordering::Relaxed)
+                .to_formatted_string(&Locale::en),
+            BLOCKS_VISITED
+                .load(Ordering::Relaxed)
+                .to_formatted_string(&Locale::en),
         );
     } else {
         println!(
             "Generated, stored and read {} packets;",
-            STORED_PACKETS.load(Ordering::Relaxed),
+            STORED_PACKETS
+                .load(Ordering::Relaxed)
+                .to_formatted_string(&Locale::en),
         );
     }
 }
@@ -228,6 +261,25 @@ proptest! {
             assert_eq!(left, right);
         }
         report(buf.len(), count);
+    }
+
+    #[test]
+    fn try_reading_one_by_one(packets in proptest::collection::vec(any::<WrappedPacket>(), 1..2000)) {
+        let mut bufs = Vec::new();
+        let mut bytes = 0;
+        for wrapped in packets.iter() {
+            let mut buf: Vec<u8> = Vec::new();
+            let mut packet: Packet = wrapped.into();
+            packet.write_all(&mut buf)?;
+            bytes += buf.len();
+            bufs.push(buf);
+        }
+        let restored = read_packets_one_by_one(&bufs)?;
+        assert_eq!(packets.len(), restored.len());
+        for (left, right) in restored.iter().zip(packets.iter()) {
+            assert_eq!(left, right);
+        }
+        report(bytes, packets.len());
     }
 
     #[test]

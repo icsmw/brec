@@ -115,7 +115,6 @@ impl<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> TryReadFromBuffe
         let mut pkg = PacketDef::default();
         let mut read = 0;
         loop {
-            // TODO: Error::SignatureDismatch should be covered in enum's context
             match <B as TryReadFromBuffered>::try_read(reader)? {
                 ReadStatus::Success(blk) => {
                     read += blk.size();
@@ -130,6 +129,7 @@ impl<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> TryReadFromBuffe
         if header.payload {
             match <PayloadHeader as TryReadFromBuffered>::try_read(reader)? {
                 ReadStatus::Success(header) => {
+                    reader.consume(header.size());
                     match <P as TryExtractPayloadFromBuffered<Inner>>::try_read(reader, &header)? {
                         ReadStatus::Success(payload) => {
                             pkg.payload = Some(payload);
