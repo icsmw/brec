@@ -50,4 +50,6 @@ pub enum Error {
     CannotInsertIntoSlot,
     #[error("Damaged slot: {0}")]
     DamagedSlot(Box<Error>),
+    #[error("Too many attempts to read block; made {0} attempts")]
+    TooManyAttemptsToReadBlock(usize),
 }

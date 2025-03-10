@@ -159,23 +159,31 @@ fn read_packets(buffer: &[u8]) -> std::io::Result<(usize, Vec<Packet>)> {
 fn read_packets_one_by_one(bytes: &[Vec<u8>]) -> Result<Vec<WrappedPacket>, brec::Error> {
     let mut packets = Vec::new();
     for inner in bytes.iter() {
-        let a = match <Packet as TryReadFrom>::try_read(&mut std::io::Cursor::new(inner)) {
+        let a = match <Packet as ReadFrom>::read(&mut std::io::Cursor::new(inner)) {
             Ok(res) => res,
             Err(err) => {
                 println!("Err: {err}");
                 return Err(err);
             }
         };
-        let b = match <Packet as TryReadFromBuffered>::try_read(&mut std::io::Cursor::new(inner)) {
+        let b = match <Packet as TryReadFrom>::try_read(&mut std::io::Cursor::new(inner)) {
             Ok(res) => res,
             Err(err) => {
                 println!("Err: {err}");
                 return Err(err);
             }
         };
-        if let (ReadStatus::Success(a), ReadStatus::Success(b)) = (a, b) {
+        let c = match <Packet as TryReadFromBuffered>::try_read(&mut std::io::Cursor::new(inner)) {
+            Ok(res) => res,
+            Err(err) => {
+                println!("Err: {err}");
+                return Err(err);
+            }
+        };
+        if let (ReadStatus::Success(b), ReadStatus::Success(c)) = (b, c) {
             let a = Into::<WrappedPacket>::into(a);
             assert_eq!(a, Into::<WrappedPacket>::into(b));
+            assert_eq!(a, Into::<WrappedPacket>::into(c));
             packets.push(a);
         }
     }

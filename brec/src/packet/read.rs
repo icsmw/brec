@@ -1,6 +1,7 @@
 use crate::*;
 
-// TODO: needs a proptest
+const MAX_BLOCKS_READ_ATTEMPTS: usize = u16::MAX as usize;
+
 impl<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> ReadFrom
     for PacketDef<B, P, Inner>
 {
@@ -11,10 +12,26 @@ impl<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> ReadFrom
         let header = PacketHeader::read(buf)?;
         let mut pkg = PacketDef::default();
         let mut read = 0;
+        let mut cursor = std::io::BufReader::new(buf);
         if header.blocks_len > 0 {
+            let mut iterations = 0;
             loop {
-                // TODO: Error::SignatureDismatch should be covered in enum's context
-                let blk = <B as ReadFrom>::read(buf)?;
+                let blk = match <B as TryReadFromBuffered>::try_read(&mut cursor) {
+                    Ok(ReadStatus::Success(blk)) => blk,
+                    Ok(ReadStatus::NotEnoughData(needed)) => {
+                        return Err(Error::NotEnoughData(needed as usize))
+                    }
+                    Err(Error::CrcDismatch) => {
+                        iterations += 1;
+                        if iterations > MAX_BLOCKS_READ_ATTEMPTS {
+                            return Err(Error::TooManyAttemptsToReadBlock(iterations));
+                        }
+                        continue;
+                    }
+                    Err(err) => {
+                        return Err(err);
+                    }
+                };
                 read += blk.size();
                 pkg.blocks.push(blk);
                 if read == header.blocks_len {
@@ -23,8 +40,8 @@ impl<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> ReadFrom
             }
         }
         if header.payload {
-            let header = <PayloadHeader as ReadFrom>::read(buf)?;
-            let payload = <P as ExtractPayloadFrom<Inner>>::read(buf, &header)?;
+            let header = <PayloadHeader as ReadFrom>::read(&mut cursor)?;
+            let payload = <P as ExtractPayloadFrom<Inner>>::read(&mut cursor, &header)?;
             pkg.payload = Some(payload);
         }
         Ok(pkg)
