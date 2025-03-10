@@ -190,6 +190,22 @@ fn read_packets_one_by_one(bytes: &[Vec<u8>]) -> Result<Vec<WrappedPacket>, brec
     Ok(packets)
 }
 
+fn read_packets_with_read_from(inner: &[u8]) -> Result<Vec<WrappedPacket>, brec::Error> {
+    let mut packets = Vec::new();
+    let mut cursor = std::io::Cursor::new(inner);
+    loop {
+        let pkg = match <Packet as ReadFrom>::read(&mut cursor) {
+            Ok(pkg) => Into::<WrappedPacket>::into(pkg),
+            Err(err) => {
+                println!("Err: {err}");
+                break;
+            }
+        };
+        packets.push(pkg);
+    }
+    Ok(packets)
+}
+
 fn read_packets_with_try_read_from(inner: &[u8]) -> Result<Vec<WrappedPacket>, brec::Error> {
     let mut packets = Vec::new();
     let mut cursor = std::io::Cursor::new(inner);
@@ -217,7 +233,7 @@ fn read_packets_with_try_read_from_buffered(
     loop {
         let pkg = match <Packet as TryReadFromBuffered>::try_read(&mut cursor) {
             Ok(ReadStatus::Success(pkg)) => Into::<WrappedPacket>::into(pkg),
-            Ok(ReadStatus::NotEnoughData(needed)) => {
+            Ok(ReadStatus::NotEnoughData(_needed)) => {
                 break;
             }
             Err(err) => {
@@ -349,6 +365,22 @@ fn try_reading_one_by_one(packets: Vec<WrappedPacket>) -> std::io::Result<()> {
     Ok(())
 }
 
+fn try_reading_with_read(packets: Vec<WrappedPacket>) -> std::io::Result<()> {
+    let mut buffer = Vec::new();
+    for wrapped in packets.iter() {
+        let mut packet: Packet = wrapped.into();
+        packet.write_all(&mut buffer)?;
+    }
+    let restored = read_packets_with_read_from(&buffer)
+        .map_err(|err| std::io::Error::new(std::io::ErrorKind::InvalidData, err.to_string()))?;
+    assert_eq!(packets.len(), restored.len());
+    for (left, right) in restored.iter().zip(packets.iter()) {
+        assert_eq!(left, right);
+    }
+    report(buffer.len(), packets.len());
+    Ok(())
+}
+
 fn try_reading_with_try_read(packets: Vec<WrappedPacket>) -> std::io::Result<()> {
     let mut buffer = Vec::new();
     for wrapped in packets.iter() {
@@ -473,6 +505,7 @@ fn storage_write_read_filter(packets: Vec<WrappedPacket>, filename: &str) -> std
 proptest! {
     #![proptest_config(ProptestConfig {
         max_shrink_iters: 50,
+        max_local_rejects: 1_000_000,
         ..ProptestConfig::with_cases(200)
     })]
 
@@ -504,6 +537,16 @@ proptest! {
     #[test]
     fn try_reading_one_by_one_with_blocks(packets in proptest::collection::vec(WrappedPacket::arbitrary_with(false), 1..2000)) {
         try_reading_one_by_one(packets)?;
+    }
+
+    #[test]
+    fn try_reading_with_read_no_blocks(packets in proptest::collection::vec(WrappedPacket::arbitrary_with(true), 1..2000)) {
+        try_reading_with_read(packets)?;
+    }
+
+    #[test]
+    fn try_reading_with_read_with_blocks(packets in proptest::collection::vec(WrappedPacket::arbitrary_with(false), 1..2000)) {
+        try_reading_with_read(packets)?;
     }
 
     #[test]

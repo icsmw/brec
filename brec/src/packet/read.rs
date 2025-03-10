@@ -1,9 +1,10 @@
-use std::io::BufRead;
-
 use crate::*;
 
-const MAX_BLOCKS_READ_ATTEMPTS: usize = u16::MAX as usize;
-
+/// Returns IO Error if not enough bytes to read a `PacketHeader`. If a header
+/// had been read, but there are not enough bytes to read blocks and payload,
+/// will return IO Error. To compare with traits `TryReadFrom` and `TryReadFromBuffered`
+/// this method doesn't return `Error::NotEnoughData` or `ReadStatus::NotEnoughData` in
+/// case of not enough data.
 impl<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> ReadFrom
     for PacketDef<B, P, Inner>
 {
@@ -14,36 +15,33 @@ impl<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> ReadFrom
         let header = PacketHeader::read(buf)?;
         let mut pkg = PacketDef::default();
         let mut read = 0;
-        let mut cursor = std::io::BufReader::new(buf);
+        let mut inner = vec![0u8; header.size as usize];
+        buf.read_exact(&mut inner)?;
+        let mut reader = std::io::Cursor::new(&mut inner);
         if header.blocks_len > 0 {
             let mut iterations = 0;
             loop {
-                let blk = match <B as TryReadFromBuffered>::try_read(&mut cursor) {
-                    Ok(ReadStatus::Success(blk)) => blk,
-                    Ok(ReadStatus::NotEnoughData(needed)) => {
-                        return Err(Error::NotEnoughData(needed as usize))
-                    }
-                    Err(Error::CrcDismatch) => {
-                        iterations += 1;
-                        if iterations > MAX_BLOCKS_READ_ATTEMPTS {
-                            return Err(Error::TooManyAttemptsToReadBlock(iterations));
+                match <B as TryReadFromBuffered>::try_read(&mut reader)? {
+                    ReadStatus::Success(blk) => {
+                        read += blk.size();
+                        pkg.blocks.push(blk);
+                        if read == header.blocks_len {
+                            break;
                         }
-                        continue;
                     }
-                    Err(err) => {
-                        return Err(err);
+                    ReadStatus::NotEnoughData(needed) => {
+                        return Err(Error::NotEnoughData(needed as usize));
                     }
-                };
-                read += blk.size();
-                pkg.blocks.push(blk);
-                if read == header.blocks_len {
-                    break;
+                }
+                iterations += 1;
+                if iterations > MAX_BLOCKS_COUNT as usize {
+                    return Err(Error::MaxBlocksCount);
                 }
             }
         }
         if header.payload {
-            let header = <PayloadHeader as ReadFrom>::read(&mut cursor)?;
-            let payload = <P as ExtractPayloadFrom<Inner>>::read(&mut cursor, &header)?;
+            let header = <PayloadHeader as ReadFrom>::read(&mut reader)?;
+            let payload = <P as ExtractPayloadFrom<Inner>>::read(&mut reader, &header)?;
             pkg.payload = Some(payload);
         }
         Ok(pkg)
@@ -70,6 +68,7 @@ impl<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> TryReadFrom
         let mut pkg = PacketDef::default();
         let mut read = 0;
         if header.blocks_len > 0 {
+            let mut iterations = 0;
             loop {
                 match <B as TryReadFrom>::try_read(buf) {
                     Ok(ReadStatus::Success(blk)) => {
@@ -87,6 +86,11 @@ impl<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> TryReadFrom
                         buf.seek(std::io::SeekFrom::Start(start_pos))?;
                         return Err(err);
                     }
+                }
+                iterations += 1;
+                if iterations > MAX_BLOCKS_COUNT as usize {
+                    buf.seek(std::io::SeekFrom::Start(start_pos))?;
+                    return Err(Error::MaxBlocksCount);
                 }
             }
         }
@@ -137,6 +141,7 @@ impl<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> TryReadFromBuffe
         let mut pkg = PacketDef::default();
         let mut read = 0;
         if header.blocks_len > 0 {
+            let mut iterations = 0;
             loop {
                 match <B as TryReadFromBuffered>::try_read(reader)? {
                     ReadStatus::Success(blk) => {
@@ -149,6 +154,10 @@ impl<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> TryReadFromBuffe
                     ReadStatus::NotEnoughData(needed) => {
                         return Ok(ReadStatus::NotEnoughData(needed))
                     }
+                }
+                iterations += 1;
+                if iterations > MAX_BLOCKS_COUNT as usize {
+                    return Err(Error::MaxBlocksCount);
                 }
             }
         }
