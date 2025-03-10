@@ -1,3 +1,5 @@
+use std::io::BufRead;
+
 use crate::*;
 
 const MAX_BLOCKS_READ_ATTEMPTS: usize = u16::MAX as usize;
@@ -162,7 +164,6 @@ impl<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> TryReadFromBuffe
                             return Ok(ReadStatus::NotEnoughData(needed))
                         }
                     }
-                    reader.consume(header.payload_len());
                 }
                 ReadStatus::NotEnoughData(needed) => {
                     return Err(Error::NotEnoughData(needed as usize))
