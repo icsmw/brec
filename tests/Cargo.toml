@@ -1,0 +1,14 @@
+[workspace]
+members = [
+    "stress_blocks",
+    "enums",
+    "stress_payloads",
+    "stress_packets"
+]
+
+[workspace.dependencies]
+brec = { path = "../brec" }
+serde = "1.0"
+rand = "0.9"
+proptest = "1.4"
+num-format = "0.4"
