@@ -141,5 +141,50 @@ proptest! {
         report(buf.len(), restored.len());
     }
 
+    #[test]
+    fn test_read_from(mut payloads in proptest::collection::vec(any::<Payload>(), 1..1000)) {
+        use std::io::Cursor;
+        let mut bytes = 0;
+        for payload in payloads.iter_mut() {
+            let mut buf: Vec<u8> = Vec::new();
+            payload.write_all(&mut buf)?;
+            bytes += buf.len();
+            let mut cursor = Cursor::new(buf);
+            let header = brec::PayloadHeader::read(&mut cursor)?;
+            match <Payload as TryExtractPayloadFrom<Payload>>::try_read(&mut cursor, &header)?
+            {
+                ReadStatus::Success(restored) => {
+                    assert_eq!(payload, &restored);
+                }
+                ReadStatus::NotEnoughData(_needed) => {
+                    panic!("No data to read payload");
+                }
+            }
+        }
+        report(bytes, payloads.len());
+    }
+
+    #[test]
+    fn test_read_from_buffered(mut payloads in proptest::collection::vec(any::<Payload>(), 1..1000)) {
+        use std::io::Cursor;
+        let mut bytes = 0;
+        for payload in payloads.iter_mut() {
+            let mut buf: Vec<u8> = Vec::new();
+            payload.write_all(&mut buf)?;
+            bytes += buf.len();
+            let mut cursor = Cursor::new(buf);
+            let header = brec::PayloadHeader::read(&mut cursor)?;
+            match <Payload as TryExtractPayloadFromBuffered<Payload>>::try_read(&mut cursor, &header)?
+            {
+                ReadStatus::Success(restored) => {
+                    assert_eq!(payload, &restored);
+                }
+                ReadStatus::NotEnoughData(_needed) => {
+                    panic!("No data to read payload");
+                }
+            }
+        }
+        report(bytes, payloads.len());
+    }
 
 }
