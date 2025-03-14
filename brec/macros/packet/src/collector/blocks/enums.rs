@@ -18,6 +18,7 @@ pub fn gen(blocks: &[&Block], derives: Vec<String>) -> Result<TokenStream, E> {
     };
     Ok(quote! {
         #derives
+        #[allow(non_snake_case)]
         pub enum Block {
             #(#variants,)*
         }

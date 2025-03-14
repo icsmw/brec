@@ -1,4 +1,3 @@
-mod field;
 use std::{
     collections::HashSet,
     env,
@@ -7,80 +6,21 @@ use std::{
     path::PathBuf,
 };
 
-pub(crate) use field::*;
-
+use crate::tests::*;
 use proc_macro2::TokenStream;
 use proptest::prelude::*;
 use quote::{format_ident, quote};
 use uuid::Uuid;
 
-#[derive(Debug, Default)]
-struct Block {
-    pub name: String,
-    pub fields: Vec<BlockField>,
-}
-
-impl Block {
-    pub fn as_dec(&self) -> TokenStream {
-        let name = format_ident!("{}", self.name);
-        let fields = self
-            .fields
-            .iter()
-            .map(|f| f.as_dec())
-            .collect::<Vec<TokenStream>>();
-        quote! {
-            #[block]
-            struct #name {
-                #(#fields,)*
-            }
-        }
-    }
-    pub fn as_val(&self) -> TokenStream {
-        let name = format_ident!("{}", self.name);
-        let fields = self
-            .fields
-            .iter()
-            .map(|f| f.as_val())
-            .collect::<Vec<TokenStream>>();
-        quote! {
-            #name {
-                #(#fields,)*
-            }
-        }
-    }
-}
-
-impl Arbitrary for Block {
-    type Parameters = ();
-
-    type Strategy = BoxedStrategy<Self>;
-
-    fn arbitrary_with(_: ()) -> Self::Strategy {
-        (1usize..=20)
-            .prop_flat_map(|len| {
-                (
-                    "[a-z][a-z0-9]*".prop_map(String::from),
-                    prop::collection::vec(BlockField::arbitrary_with(()), len).boxed(),
-                )
-            })
-            .prop_map(|(name, mut fields)| {
-                let mut seen = HashSet::new();
-                fields.retain(|f| seen.insert(f.name.clone()));
-                Block { name, fields }
-            })
-            .boxed()
-    }
-}
-
-struct Project {
-    pub blocks: Vec<Block>,
+struct GeneratedProject {
+    pub blocks: Vec<GeneratedBlock>,
     pub name: Uuid,
 }
 
-impl Project {
+impl GeneratedProject {
     pub fn write(&self) -> io::Result<()> {
         let root = self.root();
-        let tests = root.join("../../tests");
+        let tests = root.join("../../../gen_tests");
         if !tests.exists() {
             fs::create_dir(&tests)?;
         }
@@ -134,10 +74,10 @@ version = "0.0.0"
 edition = "2021"
 
 [dependencies]
-brec = { path = "../../"}
+brec = { path = "../../brec"}
 
 [build-dependencies]
-brec = { path = "../../", features=["build"]}"#
+brec = { path = "../../brec", features=["build"]}"#
             .to_string()
     }
     pub fn build_rs(&self) -> String {
@@ -156,10 +96,10 @@ proptest! {
 
 
     #[test]
-    fn test(mut blocks in proptest::collection::vec(Block::arbitrary(), 1..20)) {
+    fn test(mut blocks in proptest::collection::vec(GeneratedBlock::arbitrary(), 1..20)) {
         let mut seen = HashSet::new();
         blocks.retain(|blk| seen.insert(blk.name.clone()));
-        let pro = Project { blocks, name: Uuid::new_v4()};
+        let pro = GeneratedProject { blocks, name: Uuid::new_v4()};
         pro.write()?;
         // for blk in blks.into_iter() {
 

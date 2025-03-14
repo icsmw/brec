@@ -303,7 +303,7 @@ fn report_storage(packets: usize, blocks_visited: Option<usize>) {
 }
 
 fn try_read_from(packets: Vec<WrappedPacket>) -> std::io::Result<()> {
-    let mut buf = Vec::new();
+    let mut buf: Vec<u8> = Vec::new();
     write_to_buf(&mut buf, &packets)?;
     let (_, restored) = read_packets(&buf)?;
     let count = restored.len();

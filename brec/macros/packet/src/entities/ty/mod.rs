@@ -1,9 +1,3 @@
-#[cfg(test)]
-mod proptest;
-#[cfg(test)]
-pub(crate) use proptest::*;
-use syn::Ident;
-
 use std::fmt;
 
 /// f16 and f128 are unstable

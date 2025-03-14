@@ -18,6 +18,7 @@ pub fn gen(payloads: &[&Payload], derives: Vec<String>) -> Result<TokenStream, E
     };
     Ok(quote! {
         #derives
+        #[allow(non_snake_case)]
         pub enum Payload {
             #(#variants,)*
             Bytes(Vec<u8>),
