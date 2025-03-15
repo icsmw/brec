@@ -8,6 +8,12 @@ pub(crate) struct Field {
     pub value: Value,
 }
 
+impl Field {
+    pub fn is_ordered_ty(&self) -> bool {
+        self.value.is_ordered_ty()
+    }
+}
+
 impl Arbitrary for Field {
     type Parameters = (Target, u8);
 
@@ -15,7 +21,7 @@ impl Arbitrary for Field {
 
     fn arbitrary_with((owner, deep): (Target, u8)) -> Self::Strategy {
         (
-            "[a-z][A-Z0-9]*".prop_filter("name already exist", |s| chk_name(s)),
+            gen_name(),
             if deep > MAX_VALUE_DEEP || matches!(owner, Target::Block) {
                 Target::block_values()
             } else {
@@ -44,9 +50,9 @@ impl Generate for Field {
     }
     fn instance(&self, _: Self::Options) -> TokenStream {
         let name = format_ident!("{}", self.name);
-        let ty = self.value.instance(());
+        let vl = self.value.instance(());
         quote! {
-            #name: #ty
+            #name: #vl
         }
     }
 }

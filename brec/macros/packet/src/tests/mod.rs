@@ -30,6 +30,12 @@ pub(crate) fn chk_name<S: AsRef<str>>(name: S) -> bool {
         true
     }
 }
+pub(crate) fn gen_name() -> BoxedStrategy<String> {
+    prop::collection::vec("[a-zA-Z]", 30)
+        .prop_map(|chars| chars.join("").to_string())
+        .prop_filter("name already exist", |s| chk_name(s))
+        .boxed()
+}
 
 #[derive(Debug, Default)]
 pub(crate) enum Target {
@@ -37,8 +43,27 @@ pub(crate) enum Target {
     Block,
     Payload,
 }
-
+//TODO: add string
 impl Target {
+    pub fn primitive_values() -> BoxedStrategy<ValueId> {
+        prop_oneof![
+            Just(ValueId::U8),
+            Just(ValueId::U16),
+            Just(ValueId::U32),
+            Just(ValueId::U64),
+            Just(ValueId::U128),
+            Just(ValueId::I8),
+            Just(ValueId::I16),
+            Just(ValueId::I32),
+            Just(ValueId::I64),
+            Just(ValueId::I128),
+            Just(ValueId::F32),
+            Just(ValueId::F64),
+            Just(ValueId::Bool),
+            Just(ValueId::String),
+        ]
+        .boxed()
+    }
     pub fn block_values() -> BoxedStrategy<ValueId> {
         prop_oneof![
             Just(ValueId::U8),
@@ -59,6 +84,30 @@ impl Target {
         .boxed()
     }
 
+    pub fn nested_values() -> BoxedStrategy<ValueId> {
+        prop_oneof![
+            Just(ValueId::U8),
+            Just(ValueId::U16),
+            Just(ValueId::U32),
+            Just(ValueId::U64),
+            Just(ValueId::U128),
+            Just(ValueId::I8),
+            Just(ValueId::I16),
+            Just(ValueId::I32),
+            Just(ValueId::I64),
+            Just(ValueId::I128),
+            Just(ValueId::F32),
+            Just(ValueId::F64),
+            Just(ValueId::Bool),
+            Just(ValueId::String),
+            Just(ValueId::Option),
+            Just(ValueId::Tuple),
+            Just(ValueId::HashMap),
+            Just(ValueId::Vec)
+        ]
+        .boxed()
+    }
+
     pub fn payload_values() -> BoxedStrategy<ValueId> {
         prop_oneof![
             Just(ValueId::U8),
@@ -74,7 +123,7 @@ impl Target {
             Just(ValueId::F32),
             Just(ValueId::F64),
             Just(ValueId::Bool),
-            // Just(ValueId::Blob),
+            Just(ValueId::String),
             Just(ValueId::Option),
             Just(ValueId::Tuple),
             Just(ValueId::HashMap),
@@ -98,7 +147,7 @@ proptest! {
 
 
     #[test]
-    fn generate(tcrates in proptest::collection::vec(TCrate::arbitrary(), 1..2)) {
+    fn generate(tcrates in proptest::collection::vec(TCrate::arbitrary(), 5)) {
         let root = std::path::PathBuf::from(std::env::var("CARGO_MANIFEST_DIR").expect("CARGO_MANIFEST_DIR is not set"));
         let tests_path = root.join("../../../gen_tests");
         if !tests_path.exists() {

@@ -15,7 +15,7 @@ impl Arbitrary for Enum {
 
     fn arbitrary_with(deep: u8) -> Self::Strategy {
         (
-            "[a-z][A-Z]*".prop_filter("name already exist", |s| chk_name(s)),
+            gen_name(),
             prop::collection::vec(Field::arbitrary_with((Target::Payload, deep + 1)), 1..10),
         )
             .prop_map(move |(name, fields)| Enum { name, fields })

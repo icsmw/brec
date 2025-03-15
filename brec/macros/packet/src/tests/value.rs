@@ -2,8 +2,9 @@ use crate::tests::*;
 use proptest::prelude::*;
 use quote::quote;
 use std::collections::HashMap;
+use syn::LitStr;
 
-pub(crate) const MAX_VALUE_DEEP: u8 = 5;
+pub(crate) const MAX_VALUE_DEEP: u8 = 1;
 
 #[enum_ids::enum_ids]
 #[derive(Debug, Clone)]
@@ -22,10 +23,41 @@ pub(crate) enum Value {
     F64(f64),
     Bool(bool),
     Blob(Vec<u8>),
+    String(String),
     Option(Option<Box<Value>>),
     Tuple(Box<Value>, Box<Value>),
     HashMap(HashMap<String, Value>),
     Vec(Vec<Value>),
+}
+
+impl Value {
+    pub fn is_ordered_ty(&self) -> bool {
+        match self {
+            Self::U8(..)
+            | Self::U16(..)
+            | Self::U32(..)
+            | Self::U64(..)
+            | Self::U128(..)
+            | Self::I8(..)
+            | Self::I16(..)
+            | Self::I32(..)
+            | Self::I64(..)
+            | Self::I128(..)
+            | Self::F32(..)
+            | Self::F64(..)
+            | Self::Bool(..)
+            | Self::Blob(..)
+            | Self::String(..) => true,
+            Self::HashMap(..) => false,
+            Self::Vec(v) => v.first().map(|v| v.is_ordered_ty()).unwrap_or(true),
+            Self::Tuple(a, b) => {
+                let a = a.is_ordered_ty();
+                let b = b.is_ordered_ty();
+                a && b
+            }
+            Self::Option(v) => v.as_ref().map(|v| v.is_ordered_ty()).unwrap_or(true),
+        }
+    }
 }
 
 impl Default for ValueId {
@@ -63,10 +95,11 @@ impl Arbitrary for Value {
             ValueId::Blob => prop::collection::vec(any::<u8>(), 0..100)
                 .prop_map(|v| Value::Blob(v.into_iter().collect()))
                 .boxed(),
+            ValueId::String => any::<String>().prop_map(Value::String).boxed(),
             ValueId::Vec => if deep > MAX_VALUE_DEEP {
-                Target::block_values()
+                Target::primitive_values()
             } else {
-                Target::payload_values()
+                Target::nested_values()
             }
             .prop_flat_map(move |id| {
                 prop::collection::vec(Value::arbitrary_with((id, deep + 1)), 0..100)
@@ -74,9 +107,9 @@ impl Arbitrary for Value {
             })
             .boxed(),
             ValueId::HashMap => if deep > MAX_VALUE_DEEP {
-                Target::block_values()
+                Target::primitive_values()
             } else {
-                Target::payload_values()
+                Target::nested_values()
             }
             .prop_flat_map(move |id| {
                 prop::collection::vec(Value::arbitrary_with((id, deep + 1)), 0..100).prop_map(
@@ -91,9 +124,9 @@ impl Arbitrary for Value {
             })
             .boxed(),
             ValueId::Tuple => if deep > MAX_VALUE_DEEP {
-                (Target::block_values(), Target::block_values())
+                (Target::primitive_values(), Target::primitive_values())
             } else {
-                (Target::payload_values(), Target::payload_values())
+                (Target::nested_values(), Target::nested_values())
             }
             .prop_flat_map(move |(a, b)| {
                 (
@@ -104,9 +137,9 @@ impl Arbitrary for Value {
             })
             .boxed(),
             ValueId::Option => if deep > MAX_VALUE_DEEP {
-                Target::block_values()
+                Target::primitive_values()
             } else {
-                Target::payload_values()
+                Target::nested_values()
             }
             .prop_flat_map(move |id| {
                 prop::option::of(Value::arbitrary_with((id, deep + 1)))
@@ -138,6 +171,7 @@ impl Generate for Value {
                 let len = v.len();
                 quote! { [u8; #len] }
             }
+            Self::String(..) => quote! { String },
             Self::HashMap(v) => {
                 let ty = v
                     .values()
@@ -188,6 +222,10 @@ impl Generate for Value {
                     .map(|v| quote! { #v })
                     .collect::<Vec<TokenStream>>();
                 quote! {[#(#vals,)*]}
+            }
+            Self::String(s) => {
+                let s = LitStr::new(s, proc_macro2::Span::call_site());
+                quote! { String::from(#s) }
             }
             Self::HashMap(v) => {
                 let vals = v

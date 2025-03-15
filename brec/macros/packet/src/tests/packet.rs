@@ -17,7 +17,7 @@ impl Arbitrary for Packet {
 
     fn arbitrary_with(_: ()) -> Self::Strategy {
         (
-            "[a-z][A-Z0-9]*".prop_filter("name already exist", |s| chk_name(s)),
+            gen_name(),
             prop::collection::vec(Struct::arbitrary_with((Target::Block, 0)), 1..10),
             prop::option::of(Struct::arbitrary_with((Target::Payload, 0))),
         )
