@@ -22,7 +22,7 @@ pub trait BlockDef:
 }
 
 pub trait PayloadInnerDef:
-    Sized + PayloadEncode + PayloadEncodeReferred + PayloadSize + PayloadCrc + PayloadSignature
+    Sized + PayloadEncode + PayloadHooks + PayloadEncodeReferred + PayloadSize + PayloadCrc + PayloadSignature
     // In code generator will be forced usage of WritePayloadWithHeaderTo
     + WriteMutTo
     // In code generator will be forced usage of WriteVectoredPayloadWithHeaderTo

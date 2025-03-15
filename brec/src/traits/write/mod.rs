@@ -40,8 +40,13 @@ pub trait WriteVectoredMutTo {
 
 pub trait WritePayloadWithHeaderTo
 where
-    Self:
-        Sized + PayloadEncode + PayloadEncodeReferred + PayloadSignature + PayloadCrc + PayloadSize,
+    Self: Sized
+        + PayloadEncode
+        + PayloadHooks
+        + PayloadEncodeReferred
+        + PayloadSignature
+        + PayloadCrc
+        + PayloadSize,
 {
     fn write<T: std::io::Write>(&mut self, buf: &mut T) -> std::io::Result<usize> {
         let header = PayloadHeader::new(self)?.as_vec();

@@ -1,0 +1,11 @@
+[package]
+name = "test_case"
+version = "0.0.0"
+edition = "2021"
+
+[dependencies]
+brec = { path = "../../brec", features=["bincode"] }
+serde = { version = "1.0", features = ["derive"] }
+
+[build-dependencies]
+brec = { path = "../../brec", features=["build"]}

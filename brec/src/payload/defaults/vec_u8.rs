@@ -50,3 +50,5 @@ impl TryReadPayloadFromBuffered<Vec<u8>> for Vec<u8> {}
 impl WritePayloadWithHeaderTo for Vec<u8> {}
 
 impl WriteVectoredPayloadWithHeaderTo for Vec<u8> {}
+
+impl PayloadHooks for Vec<u8> {}

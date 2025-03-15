@@ -40,6 +40,17 @@ impl PayloadAttrs {
             .iter()
             .any(|attr| matches!(attr, PayloadAttr::NoDefaultSig))
     }
+    pub fn hooks(&self) -> bool {
+        self.0.iter().any(|attr| matches!(attr, PayloadAttr::Hooks))
+    }
+    pub fn is_no_auto_crc(&self) -> bool {
+        self.0
+            .iter()
+            .any(|attr| matches!(attr, PayloadAttr::NoAutoCrc))
+    }
+    pub fn is_no_crc(&self) -> bool {
+        self.0.iter().any(|attr| matches!(attr, PayloadAttr::NoCrc))
+    }
     pub fn is_bincode(&self) -> bool {
         self.0
             .iter()
@@ -51,17 +62,10 @@ impl PayloadAttrs {
 pub enum PayloadAttr {
     Path(ModulePath),
     NoDefaultSig,
+    Hooks,
+    NoAutoCrc,
+    NoCrc,
     Bincode,
-}
-
-impl PayloadAttr {
-    pub fn has(attr: &Attribute) -> bool {
-        attr.path().is_ident(&PayloadAttrId::Path.to_string())
-            || attr
-                .path()
-                .is_ident(&PayloadAttrId::NoDefaultSig.to_string())
-            || attr.path().is_ident(&PayloadAttrId::Bincode.to_string())
-    }
 }
 
 impl fmt::Display for PayloadAttr {
@@ -72,6 +76,9 @@ impl fmt::Display for PayloadAttr {
             match self {
                 Self::Path(path) => format!("{}({path})", self.id()),
                 Self::NoDefaultSig => PayloadAttrId::NoDefaultSig.to_string(),
+                Self::Hooks => PayloadAttrId::Hooks.to_string(),
+                Self::NoAutoCrc => PayloadAttrId::NoAutoCrc.to_string(),
+                Self::NoCrc => PayloadAttrId::NoCrc.to_string(),
                 Self::Bincode => PayloadAttrId::Bincode.to_string(),
             }
         )

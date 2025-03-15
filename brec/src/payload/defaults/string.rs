@@ -50,3 +50,5 @@ impl TryReadPayloadFromBuffered<String> for String {}
 impl WritePayloadWithHeaderTo for String {}
 
 impl WriteVectoredPayloadWithHeaderTo for String {}
+
+impl PayloadHooks for String {}

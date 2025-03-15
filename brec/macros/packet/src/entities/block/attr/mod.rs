@@ -1,8 +1,8 @@
 use crate::*;
 use proc_macro2::TokenStream;
-use quote::{format_ident, quote, ToTokens};
+use quote::{format_ident, quote};
 use std::fmt;
-use syn::{parse, parse_str, Attribute, Expr, ExprPath, Ident, Lit, Path};
+use syn::{Attribute, Ident};
 
 #[derive(Debug, Clone, Default)]
 pub struct BlockAttrs(pub Vec<BlockAttr>);
@@ -35,17 +35,15 @@ impl BlockAttrs {
                 .join("")
         ))
     }
+    pub fn is_no_crc(&self) -> bool {
+        self.0.iter().any(|attr| matches!(attr, BlockAttr::NoCrc))
+    }
 }
 #[enum_ids::enum_ids(display_variant_snake)]
 #[derive(Debug, Clone)]
 pub enum BlockAttr {
     Path(ModulePath),
-}
-
-impl BlockAttr {
-    pub fn has(attr: &Attribute) -> bool {
-        attr.path().is_ident(&BlockAttrId::Path.to_string())
-    }
+    NoCrc,
 }
 
 impl fmt::Display for BlockAttr {
@@ -55,6 +53,7 @@ impl fmt::Display for BlockAttr {
             "{}",
             match self {
                 Self::Path(path) => format!("{}({path})", self.id()),
+                Self::NoCrc => BlockAttrId::NoCrc.to_string(),
             }
         )
     }

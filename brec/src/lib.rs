@@ -18,7 +18,9 @@ pub mod traits;
 
 pub use crc32fast;
 pub use packet_macro::*;
-pub use payload::{PayloadDecode, PayloadEncode, PayloadEncodeReferred, PayloadHeader};
+pub use payload::{
+    PayloadDecode, PayloadEncode, PayloadEncodeReferred, PayloadHeader, PayloadHooks,
+};
 pub use r#include::*;
 pub use storage::*;
 

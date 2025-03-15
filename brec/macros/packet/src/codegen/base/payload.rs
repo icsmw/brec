@@ -24,9 +24,19 @@ impl Base for Payload {
 
             }
         };
+
+        let hooks_impl = if self.attrs.hooks() {
+            quote! {}
+        } else {
+            quote! {
+                impl brec::PayloadHooks for #payload_name { }
+            }
+        };
         Ok(if self.attrs.is_bincode() {
             quote! {
                 #sig_impl
+
+                #hooks_impl
 
                 impl brec::PayloadEncode for #payload_name {
                     fn encode(&self) -> std::io::Result<Vec<u8>> {
@@ -49,7 +59,11 @@ impl Base for Payload {
                 }
             }
         } else {
-            sig_impl
+            quote! {
+                #sig_impl
+                #hooks_impl
+
+            }
         })
     }
 }

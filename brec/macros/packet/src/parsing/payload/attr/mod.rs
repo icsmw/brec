@@ -1,11 +1,10 @@
 use std::convert::TryFrom;
 
 use crate::*;
-use quote::quote;
 use syn::{
     parse::{self, Parse, ParseStream},
     punctuated::Punctuated,
-    Expr, Path, Token,
+    Expr, Token,
 };
 
 impl Parse for PayloadAttrs {
@@ -38,6 +37,12 @@ impl Parse for PayloadAttrs {
                             attrs.push(PayloadAttr::NoDefaultSig)
                         } else if as_str == PayloadAttrId::Bincode.to_string() {
                             attrs.push(PayloadAttr::Bincode)
+                        } else if as_str == PayloadAttrId::Hooks.to_string() {
+                            attrs.push(PayloadAttr::Hooks)
+                        } else if as_str == PayloadAttrId::NoAutoCrc.to_string() {
+                            attrs.push(PayloadAttr::NoAutoCrc)
+                        } else if as_str == PayloadAttrId::NoCrc.to_string() {
+                            attrs.push(PayloadAttr::NoCrc)
                         }
                     } else {
                         attrs.push(PayloadAttr::Path(ModulePath::from(&expr)));

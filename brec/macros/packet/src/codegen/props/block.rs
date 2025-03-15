@@ -6,6 +6,27 @@ impl Crc for Block {
     fn gen(&self) -> Result<TokenStream, E> {
         let block_name = self.name();
         let referred_name = self.referred_name();
+        if self.attrs.is_no_crc() {
+            return Ok(quote! {
+
+                impl brec::CrcU32 for #block_name {
+
+                    fn crc(&self) -> [u8; 4] {
+                        [0u8, 0u8, 0u8, 0u8, ]
+                    }
+
+                }
+
+                impl brec::CrcU32 for #referred_name<'_> {
+
+                    fn crc(&self) -> [u8; 4] {
+                        [0u8, 0u8, 0u8, 0u8, ]
+                    }
+
+                }
+
+            });
+        }
         let mut hash_packet = Vec::new();
         let mut hash_referred = Vec::new();
         for field in self.fields.iter().filter(|f| !f.injected) {

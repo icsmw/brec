@@ -5,7 +5,7 @@ use crate::*;
 use std::convert::TryFrom;
 
 pub fn parse(attrs: PayloadAttrs, mut input: DeriveInput) -> TokenStream {
-    let payload = match Payload::try_from((attrs, &mut input)) {
+    let payload = match Payload::try_from((attrs.clone(), &mut input)) {
         Ok(p) => p,
         Err(err) => return err.to_compile_error(),
     };

@@ -2,7 +2,7 @@ mod byte_block;
 
 pub use byte_block::*;
 
-use crate::payload::{PayloadEncode, PayloadEncodeReferred};
+use crate::payload::{PayloadEncode, PayloadEncodeReferred, PayloadHooks};
 
 pub trait SignatureU32 {
     fn sig() -> &'static [u8; 4];
@@ -14,7 +14,7 @@ pub trait CrcU32 {
 
 pub trait PayloadCrc
 where
-    Self: PayloadEncode + PayloadEncodeReferred,
+    Self: PayloadEncode + PayloadHooks + PayloadEncodeReferred,
 {
     fn crc(&self) -> std::io::Result<ByteBlock> {
         let mut hasher = crc32fast::Hasher::new();

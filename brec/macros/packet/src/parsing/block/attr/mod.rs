@@ -30,8 +30,15 @@ impl Parse for BlockAttrs {
                         return Err(syn::Error::new_spanned(assign, E::UnsupportedAttr));
                     }
                 }
-                Expr::Path(inner) => {
-                    attrs.push(BlockAttr::Path(ModulePath::from(&inner)));
+                Expr::Path(expr) => {
+                    if let Some(ident) = expr.path.clone().get_ident() {
+                        let as_str = ident.to_string();
+                        if as_str == BlockAttrId::NoCrc.to_string() {
+                            attrs.push(BlockAttr::NoCrc)
+                        }
+                    } else {
+                        attrs.push(BlockAttr::Path(ModulePath::from(&expr)));
+                    }
                 }
                 unknown => {
                     return Err(syn::Error::new_spanned(unknown, E::UnsupportedAttr));
