@@ -20,11 +20,11 @@ impl Arbitrary for Struct {
     type Strategy = BoxedStrategy<Self>;
 
     fn arbitrary_with((target, deep): (Target, u8)) -> Self::Strategy {
-        (
-            gen_name(),
-            prop::collection::vec(Field::arbitrary_with((target, deep + 1)), 1..20),
-        )
-            .prop_map(move |(name, fields)| Struct { name, fields })
+        prop::collection::vec(Field::arbitrary_with((target, deep + 1)), 1..20)
+            .prop_map(move |fields| Struct {
+                name: gen_name(true),
+                fields,
+            })
             .boxed()
     }
 }
@@ -63,7 +63,7 @@ impl Generate for Struct {
         };
         quote! {
             #mc
-            struct #name {
+            pub struct #name {
                 #(#fields,)*
             }
         }

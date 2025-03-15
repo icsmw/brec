@@ -22,7 +22,7 @@ impl Arbitrary for TCrate {
     type Strategy = BoxedStrategy<Self>;
 
     fn arbitrary_with(_: ()) -> Self::Strategy {
-        prop::collection::vec(Packet::arbitrary_with(()), 1..10)
+        prop::collection::vec(Packet::arbitrary_with(()), 50..100)
             .prop_map(move |packets| TCrate {
                 packets,
                 folder: Uuid::new_v4(),

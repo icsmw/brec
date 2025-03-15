@@ -14,11 +14,11 @@ impl Arbitrary for Enum {
     type Strategy = BoxedStrategy<Self>;
 
     fn arbitrary_with(deep: u8) -> Self::Strategy {
-        (
-            gen_name(),
-            prop::collection::vec(Field::arbitrary_with((Target::Payload, deep + 1)), 1..10),
-        )
-            .prop_map(move |(name, fields)| Enum { name, fields })
+        prop::collection::vec(Field::arbitrary_with((Target::Payload, deep + 1)), 1..10)
+            .prop_map(move |fields| Enum {
+                name: gen_name(true),
+                fields,
+            })
             .boxed()
     }
 }

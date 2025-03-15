@@ -20,21 +20,20 @@ impl Arbitrary for Field {
     type Strategy = BoxedStrategy<Self>;
 
     fn arbitrary_with((owner, deep): (Target, u8)) -> Self::Strategy {
-        (
-            gen_name(),
-            if deep > MAX_VALUE_DEEP || matches!(owner, Target::Block) {
-                Target::block_values()
-            } else {
-                Target::payload_values()
-            },
-        )
-            .prop_flat_map(move |(name, id)| {
-                Value::arbitrary_with((id, deep + 1)).prop_map(move |value: Value| Field {
-                    name: name.clone(),
-                    value,
-                })
+        if matches!(owner, Target::Block) {
+            Target::block_values()
+        } else if deep > MAX_VALUE_DEEP {
+            Target::nested_values()
+        } else {
+            Target::payload_values()
+        }
+        .prop_flat_map(move |id| {
+            Value::arbitrary_with((id, deep + 1)).prop_map(move |value: Value| Field {
+                name: gen_name(false),
+                value,
             })
-            .boxed()
+        })
+        .boxed()
     }
 }
 

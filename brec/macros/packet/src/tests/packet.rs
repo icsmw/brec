@@ -17,12 +17,11 @@ impl Arbitrary for Packet {
 
     fn arbitrary_with(_: ()) -> Self::Strategy {
         (
-            gen_name(),
-            prop::collection::vec(Struct::arbitrary_with((Target::Block, 0)), 1..10),
+            prop::collection::vec(Struct::arbitrary_with((Target::Block, 0)), 1..5),
             prop::option::of(Struct::arbitrary_with((Target::Payload, 0))),
         )
-            .prop_map(move |(name, blocks, payload)| Packet {
-                name,
+            .prop_map(move |(blocks, payload)| Packet {
+                name: gen_name(false),
                 blocks,
                 payload,
             })

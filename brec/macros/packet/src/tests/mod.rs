@@ -12,29 +12,19 @@ pub(crate) use r#struct::*;
 pub(crate) use tcrate::*;
 pub(crate) use value::*;
 
-use lazy_static::lazy_static;
 use proc_macro2::TokenStream;
 use proptest::prelude::*;
-use std::{collections::HashSet, sync::Mutex};
+use std::sync::atomic::{AtomicUsize, Ordering};
 
-lazy_static! {
-    pub(crate) static ref TEST_ENTITIES_NAMES: Mutex<HashSet<String>> = Mutex::new(HashSet::new());
-}
+static TEST_ENTITIES_NAME_INDEX: AtomicUsize = AtomicUsize::new(0);
 
-pub(crate) fn chk_name<S: AsRef<str>>(name: S) -> bool {
-    let mut names = TEST_ENTITIES_NAMES.lock().unwrap();
-    if names.contains(name.as_ref()) {
-        false
-    } else {
-        names.insert(name.as_ref().to_owned());
-        true
-    }
-}
-pub(crate) fn gen_name() -> BoxedStrategy<String> {
-    prop::collection::vec("[a-zA-Z]", 30)
-        .prop_map(|chars| chars.join("").to_string())
-        .prop_filter("name already exist", |s| chk_name(s))
-        .boxed()
+pub(crate) fn gen_name(first_upper: bool) -> String {
+    TEST_ENTITIES_NAME_INDEX.fetch_add(1, Ordering::Relaxed);
+    format!(
+        "{}ame{}",
+        if first_upper { "N" } else { "n" },
+        TEST_ENTITIES_NAME_INDEX.load(Ordering::Relaxed)
+    )
 }
 
 #[derive(Debug, Default)]
@@ -43,7 +33,7 @@ pub(crate) enum Target {
     Block,
     Payload,
 }
-//TODO: add string
+
 impl Target {
     pub fn primitive_values() -> BoxedStrategy<ValueId> {
         prop_oneof![
