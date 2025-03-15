@@ -16,6 +16,7 @@ impl Arbitrary for Payload {
             PayloadA::arbitrary().prop_map(Payload::PayloadA),
             PayloadB::arbitrary().prop_map(Payload::PayloadB),
             PayloadC::arbitrary().prop_map(Payload::PayloadC),
+            PayloadD::arbitrary().prop_map(Payload::PayloadD),
         ]
         .boxed()
     }
