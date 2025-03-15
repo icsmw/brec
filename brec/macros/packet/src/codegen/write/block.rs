@@ -9,27 +9,27 @@ impl Write for Block {
         for field in self.fields.iter().filter(|f| !f.injected) {
             let size = field.size();
             match field.ty {
-                Ty::u8
-                | Ty::u16
-                | Ty::u32
-                | Ty::u64
-                | Ty::u128
-                | Ty::i8
-                | Ty::i16
-                | Ty::i32
-                | Ty::i64
-                | Ty::i128
-                | Ty::f32
-                | Ty::f64
-                | Ty::bool
-                | Ty::linkedToU8(..) => {
+                Ty::U8
+                | Ty::U16
+                | Ty::U32
+                | Ty::U64
+                | Ty::U128
+                | Ty::I8
+                | Ty::I16
+                | Ty::I32
+                | Ty::I64
+                | Ty::I128
+                | Ty::F32
+                | Ty::F64
+                | Ty::Bool
+                | Ty::LinkedToU8(..) => {
                     let as_bytes = field.to_bytes(true)?;
                     buf_fillers.push(quote! {
                         buffer[offset..offset + #size].copy_from_slice(#as_bytes);
                         offset += #size;
                     });
                 }
-                Ty::blob(..) => {
+                Ty::Blob(..) => {
                     let name = format_ident!("{}", field.name);
                     buf_fillers.push(quote! {
                         unsafe {
@@ -94,27 +94,27 @@ impl WriteVectored for Block {
         let mut fields = Vec::new();
         for field in self.fields.iter().filter(|f| !f.injected) {
             match field.ty {
-                Ty::u8
-                | Ty::u16
-                | Ty::u32
-                | Ty::u64
-                | Ty::u128
-                | Ty::i8
-                | Ty::i16
-                | Ty::i32
-                | Ty::i64
-                | Ty::i128
-                | Ty::f32
-                | Ty::f64
-                | Ty::bool
-                | Ty::linkedToU8(..) => {
+                Ty::U8
+                | Ty::U16
+                | Ty::U32
+                | Ty::U64
+                | Ty::U128
+                | Ty::I8
+                | Ty::I16
+                | Ty::I32
+                | Ty::I64
+                | Ty::I128
+                | Ty::F32
+                | Ty::F64
+                | Ty::Bool
+                | Ty::LinkedToU8(..) => {
                     if !slices.is_empty() {
                         groups.push(slices);
                         slices = Vec::new();
                     }
                     fields.push(field);
                 }
-                Ty::blob(..) => {
+                Ty::Blob(..) => {
                     if !fields.is_empty() {
                         groups.push(fields);
                         fields = Vec::new();
@@ -136,20 +136,20 @@ impl WriteVectored for Block {
             for (n, field) in group.into_iter().enumerate() {
                 let size = field.size();
                 match field.ty {
-                    Ty::u8
-                    | Ty::u16
-                    | Ty::u32
-                    | Ty::u64
-                    | Ty::u128
-                    | Ty::i8
-                    | Ty::i16
-                    | Ty::i32
-                    | Ty::i64
-                    | Ty::i128
-                    | Ty::f32
-                    | Ty::f64
-                    | Ty::bool
-                    | Ty::linkedToU8(..) => {
+                    Ty::U8
+                    | Ty::U16
+                    | Ty::U32
+                    | Ty::U64
+                    | Ty::U128
+                    | Ty::I8
+                    | Ty::I16
+                    | Ty::I32
+                    | Ty::I64
+                    | Ty::I128
+                    | Ty::F32
+                    | Ty::F64
+                    | Ty::Bool
+                    | Ty::LinkedToU8(..) => {
                         if n == 0 {
                             fragments.push(quote! {
                                 let mut buffer = [0u8; #len];
@@ -170,7 +170,7 @@ impl WriteVectored for Block {
                             });
                         }
                     }
-                    Ty::blob(..) => {
+                    Ty::Blob(..) => {
                         let name = format_ident!("{}", field.name);
                         fragments.push(quote! {
                             slices.add_slice(&self.#name);

@@ -5,26 +5,26 @@ use quote::{format_ident, quote};
 impl TypeDefinition for Ty {
     fn direct(&self) -> TokenStream {
         match self {
-            Self::u8
-            | Self::u16
-            | Self::u32
-            | Self::u64
-            | Self::u128
-            | Self::i8
-            | Self::i16
-            | Self::i32
-            | Self::i64
-            | Self::i128
-            | Self::f32
-            | Self::f64
-            | Self::bool => {
+            Self::U8
+            | Self::U16
+            | Self::U32
+            | Self::U64
+            | Self::U128
+            | Self::I8
+            | Self::I16
+            | Self::I32
+            | Self::I64
+            | Self::I128
+            | Self::F32
+            | Self::F64
+            | Self::Bool => {
                 let ty = format_ident!("{}", self.to_string());
                 quote! { #ty }
             }
-            Self::blob(len) => {
+            Self::Blob(len) => {
                 quote! { [u8; #len] }
             }
-            Self::linkedToU8(ident) => {
+            Self::LinkedToU8(ident) => {
                 let ident = format_ident!("{ident}");
                 quote! { #ident }
             }
@@ -32,26 +32,26 @@ impl TypeDefinition for Ty {
     }
     fn referenced(&self) -> TokenStream {
         match self {
-            Self::u8
-            | Self::u16
-            | Self::u32
-            | Self::u64
-            | Self::u128
-            | Self::i8
-            | Self::i16
-            | Self::i32
-            | Self::i64
-            | Self::i128
-            | Self::f32
-            | Self::f64
-            | Self::bool => {
+            Self::U8
+            | Self::U16
+            | Self::U32
+            | Self::U64
+            | Self::U128
+            | Self::I8
+            | Self::I16
+            | Self::I32
+            | Self::I64
+            | Self::I128
+            | Self::F32
+            | Self::F64
+            | Self::Bool => {
                 let ty = format_ident!("{}", self.to_string());
                 quote! { &'a  #ty }
             }
-            Self::blob(len) => {
+            Self::Blob(len) => {
                 quote! { &'a [u8; #len] }
             }
-            Self::linkedToU8(ident) => {
+            Self::LinkedToU8(ident) => {
                 let ident = format_ident!("{ident}");
                 quote! { &'a #ident }
             }

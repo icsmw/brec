@@ -9,7 +9,7 @@ impl Base for Block {
         let mut struct_fields: Vec<TokenStream> = Vec::new();
         for field in self.fields.iter() {
             let visibility = field.vis_token()?;
-            let inner = if matches!(field.ty, Ty::blob(..)) {
+            let inner = if matches!(field.ty, Ty::Blob(..)) {
                 field.referenced_ty()
             } else {
                 field.direct_ty()
@@ -24,7 +24,7 @@ impl Base for Block {
             .filter(|f| !f.injected)
             .map(|f| {
                 let field = format_ident!("{}", f.name);
-                let field_path = if matches!(f.ty, Ty::blob(..)) {
+                let field_path = if matches!(f.ty, Ty::Blob(..)) {
                     quote! {
                         *block.#field
                     }

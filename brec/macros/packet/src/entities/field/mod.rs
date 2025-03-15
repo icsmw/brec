@@ -1,6 +1,3 @@
-mod attr;
-
-pub(crate) use attr::*;
 use proc_macro2::TokenStream;
 
 use crate::*;
@@ -11,7 +8,6 @@ pub(crate) const FIELD_CRC: &str = "__crc";
 #[derive(Debug, Clone)]
 pub struct Field {
     pub name: String,
-    pub attrs: Vec<FieldAttr>,
     pub ty: Ty,
     pub injected: bool,
     pub vis: Vis,
@@ -21,7 +17,6 @@ impl Field {
     pub fn injected<S: AsRef<str>>(name: S, ty: Ty) -> Self {
         Self {
             name: name.as_ref().to_string(),
-            attrs: Vec::new(),
             ty,
             injected: true,
             vis: Vis::default(),

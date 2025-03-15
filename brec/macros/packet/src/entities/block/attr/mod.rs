@@ -2,7 +2,7 @@ use crate::*;
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
 use std::fmt;
-use syn::{Attribute, Ident};
+use syn::Ident;
 
 #[derive(Debug, Clone, Default)]
 pub struct BlockAttrs(pub Vec<BlockAttr>);

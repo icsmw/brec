@@ -1,5 +1,4 @@
-use proc_macro2::TokenTree;
-use syn::{DeriveInput, MetaList};
+use syn::DeriveInput;
 
 #[derive(Debug, Clone)]
 pub struct Derives {

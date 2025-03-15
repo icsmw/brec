@@ -10,36 +10,36 @@ impl ReadExact for Field {
         let ty = self.ty.direct();
         let len = self.ty.size();
         match &self.ty {
-            Ty::u8 => Ok(quote! {
+            Ty::U8 => Ok(quote! {
                let mut #name = [0u8; 1];
                #src.read_exact(&mut #name)?;
                let #name = #name[0];
             }),
-            Ty::u16
-            | Ty::u32
-            | Ty::u64
-            | Ty::u128
-            | Ty::i8
-            | Ty::i16
-            | Ty::i32
-            | Ty::i64
-            | Ty::i128
-            | Ty::f32
-            | Ty::f64 => Ok(quote! {
+            Ty::U16
+            | Ty::U32
+            | Ty::U64
+            | Ty::U128
+            | Ty::I8
+            | Ty::I16
+            | Ty::I32
+            | Ty::I64
+            | Ty::I128
+            | Ty::F32
+            | Ty::F64 => Ok(quote! {
                 let mut #name = [0u8; #len];
                 #src.read_exact(&mut #name)?;
                 let #name = #ty::from_le_bytes(#name);
             }),
-            Ty::bool => Ok(quote! {
+            Ty::Bool => Ok(quote! {
                 let mut #name = [0u8; #len];
                 #src.read_exact(&mut #name)?;
                 let #name = #name[0] != 0;
             }),
-            Ty::blob(len) => Ok(quote! {
+            Ty::Blob(len) => Ok(quote! {
                let mut #name = [0u8; #len];
                #src.read_exact(&mut #name)?;
             }),
-            Ty::linkedToU8(enum_name) => {
+            Ty::LinkedToU8(enum_name) => {
                 let ident = self.ty.direct();
                 Ok(quote! {
                    let mut #name = [0u8; 1];

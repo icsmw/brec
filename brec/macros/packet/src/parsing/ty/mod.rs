@@ -30,20 +30,20 @@ impl TryFrom<&Ident> for Ty {
     type Error = syn::Error;
     fn try_from(ident: &Ident) -> Result<Self, Self::Error> {
         Ok(match ident.to_string().as_str() {
-            "u8" => Ty::u8,
-            "u16" => Ty::u16,
-            "u32" => Ty::u32,
-            "u64" => Ty::u64,
-            "u128" => Ty::u128,
-            "i8" => Ty::i8,
-            "i16" => Ty::i16,
-            "i32" => Ty::i32,
-            "i64" => Ty::i64,
-            "i128" => Ty::i128,
-            "f32" => Ty::f32,
-            "f64" => Ty::f64,
-            "bool" => Ty::bool,
-            _linked => Ty::linkedToU8(ident.to_string()),
+            "u8" => Ty::U8,
+            "u16" => Ty::U16,
+            "u32" => Ty::U32,
+            "u64" => Ty::U64,
+            "u128" => Ty::U128,
+            "i8" => Ty::I8,
+            "i16" => Ty::I16,
+            "i32" => Ty::I32,
+            "i64" => Ty::I64,
+            "i128" => Ty::I128,
+            "f32" => Ty::F32,
+            "f64" => Ty::F64,
+            "bool" => Ty::Bool,
+            _linked => Ty::LinkedToU8(ident.to_string()),
         })
     }
 }
@@ -59,10 +59,10 @@ impl TryFrom<&TypeArray> for Ty {
             }
             Err(syn::Error::new_spanned(len, E::MissedArraySize))
         }
-        if !matches!(Ty::try_from(&*ty.elem)?, Ty::u8) {
+        if !matches!(Ty::try_from(&*ty.elem)?, Ty::U8) {
             Err(syn::Error::new_spanned(&*ty.elem, E::UnsupportedType))
         } else {
-            Ok(Ty::blob(extract_array_len(&ty.len)?))
+            Ok(Ty::Blob(extract_array_len(&ty.len)?))
         }
     }
 }

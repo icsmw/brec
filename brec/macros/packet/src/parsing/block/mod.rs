@@ -2,7 +2,7 @@ mod attr;
 
 use crate::*;
 use std::convert::TryFrom;
-use syn::{Data, DeriveInput, Fields, Visibility};
+use syn::{Data, DeriveInput, Fields};
 
 pub const BLOCK_ATTR: &str = "block";
 
@@ -33,8 +33,8 @@ impl TryFrom<(BlockAttrs, &mut DeriveInput)> for Block {
         for field in &mut fields.named {
             extracted.push(Field::try_from(field)?);
         }
-        extracted.insert(0, Field::injected(FIELD_SIG, Ty::blob(4)));
-        extracted.push(Field::injected(FIELD_CRC, Ty::blob(4)));
+        extracted.insert(0, Field::injected(FIELD_SIG, Ty::Blob(4)));
+        extracted.push(Field::injected(FIELD_CRC, Ty::Blob(4)));
         let blk = Self::new(
             name.to_string(),
             extracted,

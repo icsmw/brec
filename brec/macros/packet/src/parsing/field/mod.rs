@@ -1,7 +1,5 @@
-mod attr;
-
 use crate::*;
-use std::convert::{TryFrom, TryInto};
+use std::convert::TryFrom;
 
 impl TryFrom<&mut syn::Field> for Field {
     type Error = syn::Error;
@@ -16,16 +14,8 @@ impl TryFrom<&mut syn::Field> for Field {
                 E::ReservedFieldName(name.to_string()),
             ));
         }
-        field.attrs.retain(|attr| !FieldAttr::has(attr));
-        let mut attrs = Vec::new();
-        for attr in &field.attrs {
-            if FieldAttr::has(attr) {
-                attrs.push(attr.try_into()?);
-            }
-        }
         Ok(Self {
             name: name.to_string(),
-            attrs,
             ty: Ty::try_from(&field.ty)?,
             injected: false,
             vis: Vis::from(&field.vis),

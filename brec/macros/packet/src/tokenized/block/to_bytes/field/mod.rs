@@ -13,25 +13,25 @@ impl ToBytes for Field {
             TokenStream::new()
         };
         match &self.ty {
-            Ty::u8 => Ok(quote! { &[self.#name] }),
-            Ty::u16
-            | Ty::u32
-            | Ty::u64
-            | Ty::u128
-            | Ty::i8
-            | Ty::i16
-            | Ty::i32
-            | Ty::i64
-            | Ty::i128
-            | Ty::f32
-            | Ty::f64 => Ok(quote! {
+            Ty::U8 => Ok(quote! { &[self.#name] }),
+            Ty::U16
+            | Ty::U32
+            | Ty::U64
+            | Ty::U128
+            | Ty::I8
+            | Ty::I16
+            | Ty::I32
+            | Ty::I64
+            | Ty::I128
+            | Ty::F32
+            | Ty::F64 => Ok(quote! {
                 &self.#name.to_le_bytes()
             }),
-            Ty::bool => Ok(quote! {
+            Ty::Bool => Ok(quote! {
                 &[self.#name as u8]
             }),
-            Ty::blob(..) => Ok(quote! { #by_ref self.#name }),
-            Ty::linkedToU8(_ident) => Ok(quote! { &[(&self.#name).into()] }),
+            Ty::Blob(..) => Ok(quote! { #by_ref self.#name }),
+            Ty::LinkedToU8(_ident) => Ok(quote! { &[(&self.#name).into()] }),
         }
     }
 }

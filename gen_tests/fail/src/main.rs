@@ -143,7 +143,7 @@ struct yWJXUTKYYVHVLNXQHJADLYVX {
 struct lW {
     rBLO96JX1JW5Z96B00812: u8,
 }
-#[block]
+#[block(no_crc)]
 #[derive(Debug)]
 #[allow(non_snake_case, non_camel_case_types)]
 struct bWIFPWFUKTRQECGOKPBUYEQ {

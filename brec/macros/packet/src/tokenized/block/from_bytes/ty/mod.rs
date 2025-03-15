@@ -7,32 +7,32 @@ use crate::*;
 impl FromBytes for Ty {
     fn safe(&self, src: &Ident, from: usize, to: usize) -> TokenStream {
         match self {
-            Ty::u8
-            | Ty::u16
-            | Ty::u32
-            | Ty::u64
-            | Ty::u128
-            | Ty::i8
-            | Ty::i16
-            | Ty::i32
-            | Ty::i64
-            | Ty::i128
-            | Ty::f32
-            | Ty::f64 => {
+            Ty::U8
+            | Ty::U16
+            | Ty::U32
+            | Ty::U64
+            | Ty::U128
+            | Ty::I8
+            | Ty::I16
+            | Ty::I32
+            | Ty::I64
+            | Ty::I128
+            | Ty::F32
+            | Ty::F64 => {
                 let ty = self.direct();
                 quote! {
                    #ty::from_le_bytes(#src[#from..#to].try_into()?)
                 }
             }
-            Ty::bool => {
+            Ty::Bool => {
                 quote! {
                    u8::from_le_bytes(#src[#from..#to].try_into()?) == 1
                 }
             }
-            Ty::blob(len) => quote! {
+            Ty::Blob(len) => quote! {
                 <&[u8; #len]>::try_from(&#src[#from..#to])?
             },
-            Ty::linkedToU8(enum_name) => {
+            Ty::LinkedToU8(enum_name) => {
                 let ident = self.direct();
                 quote! {
                     #ident::try_from(u8::from_le_bytes(#src[#from..#to].try_into()?))
@@ -45,7 +45,7 @@ impl FromBytes for Ty {
     fn r#unsafe(&self, src: &Ident, offset: usize) -> TokenStream {
         let ty = self.direct();
         if offset == 0 {
-            if matches!(self, Ty::u8) {
+            if matches!(self, Ty::U8) {
                 quote! {
                     unsafe { &*#src.as_ptr() }
                 }
@@ -54,7 +54,7 @@ impl FromBytes for Ty {
                     unsafe { &*(#src.as_ptr() as *const #ty) }
                 }
             }
-        } else if matches!(self, Ty::u8) {
+        } else if matches!(self, Ty::U8) {
             quote! {
                 unsafe { &*#src.as_ptr().add(#offset) }
             }

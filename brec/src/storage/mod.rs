@@ -8,7 +8,6 @@ use std::ops::RangeInclusive;
 use crate::*;
 pub(crate) use iters::*;
 pub(crate) use locator::*;
-pub(crate) use range::*;
 pub(crate) use slot::*;
 
 pub struct StorageDef<
@@ -20,7 +19,6 @@ pub struct StorageDef<
     pub slots: Vec<Slot>,
     inner: S,
     locator: FreeSlotLocator,
-    loaded: bool,
     _block: std::marker::PhantomData<B>,
     _payload: std::marker::PhantomData<P>,
     _payload_inner: std::marker::PhantomData<Inner>,
@@ -38,7 +36,6 @@ impl<
             slots: Vec::new(),
             inner,
             locator: FreeSlotLocator::default(),
-            loaded: false,
             _block: std::marker::PhantomData,
             _payload: std::marker::PhantomData,
             _payload_inner: std::marker::PhantomData,

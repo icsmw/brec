@@ -21,12 +21,8 @@ pub enum E {
     #[error("{0} is unknown visibility")]
     FailParseVisibility(String),
 
-    #[error("Cannot detect attribute")]
-    NoSuitableAttr,
     #[error("Attribute isn't supported")]
     UnsupportedAttr,
-    #[error("Missed name of enum type")]
-    LinkingRequiresEnumName,
 
     #[error("Fail to access to collector")]
     NoAccessToCollector,
