@@ -7,7 +7,7 @@ mod value;
 
 pub(crate) use field::*;
 pub(crate) use packet::*;
-pub(crate) use r#enum::*;
+// pub(crate) use r#enum::*;
 pub(crate) use r#struct::*;
 pub(crate) use tcrate::*;
 pub(crate) use value::*;

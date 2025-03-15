@@ -1,5 +1,3 @@
-use std::collections::HashSet;
-
 use crate::tests::*;
 use proptest::prelude::*;
 use quote::{format_ident, quote};

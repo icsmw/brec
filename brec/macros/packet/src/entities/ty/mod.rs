@@ -3,7 +3,7 @@ use std::fmt;
 /// f16 and f128 are unstable
 #[enum_ids::enum_ids(display_variant)]
 #[derive(Debug, PartialEq, Clone)]
-#[allow(non_camel_case_types)]
+#[allow(dead_code)]
 pub enum Ty {
     U8,
     U16,
@@ -63,8 +63,16 @@ impl fmt::Display for Ty {
                 Self::F32 => TyId::F32.to_string().to_ascii_lowercase(),
                 Self::F64 => TyId::F64.to_string().to_ascii_lowercase(),
                 Self::Bool => TyId::Bool.to_string().to_ascii_lowercase(),
-                Self::Blob(len) => format!("[u8;{len}]"),
-                Self::LinkedToU8(ident) => ident.to_string(),
+                Self::Blob(len) => {
+                    // Just to avoid rust warning "never constructed" for TyId::Blob
+                    let _ = TyId::Blob.to_string();
+                    format!("[u8;{len}]")
+                }
+                Self::LinkedToU8(ident) => {
+                    // Just to avoid rust warning "never constructed" for TyId::LinkedToU8
+                    let _ = TyId::LinkedToU8.to_string();
+                    ident.to_string()
+                }
             }
         )
     }

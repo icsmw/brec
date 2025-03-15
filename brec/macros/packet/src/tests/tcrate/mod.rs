@@ -1,9 +1,7 @@
 use std::{
-    collections::HashSet,
-    env,
     fs::{self, File},
-    io::{self, Write},
-    path::{Path, PathBuf},
+    io::Write,
+    path::Path,
 };
 
 use crate::tests::*;

@@ -10,6 +10,8 @@ pub(crate) use iters::*;
 pub(crate) use locator::*;
 pub(crate) use slot::*;
 
+pub type NthFilteredPacket<B, P, Inner> = Option<LookInStatus<PacketDef<B, P, Inner>>>;
+
 pub struct StorageDef<
     S: std::io::Read + std::io::Write + std::io::Seek,
     B: BlockDef,
@@ -131,7 +133,7 @@ impl<
         &mut self,
         nth: usize,
         mut predicate: F,
-    ) -> Result<Option<LookInStatus<PacketDef<B, P, Inner>>>, Error> {
+    ) -> Result<NthFilteredPacket<B, P, Inner>, Error> {
         let slot_index = nth / DEFAULT_SLOT_CAPACITY;
         let index_in_slot = nth % DEFAULT_SLOT_CAPACITY;
         let Some(slot) = self.slots.get(slot_index) else {

@@ -1,5 +1,3 @@
-use std::collections::HashSet;
-
 use crate::tests::*;
 use proptest::prelude::*;
 use quote::{format_ident, quote};
@@ -20,7 +18,7 @@ impl Arbitrary for Enum {
             "[a-z][A-Z]*".prop_filter("name already exist", |s| chk_name(s)),
             prop::collection::vec(Field::arbitrary_with((Target::Payload, deep + 1)), 1..10),
         )
-            .prop_map(move |(name, mut fields)| Enum { name, fields })
+            .prop_map(move |(name, fields)| Enum { name, fields })
             .boxed()
     }
 }
