@@ -104,11 +104,12 @@ impl<
         StorageIterator::new(&mut self.inner, &self.slots)
     }
 
-    pub fn filtered<F: FnMut(&[B]) -> bool>(
+    pub fn filtered<PF: FnMut(&[B]) -> bool, F: FnMut(&PacketDef<B, P, Inner>) -> bool>(
         &mut self,
-        predicate: F,
-    ) -> StorageIteratorFiltered<'_, S, F, B, P, Inner> {
-        StorageIteratorFiltered::new(&mut self.inner, &self.slots, predicate)
+        pfilter: Option<PF>,
+        filter: Option<F>,
+    ) -> StorageIteratorFiltered<'_, S, PF, F, B, P, Inner> {
+        StorageIteratorFiltered::new(&mut self.inner, &self.slots, pfilter, filter)
     }
     pub fn nth(&mut self, nth: usize) -> Result<Option<PacketDef<B, P, Inner>>, Error> {
         let slot_index = nth / DEFAULT_SLOT_CAPACITY;
@@ -125,14 +126,15 @@ impl<
             .sum::<u64>();
         self.inner.seek(std::io::SeekFrom::Start(offset))?;
         match <PacketDef<B, P, Inner> as TryReadFrom>::try_read(&mut self.inner)? {
-            ReadStatus::Success(slot) => Ok(Some(slot)),
+            ReadStatus::Success(pkg) => Ok(Some(pkg)),
             ReadStatus::NotEnoughData(needed) => Err(Error::NotEnoughData(needed as usize)),
         }
     }
-    pub fn nth_filtered<F: FnMut(&[B]) -> bool>(
+    pub fn nth_filtered<PF: FnMut(&[B]) -> bool, F: FnMut(&PacketDef<B, P, Inner>) -> bool>(
         &mut self,
         nth: usize,
-        mut predicate: F,
+        pfilter: &mut Option<PF>,
+        filter: &mut Option<F>,
     ) -> Result<NthFilteredPacket<B, P, Inner>, Error> {
         let slot_index = nth / DEFAULT_SLOT_CAPACITY;
         let index_in_slot = nth % DEFAULT_SLOT_CAPACITY;
@@ -147,10 +149,30 @@ impl<
             .map(|slot| slot.width() + slot.size())
             .sum::<u64>();
         self.inner.seek(std::io::SeekFrom::Start(offset))?;
-        Ok(Some(PacketDef::<B, P, Inner>::filtered(
-            &mut self.inner,
-            &mut predicate,
-        )?))
+        let (size, pkg) = if let Some(pfilter) = pfilter.as_mut() {
+            match PacketDef::<B, P, Inner>::filtered(&mut self.inner, pfilter)? {
+                LookInStatus::Accepted(size, pkg) => (size, pkg),
+                LookInStatus::Denied(size) => return Ok(Some(LookInStatus::Denied(size))),
+                LookInStatus::NotEnoughData(needed) => {
+                    return Err(Error::NotEnoughData(needed as usize));
+                }
+            }
+        } else {
+            match <PacketDef<B, P, Inner> as TryReadFrom>::try_read(&mut self.inner)? {
+                ReadStatus::Success(pkg) => {
+                    ((self.inner.stream_position()? - offset) as usize, pkg)
+                }
+                ReadStatus::NotEnoughData(needed) => {
+                    return Err(Error::NotEnoughData(needed as usize));
+                }
+            }
+        };
+        if let Some(filter) = filter.as_mut() {
+            if !filter(&pkg) {
+                return Ok(Some(LookInStatus::Denied(size)));
+            }
+        }
+        Ok(Some(LookInStatus::Accepted(size, pkg)))
     }
     pub fn range(
         &mut self,
@@ -159,11 +181,12 @@ impl<
         StorageRangeIterator::new(self, range)
     }
 
-    pub fn range_filtered<F: FnMut(&[B]) -> bool>(
+    pub fn range_filtered<PF: FnMut(&[B]) -> bool, F: FnMut(&PacketDef<B, P, Inner>) -> bool>(
         &mut self,
         range: RangeInclusive<usize>,
-        predicate: F,
-    ) -> StorageRangeIteratorFiltered<'_, S, F, B, P, Inner> {
-        StorageRangeIteratorFiltered::new(self, range, predicate)
+        pfilter: Option<PF>,
+        filter: Option<F>,
+    ) -> StorageRangeIteratorFiltered<'_, S, PF, F, B, P, Inner> {
+        StorageRangeIteratorFiltered::new(self, range, pfilter, filter)
     }
 }

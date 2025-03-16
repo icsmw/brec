@@ -17,21 +17,20 @@ pub type WriteIgnoredCallback<W> = RuleFnDef<
     fn(&mut std::io::BufWriter<W>, &[u8]) -> std::io::Result<()>,
 >;
 
-/// Callback type for the `Filter` rule. For more details on rules, see `RuleDef`.
-pub type FilterCallback<B, BR, P, Inner> = RuleFnDef<
+/// Callback type for the `PreFilter` rule. For more details on rules, see `RuleDef`.
+pub type PreFilterCallback<B, BR, P, Inner> = RuleFnDef<
     Box<dyn Fn(&PacketReferred<B, BR, P, Inner>) -> bool>,
     fn(&PacketReferred<B, BR, P, Inner>) -> bool,
 >;
 
-/// Callback type for the `Map` rule. For more details on rules, see `RuleDef`.
-pub type MapCallback<W, B, BR, P, Inner> = RuleFnDef<
-    Box<
-        dyn FnMut(
-            &mut std::io::BufWriter<W>,
-            &PacketReferred<B, BR, P, Inner>,
-        ) -> std::io::Result<()>,
-    >,
-    fn(&mut std::io::BufWriter<W>, &PacketReferred<B, BR, P, Inner>) -> std::io::Result<()>,
+/// Callback type for the `Filter` rule. For more details on rules, see `RuleDef`.
+pub type FilterCallback<B, P, Inner> =
+    RuleFnDef<Box<dyn Fn(&PacketDef<B, P, Inner>) -> bool>, fn(&PacketDef<B, P, Inner>) -> bool>;
+
+/// Callback type for the `EAch` rule. For more details on rules, see `RuleDef`.
+pub type EachCallback<B, BR, P, Inner> = RuleFnDef<
+    Box<dyn FnMut(&PacketReferred<B, BR, P, Inner>) -> std::io::Result<()>>,
+    fn(&PacketReferred<B, BR, P, Inner>) -> std::io::Result<()>,
 >;
 
 /// Defines rules for processing data read by `PacketBufReaderDef`. These rules function similarly to hooks.
@@ -56,7 +55,7 @@ pub enum RuleDef<
     /// Similar to `Ignored`, but also provides a `BufWriter` instance to allow writing unrecognized data.
     WriteIgnored(std::io::BufWriter<W>, WriteIgnoredCallback<W>),
 
-    /// The `Filter` rule is invoked each time `PacketBufReaderDef` detects a `brec` packet.
+    /// The `PreFilter` rule is invoked each time `PacketBufReaderDef` detects a `brec` packet.
     ///
     /// This rule is unique because it is executed during packet parsing rather than after completion.
     /// The callback receives only the `Blocks` section of the packet, which is not yet fully parsed
@@ -65,12 +64,14 @@ pub enum RuleDef<
     /// This allows users to decide whether to continue parsing the payload and completing block parsing
     /// or to ignore the packet entirely.
     ///
-    /// Using `Filter` can significantly improve performance when users are interested only in specific packet categories.
-    Filter(FilterCallback<B, BR, P, Inner>),
+    /// Using `PreFilter` can significantly improve performance when users are interested only in specific packet categories.
+    PreFilter(PreFilterCallback<B, BR, P, Inner>),
+
+    Filter(FilterCallback<B, P, Inner>),
 
     /// This rule is invoked for every successfully parsed `brec` packet, allowing users to perform
     /// additional manipulations before the packet is returned by `PacketBufReaderDef`.
-    Map(std::io::BufWriter<W>, MapCallback<W, B, BR, P, Inner>),
+    Each(EachCallback<B, BR, P, Inner>),
 }
 
 /// Internal structure responsible for storing and managing rules.
@@ -107,6 +108,15 @@ impl<
 {
     pub fn add_rule(&mut self, rule: RuleDef<W, B, BR, P, Inner>) -> Result<(), Error> {
         match &rule {
+            RuleDef::PreFilter(..) => {
+                if self
+                    .rules
+                    .iter()
+                    .any(|r| matches!(r, RuleDef::PreFilter(..)))
+                {
+                    return Err(Error::RuleDuplicate);
+                }
+            }
             RuleDef::Filter(..) => {
                 if self.rules.iter().any(|r| matches!(r, RuleDef::Filter(..))) {
                     return Err(Error::RuleDuplicate);
@@ -117,8 +127,8 @@ impl<
                     return Err(Error::RuleDuplicate);
                 }
             }
-            RuleDef::Map(..) => {
-                if self.rules.iter().any(|r| matches!(r, RuleDef::Map(..))) {
+            RuleDef::Each(..) => {
+                if self.rules.iter().any(|r| matches!(r, RuleDef::Each(..))) {
                     return Err(Error::RuleDuplicate);
                 }
             }
@@ -161,9 +171,9 @@ impl<
         }
         Ok(())
     }
-    pub fn filter(&mut self, referred: &PacketReferred<B, BR, P, Inner>) -> bool {
+    pub fn pre_filter(&mut self, referred: &PacketReferred<B, BR, P, Inner>) -> bool {
         let Some(cb) = self.rules.iter().find_map(|r| {
-            if let RuleDef::Filter(cb) = r {
+            if let RuleDef::PreFilter(cb) = r {
                 Some(cb)
             } else {
                 None
@@ -176,10 +186,25 @@ impl<
             RuleFnDef::Dynamic(cb) => cb(referred),
         }
     }
-    pub fn map(&mut self, referred: &PacketReferred<B, BR, P, Inner>) -> Result<(), Error> {
-        let Some((writer, cb)) = self.rules.iter_mut().find_map(|r| {
-            if let RuleDef::Map(writer, cb) = r {
-                Some((writer, cb))
+    pub fn filter(&mut self, packet: &PacketDef<B, P, Inner>) -> bool {
+        let Some(cb) = self.rules.iter().find_map(|r| {
+            if let RuleDef::Filter(cb) = r {
+                Some(cb)
+            } else {
+                None
+            }
+        }) else {
+            return true;
+        };
+        match cb {
+            RuleFnDef::Static(cb) => cb(packet),
+            RuleFnDef::Dynamic(cb) => cb(packet),
+        }
+    }
+    pub fn each(&mut self, referred: &PacketReferred<B, BR, P, Inner>) -> Result<(), Error> {
+        let Some(cb) = self.rules.iter_mut().find_map(|r| {
+            if let RuleDef::Each(cb) = r {
+                Some(cb)
             } else {
                 None
             }
@@ -187,8 +212,8 @@ impl<
             return Ok(());
         };
         match cb {
-            RuleFnDef::Static(cb) => cb(writer, referred)?,
-            RuleFnDef::Dynamic(cb) => cb(writer, referred)?,
+            RuleFnDef::Static(cb) => cb(referred)?,
+            RuleFnDef::Dynamic(cb) => cb(referred)?,
         }
         Ok(())
     }

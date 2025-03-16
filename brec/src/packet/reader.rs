@@ -390,8 +390,8 @@ impl<
             }
         }
         let referred = PacketReferred::new(blocks, header);
-        self.rules.map(&referred)?;
-        if !self.rules.filter(&referred) {
+        self.rules.each(&referred)?;
+        if !self.rules.pre_filter(&referred) {
             // PacketDef marked as ignored
             return self.drop_and_consume(consume, Ok(NextPacket::Skipped));
         }
@@ -438,6 +438,11 @@ impl<
                 }
             }
         }
-        self.drop_and_consume(consume, Ok(NextPacket::Found(pkg)))
+        if !self.rules.filter(&pkg) {
+            // PacketDef marked as ignored
+            self.drop_and_consume(consume, Ok(NextPacket::Skipped))
+        } else {
+            self.drop_and_consume(consume, Ok(NextPacket::Found(pkg)))
+        }
     }
 }

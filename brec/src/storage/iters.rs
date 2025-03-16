@@ -107,14 +107,16 @@ impl<
 pub struct StorageIteratorFiltered<
     'a,
     S: std::io::Read + std::io::Seek,
-    F: FnMut(&[B]) -> bool,
+    PF: FnMut(&[B]) -> bool,
+    F: FnMut(&PacketDef<B, P, Inner>) -> bool,
     B: BlockDef,
     P: PayloadDef<Inner>,
     Inner: PayloadInnerDef,
 > {
     locator: PacketsLocatorIterator<'a>,
     source: &'a mut S,
-    predicate: F,
+    pfilter: Option<PF>,
+    filter: Option<F>,
     _block: std::marker::PhantomData<B>,
     _payload: std::marker::PhantomData<P>,
     _payload_inner: std::marker::PhantomData<Inner>,
@@ -123,17 +125,24 @@ pub struct StorageIteratorFiltered<
 impl<
         'a,
         S: std::io::Read + std::io::Seek,
-        F: FnMut(&[B]) -> bool,
+        PF: FnMut(&[B]) -> bool,
+        F: FnMut(&PacketDef<B, P, Inner>) -> bool,
         B: BlockDef,
         P: PayloadDef<Inner>,
         Inner: PayloadInnerDef,
-    > StorageIteratorFiltered<'a, S, F, B, P, Inner>
+    > StorageIteratorFiltered<'a, S, PF, F, B, P, Inner>
 {
-    pub fn new(source: &'a mut S, slots: &'a [Slot], predicate: F) -> Self {
+    pub fn new(
+        source: &'a mut S,
+        slots: &'a [Slot],
+        pfilter: Option<PF>,
+        filter: Option<F>,
+    ) -> Self {
         Self {
             locator: PacketsLocatorIterator::new(slots),
             source,
-            predicate,
+            pfilter,
+            filter,
             _block: std::marker::PhantomData,
             _payload: std::marker::PhantomData,
             _payload_inner: std::marker::PhantomData,
@@ -143,11 +152,12 @@ impl<
 
 impl<
         S: std::io::Read + std::io::Seek,
-        F: FnMut(&[B]) -> bool,
+        PF: FnMut(&[B]) -> bool,
+        F: FnMut(&PacketDef<B, P, Inner>) -> bool,
         B: BlockDef,
         P: PayloadDef<Inner>,
         Inner: PayloadInnerDef,
-    > Iterator for StorageIteratorFiltered<'_, S, F, B, P, Inner>
+    > Iterator for StorageIteratorFiltered<'_, S, PF, F, B, P, Inner>
 {
     type Item = Result<PacketDef<B, P, Inner>, Error>;
 
@@ -160,12 +170,36 @@ impl<
             {
                 return Some(Err(err.into()));
             }
-            match PacketDef::<B, P, Inner>::filtered(self.source, &mut self.predicate) {
-                Err(err) => return Some(Err(err)),
-                Ok(LookInStatus::Accepted(_, pkg)) => return Some(Ok(pkg)),
-                Ok(LookInStatus::Denied(_)) => continue,
-                Ok(LookInStatus::NotEnoughData(needed)) => {
-                    return Some(Err(Error::NotEnoughData(needed)))
+            if let Some(pfilter) = self.pfilter.as_mut() {
+                match PacketDef::<B, P, Inner>::filtered(self.source, pfilter) {
+                    Err(err) => return Some(Err(err)),
+                    Ok(LookInStatus::Accepted(_, pkg)) => {
+                        if let Some(filter) = self.filter.as_mut() {
+                            if !filter(&pkg) {
+                                continue;
+                            }
+                        }
+                        return Some(Ok(pkg));
+                    }
+                    Ok(LookInStatus::Denied(_)) => continue,
+                    Ok(LookInStatus::NotEnoughData(needed)) => {
+                        return Some(Err(Error::NotEnoughData(needed)))
+                    }
+                }
+            } else {
+                match <PacketDef<B, P, Inner> as TryReadFrom>::try_read(&mut self.source) {
+                    Err(err) => return Some(Err(err)),
+                    Ok(ReadStatus::Success(pkg)) => {
+                        if let Some(filter) = self.filter.as_mut() {
+                            if !filter(&pkg) {
+                                continue;
+                            }
+                        }
+                        return Some(Ok(pkg));
+                    }
+                    Ok(ReadStatus::NotEnoughData(needed)) => {
+                        return Some(Err(Error::NotEnoughData(needed as usize)));
+                    }
                 }
             }
         }
@@ -233,7 +267,8 @@ impl<
 pub struct StorageRangeIteratorFiltered<
     'a,
     S: std::io::Read + std::io::Write + std::io::Seek,
-    F: FnMut(&[B]) -> bool,
+    PF: FnMut(&[B]) -> bool,
+    F: FnMut(&PacketDef<B, P, Inner>) -> bool,
     B: BlockDef,
     P: PayloadDef<Inner>,
     Inner: PayloadInnerDef,
@@ -241,7 +276,8 @@ pub struct StorageRangeIteratorFiltered<
     storage: &'a mut StorageDef<S, B, P, Inner>,
     end: usize,
     current: usize,
-    predicate: F,
+    pfilter: Option<PF>,
+    filter: Option<F>,
     _block: std::marker::PhantomData<B>,
     _payload: std::marker::PhantomData<P>,
     _payload_inner: std::marker::PhantomData<Inner>,
@@ -250,22 +286,25 @@ pub struct StorageRangeIteratorFiltered<
 impl<
         'a,
         S: std::io::Read + std::io::Write + std::io::Seek,
-        F: FnMut(&[B]) -> bool,
+        PF: FnMut(&[B]) -> bool,
+        F: FnMut(&PacketDef<B, P, Inner>) -> bool,
         B: BlockDef,
         P: PayloadDef<Inner>,
         Inner: PayloadInnerDef,
-    > StorageRangeIteratorFiltered<'a, S, F, B, P, Inner>
+    > StorageRangeIteratorFiltered<'a, S, PF, F, B, P, Inner>
 {
     pub fn new(
         storage: &'a mut StorageDef<S, B, P, Inner>,
         range: RangeInclusive<usize>,
-        predicate: F,
+        pfilter: Option<PF>,
+        filter: Option<F>,
     ) -> Self {
         Self {
             storage,
             end: *range.end(),
             current: *range.start(),
-            predicate,
+            pfilter,
+            filter,
             _block: std::marker::PhantomData,
             _payload: std::marker::PhantomData,
             _payload_inner: std::marker::PhantomData,
@@ -275,11 +314,12 @@ impl<
 
 impl<
         S: std::io::Read + std::io::Write + std::io::Seek,
-        F: FnMut(&[B]) -> bool,
+        PF: FnMut(&[B]) -> bool,
+        F: FnMut(&PacketDef<B, P, Inner>) -> bool,
         B: BlockDef,
         P: PayloadDef<Inner>,
         Inner: PayloadInnerDef,
-    > Iterator for StorageRangeIteratorFiltered<'_, S, F, B, P, Inner>
+    > Iterator for StorageRangeIteratorFiltered<'_, S, PF, F, B, P, Inner>
 {
     type Item = Result<PacketDef<B, P, Inner>, Error>;
 
@@ -288,7 +328,9 @@ impl<
             if self.current >= self.end {
                 return None;
             }
-            let item = self.storage.nth_filtered(self.current, &mut self.predicate);
+            let item = self
+                .storage
+                .nth_filtered(self.current, &mut self.pfilter, &mut self.filter);
             self.current += 1;
             match item {
                 Ok(None) => return None,

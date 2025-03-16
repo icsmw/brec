@@ -477,10 +477,14 @@ fn storage_write_read_filter(packets: Vec<WrappedPacket>, filename: &str) -> std
                 );
             }
             for (i, packet) in storage
-                .range_filtered(n..=n + 10, |blks| {
-                    blocks_visited += blks.len();
-                    false
-                })
+                .range_filtered(
+                    n..=n + 10,
+                    Some(|blks: &[Block]| {
+                        blocks_visited += blks.len();
+                        false
+                    }),
+                    Some(|pkg: &Packet| true),
+                )
                 .enumerate()
             {
                 assert_eq!(
@@ -494,10 +498,13 @@ fn storage_write_read_filter(packets: Vec<WrappedPacket>, filename: &str) -> std
         }
     }
     // Read with filter
-    for packet in storage.filtered(|blks| {
-        blocks_visited += blks.len();
-        false
-    }) {
+    for packet in storage.filtered(
+        Some(|blks: &[Block]| {
+            blocks_visited += blks.len();
+            false
+        }),
+        Some(|pkg: &Packet| true),
+    ) {
         packet
             .map_err(|err| std::io::Error::new(std::io::ErrorKind::InvalidData, err.to_string()))?;
     }
