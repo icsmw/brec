@@ -12,7 +12,7 @@ use uuid::Uuid;
 
 #[derive(Debug)]
 pub(crate) struct TCrate {
-    packets: Vec<Packet>,
+    pub packets: Vec<Packet>,
     folder: Uuid,
 }
 

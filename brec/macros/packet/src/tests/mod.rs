@@ -1,4 +1,3 @@
-mod r#enum;
 mod field;
 mod packet;
 mod r#struct;
@@ -7,7 +6,6 @@ mod value;
 
 pub(crate) use field::*;
 pub(crate) use packet::*;
-// pub(crate) use r#enum::*;
 pub(crate) use r#struct::*;
 pub(crate) use tcrate::*;
 pub(crate) use value::*;
@@ -137,7 +135,7 @@ proptest! {
 
 
     #[test]
-    fn generate(tcrates in proptest::collection::vec(TCrate::arbitrary(), 5)) {
+    fn generate(tcrates in proptest::collection::vec(TCrate::arbitrary(), 10)) {
         let root = std::path::PathBuf::from(std::env::var("CARGO_MANIFEST_DIR").expect("CARGO_MANIFEST_DIR is not set"));
         let tests_path = root.join("../../../gen_tests");
         if !tests_path.exists() {
@@ -145,6 +143,7 @@ proptest! {
         }
         for tcrate in tcrates.iter() {
             tcrate.write_all(&tests_path)?;
+            println!("Created test-case with: {} packets", tcrate.packets.len());
         }
     }
 
