@@ -7,7 +7,7 @@ pub const PACKET_SIG: [u8; 8] = [236u8, 37u8, 94u8, 136u8, 236u8, 37u8, 94u8, 13
 
 #[derive(Debug)]
 pub struct PacketHeader {
-    /// Size of full packet (PacketHeader + Blocks + Payload)
+    /// Size of packet without PacketHeader
     pub size: u64,
     /// Lenght of bytes covers Blocks
     pub blocks_len: u64,

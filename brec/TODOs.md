@@ -1,3 +1,0 @@
-- check CRC on Block reading
-- add CRC to Packet header to validate sizes
-- parse path to block/payload in right way (based on `include` crate)
