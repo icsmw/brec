@@ -118,8 +118,7 @@ fn read_packets(buffer: &[u8]) -> std::io::Result<(usize, Vec<Packet>)> {
 
     let mut packets: Vec<Packet> = Vec::new();
     let mut inner = BufReader::new(Cursor::new(buffer));
-    let mut reader: PacketBufReader<_, std::io::BufWriter<Vec<u8>>> =
-        PacketBufReader::new(&mut inner);
+    let mut reader: PacketBufReader<_> = PacketBufReader::new(&mut inner);
     let litter_len: Arc<AtomicUsize> = Arc::new(AtomicUsize::new(0));
     let inner = litter_len.clone();
     let cb = move |bytes: &[u8]| {

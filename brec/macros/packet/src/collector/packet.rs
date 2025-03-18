@@ -9,14 +9,14 @@ pub fn gen() -> Result<TokenStream, E> {
         pub type Packet = brec::PacketDef<Block, Payload, Payload>;
 
         #[allow(dead_code)]
-        pub type PacketBufReader<'a, R, W> =
-            brec::PacketBufReaderDef<'a, R, W, Block, BlockReferred<'a>, Payload, Payload>;
+        pub type PacketBufReader<'a, R> =
+            brec::PacketBufReaderDef<'a, R, Block, BlockReferred<'a>, Payload, Payload>;
 
         #[allow(dead_code)]
-        pub type Rules<'a, W> = brec::RulesDef<W, Block, BlockReferred<'a>, Payload, Payload>;
+        pub type Rules<'a> = brec::RulesDef<Block, BlockReferred<'a>, Payload, Payload>;
 
         #[allow(dead_code)]
-        pub type Rule<'a, W> = brec::RuleDef<W, Block, BlockReferred<'a>, Payload, Payload>;
+        pub type Rule<'a> = brec::RuleDef<Block, BlockReferred<'a>, Payload, Payload>;
 
         #[allow(dead_code)]
         pub type RuleFnDef<D, S> = brec::RuleFnDef<D, S>;

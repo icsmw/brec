@@ -497,8 +497,6 @@ filtered<R: std::io::Read + std::io::Seek, F: FnMut(&[B]) -> bool>(
 
 This method allows you to "peek" into a packet before processing the payload, which can significantly improve performance when filtering specific packets.
 
-#### Example:
-
 ```rust
 brec::include_generated!();
 
@@ -518,12 +516,126 @@ my_packet.filtered(&mut source, |blocks: &[Block]| {
 });
 ```
 
+# Protocol Tools
 
+## Reading Mixed and Mono Streams
 
+To read from a data source, `brec` includes the `PacketBufReader<R: std::io::Read>` tool (available after code generation by calling `brec::include_generated!()`). `PacketBufReader` ensures safe reading from both **pure `brec` message streams** and **mixed data streams** (containing both `brec` messages and arbitrary data).
 
+Below is an example of reading all `brec` messages from a stream while counting the number of "junk" bytes (i.e., data that is not a `brec` message):
 
+```rust
+fn reading<R: std::io::Read>(source: &mut R) -> std::io::Result<(Vec<Packet>, usize)> {
+    let mut packets: Vec<Packet> = Vec::new();
+    let mut reader: PacketBufReader<_> = PacketBufReader::new(source);
+    let ignored: Arc<AtomicUsize> = Arc::new(AtomicUsize::new(0));
+    let ignored_inner = ignored.clone();
+    
+    reader
+        .add_rule(Rule::Ignored(brec::RuleFnDef::Dynamic(Box::new(
+            move |bytes: &[u8]| {
+                ignored_inner.fetch_add(bytes.len(), Ordering::SeqCst);
+            },
+        ))))
+        .unwrap();
+    
+    loop {
+        match reader.read() {
+            Ok(next) => match next {
+                NextPacket::Found(packet) => packets.push(packet),
+                NextPacket::NotFound => {
+                    // Data will be refilled on the next call
+                }
+                NextPacket::NotEnoughData(_needed) => {
+                    // Data will be refilled on the next call
+                }
+                NextPacket::NoData => {
+                    break;
+                }
+                NextPacket::Skipped => {
+                    //
+                }
+            },
+            Err(err) => {
+                return Err(std::io::Error::new(
+                    std::io::ErrorKind::InvalidData,
+                    err.to_string(),
+                ));
+            }
+        };
+    }
+    Ok((packets, ignored.load(Ordering::SeqCst)))
+}
+```
 
+### Key Features of `PacketBufReader`
+- If there is **insufficient data** (`NextPacket::NotEnoughData`), `PacketBufReader` will attempt to load more data on each subsequent call to `read()`.  
+- If **no `brec` data is found** in the current `read()` iteration (`NextPacket::NotFound`), `PacketBufReader` will also attempt to load more data on each subsequent `read()`.  
 
+Thus, `PacketBufReader` **automatically manages data loading**, removing the need for users to implement their own data-fetching logic.
+
+### `NextPacket` Read Statuses
+
+| Status                    | Description | Can Continue Reading? |
+|---------------------------|-------------|------------------------|
+| `NextPacket::Found`       | A packet was successfully found and returned. | ✅ Yes |
+| `NextPacket::NotFound`    | No packets were found in the current read iteration. | ✅ Yes |
+| `NextPacket::NotEnoughData` | A packet was detected, but there is not enough data to read it completely. | ✅ Yes |
+| `NextPacket::Skipped`     | A packet was detected but skipped due to filtering rules. | ✅ Yes |
+| `NextPacket::NoData`      | No more data can be retrieved from the source. | ❌ No |
+
+After receiving `NextPacket::NoData`, further calls to `read()` are meaningless, as `PacketBufReader` has exhausted all available data from the source.
+
+### Custom Filtering Rules in `PacketBufReader`
+
+Another key feature of `PacketBufReader` is that users can define **custom rules** to be applied during data reading. These rules can be updated dynamically between `read()` calls using `add_rule` and `remove_rule`.
+
+| Rule Type        | Available Data   | Description |
+|-----------------|-----------------|-------------|
+| `Rule::Ignored`  | `&[u8]`         | Triggered when non-`brec` data is detected. The user receives a byte slice containing these unrelated data bytes. |
+| `Rule::PreFilter` | `&[Block]`      | Triggered when a packet is detected and partially parsed (blocks only). At this stage, the user can decide whether to continue parsing the "heavy" part (payload) or skip the message. |
+| `Rule::Filter`   | `&Packet`       | Triggered after a packet is fully processed, allowing the user to decide whether to accept or discard it. |
+| `Rule::Each`     | `&Packet`       | Allows the user to inspect every detected packet. |
+
+The `Rule::PreFilter` rule is particularly useful as it allows avoiding the most resource-intensive operation—parsing the payload section of a message. This can significantly improve reading performance.
+
+## `brec` Message Storage
+
+In addition to reading streams, `brec` provides a tool for storing packets and quickly accessing them—`Storage<S: std::io::Read + std::io::Write + std::io::Seek>` (available after code generation by calling `brec::include_generated!()`).
+
+### `Storage` Methods
+
+| Method | Description |
+|--------|-------------|
+| `insert(&mut self, packet: Packet)` | Stores a packet in the storage. |
+| `iter(&mut self)` | Returns an iterator over all stored packets. |
+| `filtered_by_blocks<PF>(&mut self, filter: PF)` | Returns an iterator with block-based filtering (avoiding full packet parsing). |
+| `filtered_by_packet<F>(&mut self, filter: F)` | Returns an iterator with packet-based filtering. |
+| `filtered<PF, F>(&mut self, pfilter: PF, filter: F)` | Returns an iterator with combined filtering. |
+| `nth(&mut self, nth: usize)` | Attempts to retrieve a packet by its index. |
+| `range_filtered<PF, F>(&mut self, range: RangeInclusive<usize>, pfilter: PF, filter: F)` | Returns an iterator over a specified range of packets with combined filtering. |
+| `range_filtered_by_blocks<PF>(&mut self, range: RangeInclusive<usize>, filter: PF)` | Returns an iterator over a specified range of packets with block-based filtering (avoiding full parsing). |
+| `range_filtered_by_packet<F>(&mut self, range: RangeInclusive<usize>, filter: F)` | Returns an iterator over a specified range of packets with packet-based filtering. |
+| `range(&mut self, range: RangeInclusive<usize>)` | Returns an iterator over a specified range of packets. |
+
+### Filter Parameters
+
+Filtering functions are provided as closures:
+- `PF: FnMut(&[Block]) -> bool` for **block-based filtering**.
+- `F: FnMut(&Packet) -> bool` for **packet-based filtering**.
+
+It is evident that filtering by blocks improves filtering performance by avoiding full packet parsing.
+
+### Key Features of `Storage`
+
+The main distinguishing feature of `Storage` is how it organizes packet storage:
+- Packets are **not stored sequentially**, but rather in **slots**, with each slot containing up to **100 packets**.
+- Each slot **stores metadata** about the packet locations in the file, as well as a **CRC for the slot**, making the storage resilient to corruption.
+- Thanks to the presence of metadata in the slots, `Storage` can efficiently **look up packets by their index** and **retrieve packets within a range**.
+
+As noted earlier, each slot calculates a **CRC** to verify data integrity. However, **even if the storage file is corrupted** and `Storage` can no longer operate correctly, packets **remain accessible in a "manual" mode**.  
+
+For instance, the previously described `PacketBufReader` can be used to **bypass slot metadata** and perform **sequential file reading**, detecting intact packets while ignoring corrupted data.
 
 # Protocol Specification
 
@@ -628,3 +740,21 @@ Thus, in binary format, a packet is structured as follows:
 | `PacketHeader` | 29 bytes | 1 |
 | `Block`        | ---    | 0 to 255 |
 | `Payload`      | ---    | 0 or 1 |
+
+# Ensuring `brec` Stability
+
+The stability of `brec` is ensured through two levels of testing.
+
+## Functional Testing
+
+To test reading, writing, parsing, filtering, and other functions, `brec` uses `proptest` to generate **random values** for predefined (structurally consistent) blocks and payloads. Blocks and payloads are tested **both separately and in combination** as part of packet testing. 
+
+Packets are constructed with **randomly generated blocks and payloads**. Additionally, the ability of `brec` tools to **reliably read and write randomly generated blocks** is also tested, specifically focusing on `Storage<S: std::io::Read + std::io::Write + std::io::Seek>` and `PacketBufReader`.
+
+In total, **over 20 GB of test data** is generated for this type of testing.
+
+## Macro Testing
+
+To validate the behavior of the `block` and `payload` macros, `brec` also uses `proptest`, but this time it **not only generates random data but also randomly constructs block and payload structures**.
+
+Each randomly generated set of structures is saved as a separate crate. After generating these test cases, each one is **compiled and executed** to ensure stability. Specifically, all randomly generated packets **must be successfully encoded and subsequently decoded without errors**.

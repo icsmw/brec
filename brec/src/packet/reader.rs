@@ -85,7 +85,6 @@ pub enum ResolveHeaderReady<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInn
 pub struct PacketBufReaderDef<
     'a,
     R: std::io::Read,
-    W: std::io::Write,
     B: BlockDef,
     BR: BlockReferredDef<B>,
     P: PayloadDef<Inner>,
@@ -94,7 +93,7 @@ pub struct PacketBufReaderDef<
     /// Buffered reader for handling input stream operations.
     inner: std::io::BufReader<&'a mut R>,
     /// Collection of processing rules applied to incoming data.
-    rules: RulesDef<W, B, BR, P, Inner>,
+    rules: RulesDef<B, BR, P, Inner>,
     /// Stores the current state of the header reading process.
     recent: HeaderReadState,
     /// Internal buffer for accumulating data before processing.
@@ -104,12 +103,11 @@ pub struct PacketBufReaderDef<
 impl<
         'a,
         R: std::io::Read,
-        W: std::io::Write,
         B: BlockDef,
         BR: BlockReferredDef<B>,
         P: PayloadDef<Inner>,
         Inner: PayloadInnerDef,
-    > PacketBufReaderDef<'a, R, W, B, BR, P, Inner>
+    > PacketBufReaderDef<'a, R, B, BR, P, Inner>
 {
     /// Parses a packet header from the provided buffer.
     ///
@@ -205,7 +203,7 @@ impl<
         let buffered = buffer.len();
         // First make attempt to read header without possible litter
         buffer.extend_from_slice(&extracted[..needed]);
-        match PacketBufReaderDef::<'a, R, W, B, BR, P, Inner>::read_header(&buffer)? {
+        match PacketBufReaderDef::<'a, R, B, BR, P, Inner>::read_header(&buffer)? {
             PacketHeaderState::Found(header, sgmt) => {
                 if sgmt.start() > &0 {
                     self.rules.ignore(&buffer[..*sgmt.start()])?;
@@ -221,7 +219,7 @@ impl<
         // Second, if buffer has litter, header might be in next bytes. Trying all available bytes
         buffer.extend_from_slice(&extracted[needed..]);
         let header_len = PacketHeader::ssize() as usize;
-        match PacketBufReaderDef::<'a, R, W, B, BR, P, Inner>::read_header(&buffer)? {
+        match PacketBufReaderDef::<'a, R, B, BR, P, Inner>::read_header(&buffer)? {
             PacketHeaderState::Found(header, sgmt) => {
                 if sgmt.start() > &0 {
                     self.rules.ignore(&buffer[..*sgmt.start()])?;
@@ -264,7 +262,7 @@ impl<
     }
 
     /// Adds a processing rule. See `RuleDef` for more details.
-    pub fn add_rule(&mut self, rule: RuleDef<W, B, BR, P, Inner>) -> Result<(), Error> {
+    pub fn add_rule(&mut self, rule: RuleDef<B, BR, P, Inner>) -> Result<(), Error> {
         self.rules.add_rule(rule)
     }
 
@@ -305,7 +303,7 @@ impl<
                     self.inner.consume(available);
                     return Ok(NextPacket::NotEnoughData(needed));
                 }
-                match PacketBufReaderDef::<'a, R, W, B, BR, P, Inner>::read_header(buffer)? {
+                match PacketBufReaderDef::<'a, R, B, BR, P, Inner>::read_header(buffer)? {
                     PacketHeaderState::NotFound => {
                         let header_len = PacketHeader::ssize() as usize;
                         if available > header_len {

@@ -41,19 +41,11 @@ pub type EachCallback<B, BR, P, Inner> = RuleFnDef<
 /// For example, the `Ignored` rule allows capturing data that is read but not recognized as `brec` packets.
 /// Similarly, the `WriteIgnored` rule enables saving such data elsewhere.
 #[enum_ids::enum_ids(display)]
-pub enum RuleDef<
-    W: std::io::Write,
-    B: BlockDef,
-    BR: BlockReferredDef<B>,
-    P: PayloadDef<Inner>,
-    Inner: PayloadInnerDef,
-> {
+pub enum RuleDef<B: BlockDef, BR: BlockReferredDef<B>, P: PayloadDef<Inner>, Inner: PayloadInnerDef>
+{
     /// Called when `PacketBufReaderDef` encounters data that is not recognized as a `brec` packet.
     /// The callback receives a slice of the unrecognized data.
     Ignored(IgnoredCallback),
-
-    /// Similar to `Ignored`, but also provides a `BufWriter` instance to allow writing unrecognized data.
-    WriteIgnored(std::io::BufWriter<W>, WriteIgnoredCallback<W>),
 
     /// The `PreFilter` rule is invoked each time `PacketBufReaderDef` detects a `brec` packet.
     ///
@@ -77,36 +69,25 @@ pub enum RuleDef<
 /// Internal structure responsible for storing and managing rules.
 /// This is used within `PacketBufReaderDef`, and direct access by users is not required.
 pub struct RulesDef<
-    W: std::io::Write,
     B: BlockDef,
     BR: BlockReferredDef<B>,
     P: PayloadDef<Inner>,
     Inner: PayloadInnerDef,
 > {
-    pub rules: Vec<RuleDef<W, B, BR, P, Inner>>,
+    pub rules: Vec<RuleDef<B, BR, P, Inner>>,
 }
 
-impl<
-        W: std::io::Write,
-        B: BlockDef,
-        BR: BlockReferredDef<B>,
-        P: PayloadDef<Inner>,
-        Inner: PayloadInnerDef,
-    > Default for RulesDef<W, B, BR, P, Inner>
+impl<B: BlockDef, BR: BlockReferredDef<B>, P: PayloadDef<Inner>, Inner: PayloadInnerDef> Default
+    for RulesDef<B, BR, P, Inner>
 {
     fn default() -> Self {
         Self { rules: Vec::new() }
     }
 }
-impl<
-        W: std::io::Write,
-        B: BlockDef,
-        BR: BlockReferredDef<B>,
-        P: PayloadDef<Inner>,
-        Inner: PayloadInnerDef,
-    > RulesDef<W, B, BR, P, Inner>
+impl<B: BlockDef, BR: BlockReferredDef<B>, P: PayloadDef<Inner>, Inner: PayloadInnerDef>
+    RulesDef<B, BR, P, Inner>
 {
-    pub fn add_rule(&mut self, rule: RuleDef<W, B, BR, P, Inner>) -> Result<(), Error> {
+    pub fn add_rule(&mut self, rule: RuleDef<B, BR, P, Inner>) -> Result<(), Error> {
         match &rule {
             RuleDef::PreFilter(..) => {
                 if self
@@ -132,15 +113,6 @@ impl<
                     return Err(Error::RuleDuplicate);
                 }
             }
-            RuleDef::WriteIgnored(..) => {
-                if self
-                    .rules
-                    .iter()
-                    .any(|r| matches!(r, RuleDef::WriteIgnored(..)))
-                {
-                    return Err(Error::RuleDuplicate);
-                }
-            }
         };
         self.rules.push(rule);
         Ok(())
@@ -157,14 +129,6 @@ impl<
                 RuleDef::Ignored(cb) => match cb {
                     RuleFnDef::Static(cb) => cb(buffer),
                     RuleFnDef::Dynamic(cb) => cb(buffer),
-                },
-                RuleDef::WriteIgnored(dest, cb) => match cb {
-                    RuleFnDef::Static(cb) => {
-                        cb(dest, buffer)?;
-                    }
-                    RuleFnDef::Dynamic(cb) => {
-                        cb(dest, buffer)?;
-                    }
                 },
                 _ignored => {}
             }
