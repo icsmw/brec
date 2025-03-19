@@ -23,6 +23,9 @@ pub type PreFilterCallback<B, BR, P, Inner> = RuleFnDef<
     fn(&PacketReferred<B, BR, P, Inner>) -> bool,
 >;
 
+/// Callback type for the `PreFilter` rule. For more details on rules, see `RuleDef`.
+pub type PayloadFilterCallback = RuleFnDef<Box<dyn Fn(&[u8]) -> bool>, fn(&[u8]) -> bool>;
+
 /// Callback type for the `Filter` rule. For more details on rules, see `RuleDef`.
 pub type FilterCallback<B, P, Inner> =
     RuleFnDef<Box<dyn Fn(&PacketDef<B, P, Inner>) -> bool>, fn(&PacketDef<B, P, Inner>) -> bool>;
@@ -59,6 +62,8 @@ pub enum RuleDef<B: BlockDef, BR: BlockReferredDef<B>, P: PayloadDef<Inner>, Inn
     /// Using `PreFilter` can significantly improve performance when users are interested only in specific packet categories.
     PreFilter(PreFilterCallback<B, BR, P, Inner>),
 
+    PayloadFilter(PayloadFilterCallback),
+
     Filter(FilterCallback<B, P, Inner>),
 
     /// This rule is invoked for every successfully parsed `brec` packet, allowing users to perform
@@ -94,6 +99,15 @@ impl<B: BlockDef, BR: BlockReferredDef<B>, P: PayloadDef<Inner>, Inner: PayloadI
                     .rules
                     .iter()
                     .any(|r| matches!(r, RuleDef::PreFilter(..)))
+                {
+                    return Err(Error::RuleDuplicate);
+                }
+            }
+            RuleDef::PayloadFilter(..) => {
+                if self
+                    .rules
+                    .iter()
+                    .any(|r| matches!(r, RuleDef::PayloadFilter(..)))
                 {
                     return Err(Error::RuleDuplicate);
                 }
@@ -138,6 +152,21 @@ impl<B: BlockDef, BR: BlockReferredDef<B>, P: PayloadDef<Inner>, Inner: PayloadI
     pub fn pre_filter(&mut self, referred: &PacketReferred<B, BR, P, Inner>) -> bool {
         let Some(cb) = self.rules.iter().find_map(|r| {
             if let RuleDef::PreFilter(cb) = r {
+                Some(cb)
+            } else {
+                None
+            }
+        }) else {
+            return true;
+        };
+        match cb {
+            RuleFnDef::Static(cb) => cb(referred),
+            RuleFnDef::Dynamic(cb) => cb(referred),
+        }
+    }
+    pub fn payload_filter(&mut self, referred: &[u8]) -> bool {
+        let Some(cb) = self.rules.iter().find_map(|r| {
+            if let RuleDef::PayloadFilter(cb) = r {
                 Some(cb)
             } else {
                 None

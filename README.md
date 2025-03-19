@@ -344,7 +344,7 @@ The `block` macro can be used with the following directives:
 | `PayloadSignature`    | `sig(&self)` | `ByteBlock` | Returns the signature, which can have a variable length of 4, 8, 16, 32, 64, or 128 bytes. |
 | `StaticPayloadSignature` | `ssig()` | `ByteBlock` | Similar to `sig`, but can be called without creating a payload instance. |
 | `PayloadEncode`       | `encode(&self)` | `std::io::Result<Vec<u8>>` | Creates a binary representation of the payload (excluding the header). |
-| `PayloadEncodeReferred` | `encode(&self)` | `std::io::Result<Option<&[u8]>>` | Creates a reference representation of the payload, if possible. |
+| `PayloadEncodeReferred` | `encode(&self)` | `std::io::Result<Option<&[u8]>>` | Creates a reference representation of the payload, if possible. Used for calculation of payload CRC and can boost performance |
 | `PayloadDecode<T>`    | `decode(buf: &[u8])` | `std::io::Result<T>` | Attempts to reconstruct the payload from a byte slice. |
 
 ### Automatically Implemented Traits

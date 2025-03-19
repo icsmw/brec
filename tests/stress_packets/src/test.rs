@@ -120,12 +120,43 @@ fn read_packets(buffer: &[u8]) -> std::io::Result<(usize, Vec<Packet>)> {
     let mut inner = BufReader::new(Cursor::new(buffer));
     let mut reader: PacketBufReader<_> = PacketBufReader::new(&mut inner);
     let litter_len: Arc<AtomicUsize> = Arc::new(AtomicUsize::new(0));
-    let inner = litter_len.clone();
-    let cb = move |bytes: &[u8]| {
-        inner.fetch_add(bytes.len(), Ordering::SeqCst);
-    };
+    let litter_len_inner = litter_len.clone();
     reader
-        .add_rule(Rule::Ignored(brec::RuleFnDef::Dynamic(Box::new(cb))))
+        .add_rule(Rule::Ignored(brec::RuleFnDef::Dynamic(Box::new(
+            move |bytes: &[u8]| {
+                litter_len_inner.fetch_add(bytes.len(), Ordering::SeqCst);
+            },
+        ))))
+        .unwrap();
+    let prefilter_count: Arc<AtomicUsize> = Arc::new(AtomicUsize::new(0));
+    let prefilter_count_inner = prefilter_count.clone();
+    reader
+        .add_rule(Rule::PreFilter(brec::RuleFnDef::Dynamic(Box::new(
+            move |_| {
+                prefilter_count_inner.fetch_add(1, Ordering::SeqCst);
+                true
+            },
+        ))))
+        .unwrap();
+    let payload_filter_count: Arc<AtomicUsize> = Arc::new(AtomicUsize::new(0));
+    let payload_filter_count_inner = payload_filter_count.clone();
+    reader
+        .add_rule(Rule::PayloadFilter(brec::RuleFnDef::Dynamic(Box::new(
+            move |_| {
+                payload_filter_count_inner.fetch_add(1, Ordering::SeqCst);
+                true
+            },
+        ))))
+        .unwrap();
+    let filter_count: Arc<AtomicUsize> = Arc::new(AtomicUsize::new(0));
+    let filter_count_inner = filter_count.clone();
+    reader
+        .add_rule(Rule::Filter(brec::RuleFnDef::Dynamic(Box::new(
+            move |_| {
+                filter_count_inner.fetch_add(1, Ordering::SeqCst);
+                true
+            },
+        ))))
         .unwrap();
     loop {
         match reader.read() {
@@ -153,6 +184,12 @@ fn read_packets(buffer: &[u8]) -> std::io::Result<(usize, Vec<Packet>)> {
             }
         };
     }
+    assert_eq!(packets.len(), prefilter_count.load(Ordering::SeqCst));
+    assert_eq!(packets.len(), filter_count.load(Ordering::SeqCst));
+    assert_eq!(
+        packets.iter().filter(|pkg| pkg.payload.is_some()).count(),
+        payload_filter_count.load(Ordering::SeqCst)
+    );
     Ok((litter_len.load(Ordering::SeqCst), packets))
 }
 

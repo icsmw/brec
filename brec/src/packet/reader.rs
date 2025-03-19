@@ -406,6 +406,10 @@ impl<
             match <PayloadHeader as TryReadFromBuffered>::try_read(&mut payload_buffer) {
                 Ok(ReadStatus::Success(header)) => {
                     let mut payload_buffer = &packet_buffer[blocks_len + header.size()..];
+                    if !self.rules.payload_filter(payload_buffer) {
+                        // PacketDef marked as ignored
+                        return self.drop_and_consume(consume, Ok(NextPacket::Skipped));
+                    }
                     match <P as TryExtractPayloadFromBuffered<Inner>>::try_read(
                         &mut payload_buffer,
                         &header,
