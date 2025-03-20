@@ -58,47 +58,56 @@ impl<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> PacketDef<B, P, 
             _pi: PhantomData,
         }
     }
-    pub fn filtered<R, F>(
+    pub fn filtered<R, BR, F>(
         reader: &mut R,
         mut filter: F,
     ) -> Result<LookInStatus<PacketDef<B, P, Inner>>, Error>
     where
         R: std::io::Read + std::io::Seek,
-        F: FnMut(&[B]) -> bool,
+        BR: BlockReferredDef<B>,
+        F: FnMut(&[BR]) -> bool,
         Self: Sized,
     {
         let header = match <PacketHeader as TryReadFrom>::try_read(reader)? {
             ReadStatus::NotEnoughData(needed) => return Err(Error::NotEnoughData(needed as usize)),
             ReadStatus::Success(header) => header,
         };
-        let mut pkg = PacketDef::default();
+        let start_pos = reader.stream_position()?;
+        let len = reader.seek(std::io::SeekFrom::End(0))? - start_pos;
+        reader.seek(std::io::SeekFrom::Start(start_pos))?;
+        if len < header.size {
+            return Err(Error::NotEnoughData((header.size - len) as usize));
+        }
         let mut read = 0;
+        let mut blocks = Vec::new();
+        let mut buffer = vec![0; header.size as usize];
+        reader.read_exact(&mut buffer)?;
         if header.blocks_len > 0 {
             loop {
-                match <B as TryReadFrom>::try_read(reader) {
-                    Ok(ReadStatus::Success(blk)) => {
-                        read += blk.size();
-                        pkg.blocks.push(blk);
-                        if read == header.blocks_len {
-                            break;
-                        }
-                    }
-                    Ok(ReadStatus::NotEnoughData(needed)) => {
-                        return Err(Error::NotEnoughData(needed as usize));
-                    }
-                    Err(err) => {
-                        return Err(err);
-                    }
+                let blk = <BR as ReadBlockFromSlice>::read_from_slice(&buffer[read..], false)?;
+                read += blk.size() as usize;
+                blocks.push(blk);
+                if read == header.blocks_len as usize {
+                    break;
                 }
             }
         }
-        if !filter(&pkg.blocks) {
+        if !filter(&blocks) {
             return Ok(LookInStatus::Denied(header.size as usize));
         }
+        let mut pkg: PacketDef<B, P, Inner> = PacketDef {
+            blocks: blocks.into_iter().map(|blk| blk.into()).collect::<Vec<B>>(),
+            payload: None,
+            _pi: PhantomData,
+        };
         if header.payload {
-            match <PayloadHeader as TryReadFrom>::try_read(reader)? {
+            let mut reader = std::io::BufReader::new(&buffer[read..]);
+            match <PayloadHeader as TryReadFromBuffered>::try_read(&mut reader)? {
                 ReadStatus::Success(header) => {
-                    match <P as TryExtractPayloadFrom<Inner>>::try_read(reader, &header) {
+                    match <P as TryExtractPayloadFromBuffered<Inner>>::try_read(
+                        &mut reader,
+                        &header,
+                    ) {
                         Ok(ReadStatus::Success(payload)) => {
                             pkg.payload = Some(payload);
                         }
@@ -152,7 +161,7 @@ impl<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> PacketDef<B, P, 
         if !chk(&blocks) {
             return Ok(LookInStatus::Denied(header.size as usize));
         }
-        let blocks = blocks.into_iter().map(|blk| blk.into()).collect::<Vec<B>>();
+        let blocks: Vec<B> = blocks.into_iter().map(|blk| blk.into()).collect::<Vec<B>>();
         let mut pkg: PacketDef<B, P, Inner> = PacketDef {
             blocks,
             payload: None,

@@ -107,8 +107,9 @@ impl<
 pub struct StorageIteratorFilteredByBlocks<
     'a,
     S: std::io::Read + std::io::Seek,
-    F: FnMut(&[B]) -> bool,
+    F: FnMut(&[BR]) -> bool,
     B: BlockDef,
+    BR: BlockReferredDef<B>,
     P: PayloadDef<Inner>,
     Inner: PayloadInnerDef,
 > {
@@ -116,6 +117,7 @@ pub struct StorageIteratorFilteredByBlocks<
     source: &'a mut S,
     filter: F,
     _block: std::marker::PhantomData<B>,
+    _ref_block: std::marker::PhantomData<BR>,
     _payload: std::marker::PhantomData<P>,
     _payload_inner: std::marker::PhantomData<Inner>,
 }
@@ -123,11 +125,12 @@ pub struct StorageIteratorFilteredByBlocks<
 impl<
         'a,
         S: std::io::Read + std::io::Seek,
-        F: FnMut(&[B]) -> bool,
+        F: FnMut(&[BR]) -> bool,
         B: BlockDef,
+        BR: BlockReferredDef<B>,
         P: PayloadDef<Inner>,
         Inner: PayloadInnerDef,
-    > StorageIteratorFilteredByBlocks<'a, S, F, B, P, Inner>
+    > StorageIteratorFilteredByBlocks<'a, S, F, B, BR, P, Inner>
 {
     pub fn new(source: &'a mut S, slots: &'a [Slot], filter: F) -> Self {
         Self {
@@ -135,6 +138,7 @@ impl<
             source,
             filter,
             _block: std::marker::PhantomData,
+            _ref_block: std::marker::PhantomData,
             _payload: std::marker::PhantomData,
             _payload_inner: std::marker::PhantomData,
         }
@@ -143,11 +147,12 @@ impl<
 
 impl<
         S: std::io::Read + std::io::Seek,
-        F: FnMut(&[B]) -> bool,
+        F: FnMut(&[BR]) -> bool,
         B: BlockDef,
+        BR: BlockReferredDef<B>,
         P: PayloadDef<Inner>,
         Inner: PayloadInnerDef,
-    > Iterator for StorageIteratorFilteredByBlocks<'_, S, F, B, P, Inner>
+    > Iterator for StorageIteratorFilteredByBlocks<'_, S, F, B, BR, P, Inner>
 {
     type Item = Result<PacketDef<B, P, Inner>, Error>;
 
@@ -160,7 +165,7 @@ impl<
             {
                 return Some(Err(err.into()));
             }
-            match PacketDef::<B, P, Inner>::filtered(self.source, &mut self.filter) {
+            match PacketDef::<B, P, Inner>::filtered::<S, BR, _>(self.source, &mut self.filter) {
                 Err(err) => return Some(Err(err)),
                 Ok(LookInStatus::Accepted(_, pkg)) => {
                     return Some(Ok(pkg));
@@ -249,9 +254,10 @@ impl<
 pub struct StorageIteratorFiltered<
     'a,
     S: std::io::Read + std::io::Seek,
-    PF: FnMut(&[B]) -> bool,
+    PF: FnMut(&[BR]) -> bool,
     F: FnMut(&PacketDef<B, P, Inner>) -> bool,
     B: BlockDef,
+    BR: BlockReferredDef<B>,
     P: PayloadDef<Inner>,
     Inner: PayloadInnerDef,
 > {
@@ -260,6 +266,7 @@ pub struct StorageIteratorFiltered<
     pfilter: PF,
     filter: F,
     _block: std::marker::PhantomData<B>,
+    _ref_block: std::marker::PhantomData<BR>,
     _payload: std::marker::PhantomData<P>,
     _payload_inner: std::marker::PhantomData<Inner>,
 }
@@ -267,12 +274,13 @@ pub struct StorageIteratorFiltered<
 impl<
         'a,
         S: std::io::Read + std::io::Seek,
-        PF: FnMut(&[B]) -> bool,
+        PF: FnMut(&[BR]) -> bool,
         F: FnMut(&PacketDef<B, P, Inner>) -> bool,
         B: BlockDef,
+        BR: BlockReferredDef<B>,
         P: PayloadDef<Inner>,
         Inner: PayloadInnerDef,
-    > StorageIteratorFiltered<'a, S, PF, F, B, P, Inner>
+    > StorageIteratorFiltered<'a, S, PF, F, B, BR, P, Inner>
 {
     pub fn new(source: &'a mut S, slots: &'a [Slot], pfilter: PF, filter: F) -> Self {
         Self {
@@ -281,6 +289,8 @@ impl<
             pfilter,
             filter,
             _block: std::marker::PhantomData,
+            _ref_block: std::marker::PhantomData,
+
             _payload: std::marker::PhantomData,
             _payload_inner: std::marker::PhantomData,
         }
@@ -289,12 +299,13 @@ impl<
 
 impl<
         S: std::io::Read + std::io::Seek,
-        PF: FnMut(&[B]) -> bool,
+        PF: FnMut(&[BR]) -> bool,
         F: FnMut(&PacketDef<B, P, Inner>) -> bool,
         B: BlockDef,
+        BR: BlockReferredDef<B>,
         P: PayloadDef<Inner>,
         Inner: PayloadInnerDef,
-    > Iterator for StorageIteratorFiltered<'_, S, PF, F, B, P, Inner>
+    > Iterator for StorageIteratorFiltered<'_, S, PF, F, B, BR, P, Inner>
 {
     type Item = Result<PacketDef<B, P, Inner>, Error>;
 
@@ -307,7 +318,7 @@ impl<
             {
                 return Some(Err(err.into()));
             }
-            match PacketDef::<B, P, Inner>::filtered(self.source, &mut self.pfilter) {
+            match PacketDef::<B, P, Inner>::filtered::<S, BR, _>(self.source, &mut self.pfilter) {
                 Err(err) => return Some(Err(err)),
                 Ok(LookInStatus::Accepted(_, pkg)) => {
                     if !(self.filter)(&pkg) {
@@ -385,8 +396,9 @@ impl<
 pub struct StorageRangeIteratorFilteredByBlocks<
     'a,
     S: std::io::Read + std::io::Write + std::io::Seek,
-    F: FnMut(&[B]) -> bool,
+    F: FnMut(&[BR]) -> bool,
     B: BlockDef,
+    BR: BlockReferredDef<B>,
     P: PayloadDef<Inner>,
     Inner: PayloadInnerDef,
 > {
@@ -395,6 +407,7 @@ pub struct StorageRangeIteratorFilteredByBlocks<
     current: usize,
     filter: F,
     _block: std::marker::PhantomData<B>,
+    _ref_block: std::marker::PhantomData<BR>,
     _payload: std::marker::PhantomData<P>,
     _payload_inner: std::marker::PhantomData<Inner>,
 }
@@ -402,11 +415,12 @@ pub struct StorageRangeIteratorFilteredByBlocks<
 impl<
         'a,
         S: std::io::Read + std::io::Write + std::io::Seek,
-        F: FnMut(&[B]) -> bool,
+        F: FnMut(&[BR]) -> bool,
         B: BlockDef,
+        BR: BlockReferredDef<B>,
         P: PayloadDef<Inner>,
         Inner: PayloadInnerDef,
-    > StorageRangeIteratorFilteredByBlocks<'a, S, F, B, P, Inner>
+    > StorageRangeIteratorFilteredByBlocks<'a, S, F, B, BR, P, Inner>
 {
     pub fn new(
         storage: &'a mut StorageDef<S, B, P, Inner>,
@@ -419,6 +433,7 @@ impl<
             current: *range.start(),
             filter,
             _block: std::marker::PhantomData,
+            _ref_block: std::marker::PhantomData,
             _payload: std::marker::PhantomData,
             _payload_inner: std::marker::PhantomData,
         }
@@ -427,11 +442,12 @@ impl<
 
 impl<
         S: std::io::Read + std::io::Write + std::io::Seek,
-        F: FnMut(&[B]) -> bool,
+        F: FnMut(&[BR]) -> bool,
         B: BlockDef,
+        BR: BlockReferredDef<B>,
         P: PayloadDef<Inner>,
         Inner: PayloadInnerDef,
-    > Iterator for StorageRangeIteratorFilteredByBlocks<'_, S, F, B, P, Inner>
+    > Iterator for StorageRangeIteratorFilteredByBlocks<'_, S, F, B, BR, P, Inner>
 {
     type Item = Result<PacketDef<B, P, Inner>, Error>;
 
@@ -442,7 +458,7 @@ impl<
             }
             let item = self
                 .storage
-                .nth_filtered_by_blocks(self.current, &mut self.filter);
+                .nth_filtered_by_blocks::<BR, _>(self.current, &mut self.filter);
             self.current += 1;
             match item {
                 Ok(None) => return None,
@@ -535,9 +551,10 @@ impl<
 pub struct StorageRangeIteratorFiltered<
     'a,
     S: std::io::Read + std::io::Write + std::io::Seek,
-    PF: FnMut(&[B]) -> bool,
+    PF: FnMut(&[BR]) -> bool,
     F: FnMut(&PacketDef<B, P, Inner>) -> bool,
     B: BlockDef,
+    BR: BlockReferredDef<B>,
     P: PayloadDef<Inner>,
     Inner: PayloadInnerDef,
 > {
@@ -547,6 +564,7 @@ pub struct StorageRangeIteratorFiltered<
     pfilter: PF,
     filter: F,
     _block: std::marker::PhantomData<B>,
+    _ref_block: std::marker::PhantomData<BR>,
     _payload: std::marker::PhantomData<P>,
     _payload_inner: std::marker::PhantomData<Inner>,
 }
@@ -554,12 +572,13 @@ pub struct StorageRangeIteratorFiltered<
 impl<
         'a,
         S: std::io::Read + std::io::Write + std::io::Seek,
-        PF: FnMut(&[B]) -> bool,
+        PF: FnMut(&[BR]) -> bool,
         F: FnMut(&PacketDef<B, P, Inner>) -> bool,
         B: BlockDef,
+        BR: BlockReferredDef<B>,
         P: PayloadDef<Inner>,
         Inner: PayloadInnerDef,
-    > StorageRangeIteratorFiltered<'a, S, PF, F, B, P, Inner>
+    > StorageRangeIteratorFiltered<'a, S, PF, F, B, BR, P, Inner>
 {
     pub fn new(
         storage: &'a mut StorageDef<S, B, P, Inner>,
@@ -574,6 +593,7 @@ impl<
             pfilter,
             filter,
             _block: std::marker::PhantomData,
+            _ref_block: std::marker::PhantomData,
             _payload: std::marker::PhantomData,
             _payload_inner: std::marker::PhantomData,
         }
@@ -582,12 +602,13 @@ impl<
 
 impl<
         S: std::io::Read + std::io::Write + std::io::Seek,
-        PF: FnMut(&[B]) -> bool,
+        PF: FnMut(&[BR]) -> bool,
         F: FnMut(&PacketDef<B, P, Inner>) -> bool,
         B: BlockDef,
+        BR: BlockReferredDef<B>,
         P: PayloadDef<Inner>,
         Inner: PayloadInnerDef,
-    > Iterator for StorageRangeIteratorFiltered<'_, S, PF, F, B, P, Inner>
+    > Iterator for StorageRangeIteratorFiltered<'_, S, PF, F, B, BR, P, Inner>
 {
     type Item = Result<PacketDef<B, P, Inner>, Error>;
 
@@ -596,9 +617,11 @@ impl<
             if self.current >= self.end {
                 return None;
             }
-            let item = self
-                .storage
-                .nth_filtered(self.current, &mut self.pfilter, &mut self.filter);
+            let item = self.storage.nth_filtered::<BR, _, _>(
+                self.current,
+                &mut self.pfilter,
+                &mut self.filter,
+            );
             self.current += 1;
             match item {
                 Ok(None) => return None,

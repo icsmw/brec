@@ -165,10 +165,10 @@ impl<
     ///
     /// # Returns
     /// * `StorageIteratorFilteredByBlocks<'_, S, F, B, P, Inner>` - An iterator yielding packets that pass the `Block` filter.
-    pub fn filtered_by_blocks<F: FnMut(&[B]) -> bool>(
+    pub fn filtered_by_blocks<BR: BlockReferredDef<B>, F: FnMut(&[BR]) -> bool>(
         &mut self,
         filter: F,
-    ) -> StorageIteratorFilteredByBlocks<'_, S, F, B, P, Inner> {
+    ) -> StorageIteratorFilteredByBlocks<'_, S, F, B, BR, P, Inner> {
         StorageIteratorFilteredByBlocks::new(&mut self.inner, &self.slots, filter)
     }
 
@@ -206,11 +206,15 @@ impl<
     ///
     /// # Returns
     /// * `StorageIteratorFiltered<'_, S, PF, F, B, P, Inner>` - An iterator yielding packets that pass both filters.
-    pub fn filtered<PF: FnMut(&[B]) -> bool, F: FnMut(&PacketDef<B, P, Inner>) -> bool>(
+    pub fn filtered<
+        BR: BlockReferredDef<B>,
+        PF: FnMut(&[BR]) -> bool,
+        F: FnMut(&PacketDef<B, P, Inner>) -> bool,
+    >(
         &mut self,
         pfilter: PF,
         filter: F,
-    ) -> StorageIteratorFiltered<'_, S, PF, F, B, P, Inner> {
+    ) -> StorageIteratorFiltered<'_, S, PF, F, B, BR, P, Inner> {
         StorageIteratorFiltered::new(&mut self.inner, &self.slots, pfilter, filter)
     }
 
@@ -275,11 +279,11 @@ impl<
     ///
     /// # Returns
     /// * `StorageRangeIteratorFilteredByBlocks<'_, S, F, B, P, Inner>` - An iterator yielding packets that pass the `Block` filter within the specified range.
-    pub fn range_filtered_by_blocks<F: FnMut(&[B]) -> bool>(
+    pub fn range_filtered_by_blocks<BR: BlockReferredDef<B>, F: FnMut(&[BR]) -> bool>(
         &mut self,
         range: RangeInclusive<usize>,
         filter: F,
-    ) -> StorageRangeIteratorFilteredByBlocks<'_, S, F, B, P, Inner> {
+    ) -> StorageRangeIteratorFilteredByBlocks<'_, S, F, B, BR, P, Inner> {
         StorageRangeIteratorFilteredByBlocks::new(self, range, filter)
     }
 
@@ -320,12 +324,16 @@ impl<
     ///
     /// # Returns
     /// * `StorageRangeIteratorFiltered<'_, S, PF, F, B, P, Inner>` - An iterator yielding packets that pass both filters within the specified range.
-    pub fn range_filtered<PF: FnMut(&[B]) -> bool, F: FnMut(&PacketDef<B, P, Inner>) -> bool>(
+    pub fn range_filtered<
+        BR: BlockReferredDef<B>,
+        PF: FnMut(&[BR]) -> bool,
+        F: FnMut(&PacketDef<B, P, Inner>) -> bool,
+    >(
         &mut self,
         range: RangeInclusive<usize>,
         pfilter: PF,
         filter: F,
-    ) -> StorageRangeIteratorFiltered<'_, S, PF, F, B, P, Inner> {
+    ) -> StorageRangeIteratorFiltered<'_, S, PF, F, B, BR, P, Inner> {
         StorageRangeIteratorFiltered::new(self, range, pfilter, filter)
     }
 
@@ -342,7 +350,7 @@ impl<
     /// # Returns
     /// * `Ok(NthFilteredPacket<B, P, Inner>)` - The `nth` packet that passed the filter.
     /// * `Err(Error)` - An error occurred during retrieval.
-    pub(crate) fn nth_filtered_by_blocks<F: FnMut(&[B]) -> bool>(
+    pub(crate) fn nth_filtered_by_blocks<BR: BlockReferredDef<B>, F: FnMut(&[BR]) -> bool>(
         &mut self,
         nth: usize,
         filter: &mut F,
@@ -350,7 +358,7 @@ impl<
         let Some(_) = self.nth_filtered_init(nth)? else {
             return Ok(None);
         };
-        match PacketDef::<B, P, Inner>::filtered(&mut self.inner, filter)? {
+        match PacketDef::<B, P, Inner>::filtered::<S, BR, _>(&mut self.inner, filter)? {
             LookInStatus::Accepted(size, pkg) => Ok(Some(LookInStatus::Accepted(size, pkg))),
             LookInStatus::Denied(size) => Ok(Some(LookInStatus::Denied(size))),
             LookInStatus::NotEnoughData(needed) => Err(Error::NotEnoughData(needed)),
@@ -414,7 +422,8 @@ impl<
     /// * `Ok(NthFilteredPacket<B, P, Inner>)` - The `nth` packet that passed both filters.
     /// * `Err(Error)` - An error occurred during retrieval.
     pub(crate) fn nth_filtered<
-        PF: FnMut(&[B]) -> bool,
+        BR: BlockReferredDef<B>,
+        PF: FnMut(&[BR]) -> bool,
         F: FnMut(&PacketDef<B, P, Inner>) -> bool,
     >(
         &mut self,
@@ -425,13 +434,14 @@ impl<
         let Some(_) = self.nth_filtered_init(nth)? else {
             return Ok(None);
         };
-        let (size, pkg) = match PacketDef::<B, P, Inner>::filtered(&mut self.inner, pfilter)? {
-            LookInStatus::Accepted(size, pkg) => (size, pkg),
-            LookInStatus::Denied(size) => return Ok(Some(LookInStatus::Denied(size))),
-            LookInStatus::NotEnoughData(needed) => {
-                return Err(Error::NotEnoughData(needed));
-            }
-        };
+        let (size, pkg) =
+            match PacketDef::<B, P, Inner>::filtered::<S, BR, _>(&mut self.inner, pfilter)? {
+                LookInStatus::Accepted(size, pkg) => (size, pkg),
+                LookInStatus::Denied(size) => return Ok(Some(LookInStatus::Denied(size))),
+                LookInStatus::NotEnoughData(needed) => {
+                    return Err(Error::NotEnoughData(needed));
+                }
+            };
         if !filter(&pkg) {
             Ok(Some(LookInStatus::Denied(size)))
         } else {

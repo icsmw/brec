@@ -513,7 +513,7 @@ fn storage_write_read_filter(packets: Vec<WrappedPacket>, filename: &str) -> std
                 );
             }
             for (i, packet) in storage
-                .range_filtered_by_blocks(n..=n + 10, |blks: &[Block]| {
+                .range_filtered_by_blocks(n..=n + 10, |blks: &[BlockReferred]| {
                     blocks_visited += blks.len();
                     false
                 })
@@ -530,7 +530,7 @@ fn storage_write_read_filter(packets: Vec<WrappedPacket>, filename: &str) -> std
         }
     }
     // Read with filter
-    for packet in storage.filtered_by_blocks(|blks: &[Block]| {
+    for packet in storage.filtered_by_blocks(|blks: &[BlockReferred]| {
         blocks_visited += blks.len();
         false
     }) {
