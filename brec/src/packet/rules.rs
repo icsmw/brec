@@ -17,13 +17,13 @@ pub type WriteIgnoredCallback<W> = RuleFnDef<
     fn(&mut std::io::BufWriter<W>, &[u8]) -> std::io::Result<()>,
 >;
 
-/// Callback type for the `PreFilter` rule. For more details on rules, see `RuleDef`.
+/// Callback type for the `FilterByBlocks` rule. For more details on rules, see `RuleDef`.
 pub type PreFilterCallback<B, BR, P, Inner> = RuleFnDef<
     Box<dyn Fn(&PacketReferred<B, BR, P, Inner>) -> bool>,
     fn(&PacketReferred<B, BR, P, Inner>) -> bool,
 >;
 
-/// Callback type for the `PreFilter` rule. For more details on rules, see `RuleDef`.
+/// Callback type for the `FilterByBlocks` rule. For more details on rules, see `RuleDef`.
 pub type PayloadFilterCallback = RuleFnDef<Box<dyn Fn(&[u8]) -> bool>, fn(&[u8]) -> bool>;
 
 /// Callback type for the `Filter` rule. For more details on rules, see `RuleDef`.
@@ -50,7 +50,7 @@ pub enum RuleDef<B: BlockDef, BR: BlockReferredDef<B>, P: PayloadDef<Inner>, Inn
     /// The callback receives a slice of the unrecognized data.
     Ignored(IgnoredCallback),
 
-    /// The `PreFilter` rule is invoked each time `PacketBufReaderDef` detects a `brec` packet.
+    /// The `FilterByBlocks` rule is invoked each time `PacketBufReaderDef` detects a `brec` packet.
     ///
     /// This rule is unique because it is executed during packet parsing rather than after completion.
     /// The callback receives only the `Blocks` section of the packet, which is not yet fully parsed
@@ -59,10 +59,10 @@ pub enum RuleDef<B: BlockDef, BR: BlockReferredDef<B>, P: PayloadDef<Inner>, Inn
     /// This allows users to decide whether to continue parsing the payload and completing block parsing
     /// or to ignore the packet entirely.
     ///
-    /// Using `PreFilter` can significantly improve performance when users are interested only in specific packet categories.
-    PreFilter(PreFilterCallback<B, BR, P, Inner>),
+    /// Using `FilterByBlocks` can significantly improve performance when users are interested only in specific packet categories.
+    FilterByBlocks(PreFilterCallback<B, BR, P, Inner>),
 
-    PayloadFilter(PayloadFilterCallback),
+    FilterByPayload(PayloadFilterCallback),
 
     Filter(FilterCallback<B, P, Inner>),
 
@@ -94,20 +94,20 @@ impl<B: BlockDef, BR: BlockReferredDef<B>, P: PayloadDef<Inner>, Inner: PayloadI
 {
     pub fn add_rule(&mut self, rule: RuleDef<B, BR, P, Inner>) -> Result<(), Error> {
         match &rule {
-            RuleDef::PreFilter(..) => {
+            RuleDef::FilterByBlocks(..) => {
                 if self
                     .rules
                     .iter()
-                    .any(|r| matches!(r, RuleDef::PreFilter(..)))
+                    .any(|r| matches!(r, RuleDef::FilterByBlocks(..)))
                 {
                     return Err(Error::RuleDuplicate);
                 }
             }
-            RuleDef::PayloadFilter(..) => {
+            RuleDef::FilterByPayload(..) => {
                 if self
                     .rules
                     .iter()
-                    .any(|r| matches!(r, RuleDef::PayloadFilter(..)))
+                    .any(|r| matches!(r, RuleDef::FilterByPayload(..)))
                 {
                     return Err(Error::RuleDuplicate);
                 }
@@ -149,9 +149,9 @@ impl<B: BlockDef, BR: BlockReferredDef<B>, P: PayloadDef<Inner>, Inner: PayloadI
         }
         Ok(())
     }
-    pub fn pre_filter(&mut self, referred: &PacketReferred<B, BR, P, Inner>) -> bool {
+    pub fn filter_by_blocks(&mut self, referred: &PacketReferred<B, BR, P, Inner>) -> bool {
         let Some(cb) = self.rules.iter().find_map(|r| {
-            if let RuleDef::PreFilter(cb) = r {
+            if let RuleDef::FilterByBlocks(cb) = r {
                 Some(cb)
             } else {
                 None
@@ -164,9 +164,9 @@ impl<B: BlockDef, BR: BlockReferredDef<B>, P: PayloadDef<Inner>, Inner: PayloadI
             RuleFnDef::Dynamic(cb) => cb(referred),
         }
     }
-    pub fn payload_filter(&mut self, referred: &[u8]) -> bool {
+    pub fn filter_by_payload(&mut self, referred: &[u8]) -> bool {
         let Some(cb) = self.rules.iter().find_map(|r| {
-            if let RuleDef::PayloadFilter(cb) = r {
+            if let RuleDef::FilterByPayload(cb) = r {
                 Some(cb)
             } else {
                 None

@@ -389,7 +389,7 @@ impl<
         }
         let referred = PacketReferred::new(blocks, header);
         self.rules.each(&referred)?;
-        if !self.rules.pre_filter(&referred) {
+        if !self.rules.filter_by_blocks(&referred) {
             // PacketDef marked as ignored
             return self.drop_and_consume(consume, Ok(NextPacket::Skipped));
         }
@@ -406,7 +406,7 @@ impl<
             match <PayloadHeader as TryReadFromBuffered>::try_read(&mut payload_buffer) {
                 Ok(ReadStatus::Success(header)) => {
                     let mut payload_buffer = &packet_buffer[blocks_len + header.size()..];
-                    if !self.rules.payload_filter(payload_buffer) {
+                    if !self.rules.filter_by_payload(payload_buffer) {
                         // PacketDef marked as ignored
                         return self.drop_and_consume(consume, Ok(NextPacket::Skipped));
                     }

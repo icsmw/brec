@@ -165,7 +165,10 @@ impl<
             {
                 return Some(Err(err.into()));
             }
-            match PacketDef::<B, P, Inner>::filtered::<S, BR, _>(self.source, &mut self.filter) {
+            match PacketDef::<B, P, Inner>::filtered_by_blocks::<S, BR, _>(
+                self.source,
+                &mut self.filter,
+            ) {
                 Err(err) => return Some(Err(err)),
                 Ok(LookInStatus::Accepted(_, pkg)) => {
                     return Some(Ok(pkg));
@@ -318,7 +321,10 @@ impl<
             {
                 return Some(Err(err.into()));
             }
-            match PacketDef::<B, P, Inner>::filtered::<S, BR, _>(self.source, &mut self.pfilter) {
+            match PacketDef::<B, P, Inner>::filtered_by_blocks::<S, BR, _>(
+                self.source,
+                &mut self.pfilter,
+            ) {
                 Err(err) => return Some(Err(err)),
                 Ok(LookInStatus::Accepted(_, pkg)) => {
                     if !(self.filter)(&pkg) {

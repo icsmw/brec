@@ -131,7 +131,7 @@ fn read_packets(buffer: &[u8]) -> std::io::Result<(usize, Vec<Packet>)> {
     let prefilter_count: Arc<AtomicUsize> = Arc::new(AtomicUsize::new(0));
     let prefilter_count_inner = prefilter_count.clone();
     reader
-        .add_rule(Rule::PreFilter(brec::RuleFnDef::Dynamic(Box::new(
+        .add_rule(Rule::FilterByBlocks(brec::RuleFnDef::Dynamic(Box::new(
             move |_| {
                 prefilter_count_inner.fetch_add(1, Ordering::SeqCst);
                 true
@@ -141,7 +141,7 @@ fn read_packets(buffer: &[u8]) -> std::io::Result<(usize, Vec<Packet>)> {
     let payload_filter_count: Arc<AtomicUsize> = Arc::new(AtomicUsize::new(0));
     let payload_filter_count_inner = payload_filter_count.clone();
     reader
-        .add_rule(Rule::PayloadFilter(brec::RuleFnDef::Dynamic(Box::new(
+        .add_rule(Rule::FilterByPayload(brec::RuleFnDef::Dynamic(Box::new(
             move |_| {
                 payload_filter_count_inner.fetch_add(1, Ordering::SeqCst);
                 true

@@ -358,7 +358,7 @@ impl<
         let Some(_) = self.nth_filtered_init(nth)? else {
             return Ok(None);
         };
-        match PacketDef::<B, P, Inner>::filtered::<S, BR, _>(&mut self.inner, filter)? {
+        match PacketDef::<B, P, Inner>::filtered_by_blocks::<S, BR, _>(&mut self.inner, filter)? {
             LookInStatus::Accepted(size, pkg) => Ok(Some(LookInStatus::Accepted(size, pkg))),
             LookInStatus::Denied(size) => Ok(Some(LookInStatus::Denied(size))),
             LookInStatus::NotEnoughData(needed) => Err(Error::NotEnoughData(needed)),
@@ -434,14 +434,16 @@ impl<
         let Some(_) = self.nth_filtered_init(nth)? else {
             return Ok(None);
         };
-        let (size, pkg) =
-            match PacketDef::<B, P, Inner>::filtered::<S, BR, _>(&mut self.inner, pfilter)? {
-                LookInStatus::Accepted(size, pkg) => (size, pkg),
-                LookInStatus::Denied(size) => return Ok(Some(LookInStatus::Denied(size))),
-                LookInStatus::NotEnoughData(needed) => {
-                    return Err(Error::NotEnoughData(needed));
-                }
-            };
+        let (size, pkg) = match PacketDef::<B, P, Inner>::filtered_by_blocks::<S, BR, _>(
+            &mut self.inner,
+            pfilter,
+        )? {
+            LookInStatus::Accepted(size, pkg) => (size, pkg),
+            LookInStatus::Denied(size) => return Ok(Some(LookInStatus::Denied(size))),
+            LookInStatus::NotEnoughData(needed) => {
+                return Err(Error::NotEnoughData(needed));
+            }
+        };
         if !filter(&pkg) {
             Ok(Some(LookInStatus::Denied(size)))
         } else {
