@@ -1,9 +1,10 @@
 [workspace]
 members = [
-    "stress_blocks",
     "enums",
+    "measurements",
+    "stress_blocks",
     "stress_payloads",
-    "stress_packets"
+    "stress_packets",
 ]
 
 [workspace.dependencies]

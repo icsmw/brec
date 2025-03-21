@@ -8,8 +8,12 @@ pub fn writing_to(payloads: &[&Payload]) -> Result<TokenStream, E> {
     let mut write_all = Vec::new();
     for payload in payloads.iter() {
         let fullname = payload.fullname()?;
-        write.push(quote! {Payload::#fullname(pl) => pl.write(buf)});
-        write_all.push(quote! {Payload::#fullname(pl) => pl.write_all(buf)});
+        write.push(
+            quote! {Payload::#fullname(pl) => brec::WritePayloadWithHeaderTo::write(pl, buf)},
+        );
+        write_all.push(
+            quote! {Payload::#fullname(pl) => brec::WritePayloadWithHeaderTo::write_all(pl, buf)},
+        );
     }
     Ok(quote! {
         impl brec::WriteMutTo for Payload {
@@ -17,8 +21,8 @@ pub fn writing_to(payloads: &[&Payload]) -> Result<TokenStream, E> {
                 use brec::WritePayloadWithHeaderTo;
                 match self {
                     #(#write,)*
-                    Payload::Bytes(pl) => pl.write(buf),
-                    Payload::String(pl) => pl.write(buf),
+                    Payload::Bytes(pl) => brec::WritePayloadWithHeaderTo::write(pl, buf),
+                    Payload::String(pl) => brec::WritePayloadWithHeaderTo::write(pl, buf),
                 }
             }
 
@@ -26,8 +30,8 @@ pub fn writing_to(payloads: &[&Payload]) -> Result<TokenStream, E> {
                 use brec::WritePayloadWithHeaderTo;
                 match self {
                     #(#write_all,)*
-                    Payload::Bytes(pl) => pl.write_all(buf),
-                    Payload::String(pl) => pl.write_all(buf),
+                    Payload::Bytes(pl) => brec::WritePayloadWithHeaderTo::write_all(pl, buf),
+                    Payload::String(pl) => brec::WritePayloadWithHeaderTo::write_all(pl, buf),
                 }
             }
         }
