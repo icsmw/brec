@@ -18,10 +18,7 @@ pub type WriteIgnoredCallback<W> = RuleFnDef<
 >;
 
 /// Callback type for the `FilterByBlocks` rule. For more details on rules, see `RuleDef`.
-pub type PreFilterCallback<B, BR, P, Inner> = RuleFnDef<
-    Box<dyn Fn(&PacketReferred<B, BR, P, Inner>) -> bool>,
-    fn(&PacketReferred<B, BR, P, Inner>) -> bool,
->;
+pub type BlocksFilterCallback<BR> = RuleFnDef<Box<dyn Fn(&[BR]) -> bool>, fn(&[BR]) -> bool>;
 
 /// Callback type for the `FilterByBlocks` rule. For more details on rules, see `RuleDef`.
 pub type PayloadFilterCallback = RuleFnDef<Box<dyn Fn(&[u8]) -> bool>, fn(&[u8]) -> bool>;
@@ -29,12 +26,6 @@ pub type PayloadFilterCallback = RuleFnDef<Box<dyn Fn(&[u8]) -> bool>, fn(&[u8])
 /// Callback type for the `Filter` rule. For more details on rules, see `RuleDef`.
 pub type FilterCallback<B, P, Inner> =
     RuleFnDef<Box<dyn Fn(&PacketDef<B, P, Inner>) -> bool>, fn(&PacketDef<B, P, Inner>) -> bool>;
-
-/// Callback type for the `EAch` rule. For more details on rules, see `RuleDef`.
-pub type EachCallback<B, BR, P, Inner> = RuleFnDef<
-    Box<dyn FnMut(&PacketReferred<B, BR, P, Inner>) -> std::io::Result<()>>,
-    fn(&PacketReferred<B, BR, P, Inner>) -> std::io::Result<()>,
->;
 
 /// Defines rules for processing data read by `PacketBufReaderDef`. These rules function similarly to hooks.
 ///
@@ -60,15 +51,11 @@ pub enum RuleDef<B: BlockDef, BR: BlockReferredDef<B>, P: PayloadDef<Inner>, Inn
     /// or to ignore the packet entirely.
     ///
     /// Using `FilterByBlocks` can significantly improve performance when users are interested only in specific packet categories.
-    FilterByBlocks(PreFilterCallback<B, BR, P, Inner>),
+    FilterByBlocks(BlocksFilterCallback<BR>),
 
     FilterByPayload(PayloadFilterCallback),
 
     Filter(FilterCallback<B, P, Inner>),
-
-    /// This rule is invoked for every successfully parsed `brec` packet, allowing users to perform
-    /// additional manipulations before the packet is returned by `PacketBufReaderDef`.
-    Each(EachCallback<B, BR, P, Inner>),
 }
 
 /// Internal structure responsible for storing and managing rules.
@@ -122,11 +109,6 @@ impl<B: BlockDef, BR: BlockReferredDef<B>, P: PayloadDef<Inner>, Inner: PayloadI
                     return Err(Error::RuleDuplicate);
                 }
             }
-            RuleDef::Each(..) => {
-                if self.rules.iter().any(|r| matches!(r, RuleDef::Each(..))) {
-                    return Err(Error::RuleDuplicate);
-                }
-            }
         };
         self.rules.push(rule);
         Ok(())
@@ -149,7 +131,7 @@ impl<B: BlockDef, BR: BlockReferredDef<B>, P: PayloadDef<Inner>, Inner: PayloadI
         }
         Ok(())
     }
-    pub fn filter_by_blocks(&mut self, referred: &PacketReferred<B, BR, P, Inner>) -> bool {
+    pub fn filter_by_blocks(&self, blocks: &[BR]) -> bool {
         let Some(cb) = self.rules.iter().find_map(|r| {
             if let RuleDef::FilterByBlocks(cb) = r {
                 Some(cb)
@@ -160,11 +142,11 @@ impl<B: BlockDef, BR: BlockReferredDef<B>, P: PayloadDef<Inner>, Inner: PayloadI
             return true;
         };
         match cb {
-            RuleFnDef::Static(cb) => cb(referred),
-            RuleFnDef::Dynamic(cb) => cb(referred),
+            RuleFnDef::Static(cb) => cb(blocks),
+            RuleFnDef::Dynamic(cb) => cb(blocks),
         }
     }
-    pub fn filter_by_payload(&mut self, referred: &[u8]) -> bool {
+    pub fn filter_by_payload(&self, buffer: &[u8]) -> bool {
         let Some(cb) = self.rules.iter().find_map(|r| {
             if let RuleDef::FilterByPayload(cb) = r {
                 Some(cb)
@@ -175,11 +157,11 @@ impl<B: BlockDef, BR: BlockReferredDef<B>, P: PayloadDef<Inner>, Inner: PayloadI
             return true;
         };
         match cb {
-            RuleFnDef::Static(cb) => cb(referred),
-            RuleFnDef::Dynamic(cb) => cb(referred),
+            RuleFnDef::Static(cb) => cb(buffer),
+            RuleFnDef::Dynamic(cb) => cb(buffer),
         }
     }
-    pub fn filter(&mut self, packet: &PacketDef<B, P, Inner>) -> bool {
+    pub fn filter(&self, packet: &PacketDef<B, P, Inner>) -> bool {
         let Some(cb) = self.rules.iter().find_map(|r| {
             if let RuleDef::Filter(cb) = r {
                 Some(cb)
@@ -193,21 +175,5 @@ impl<B: BlockDef, BR: BlockReferredDef<B>, P: PayloadDef<Inner>, Inner: PayloadI
             RuleFnDef::Static(cb) => cb(packet),
             RuleFnDef::Dynamic(cb) => cb(packet),
         }
-    }
-    pub fn each(&mut self, referred: &PacketReferred<B, BR, P, Inner>) -> Result<(), Error> {
-        let Some(cb) = self.rules.iter_mut().find_map(|r| {
-            if let RuleDef::Each(cb) = r {
-                Some(cb)
-            } else {
-                None
-            }
-        }) else {
-            return Ok(());
-        };
-        match cb {
-            RuleFnDef::Static(cb) => cb(referred)?,
-            RuleFnDef::Dynamic(cb) => cb(referred)?,
-        }
-        Ok(())
     }
 }

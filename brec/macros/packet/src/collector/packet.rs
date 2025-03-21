@@ -22,6 +22,6 @@ pub fn gen() -> Result<TokenStream, E> {
         pub type RuleFnDef<D, S> = brec::RuleFnDef<D, S>;
 
         #[allow(dead_code)]
-        pub type Storage<S> = brec::StorageDef<S, Block, Payload, Payload>;
+        pub type Storage<'a, S> = brec::StorageDef<S, Block, BlockReferred<'a>, Payload, Payload>;
     })
 }

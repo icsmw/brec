@@ -454,13 +454,13 @@ fn try_reading_with_try_read_buffered(packets: Vec<WrappedPacket>) -> std::io::R
 
 fn storage_write_read_filter(packets: Vec<WrappedPacket>, filename: &str) -> std::io::Result<()> {
     let tmp = std::env::temp_dir().join(filename);
-    let file = std::fs::OpenOptions::new()
+    let mut file = std::fs::OpenOptions::new()
         .read(true)
         .write(true)
         .create(true)
         .truncate(true)
         .open(&tmp)?;
-    let mut storage = Storage::new(file)
+    let mut storage = Storage::new(&mut file)
         .map_err(|err| std::io::Error::new(std::io::ErrorKind::InvalidData, err.to_string()))?;
     for packet in packets.iter() {
         storage
@@ -488,7 +488,16 @@ fn storage_write_read_filter(packets: Vec<WrappedPacket>, filename: &str) -> std
     {
         assert_eq!(left, right);
     }
-    let mut blocks_visited = 0;
+    let blocks_visited: Arc<AtomicUsize> = Arc::new(AtomicUsize::new(0));
+    let blocks_visited_inner = blocks_visited.clone();
+    storage
+        .add_rule(Rule::FilterByBlocks(brec::RuleFnDef::Dynamic(Box::new(
+            move |blocks: &[BlockReferred]| {
+                blocks_visited_inner.fetch_add(blocks.len(), Ordering::SeqCst);
+                false
+            },
+        ))))
+        .unwrap();
     // Read each 2th and 3th packets
     for n in 0..packets.len() {
         if n % 2 != 0 && n % 3 != 0 {
@@ -503,7 +512,7 @@ fn storage_write_read_filter(packets: Vec<WrappedPacket>, filename: &str) -> std
         }
         // Test range reading
         if n + 10 < packets.len() - 1 {
-            for (i, packet) in storage.range(n..=n + 10).enumerate() {
+            for (i, packet) in storage.range(n, 10).enumerate() {
                 assert_eq!(
                     Into::<WrappedPacket>::into(packet.map_err(|err| std::io::Error::new(
                         std::io::ErrorKind::InvalidData,
@@ -512,13 +521,7 @@ fn storage_write_read_filter(packets: Vec<WrappedPacket>, filename: &str) -> std
                     packets[n + i]
                 );
             }
-            for (i, packet) in storage
-                .range_filtered_by_blocks(n..=n + 10, |blks: &[BlockReferred]| {
-                    blocks_visited += blks.len();
-                    false
-                })
-                .enumerate()
-            {
+            for (i, packet) in storage.range_filtered(n, n + 10).enumerate() {
                 assert_eq!(
                     Into::<WrappedPacket>::into(packet.map_err(|err| std::io::Error::new(
                         std::io::ErrorKind::InvalidData,
@@ -529,15 +532,23 @@ fn storage_write_read_filter(packets: Vec<WrappedPacket>, filename: &str) -> std
             }
         }
     }
-    // Read with filter
-    for packet in storage.filtered_by_blocks(|blks: &[BlockReferred]| {
-        blocks_visited += blks.len();
-        false
-    }) {
-        packet
-            .map_err(|err| std::io::Error::new(std::io::ErrorKind::InvalidData, err.to_string()))?;
+    let payload_visited: Arc<AtomicUsize> = Arc::new(AtomicUsize::new(0));
+    let payload_visited_inner = payload_visited.clone();
+    storage.remove_rule(RuleDefId::FilterByBlocks);
+    storage
+        .add_rule(Rule::FilterByPayload(brec::RuleFnDef::Dynamic(Box::new(
+            move |_payload: &[u8]| {
+                payload_visited_inner.fetch_add(1, Ordering::SeqCst);
+                false
+            },
+        ))))
+        .unwrap();
+    for _ in storage.filtered() {
+        // Itarate all
     }
-    report_storage(packets.len(), Some(blocks_visited));
+    let payloads = packets.iter().filter(|pkg| pkg.payload.is_some()).count();
+    assert_eq!(payloads, payload_visited.load(Ordering::SeqCst));
+    report_storage(packets.len(), Some(blocks_visited.load(Ordering::SeqCst)));
     Ok(())
 }
 

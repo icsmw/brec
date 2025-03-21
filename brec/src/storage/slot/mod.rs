@@ -46,6 +46,13 @@ impl Slot {
         Some(self.lenghts[..nth].iter().sum::<u64>() + self.size())
     }
 
+    pub fn is_empty(&self, nth: usize) -> Result<bool, Error> {
+        self.lenghts
+            .get(nth)
+            .map(|l| l == &0)
+            .ok_or(Error::OutOfBounds(self.lenghts.len(), nth))
+    }
+
     pub fn get_free_slot_offset(&self) -> Option<u64> {
         if let Some(ln) = self.lenghts.last() {
             if ln > &0 {

@@ -52,4 +52,6 @@ pub enum Error {
     DamagedSlot(Box<Error>),
     #[error("Too many attempts to read block; made {0} attempts")]
     TooManyAttemptsToReadBlock(usize),
+    #[error("Out of bounds; len = {0}; requested = {1}")]
+    OutOfBounds(usize, usize),
 }

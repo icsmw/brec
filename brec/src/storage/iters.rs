@@ -104,10 +104,9 @@ impl<
     }
 }
 
-pub struct StorageIteratorFilteredByBlocks<
+pub struct StorageFilteredIterator<
     'a,
     S: std::io::Read + std::io::Seek,
-    F: FnMut(&[BR]) -> bool,
     B: BlockDef,
     BR: BlockReferredDef<B>,
     P: PayloadDef<Inner>,
@@ -115,44 +114,34 @@ pub struct StorageIteratorFilteredByBlocks<
 > {
     locator: PacketsLocatorIterator<'a>,
     source: &'a mut S,
-    filter: F,
-    _block: std::marker::PhantomData<B>,
-    _ref_block: std::marker::PhantomData<BR>,
-    _payload: std::marker::PhantomData<P>,
-    _payload_inner: std::marker::PhantomData<Inner>,
+    rules: &'a RulesDef<B, BR, P, Inner>,
 }
 
 impl<
         'a,
         S: std::io::Read + std::io::Seek,
-        F: FnMut(&[BR]) -> bool,
         B: BlockDef,
         BR: BlockReferredDef<B>,
         P: PayloadDef<Inner>,
         Inner: PayloadInnerDef,
-    > StorageIteratorFilteredByBlocks<'a, S, F, B, BR, P, Inner>
+    > StorageFilteredIterator<'a, S, B, BR, P, Inner>
 {
-    pub fn new(source: &'a mut S, slots: &'a [Slot], filter: F) -> Self {
+    pub fn new(source: &'a mut S, slots: &'a [Slot], rules: &'a RulesDef<B, BR, P, Inner>) -> Self {
         Self {
             locator: PacketsLocatorIterator::new(slots),
             source,
-            filter,
-            _block: std::marker::PhantomData,
-            _ref_block: std::marker::PhantomData,
-            _payload: std::marker::PhantomData,
-            _payload_inner: std::marker::PhantomData,
+            rules,
         }
     }
 }
 
 impl<
-        S: std::io::Read + std::io::Seek,
-        F: FnMut(&[BR]) -> bool,
+        S: std::io::Read + std::io::Write + std::io::Seek,
         B: BlockDef,
         BR: BlockReferredDef<B>,
         P: PayloadDef<Inner>,
         Inner: PayloadInnerDef,
-    > Iterator for StorageIteratorFilteredByBlocks<'_, S, F, B, BR, P, Inner>
+    > Iterator for StorageFilteredIterator<'_, S, B, BR, P, Inner>
 {
     type Item = Result<PacketDef<B, P, Inner>, Error>;
 
@@ -165,177 +154,15 @@ impl<
             {
                 return Some(Err(err.into()));
             }
-            match PacketDef::<B, P, Inner>::filtered_by_blocks::<S, BR, _>(
-                self.source,
-                &mut self.filter,
-            ) {
-                Err(err) => return Some(Err(err)),
-                Ok(LookInStatus::Accepted(_, pkg)) => {
-                    return Some(Ok(pkg));
+            match PacketDef::filtered(&mut self.source, self.rules) {
+                Ok(LookInStatus::Accepted(_, packet)) => return Some(Ok(packet)),
+                Ok(LookInStatus::Denied(_)) => {
+                    continue;
                 }
-                Ok(LookInStatus::Denied(_)) => continue,
                 Ok(LookInStatus::NotEnoughData(needed)) => {
                     return Some(Err(Error::NotEnoughData(needed)))
                 }
-            }
-        }
-    }
-}
-
-pub struct StorageIteratorFilteredByPacket<
-    'a,
-    S: std::io::Read + std::io::Seek,
-    F: FnMut(&PacketDef<B, P, Inner>) -> bool,
-    B: BlockDef,
-    P: PayloadDef<Inner>,
-    Inner: PayloadInnerDef,
-> {
-    locator: PacketsLocatorIterator<'a>,
-    source: &'a mut S,
-    filter: F,
-    _block: std::marker::PhantomData<B>,
-    _payload: std::marker::PhantomData<P>,
-    _payload_inner: std::marker::PhantomData<Inner>,
-}
-
-impl<
-        'a,
-        S: std::io::Read + std::io::Seek,
-        F: FnMut(&PacketDef<B, P, Inner>) -> bool,
-        B: BlockDef,
-        P: PayloadDef<Inner>,
-        Inner: PayloadInnerDef,
-    > StorageIteratorFilteredByPacket<'a, S, F, B, P, Inner>
-{
-    pub fn new(source: &'a mut S, slots: &'a [Slot], filter: F) -> Self {
-        Self {
-            locator: PacketsLocatorIterator::new(slots),
-            source,
-            filter,
-            _block: std::marker::PhantomData,
-            _payload: std::marker::PhantomData,
-            _payload_inner: std::marker::PhantomData,
-        }
-    }
-}
-
-impl<
-        S: std::io::Read + std::io::Seek,
-        F: FnMut(&PacketDef<B, P, Inner>) -> bool,
-        B: BlockDef,
-        P: PayloadDef<Inner>,
-        Inner: PayloadInnerDef,
-    > Iterator for StorageIteratorFilteredByPacket<'_, S, F, B, P, Inner>
-{
-    type Item = Result<PacketDef<B, P, Inner>, Error>;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        loop {
-            let location = self.locator.next()?;
-            if let Err(err) = self
-                .source
-                .seek(std::io::SeekFrom::Start(*location.start()))
-            {
-                return Some(Err(err.into()));
-            }
-            match <PacketDef<B, P, Inner> as TryReadFrom>::try_read(&mut self.source) {
                 Err(err) => return Some(Err(err)),
-                Ok(ReadStatus::Success(pkg)) => {
-                    if !(self.filter)(&pkg) {
-                        continue;
-                    }
-                    return Some(Ok(pkg));
-                }
-                Ok(ReadStatus::NotEnoughData(needed)) => {
-                    return Some(Err(Error::NotEnoughData(needed as usize)));
-                }
-            }
-        }
-    }
-}
-
-pub struct StorageIteratorFiltered<
-    'a,
-    S: std::io::Read + std::io::Seek,
-    PF: FnMut(&[BR]) -> bool,
-    F: FnMut(&PacketDef<B, P, Inner>) -> bool,
-    B: BlockDef,
-    BR: BlockReferredDef<B>,
-    P: PayloadDef<Inner>,
-    Inner: PayloadInnerDef,
-> {
-    locator: PacketsLocatorIterator<'a>,
-    source: &'a mut S,
-    pfilter: PF,
-    filter: F,
-    _block: std::marker::PhantomData<B>,
-    _ref_block: std::marker::PhantomData<BR>,
-    _payload: std::marker::PhantomData<P>,
-    _payload_inner: std::marker::PhantomData<Inner>,
-}
-
-impl<
-        'a,
-        S: std::io::Read + std::io::Seek,
-        PF: FnMut(&[BR]) -> bool,
-        F: FnMut(&PacketDef<B, P, Inner>) -> bool,
-        B: BlockDef,
-        BR: BlockReferredDef<B>,
-        P: PayloadDef<Inner>,
-        Inner: PayloadInnerDef,
-    > StorageIteratorFiltered<'a, S, PF, F, B, BR, P, Inner>
-{
-    pub fn new(source: &'a mut S, slots: &'a [Slot], pfilter: PF, filter: F) -> Self {
-        Self {
-            locator: PacketsLocatorIterator::new(slots),
-            source,
-            pfilter,
-            filter,
-            _block: std::marker::PhantomData,
-            _ref_block: std::marker::PhantomData,
-
-            _payload: std::marker::PhantomData,
-            _payload_inner: std::marker::PhantomData,
-        }
-    }
-}
-
-impl<
-        S: std::io::Read + std::io::Seek,
-        PF: FnMut(&[BR]) -> bool,
-        F: FnMut(&PacketDef<B, P, Inner>) -> bool,
-        B: BlockDef,
-        BR: BlockReferredDef<B>,
-        P: PayloadDef<Inner>,
-        Inner: PayloadInnerDef,
-    > Iterator for StorageIteratorFiltered<'_, S, PF, F, B, BR, P, Inner>
-{
-    type Item = Result<PacketDef<B, P, Inner>, Error>;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        loop {
-            let location = self.locator.next()?;
-            if let Err(err) = self
-                .source
-                .seek(std::io::SeekFrom::Start(*location.start()))
-            {
-                return Some(Err(err.into()));
-            }
-            match PacketDef::<B, P, Inner>::filtered_by_blocks::<S, BR, _>(
-                self.source,
-                &mut self.pfilter,
-            ) {
-                Err(err) => return Some(Err(err)),
-                Ok(LookInStatus::Accepted(_, pkg)) => {
-                    if !(self.filter)(&pkg) {
-                        continue;
-                    }
-                    return Some(Ok(pkg));
-                }
-                Ok(LookInStatus::Denied(_)) => continue,
-                Ok(LookInStatus::NotEnoughData(needed)) => {
-                    return Some(Err(Error::NotEnoughData(needed)))
-                }
             }
         }
     }
@@ -345,12 +172,13 @@ pub struct StorageRangeIterator<
     'a,
     S: std::io::Read + std::io::Write + std::io::Seek,
     B: BlockDef,
+    BR: BlockReferredDef<B>,
     P: PayloadDef<Inner>,
     Inner: PayloadInnerDef,
 > {
-    storage: &'a mut StorageDef<S, B, P, Inner>,
-    end: usize,
-    current: usize,
+    storage: &'a mut StorageDef<S, B, BR, P, Inner>,
+    len: usize,
+    from: usize,
     _block: std::marker::PhantomData<B>,
     _payload: std::marker::PhantomData<P>,
     _payload_inner: std::marker::PhantomData<Inner>,
@@ -360,15 +188,16 @@ impl<
         'a,
         S: std::io::Read + std::io::Write + std::io::Seek,
         B: BlockDef,
+        BR: BlockReferredDef<B>,
         P: PayloadDef<Inner>,
         Inner: PayloadInnerDef,
-    > StorageRangeIterator<'a, S, B, P, Inner>
+    > StorageRangeIterator<'a, S, B, BR, P, Inner>
 {
-    pub fn new(storage: &'a mut StorageDef<S, B, P, Inner>, range: RangeInclusive<usize>) -> Self {
+    pub fn new(storage: &'a mut StorageDef<S, B, BR, P, Inner>, from: usize, len: usize) -> Self {
         Self {
             storage,
-            end: *range.end(),
-            current: *range.start(),
+            len,
+            from,
             _block: std::marker::PhantomData,
             _payload: std::marker::PhantomData,
             _payload_inner: std::marker::PhantomData,
@@ -379,18 +208,20 @@ impl<
 impl<
         S: std::io::Read + std::io::Write + std::io::Seek,
         B: BlockDef,
+        BR: BlockReferredDef<B>,
         P: PayloadDef<Inner>,
         Inner: PayloadInnerDef,
-    > Iterator for StorageRangeIterator<'_, S, B, P, Inner>
+    > Iterator for StorageRangeIterator<'_, S, B, BR, P, Inner>
 {
     type Item = Result<PacketDef<B, P, Inner>, Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if self.current >= self.end {
+        if self.len == 0 {
             return None;
         }
-        let item = self.storage.nth(self.current);
-        self.current += 1;
+        let item = self.storage.nth(self.from);
+        self.from += 1;
+        self.len -= 1;
         match item {
             Ok(None) => None,
             Ok(Some(packet)) => Some(Ok(packet)),
@@ -399,242 +230,61 @@ impl<
     }
 }
 
-pub struct StorageRangeIteratorFilteredByBlocks<
+pub struct StorageRangeFilteredIterator<
     'a,
     S: std::io::Read + std::io::Write + std::io::Seek,
-    F: FnMut(&[BR]) -> bool,
     B: BlockDef,
     BR: BlockReferredDef<B>,
     P: PayloadDef<Inner>,
     Inner: PayloadInnerDef,
 > {
-    storage: &'a mut StorageDef<S, B, P, Inner>,
-    end: usize,
-    current: usize,
-    filter: F,
-    _block: std::marker::PhantomData<B>,
-    _ref_block: std::marker::PhantomData<BR>,
-    _payload: std::marker::PhantomData<P>,
-    _payload_inner: std::marker::PhantomData<Inner>,
+    storage: &'a mut StorageDef<S, B, BR, P, Inner>,
+    len: usize,
+    from: usize,
 }
 
 impl<
         'a,
         S: std::io::Read + std::io::Write + std::io::Seek,
-        F: FnMut(&[BR]) -> bool,
         B: BlockDef,
         BR: BlockReferredDef<B>,
         P: PayloadDef<Inner>,
         Inner: PayloadInnerDef,
-    > StorageRangeIteratorFilteredByBlocks<'a, S, F, B, BR, P, Inner>
+    > StorageRangeFilteredIterator<'a, S, B, BR, P, Inner>
 {
-    pub fn new(
-        storage: &'a mut StorageDef<S, B, P, Inner>,
-        range: RangeInclusive<usize>,
-        filter: F,
-    ) -> Self {
-        Self {
-            storage,
-            end: *range.end(),
-            current: *range.start(),
-            filter,
-            _block: std::marker::PhantomData,
-            _ref_block: std::marker::PhantomData,
-            _payload: std::marker::PhantomData,
-            _payload_inner: std::marker::PhantomData,
-        }
+    pub fn new(storage: &'a mut StorageDef<S, B, BR, P, Inner>, from: usize, len: usize) -> Self {
+        Self { storage, len, from }
     }
 }
 
 impl<
         S: std::io::Read + std::io::Write + std::io::Seek,
-        F: FnMut(&[BR]) -> bool,
         B: BlockDef,
         BR: BlockReferredDef<B>,
         P: PayloadDef<Inner>,
         Inner: PayloadInnerDef,
-    > Iterator for StorageRangeIteratorFilteredByBlocks<'_, S, F, B, BR, P, Inner>
+    > Iterator for StorageRangeFilteredIterator<'_, S, B, BR, P, Inner>
 {
     type Item = Result<PacketDef<B, P, Inner>, Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
         loop {
-            if self.current >= self.end {
+            if self.len == 0 {
                 return None;
             }
-            let item = self
-                .storage
-                .nth_filtered_by_blocks::<BR, _>(self.current, &mut self.filter);
-            self.current += 1;
+            let item = self.storage.nth_filtered(self.from);
+            self.from += 1;
             match item {
                 Ok(None) => return None,
-                Ok(Some(LookInStatus::Accepted(_, packet))) => return Some(Ok(packet)),
-                Ok(Some(LookInStatus::Denied(_))) => continue,
-                Ok(Some(LookInStatus::NotEnoughData(needed))) => {
-                    return Some(Err(Error::NotEnoughData(needed)))
+                Ok(Some(LookInStatus::Accepted(_, packet))) => {
+                    self.len -= 1;
+                    return Some(Ok(packet));
                 }
-                Err(err) => return Some(Err(err)),
-            }
-        }
-    }
-}
-
-pub struct StorageRangeIteratorFilteredByPacket<
-    'a,
-    S: std::io::Read + std::io::Write + std::io::Seek,
-    F: FnMut(&PacketDef<B, P, Inner>) -> bool,
-    B: BlockDef,
-    P: PayloadDef<Inner>,
-    Inner: PayloadInnerDef,
-> {
-    storage: &'a mut StorageDef<S, B, P, Inner>,
-    end: usize,
-    current: usize,
-    filter: F,
-    _block: std::marker::PhantomData<B>,
-    _payload: std::marker::PhantomData<P>,
-    _payload_inner: std::marker::PhantomData<Inner>,
-}
-
-impl<
-        'a,
-        S: std::io::Read + std::io::Write + std::io::Seek,
-        F: FnMut(&PacketDef<B, P, Inner>) -> bool,
-        B: BlockDef,
-        P: PayloadDef<Inner>,
-        Inner: PayloadInnerDef,
-    > StorageRangeIteratorFilteredByPacket<'a, S, F, B, P, Inner>
-{
-    pub fn new(
-        storage: &'a mut StorageDef<S, B, P, Inner>,
-        range: RangeInclusive<usize>,
-        filter: F,
-    ) -> Self {
-        Self {
-            storage,
-            end: *range.end(),
-            current: *range.start(),
-            filter,
-            _block: std::marker::PhantomData,
-            _payload: std::marker::PhantomData,
-            _payload_inner: std::marker::PhantomData,
-        }
-    }
-}
-
-impl<
-        S: std::io::Read + std::io::Write + std::io::Seek,
-        F: FnMut(&PacketDef<B, P, Inner>) -> bool,
-        B: BlockDef,
-        P: PayloadDef<Inner>,
-        Inner: PayloadInnerDef,
-    > Iterator for StorageRangeIteratorFilteredByPacket<'_, S, F, B, P, Inner>
-{
-    type Item = Result<PacketDef<B, P, Inner>, Error>;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        loop {
-            if self.current >= self.end {
-                return None;
-            }
-            let item = self
-                .storage
-                .nth_filtered_by_packet(self.current, &mut self.filter);
-            self.current += 1;
-            match item {
-                Ok(None) => return None,
-                Ok(Some(LookInStatus::Accepted(_, packet))) => return Some(Ok(packet)),
-                Ok(Some(LookInStatus::Denied(_))) => continue,
-                Ok(Some(LookInStatus::NotEnoughData(needed))) => {
-                    return Some(Err(Error::NotEnoughData(needed)))
+                Ok(Some(LookInStatus::Denied(_))) => {
+                    continue;
                 }
-                Err(err) => return Some(Err(err)),
-            }
-        }
-    }
-}
-
-pub struct StorageRangeIteratorFiltered<
-    'a,
-    S: std::io::Read + std::io::Write + std::io::Seek,
-    PF: FnMut(&[BR]) -> bool,
-    F: FnMut(&PacketDef<B, P, Inner>) -> bool,
-    B: BlockDef,
-    BR: BlockReferredDef<B>,
-    P: PayloadDef<Inner>,
-    Inner: PayloadInnerDef,
-> {
-    storage: &'a mut StorageDef<S, B, P, Inner>,
-    end: usize,
-    current: usize,
-    pfilter: PF,
-    filter: F,
-    _block: std::marker::PhantomData<B>,
-    _ref_block: std::marker::PhantomData<BR>,
-    _payload: std::marker::PhantomData<P>,
-    _payload_inner: std::marker::PhantomData<Inner>,
-}
-
-impl<
-        'a,
-        S: std::io::Read + std::io::Write + std::io::Seek,
-        PF: FnMut(&[BR]) -> bool,
-        F: FnMut(&PacketDef<B, P, Inner>) -> bool,
-        B: BlockDef,
-        BR: BlockReferredDef<B>,
-        P: PayloadDef<Inner>,
-        Inner: PayloadInnerDef,
-    > StorageRangeIteratorFiltered<'a, S, PF, F, B, BR, P, Inner>
-{
-    pub fn new(
-        storage: &'a mut StorageDef<S, B, P, Inner>,
-        range: RangeInclusive<usize>,
-        pfilter: PF,
-        filter: F,
-    ) -> Self {
-        Self {
-            storage,
-            end: *range.end(),
-            current: *range.start(),
-            pfilter,
-            filter,
-            _block: std::marker::PhantomData,
-            _ref_block: std::marker::PhantomData,
-            _payload: std::marker::PhantomData,
-            _payload_inner: std::marker::PhantomData,
-        }
-    }
-}
-
-impl<
-        S: std::io::Read + std::io::Write + std::io::Seek,
-        PF: FnMut(&[BR]) -> bool,
-        F: FnMut(&PacketDef<B, P, Inner>) -> bool,
-        B: BlockDef,
-        BR: BlockReferredDef<B>,
-        P: PayloadDef<Inner>,
-        Inner: PayloadInnerDef,
-    > Iterator for StorageRangeIteratorFiltered<'_, S, PF, F, B, BR, P, Inner>
-{
-    type Item = Result<PacketDef<B, P, Inner>, Error>;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        loop {
-            if self.current >= self.end {
-                return None;
-            }
-            let item = self.storage.nth_filtered::<BR, _, _>(
-                self.current,
-                &mut self.pfilter,
-                &mut self.filter,
-            );
-            self.current += 1;
-            match item {
-                Ok(None) => return None,
-                Ok(Some(LookInStatus::Accepted(_, packet))) => return Some(Ok(packet)),
-                Ok(Some(LookInStatus::Denied(_))) => continue,
                 Ok(Some(LookInStatus::NotEnoughData(needed))) => {
-                    return Some(Err(Error::NotEnoughData(needed)))
+                    return Some(Err(Error::NotEnoughData(needed)));
                 }
                 Err(err) => return Some(Err(err)),
             }

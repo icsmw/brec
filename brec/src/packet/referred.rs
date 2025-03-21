@@ -2,29 +2,20 @@ use std::marker::PhantomData;
 
 use crate::*;
 
-pub struct PacketReferred<
-    B: BlockDef,
-    BR: BlockReferredDef<B>,
-    P: PayloadDef<Inner>,
-    Inner: PayloadInnerDef,
-> {
+pub struct PacketReferred<'a, B: BlockDef, BR: BlockReferredDef<B>> {
     pub blocks: Vec<BR>,
     pub header: PacketHeader,
+    pub payload: Option<&'a [u8]>,
     _b: PhantomData<B>,
-    _p: PhantomData<P>,
-    _i: PhantomData<Inner>,
 }
 
-impl<B: BlockDef, BR: BlockReferredDef<B>, P: PayloadDef<Inner>, Inner: PayloadInnerDef>
-    PacketReferred<B, BR, P, Inner>
-{
+impl<'a, B: BlockDef, BR: BlockReferredDef<B>> PacketReferred<'a, B, BR> {
     pub fn new(blocks: Vec<BR>, header: PacketHeader) -> Self {
         Self {
             blocks,
             header,
+            payload: None,
             _b: PhantomData,
-            _p: PhantomData,
-            _i: PhantomData,
         }
     }
 }

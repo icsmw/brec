@@ -387,21 +387,12 @@ impl<
                 }
             }
         }
-        let referred = PacketReferred::new(blocks, header);
-        self.rules.each(&referred)?;
-        if !self.rules.filter_by_blocks(&referred) {
+        if !self.rules.filter_by_blocks(&blocks) {
             // PacketDef marked as ignored
             return self.drop_and_consume(consume, Ok(NextPacket::Skipped));
         }
-        let blocks = referred
-            .blocks
-            .into_iter()
-            .map(|blk| blk.into())
-            .collect::<Vec<B>>();
-        let mut pkg: PacketDef<B, P, Inner> = PacketDef::new(blocks, None);
-        let header = referred.header;
         // Loading payload if exists
-        if header.payload {
+        let pkg = if header.payload {
             let mut payload_buffer = &packet_buffer[blocks_len..];
             match <PayloadHeader as TryReadFromBuffered>::try_read(&mut payload_buffer) {
                 Ok(ReadStatus::Success(header)) => {
@@ -414,9 +405,10 @@ impl<
                         &mut payload_buffer,
                         &header,
                     )? {
-                        ReadStatus::Success(payload) => {
-                            pkg.payload = Some(payload);
-                        }
+                        ReadStatus::Success(payload) => PacketDef::new(
+                            blocks.into_iter().map(|blk| blk.into()).collect::<Vec<B>>(),
+                            Some(payload),
+                        ),
                         ReadStatus::NotEnoughData(needed) => {
                             // This is error, but not NextPacket::NotEnoughData because length of payload
                             // already has been check. If we are here - some data is invalid and
@@ -439,7 +431,12 @@ impl<
                     return self.drop_and_consume(consume, Err(err));
                 }
             }
-        }
+        } else {
+            PacketDef::new(
+                blocks.into_iter().map(|blk| blk.into()).collect::<Vec<B>>(),
+                None,
+            )
+        };
         if !self.rules.filter(&pkg) {
             // PacketDef marked as ignored
             self.drop_and_consume(consume, Ok(NextPacket::Skipped))

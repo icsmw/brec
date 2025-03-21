@@ -3,8 +3,6 @@ mod locator;
 mod range;
 mod slot;
 
-use std::ops::RangeInclusive;
-
 use crate::*;
 pub(crate) use iters::*;
 pub(crate) use locator::*;
@@ -41,23 +39,23 @@ pub type NthFilteredPacket<B, P, Inner> = Option<LookInStatus<PacketDef<B, P, In
 pub struct StorageDef<
     S: std::io::Read + std::io::Write + std::io::Seek,
     B: BlockDef,
+    BR: BlockReferredDef<B>,
     P: PayloadDef<Inner>,
     Inner: PayloadInnerDef,
 > {
     pub slots: Vec<Slot>,
     inner: S,
     locator: FreeSlotLocator,
-    _block: std::marker::PhantomData<B>,
-    _payload: std::marker::PhantomData<P>,
-    _payload_inner: std::marker::PhantomData<Inner>,
+    rules: RulesDef<B, BR, P, Inner>,
 }
 
 impl<
         S: std::io::Read + std::io::Write + std::io::Seek,
         B: BlockDef,
+        BR: BlockReferredDef<B>,
         P: PayloadDef<Inner>,
         Inner: PayloadInnerDef,
-    > StorageDef<S, B, P, Inner>
+    > StorageDef<S, B, BR, P, Inner>
 {
     /// Creates a new storage instance with the given storage backend.
     ///
@@ -72,9 +70,7 @@ impl<
             slots: Vec::new(),
             inner,
             locator: FreeSlotLocator::default(),
-            _block: std::marker::PhantomData,
-            _payload: std::marker::PhantomData,
-            _payload_inner: std::marker::PhantomData,
+            rules: RulesDef::default(),
         }
         .load()
     }
@@ -106,6 +102,16 @@ impl<
             }
         }
         Ok(self)
+    }
+
+    /// Adds a processing rule. See `RuleDef` for more details.
+    pub fn add_rule(&mut self, rule: RuleDef<B, BR, P, Inner>) -> Result<(), Error> {
+        self.rules.add_rule(rule)
+    }
+
+    /// Removes a previously added rule. See `RuleDef` for more details.
+    pub fn remove_rule(&mut self, rule: RuleDefId) {
+        self.rules.remove_rule(rule);
     }
 
     /// Inserts a `Packet` at the end of the storage.
@@ -154,88 +160,19 @@ impl<
         StorageIterator::new(&mut self.inner, &self.slots)
     }
 
-    /// Returns an iterator over `Packet` instances in storage with filtering based on `Block` data.
-    ///
-    /// This filtering method improves performance by skipping `Payload` parsing for packets that do not pass the filter.
-    /// As a result, only packets containing relevant `Block` data are fully processed.
-    ///
-    /// # Arguments
-    /// * `filter` - A closure that takes a slice of `Block` instances and returns `true` if the packet should be processed,
-    ///   or `false` if it should be skipped.
-    ///
-    /// # Returns
-    /// * `StorageIteratorFilteredByBlocks<'_, S, F, B, P, Inner>` - An iterator yielding packets that pass the `Block` filter.
-    pub fn filtered_by_blocks<BR: BlockReferredDef<B>, F: FnMut(&[BR]) -> bool>(
-        &mut self,
-        filter: F,
-    ) -> StorageIteratorFilteredByBlocks<'_, S, F, B, BR, P, Inner> {
-        StorageIteratorFilteredByBlocks::new(&mut self.inner, &self.slots, filter)
+    pub fn filtered(&mut self) -> StorageFilteredIterator<'_, S, B, BR, P, Inner> {
+        StorageFilteredIterator::new(&mut self.inner, &self.slots, &self.rules)
     }
 
-    /// Returns an iterator over `Packet` instances in storage with filtering based on `Packet` content.
-    ///
-    /// Unlike `Block`-based filtering, this method applies the filter to fully parsed `Packet` instances.
-    /// This allows for more detailed inspection of the packet's contents, such as searching within its `Payload`.
-    ///
-    /// # Arguments
-    /// * `filter` - A closure that takes a reference to a `PacketDef` instance and returns `true` if the packet should be included,
-    ///   or `false` if it should be skipped.
-    ///
-    /// # Returns
-    /// * `StorageIteratorFilteredByPacket<'_, S, F, B, P, Inner>` - An iterator yielding packets that satisfy the `Packet` filter.
-    pub fn filtered_by_packet<F: FnMut(&PacketDef<B, P, Inner>) -> bool>(
-        &mut self,
-        filter: F,
-    ) -> StorageIteratorFilteredByPacket<'_, S, F, B, P, Inner> {
-        StorageIteratorFilteredByPacket::new(&mut self.inner, &self.slots, filter)
-    }
-
-    /// Returns an iterator over `Packet` instances in storage with combined filtering by `Block` and `Packet`.
-    ///
-    /// This method applies two levels of filtering:
-    /// - **Block-level filtering (`pfilter`)**: Determines whether a packet should be processed based on its `Block` data.
-    ///   If the filter returns `false`, `Payload` parsing is skipped, improving performance.
-    /// - **Packet-level filtering (`filter`)**: Applied after the `Packet` is fully parsed, allowing for additional checks
-    ///   such as content inspection within `Payload`.
-    ///
-    /// # Arguments
-    /// * `pfilter` - A closure that takes a slice of `Block` instances and returns `true` if the packet should be processed,
-    ///   or `false` if it should be skipped.
-    /// * `filter` - A closure that takes a reference to a `PacketDef` instance and returns `true` if the packet should be included,
-    ///   or `false` if it should be skipped.
-    ///
-    /// # Returns
-    /// * `StorageIteratorFiltered<'_, S, PF, F, B, P, Inner>` - An iterator yielding packets that pass both filters.
-    pub fn filtered<
-        BR: BlockReferredDef<B>,
-        PF: FnMut(&[BR]) -> bool,
-        F: FnMut(&PacketDef<B, P, Inner>) -> bool,
-    >(
-        &mut self,
-        pfilter: PF,
-        filter: F,
-    ) -> StorageIteratorFiltered<'_, S, PF, F, B, BR, P, Inner> {
-        StorageIteratorFiltered::new(&mut self.inner, &self.slots, pfilter, filter)
-    }
-
-    /// Attempts to retrieve a `Packet` from storage by its sequential index.
-    ///
-    /// This method provides direct access to a packet based on its position in the storage, allowing efficient
-    /// random access to stored packets.
-    ///
-    /// # Arguments
-    /// * `nth` - The zero-based index of the packet in storage.
-    ///
-    /// # Returns
-    /// * `Ok(Some(PacketDef<B, P, Inner>))` - The packet at the specified index, if found.
-    /// * `Ok(None)` - No packet exists at the given index.
-    /// * `Err(Error)` - An error occurred while accessing the storage.
     pub fn nth(&mut self, nth: usize) -> Result<Option<PacketDef<B, P, Inner>>, Error> {
         let slot_index = nth / DEFAULT_SLOT_CAPACITY;
         let index_in_slot = nth % DEFAULT_SLOT_CAPACITY;
         let Some(slot) = self.slots.get(slot_index) else {
             return Ok(None);
         };
+        if slot.is_empty(index_in_slot)? {
+            return Ok(None);
+        }
         let Some(mut offset) = slot.get_slot_offset(index_in_slot) else {
             return Ok(None);
         };
@@ -250,225 +187,34 @@ impl<
         }
     }
 
-    /// Returns an iterator over `Packet` instances in storage for a specified range of indices.
-    ///
-    /// This method allows iterating over packets within a given index range, enabling efficient sequential access
-    /// to a subset of stored packets.
-    ///
-    /// # Arguments
-    /// * `range` - An inclusive range of packet indices to iterate over.
-    ///
-    /// # Returns
-    /// * `StorageRangeIterator<'_, S, B, P, Inner>` - An iterator yielding packets within the specified range.
     pub fn range(
         &mut self,
-        range: RangeInclusive<usize>,
-    ) -> StorageRangeIterator<'_, S, B, P, Inner> {
-        StorageRangeIterator::new(self, range)
+        from: usize,
+        len: usize,
+    ) -> StorageRangeIterator<'_, S, B, BR, P, Inner> {
+        StorageRangeIterator::new(self, from, len)
     }
 
-    /// Returns an iterator over `Packet` instances in storage for a specified range with filtering based on `Block` data.
-    ///
-    /// This filtering method improves performance by skipping `Payload` parsing for packets that do not pass the filter.
-    /// As a result, only packets containing relevant `Block` data are fully processed.
-    ///
-    /// # Arguments
-    /// * `range` - An inclusive range of packet indices to iterate over.
-    /// * `filter` - A closure that takes a slice of `Block` instances and returns `true` if the packet should be processed,
-    ///   or `false` if it should be skipped.
-    ///
-    /// # Returns
-    /// * `StorageRangeIteratorFilteredByBlocks<'_, S, F, B, P, Inner>` - An iterator yielding packets that pass the `Block` filter within the specified range.
-    pub fn range_filtered_by_blocks<BR: BlockReferredDef<B>, F: FnMut(&[BR]) -> bool>(
+    pub fn range_filtered(
         &mut self,
-        range: RangeInclusive<usize>,
-        filter: F,
-    ) -> StorageRangeIteratorFilteredByBlocks<'_, S, F, B, BR, P, Inner> {
-        StorageRangeIteratorFilteredByBlocks::new(self, range, filter)
+        from: usize,
+        len: usize,
+    ) -> StorageRangeFilteredIterator<'_, S, B, BR, P, Inner> {
+        StorageRangeFilteredIterator::new(self, from, len)
     }
 
-    /// Returns an iterator over `Packet` instances in storage for a specified range with filtering based on `Packet` content.
-    ///
-    /// Unlike `Block`-based filtering, this method applies the filter to fully parsed `Packet` instances.
-    /// This allows for more detailed inspection of the packet’s contents, such as searching within its `Payload`.
-    ///
-    /// # Arguments
-    /// * `range` - An inclusive range of packet indices to iterate over.
-    /// * `filter` - A closure that takes a reference to a `PacketDef` instance and returns `true` if the packet should be included,
-    ///   or `false` if it should be skipped.
-    ///
-    /// # Returns
-    /// * `StorageRangeIteratorFilteredByPacket<'_, S, F, B, P, Inner>` - An iterator yielding packets that satisfy the `Packet` filter within the specified range.
-    pub fn range_filtered_by_packet<F: FnMut(&PacketDef<B, P, Inner>) -> bool>(
+    pub(crate) fn nth_filtered(
         &mut self,
-        range: RangeInclusive<usize>,
-        filter: F,
-    ) -> StorageRangeIteratorFilteredByPacket<'_, S, F, B, P, Inner> {
-        StorageRangeIteratorFilteredByPacket::new(self, range, filter)
-    }
-
-    /// Returns an iterator over `Packet` instances in storage for a specified range with combined filtering by `Block` and `Packet`.
-    ///
-    /// This method applies two levels of filtering:
-    /// - **Block-level filtering (`pfilter`)**: Determines whether a packet should be processed based on its `Block` data.
-    ///   If the filter returns `false`, `Payload` parsing is skipped, improving performance.
-    /// - **Packet-level filtering (`filter`)**: Applied after the `Packet` is fully parsed, allowing for additional checks
-    ///   such as content inspection within `Payload`.
-    ///
-    /// # Arguments
-    /// * `range` - An inclusive range of packet indices to iterate over.
-    /// * `pfilter` - A closure that takes a slice of `Block` instances and returns `true` if the packet should be processed,
-    ///   or `false` if it should be skipped.
-    /// * `filter` - A closure that takes a reference to a `PacketDef` instance and returns `true` if the packet should be included,
-    ///   or `false` if it should be skipped.
-    ///
-    /// # Returns
-    /// * `StorageRangeIteratorFiltered<'_, S, PF, F, B, P, Inner>` - An iterator yielding packets that pass both filters within the specified range.
-    pub fn range_filtered<
-        BR: BlockReferredDef<B>,
-        PF: FnMut(&[BR]) -> bool,
-        F: FnMut(&PacketDef<B, P, Inner>) -> bool,
-    >(
-        &mut self,
-        range: RangeInclusive<usize>,
-        pfilter: PF,
-        filter: F,
-    ) -> StorageRangeIteratorFiltered<'_, S, PF, F, B, BR, P, Inner> {
-        StorageRangeIteratorFiltered::new(self, range, pfilter, filter)
-    }
-
-    /// Attempts to retrieve the `nth` packet from storage that satisfies the `Block` filter.
-    ///
-    /// This method searches for a packet at the specified index while applying a `Block`-level filter.
-    /// If a packet does not pass the filter, it is skipped, and the search continues until the `nth` matching packet is found.
-    ///
-    /// # Arguments
-    /// * `nth` - The zero-based index of the filtered packet in the sequence of matching packets.
-    /// * `filter` - A mutable closure that takes a slice of `Block` instances and returns `true` if the packet should be included,
-    ///   or `false` if it should be skipped.
-    ///
-    /// # Returns
-    /// * `Ok(NthFilteredPacket<B, P, Inner>)` - The `nth` packet that passed the filter.
-    /// * `Err(Error)` - An error occurred during retrieval.
-    pub(crate) fn nth_filtered_by_blocks<BR: BlockReferredDef<B>, F: FnMut(&[BR]) -> bool>(
-        &mut self,
-        nth: usize,
-        filter: &mut F,
+        from: usize,
     ) -> Result<NthFilteredPacket<B, P, Inner>, Error> {
-        let Some(_) = self.nth_filtered_init(nth)? else {
-            return Ok(None);
-        };
-        match PacketDef::<B, P, Inner>::filtered_by_blocks::<S, BR, _>(&mut self.inner, filter)? {
-            LookInStatus::Accepted(size, pkg) => Ok(Some(LookInStatus::Accepted(size, pkg))),
-            LookInStatus::Denied(size) => Ok(Some(LookInStatus::Denied(size))),
-            LookInStatus::NotEnoughData(needed) => Err(Error::NotEnoughData(needed)),
-        }
-    }
-
-    /// Attempts to retrieve the `nth` packet from storage that satisfies the `Packet` filter.
-    ///
-    /// This method searches for a packet at the specified index while applying a `Packet`-level filter.
-    /// Unlike `Block` filtering, this filter is applied after the `Packet` is fully parsed, allowing for deeper inspection
-    /// of its contents. If a packet does not pass the filter, it is skipped, and the search continues until the `nth` matching packet is found.
-    ///
-    /// # Arguments
-    /// * `nth` - The zero-based index of the filtered packet in the sequence of matching packets.
-    /// * `filter` - A mutable closure that takes a reference to a `PacketDef` instance and returns `true` if the packet should be included,
-    ///   or `false` if it should be skipped.
-    ///
-    /// # Returns
-    /// * `Ok(NthFilteredPacket<B, P, Inner>)` - The `nth` packet that passed the filter.
-    /// * `Err(Error)` - An error occurred during retrieval.
-    pub(crate) fn nth_filtered_by_packet<F: FnMut(&PacketDef<B, P, Inner>) -> bool>(
-        &mut self,
-        nth: usize,
-        filter: &mut F,
-    ) -> Result<NthFilteredPacket<B, P, Inner>, Error> {
-        let Some(offset) = self.nth_filtered_init(nth)? else {
-            return Ok(None);
-        };
-        let (size, pkg) = match <PacketDef<B, P, Inner> as TryReadFrom>::try_read(&mut self.inner)?
-        {
-            ReadStatus::Success(pkg) => ((self.inner.stream_position()? - offset) as usize, pkg),
-            ReadStatus::NotEnoughData(needed) => {
-                return Err(Error::NotEnoughData(needed as usize));
-            }
-        };
-        if !filter(&pkg) {
-            Ok(Some(LookInStatus::Denied(size)))
-        } else {
-            Ok(Some(LookInStatus::Accepted(size, pkg)))
-        }
-    }
-
-    /// Attempts to retrieve the `nth` packet from storage that satisfies both `Block` and `Packet` filters.
-    ///
-    /// This method searches for a packet at the specified index while applying two levels of filtering:
-    /// - **Block-level filtering (`pfilter`)**: Determines whether a packet should be processed based on its `Block` data.
-    ///   If the filter returns `false`, `Payload` parsing is skipped.
-    /// - **Packet-level filtering (`filter`)**: Applied after the `Packet` is fully parsed, allowing for deeper inspection
-    ///   of its contents.
-    ///
-    /// If a packet does not pass either filter, it is skipped, and the search continues until the `nth` matching packet is found.
-    ///
-    /// # Arguments
-    /// * `nth` - The zero-based index of the filtered packet in the sequence of matching packets.
-    /// * `pfilter` - A mutable closure that takes a slice of `Block` instances and returns `true` if the packet should be processed,
-    ///   or `false` if it should be skipped.
-    /// * `filter` - A mutable closure that takes a reference to a `PacketDef` instance and returns `true` if the packet should be included,
-    ///   or `false` if it should be skipped.
-    ///
-    /// # Returns
-    /// * `Ok(NthFilteredPacket<B, P, Inner>)` - The `nth` packet that passed both filters.
-    /// * `Err(Error)` - An error occurred during retrieval.
-    pub(crate) fn nth_filtered<
-        BR: BlockReferredDef<B>,
-        PF: FnMut(&[BR]) -> bool,
-        F: FnMut(&PacketDef<B, P, Inner>) -> bool,
-    >(
-        &mut self,
-        nth: usize,
-        pfilter: &mut PF,
-        filter: &mut F,
-    ) -> Result<NthFilteredPacket<B, P, Inner>, Error> {
-        let Some(_) = self.nth_filtered_init(nth)? else {
-            return Ok(None);
-        };
-        let (size, pkg) = match PacketDef::<B, P, Inner>::filtered_by_blocks::<S, BR, _>(
-            &mut self.inner,
-            pfilter,
-        )? {
-            LookInStatus::Accepted(size, pkg) => (size, pkg),
-            LookInStatus::Denied(size) => return Ok(Some(LookInStatus::Denied(size))),
-            LookInStatus::NotEnoughData(needed) => {
-                return Err(Error::NotEnoughData(needed));
-            }
-        };
-        if !filter(&pkg) {
-            Ok(Some(LookInStatus::Denied(size)))
-        } else {
-            Ok(Some(LookInStatus::Accepted(size, pkg)))
-        }
-    }
-
-    /// Initializes the retrieval process for the `nth` packet that meets the filtering criteria.
-    ///
-    /// This method performs an initial lookup to determine the storage position of the `nth` filtered packet.
-    /// The result can be used for further processing or direct access to the packet’s location.
-    ///
-    /// # Arguments
-    /// * `nth` - The zero-based index of the filtered packet in the sequence of matching packets.
-    ///
-    /// # Returns
-    /// * `Ok(Some(u64))` - The byte offset of the `nth` packet in storage, if found.
-    /// * `Ok(None)` - No matching packet was found at the given index.
-    /// * `Err(Error)` - An error occurred while searching for the packet.
-    fn nth_filtered_init(&mut self, nth: usize) -> Result<Option<u64>, Error> {
-        let slot_index = nth / DEFAULT_SLOT_CAPACITY;
-        let index_in_slot = nth % DEFAULT_SLOT_CAPACITY;
+        let slot_index = from / DEFAULT_SLOT_CAPACITY;
+        let index_in_slot = from % DEFAULT_SLOT_CAPACITY;
         let Some(slot) = self.slots.get(slot_index) else {
             return Ok(None);
         };
+        if slot.is_empty(index_in_slot)? {
+            return Ok(None);
+        }
         let Some(mut offset) = slot.get_slot_offset(index_in_slot) else {
             return Ok(None);
         };
@@ -477,6 +223,10 @@ impl<
             .map(|slot| slot.width() + slot.size())
             .sum::<u64>();
         self.inner.seek(std::io::SeekFrom::Start(offset))?;
-        Ok(Some(offset))
+        match PacketDef::filtered(&mut self.inner, &self.rules)? {
+            LookInStatus::Accepted(size, pkg) => Ok(Some(LookInStatus::Accepted(size, pkg))),
+            LookInStatus::Denied(size) => Ok(Some(LookInStatus::Denied(size))),
+            LookInStatus::NotEnoughData(needed) => Err(Error::NotEnoughData(needed)),
+        }
     }
 }
