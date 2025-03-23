@@ -5,12 +5,13 @@ edition = "2021"
 
 [dependencies]
 brec = { workspace = true, features=["bincode"]  }
-rand.workspace = true
 serde = { workspace = true, features = ["derive"] }
 
 [dev-dependencies]
 proptest.workspace = true
 num-format.workspace = true
+serde_json.workspace = true
+serial_test.workspace = true
 
 [build-dependencies]
 brec = { workspace = true, features=["build"] }

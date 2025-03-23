@@ -1,9 +1,10 @@
 use brec::prelude::*;
 
+use crate::test::MATCH;
 use proptest::prelude::*;
 use std::fmt;
 
-#[derive(Debug, PartialEq, PartialOrd, Clone)]
+#[derive(Debug, serde::Deserialize, serde::Serialize, PartialEq, PartialOrd, Clone)]
 pub enum Level {
     Err,
     Warn,
@@ -50,7 +51,7 @@ impl From<&Level> for u8 {
     }
 }
 
-#[derive(Debug, PartialEq, PartialOrd, Clone)]
+#[derive(Debug, serde::Deserialize, serde::Serialize, PartialEq, PartialOrd, Clone)]
 pub enum Target {
     Server,
     Client,
@@ -93,8 +94,8 @@ impl fmt::Display for Target {
     }
 }
 
-#[block(no_crc)]
-#[derive(Debug, PartialEq, PartialOrd, Clone)]
+#[block]
+#[derive(Debug, serde::Deserialize, serde::Serialize, PartialEq, PartialOrd, Clone)]
 pub struct Metadata {
     pub level: Level,
     pub target: Target,
@@ -157,7 +158,7 @@ impl Arbitrary for Record {
             .prop_map(|(mt, rate, msg)| Record {
                 mt,
                 msg: if rate > 50 {
-                    format!("{msg}-match-{msg}")
+                    format!("{msg}{MATCH}{msg}")
                 } else {
                     msg
                 },

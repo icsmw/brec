@@ -1,6 +1,6 @@
 use proptest::prelude::*;
 
-use crate::{Level, Target};
+use crate::{test::MATCH, Level, Metadata, Target};
 
 #[derive(Debug)]
 pub struct TextualRow {
@@ -24,11 +24,36 @@ impl Arbitrary for TextualRow {
                 msg: format!(
                     "{level}{target} {tm} {}",
                     if rate > 50 {
-                        format!("{msg}-match-{msg}")
+                        format!("{msg}{MATCH}{msg}")
                     } else {
                         msg
                     }
                 ),
+            })
+            .boxed()
+    }
+}
+
+#[derive(Debug, serde::Deserialize, serde::Serialize, PartialEq, PartialOrd, Clone)]
+pub struct JSONRow {
+    pub meta: Metadata,
+    pub msg: String,
+}
+
+impl Arbitrary for JSONRow {
+    type Parameters = ();
+
+    type Strategy = BoxedStrategy<Self>;
+
+    fn arbitrary_with(_: ()) -> Self::Strategy {
+        (any::<Metadata>(), (0..100), "[a-zA-Z]{100,1000}")
+            .prop_map(|(meta, rate, msg)| JSONRow {
+                msg: if rate > 50 {
+                    format!("{msg}{MATCH}{msg}")
+                } else {
+                    msg
+                },
+                meta,
             })
             .boxed()
     }

@@ -1,18 +1,13 @@
-use std::io::Write;
-
 use crate::*;
-use brec::prelude::*;
 use proptest::prelude::*;
-// use std::{
-//     fs::File,
-//     io::{BufRead, BufReader, Write},
-//     time::{Duration, Instant},
-// };
+use serial_test::serial;
+
+pub const MATCH: &str = "-match-";
 
 brec::include_generated!();
 
 #[derive(Debug)]
-struct WrappedPacket {
+pub struct WrappedPacket {
     blocks: Vec<Block>,
     payload: Option<Payload>,
 }
@@ -47,186 +42,48 @@ impl Arbitrary for WrappedPacket {
     }
 }
 
-fn create_text_log_file(rows: Vec<TextualRow>, filename: &str) -> std::io::Result<()> {
-    use std::io::Write;
-    let tmp = std::env::temp_dir().join(filename);
-    let mut file = std::fs::OpenOptions::new()
-        .read(true)
-        .write(true)
-        .create(true)
-        .truncate(true)
-        .open(&tmp)?;
-    for row in rows.iter() {
-        file.write_all(format!("{}\n", row.msg,).as_bytes())?;
-    }
-    file.flush()
-}
-
-fn read_text_logs(filename: &str) -> std::io::Result<()> {
-    use std::{
-        fs::File,
-        io::{BufRead, BufReader},
-        time::Instant,
-    };
-    let now = Instant::now();
-    let tmp = std::env::temp_dir().join(filename);
-    let file = File::open(tmp)?;
-    let reader = BufReader::new(file);
-    let mut count = 0;
-    let mut errors = 0;
-    let err = Level::Err.to_string();
-    for line_result in reader.lines() {
-        let line = line_result?;
-        if line.contains(&err) {
-            errors += 1;
-        }
-        count += 1;
-    }
-    println!(
-        "text logs read in {}ms ({count} lines; {errors} logs marked as errors)",
-        now.elapsed().as_millis()
-    );
-    Ok(())
-}
-
-fn create_bin_log_file(packets: Vec<WrappedPacket>, filename: &str) -> std::io::Result<()> {
-    let tmp = std::env::temp_dir().join(filename);
-    let mut file = std::fs::OpenOptions::new()
-        .read(true)
-        .write(true)
-        .create(true)
-        .truncate(true)
-        .open(&tmp)?;
-    let mut storage = Storage::new(&mut file)
-        .map_err(|err| std::io::Error::new(std::io::ErrorKind::InvalidData, err.to_string()))?;
-    for packet in packets.iter() {
-        storage
-            .insert(packet.into())
-            .map_err(|err| std::io::Error::new(std::io::ErrorKind::InvalidData, err.to_string()))?;
-    }
-    Ok(())
-}
-
-fn read_bin_logs(filename: &str) -> std::io::Result<()> {
-    use std::{fs::File, time::Instant};
-    let now = Instant::now();
-    let tmp = std::env::temp_dir().join(filename);
-    let mut file: File = File::open(tmp)?;
-    let mut storage = Storage::new(&mut file)
-        .map_err(|err| std::io::Error::new(std::io::ErrorKind::InvalidData, err.to_string()))?;
-    storage
-        .add_rule(Rule::FilterByBlocks(brec::RuleFnDef::Dynamic(Box::new(
-            move |blocks: &[BlockReferred]| {
-                blocks.iter().any(|bl| {
-                    if let BlockReferred::Metadata(bl) = bl {
-                        matches!(bl.level, Level::Err)
-                    } else {
-                        false
-                    }
-                })
-            },
-        ))))
-        .unwrap();
-    let mut count = 0;
-    for packet in storage.iter() {
-        match packet {
-            Ok(_packet) => {
-                count += 1;
-            }
-            Err(err) => {
-                panic!("Fail to read storage: {err}");
-            }
-        }
-    }
-    println!(
-        "bin logs read in {}ms ({count} lines)",
-        now.elapsed().as_millis()
-    );
-    Ok(())
-}
-
-fn create_bin_log_stream_file(packets: Vec<WrappedPacket>, filename: &str) -> std::io::Result<()> {
-    let tmp = std::env::temp_dir().join(filename);
-    let mut file = std::fs::OpenOptions::new()
-        .read(true)
-        .write(true)
-        .create(true)
-        .truncate(true)
-        .open(&tmp)?;
-    for wrapped in packets.iter() {
-        let mut packet: Packet = wrapped.into();
-        packet.write_all(&mut file)?;
-    }
-    file.flush()
-}
-
-fn read_bin_stream_logs(filename: &str) -> std::io::Result<()> {
-    use std::{fs::File, time::Instant};
-    let tmp = std::env::temp_dir().join(filename);
-    let mut file: File = File::open(tmp)?;
-    let now = Instant::now();
-    let mut reader: PacketBufReader<_> = PacketBufReader::new(&mut file);
-    let mut count = 0;
-    loop {
-        match reader.read() {
-            Ok(next) => match next {
-                NextPacket::Found(_packet) => count += 1,
-                NextPacket::NotFound => {
-                    // Data will be refilled with next call
-                }
-                NextPacket::NotEnoughData(_needed) => {
-                    // Data will be refilled with next call
-                }
-                NextPacket::NoData => {
-                    break;
-                }
-                NextPacket::Skipped => {
-                    //
-                }
-            },
-            Err(err) => {
-                println!("ERR: {err}");
-                return Err(std::io::Error::new(
-                    std::io::ErrorKind::InvalidData,
-                    err.to_string(),
-                ));
-            }
-        };
-    }
-    println!(
-        "bin stream logs read in {}ms ({count} lines)",
-        now.elapsed().as_millis()
-    );
-    Ok(())
-}
-
 const TEXT_LOG_FILE: &str = "test_measurements.log";
+const JSON_LOG_FILE: &str = "test_measurements.json";
 const BIN_LOG_FILE: &str = "test_measurements.bin";
 const BIN_STREAM_LOG_FILE: &str = "test_measurements_stream.bin";
 
 proptest! {
     #![proptest_config(ProptestConfig {
         max_shrink_iters: 50,
-        ..ProptestConfig::with_cases(1)
+        ..ProptestConfig::with_cases(10)
     })]
 
 
     #[test]
-    fn text_logs(rows in proptest::collection::vec(any::<TextualRow>(), 100_000)) {
-        create_text_log_file(rows, TEXT_LOG_FILE)?;
-        read_text_logs(TEXT_LOG_FILE)?;
+    #[serial]
+    fn text_logs(rows in proptest::collection::vec(any::<TextualRow>(), 100)) {
+        tests::text::create_file(rows,10_000, TEXT_LOG_FILE)?;
+        tests::text::read_file(TEXT_LOG_FILE)?;
+        tests::text::filter_file(TEXT_LOG_FILE)?;
     }
 
     #[test]
-    fn bin_logs(rows in proptest::collection::vec(any::<WrappedPacket>(), 100_000)) {
-        create_bin_log_file(rows, BIN_LOG_FILE)?;
-        read_bin_logs(BIN_LOG_FILE)?;
+    #[serial]
+    fn json_logs(rows in proptest::collection::vec(any::<JSONRow>(), 100)) {
+        tests::json::create_file(rows,10_000, JSON_LOG_FILE)?;
+        tests::json::read_file(JSON_LOG_FILE)?;
+        tests::json::filter_file(JSON_LOG_FILE)?;
     }
 
     #[test]
-    fn bin_logs_stream(rows in proptest::collection::vec(any::<WrappedPacket>(), 100_000)) {
-        create_bin_log_stream_file(rows, BIN_STREAM_LOG_FILE)?;
-        read_bin_stream_logs(BIN_STREAM_LOG_FILE)?;
+    #[serial]
+    fn bin_logs(rows in proptest::collection::vec(any::<WrappedPacket>(), 100)) {
+        tests::storage::create_file(rows, 10_000, BIN_LOG_FILE)?;
+        tests::storage::read_file(BIN_LOG_FILE)?;
+        tests::storage::filter_file(BIN_LOG_FILE)?;
+    }
+
+    #[test]
+    #[serial]
+    fn bin_logs_stream(rows in proptest::collection::vec(any::<WrappedPacket>(), 100)) {
+        tests::stream::create_file(rows, 10_000, BIN_STREAM_LOG_FILE)?;
+        tests::stream::read_file(BIN_STREAM_LOG_FILE)?;
+        tests::stream::filter_file(BIN_STREAM_LOG_FILE)?;
     }
 
 

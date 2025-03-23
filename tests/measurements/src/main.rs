@@ -9,6 +9,10 @@ pub(crate) use content::*;
 pub(crate) use protocol::*;
 
 #[cfg(test)]
+mod report;
+#[cfg(test)]
 mod test;
+#[cfg(test)]
+mod tests;
 
 fn main() {}
