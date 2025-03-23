@@ -1,12 +1,14 @@
-use std::ops::RangeInclusive;
+use std::{
+    io::{BufRead, Cursor},
+    ops::RangeInclusive,
+};
 
 use crate::*;
 
 pub struct PacketsLocatorIterator<'a> {
     next: usize,
     offset: u64,
-    last: Option<u64>,
-    slots: Vec<SlotIterator<'a>>,
+    slots: &'a [Slot],
 }
 
 impl<'a> PacketsLocatorIterator<'a> {
@@ -14,8 +16,7 @@ impl<'a> PacketsLocatorIterator<'a> {
         Self {
             next: 0,
             offset: 0,
-            last: None,
-            slots: slots.iter().map(|slot| slot.iter()).collect(),
+            slots,
         }
     }
 }
@@ -24,23 +25,18 @@ impl Iterator for PacketsLocatorIterator<'_> {
     type Item = RangeInclusive<u64>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let slot = self.slots.get_mut(self.next)?;
-        let location = match slot.next() {
-            Some(location) => location,
-            None => {
-                if let Some(offset) = self.last.take() {
-                    self.offset += offset;
-                }
-                self.next += 1;
-                let slot = self.slots.get_mut(self.next)?;
-                slot.next()?
-            }
-        };
-        self.last = Some(*location.end());
-        Some(RangeInclusive::new(
-            self.offset + *location.start(),
-            self.offset + *location.end(),
-        ))
+        let slot = self.slots.get(self.next)?;
+        let slot_width = slot.width();
+        if slot_width == 0 {
+            return None;
+        }
+        let location = RangeInclusive::new(
+            self.offset + slot.size(),
+            self.offset + slot_width + slot.size(),
+        );
+        self.offset += slot_width + slot.size();
+        self.next += 1;
+        Some(location)
     }
 }
 
@@ -53,6 +49,7 @@ pub struct StorageIterator<
 > {
     locator: PacketsLocatorIterator<'a>,
     source: &'a mut S,
+    buffer: Cursor<Vec<u8>>,
     _block: std::marker::PhantomData<B>,
     _payload: std::marker::PhantomData<P>,
     _payload_inner: std::marker::PhantomData<Inner>,
@@ -70,6 +67,7 @@ impl<
         Self {
             locator: PacketsLocatorIterator::new(slots),
             source,
+            buffer: Cursor::new(Vec::new()),
             _block: std::marker::PhantomData,
             _payload: std::marker::PhantomData,
             _payload_inner: std::marker::PhantomData,
@@ -87,19 +85,22 @@ impl<
     type Item = Result<PacketDef<B, P, Inner>, Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let location = self.locator.next()?;
-        if let Err(err) = self
-            .source
-            .seek(std::io::SeekFrom::Start(*location.start()))
-        {
-            return Some(Err(err.into()));
-        }
-        match <PacketDef<B, P, Inner> as TryReadFrom>::try_read(&mut self.source) {
-            Err(err) => Some(Err(err)),
-            Ok(ReadStatus::Success(pkg)) => Some(Ok(pkg)),
-            Ok(ReadStatus::NotEnoughData(needed)) => {
-                Some(Err(Error::NotEnoughData(needed as usize)))
+        if self.buffer.fill_buf().unwrap().is_empty() {
+            let location = self.locator.next()?;
+            if let Err(err) = self
+                .source
+                .seek(std::io::SeekFrom::Start(*location.start()))
+            {
+                return Some(Err(err.into()));
             }
+            let size = (location.end() - location.start()) as usize;
+            let mut inner = vec![0u8; size];
+            self.source.read_exact(&mut inner).unwrap();
+            self.buffer = Cursor::new(inner);
+        }
+        match <PacketDef<B, P, Inner> as ReadFrom>::read(&mut self.buffer) {
+            Err(err) => Some(Err(err)),
+            Ok(pkg) => Some(Ok(pkg)),
         }
     }
 }
@@ -115,6 +116,7 @@ pub struct StorageFilteredIterator<
     locator: PacketsLocatorIterator<'a>,
     source: &'a mut S,
     rules: &'a RulesDef<B, BR, P, Inner>,
+    buffer: Cursor<Vec<u8>>,
 }
 
 impl<
@@ -131,6 +133,7 @@ impl<
             locator: PacketsLocatorIterator::new(slots),
             source,
             rules,
+            buffer: Cursor::new(Vec::new()),
         }
     }
 }
@@ -147,14 +150,20 @@ impl<
 
     fn next(&mut self) -> Option<Self::Item> {
         loop {
-            let location = self.locator.next()?;
-            if let Err(err) = self
-                .source
-                .seek(std::io::SeekFrom::Start(*location.start()))
-            {
-                return Some(Err(err.into()));
+            if self.buffer.fill_buf().unwrap().is_empty() {
+                let location = self.locator.next()?;
+                if let Err(err) = self
+                    .source
+                    .seek(std::io::SeekFrom::Start(*location.start()))
+                {
+                    return Some(Err(err.into()));
+                }
+                let size = (location.end() - location.start()) as usize;
+                let mut inner = vec![0u8; size];
+                self.source.read_exact(&mut inner).unwrap();
+                self.buffer = Cursor::new(inner);
             }
-            match PacketDef::filtered(&mut self.source, self.rules) {
+            match PacketDef::filtered(&mut self.buffer, self.rules) {
                 Ok(LookInStatus::Accepted(_, packet)) => return Some(Ok(packet)),
                 Ok(LookInStatus::Denied(_)) => {
                     continue;

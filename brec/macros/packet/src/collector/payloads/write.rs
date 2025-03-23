@@ -18,7 +18,6 @@ pub fn writing_to(payloads: &[&Payload]) -> Result<TokenStream, E> {
     Ok(quote! {
         impl brec::WriteMutTo for Payload {
             fn write<T: std::io::Write>(&mut self, buf: &mut T) -> std::io::Result<usize> {
-                use brec::WritePayloadWithHeaderTo;
                 match self {
                     #(#write,)*
                     Payload::Bytes(pl) => brec::WritePayloadWithHeaderTo::write(pl, buf),
@@ -27,7 +26,6 @@ pub fn writing_to(payloads: &[&Payload]) -> Result<TokenStream, E> {
             }
 
             fn write_all<T: std::io::Write>(&mut self, buf: &mut T) -> std::io::Result<()> {
-                use brec::WritePayloadWithHeaderTo;
                 match self {
                     #(#write_all,)*
                     Payload::Bytes(pl) => brec::WritePayloadWithHeaderTo::write_all(pl, buf),

@@ -7,7 +7,7 @@ use std::ops::RangeInclusive;
 use crate::*;
 pub(crate) use header::*;
 
-pub static DEFAULT_SLOT_CAPACITY: usize = 100;
+pub static DEFAULT_SLOT_CAPACITY: usize = 500;
 pub static STORAGE_SLOT_SIG: [u8; 8] = [166u8, 177u8, 188u8, 199u8, 199u8, 188u8, 177u8, 166u8];
 
 #[derive(Debug)]
