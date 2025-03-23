@@ -441,6 +441,7 @@ The `payload` macro can be used with the following directives:
 - `path = mod::mod` – Specifies the module path for the payload if it is not directly imported at the location of `brec::include_generated!()`. This approach is not recommended (it is better to ensure payload visibility at the generator call site), but it is not inherently inefficient or unstable. However, using this method may make future code maintenance more difficult.
 - `no_crc` – Disables CRC verification for the payload. Note that this does not remove the CRC field from the binary representation of the payload (specifically in `PayloadHeader`). The CRC field will still be present but filled with zeros, and no CRC calculation will be performed.
 - `no_auto_crc` – Disables CRC verification for `payload(bincode)`, requiring a manual implementation of the `PayloadCrc` trait. This parameter is only relevant when using the `bincode` feature.
+- `bincode` – available only when the bincode feature is enabled. It allows using any structure as a payload as long as it meets the requirements of the bincode crate, i.e., it implements serde serialization and deserialization. Please note that bincode has a number of limitations, which you can review in its official documentation.
 
 ## Packets
 
