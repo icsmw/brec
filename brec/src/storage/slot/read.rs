@@ -1,6 +1,20 @@
 use crate::*;
 
 impl ReadFrom for Slot {
+    /// Reads a `Slot` from a stream, expecting the full structure to be available.
+    ///
+    /// This includes:
+    /// - A `SlotHeader` (with capacity)
+    /// - A sequence of `u64` length entries (`capacity` items)
+    /// - A 4-byte CRC checksum
+    ///
+    /// # Validation
+    /// After reading, the CRC is recomputed and compared with the stored one.
+    ///
+    /// # Errors
+    /// - I/O errors during reading
+    /// - `Error::SignatureDismatch` if header signature is invalid
+    /// - `Error::CrcDismatch` if CRC check fails
     fn read<T: std::io::Read>(buf: &mut T) -> Result<Self, Error>
     where
         Self: Sized,
@@ -27,6 +41,20 @@ impl ReadFrom for Slot {
 }
 
 impl TryReadFrom for Slot {
+    /// Attempts to read a `Slot` from a seekable stream, with partial-read awareness.
+    ///
+    /// This method:
+    /// - Tries to read the `SlotHeader` using `try_read`
+    /// - Calculates how many bytes are required for the rest of the slot
+    /// - Returns `NotEnoughData` if the stream has insufficient bytes
+    /// - Performs a CRC check after reading
+    ///
+    /// The stream is restored to its original position if not enough data is present.
+    ///
+    /// # Returns
+    /// - `ReadStatus::Success(slot)` on success
+    /// - `ReadStatus::NotEnoughData(missing)` if full data is not yet available
+    /// - `Error::CrcDismatch` if CRC check fails
     fn try_read<T: std::io::Read + std::io::Seek>(buf: &mut T) -> Result<ReadStatus<Self>, Error>
     where
         Self: Sized,

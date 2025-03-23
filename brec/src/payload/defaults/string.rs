@@ -1,6 +1,11 @@
 use crate::*;
 use payload::*;
 
+/// `String` is supported as a default payload type in `brec`.
+///
+/// It provides complete support for encoding, decoding, signature verification,
+/// CRC validation, and vectored writing. The string is treated as UTF-8 encoded data
+/// and is serialized as-is without any additional framing or length prefix.
 impl PayloadSize for String {
     fn size(&self) -> std::io::Result<u64> {
         Ok(self.len() as u64)

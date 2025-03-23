@@ -1,6 +1,5 @@
 mod iters;
 mod locator;
-mod range;
 mod slot;
 
 use crate::*;
@@ -10,32 +9,53 @@ pub(crate) use slot::*;
 
 pub type NthFilteredPacket<B, P, Inner> = Option<LookInStatus<PacketDef<B, P, Inner>>>;
 
-/// `StorageDef` serves as a storage management component. It enables storing and retrieving packets in various ways.
-/// Since packets are stored using slots, `StorageDef` provides fast access to a packet by its sequential index.
-/// This is particularly useful when reading packets as frames, as retrieving a specific range of packets
-/// (e.g., 100..150 or 500..600) is optimized. `StorageDef` maintains packet positions in `Slot` headers,
-/// an internal structure within `StorageDef`.
+/// Represents persistent binary storage for brec packets, backed by an abstract I/O stream.
 ///
-/// ## Capabilities of `StorageDef`
+/// `StorageDef` manages serialized `PacketDef` instances, organized into fixed-capacity `Slot`s.
+/// Each slot contains lengths of up to 500 packets and their relative positions within the file.
+/// This structure enables fast indexed access to packets by computing their exact offsets without
+/// scanning the entire file.
 ///
-/// - Storing `Packet` instances in the storage backend
-/// - Sequentially reading `Packet` instances from storage
-/// - Reading `Packet` instances with prefiltering and filtering
-/// - Reading `Packet` instances within a specified range
+/// Each `Slot` also includes a CRC checksum, ensuring integrity of the slot's metadata. As long as
+/// slots and packet data remain intact, reading is fast and reliable.
 ///
-/// ## Filtering Mechanism
-/// `StorageDef` supports multiple filtering methods when reading packets:
-/// - **Filtering by `Block` (Prefiltering):** Once a packet is detected and all its `Block` components are processed,
-///   a filter can determine whether to proceed with parsing or skip the packet entirely. This filter enables
-///   high-performance traversal since `Payload` parsing is bypassed, delivering only packets with relevant blocks.
-/// - **Filtering by `Packet`:** This filter is applied after the `Packet` is fully parsed. It can be used, for instance,
-///   to search within each packet's `Payload`.
-/// - **Combined Filtering:** Both `Block` and `Packet` filters are applied together.
+/// If the file becomes corrupted (e.g., a broken slot header or damaged packet), reading
+/// via `StorageDef` will fail entirely, since indexing relies on precise structure.
+/// However, this is not a critical limitation — to recover packets from a damaged file,
+/// you can use [`PacketBufReaderDef`](crate::PacketBufReaderDef), which performs a tolerant scan of
+/// the file and extracts valid packets, ignoring corrupted data or garbage.
 ///
-/// ## Note
-/// There is no need to use `StorageDef` directly or specify all generic parameters manually. When invoking
-/// `brec::include_generated!()`, a shorter variant, `Storage<S>`, is generated with a single generic parameter
-/// defining the storage source.
+/// # Type Parameters
+/// - `S`: Backend stream implementing `Read + Write + Seek` (e.g. file, memory buffer)
+/// - `B`: Block type implementing [`BlockDef`](crate::BlockDef)
+/// - `BR`: Block reference type implementing [`BlockReferredDef`](crate::BlockReferredDef)
+/// - `P`: Payload wrapper implementing [`PayloadDef`](crate::PayloadDef)
+/// - `Inner`: Inner payload object implementing [`PayloadInnerDef`](crate::PayloadInnerDef)
+///
+/// # Notes
+///
+/// - One `Slot` is created for every 500 packets (`DEFAULT_SLOT_CAPACITY = 500`).  
+/// - Each slot tracks the lengths of written packets, allowing the system to calculate offsets without parsing data.  
+/// - All writes (including `Slot` metadata) are flushed immediately, enabling crash-safe appends.
+/// - This storage is **append-only**; there's no support for removal or in-place overwrite.
+///
+/// ## Short type alias
+///
+/// There is no need to use `StorageDef` directly or specify all generic parameters manually.  
+/// When invoking `brec::include_generated!()`, a short alias `Storage<S>` is generated,  
+/// requiring only the stream type `S`. This is the recommended way to use the storage in real projects.
+///
+/// ## Example
+/// ```no_run
+/// brec::include_generated!();
+///
+/// use std::fs::OpenOptions;
+/// let file = OpenOptions::new().read(true).write(true).open("log.brec")?;
+/// let mut storage = Storage::new(file)?;
+/// for pkt in storage.iter() {
+///     println!("{:?}", pkt?);
+/// }
+/// ```
 pub struct StorageDef<
     S: std::io::Read + std::io::Write + std::io::Seek,
     B: BlockDef,
@@ -104,24 +124,34 @@ impl<
         Ok(self)
     }
 
-    /// Adds a processing rule. See `RuleDef` for more details.
+    /// Adds a packet filter or processing rule.
+    ///
+    /// # Arguments
+    /// * `rule` — A new rule to apply (see `RuleDef`)
+    ///
+    /// # Returns
+    /// * `Ok(())` — Rule added successfully
+    /// * `Err(Error::RuleDuplicate)` — Rule of the same type already exists
     pub fn add_rule(&mut self, rule: RuleDef<B, BR, P, Inner>) -> Result<(), Error> {
         self.rules.add_rule(rule)
     }
 
-    /// Removes a previously added rule. See `RuleDef` for more details.
+    /// Removes a previously added rule by its identifier.
+    ///
+    /// # Arguments
+    /// * `rule` — Identifier of the rule to remove (`RuleDefId`)
     pub fn remove_rule(&mut self, rule: RuleDefId) {
         self.rules.remove_rule(rule);
     }
 
-    /// Inserts a `Packet` at the end of the storage.
+    /// Inserts a new packet into storage at the next available slot.
     ///
     /// # Arguments
-    /// * `packet` - The packet to be inserted.
+    /// * `packet` — The `PacketDef` to be written
     ///
     /// # Returns
-    /// * `Ok(())` - Successfully inserted the packet.
-    /// * `Err(Error)` - Failure during insertion.
+    /// * `Ok(())` — Packet successfully written
+    /// * `Err(Error)` — If no space is found or write fails
     pub fn insert(&mut self, mut packet: PacketDef<B, P, Inner>) -> Result<(), Error> {
         let offset = match self.locator.next(&self.slots) {
             Some(offset) => offset,
@@ -155,15 +185,31 @@ impl<
         Ok(())
     }
 
-    /// Returns an iterator over all `Packet` instances in the storage.
+    /// Returns an iterator over all packets in the storage (no filtering).
+    ///
+    /// # Returns
+    /// * `StorageIterator` yielding `Result<PacketDef<..>, Error>`
     pub fn iter(&mut self) -> StorageIterator<'_, S, B, P, Inner> {
         StorageIterator::new(&mut self.inner, &self.slots)
     }
 
+    /// Returns a filtered iterator over packets using configured rules.
+    ///
+    /// # Returns
+    /// * `StorageFilteredIterator` yielding packets that pass rules
     pub fn filtered(&mut self) -> StorageFilteredIterator<'_, S, B, BR, P, Inner> {
         StorageFilteredIterator::new(&mut self.inner, &self.slots, &self.rules)
     }
 
+    /// Retrieves the `nth` packet by global index (across all slots).
+    ///
+    /// # Arguments
+    /// * `nth` — Zero-based index of the packet
+    ///
+    /// # Returns
+    /// * `Ok(Some(PacketDef))` — Packet found
+    /// * `Ok(None)` — No packet exists at this index
+    /// * `Err(Error)` — On slot mismatch, CRC failure, or I/O error
     pub fn nth(&mut self, nth: usize) -> Result<Option<PacketDef<B, P, Inner>>, Error> {
         let slot_index = nth / DEFAULT_SLOT_CAPACITY;
         let index_in_slot = nth % DEFAULT_SLOT_CAPACITY;
@@ -187,6 +233,14 @@ impl<
         }
     }
 
+    /// Returns an iterator over a specific range of packets by global index.
+    ///
+    /// # Arguments
+    /// * `from` — Starting index (inclusive)
+    /// * `len` — Number of packets to iterate
+    ///
+    /// # Returns
+    /// * `StorageRangeIterator` over the given range
     pub fn range(
         &mut self,
         from: usize,
@@ -195,6 +249,14 @@ impl<
         StorageRangeIterator::new(self, from, len)
     }
 
+    /// Returns a filtered range iterator applying rules to each packet.
+    ///
+    /// # Arguments
+    /// * `from` — Starting index
+    /// * `len` — Number of packets to yield
+    ///
+    /// # Returns
+    /// * `StorageRangeFilteredIterator` that yields only accepted packets
     pub fn range_filtered(
         &mut self,
         from: usize,
@@ -203,6 +265,19 @@ impl<
         StorageRangeFilteredIterator::new(self, from, len)
     }
 
+    /// Returns the filtered result of the `nth` packet.
+    ///
+    /// This method applies all configured rules (block, payload, full packet).
+    ///
+    /// # Arguments
+    /// * `from` — Index of the packet to filter
+    ///
+    /// # Returns
+    /// * `Ok(Some(LookInStatus::Accepted(size, packet)))` — Passed all filters
+    /// * `Ok(Some(LookInStatus::Denied(size)))` — Filtered out
+    /// * `Ok(Some(LookInStatus::NotEnoughData(n)))` — Incomplete
+    /// * `Ok(None)` — No packet at index
+    /// * `Err(Error)` — On I/O or parse failure
     pub(crate) fn nth_filtered(
         &mut self,
         from: usize,

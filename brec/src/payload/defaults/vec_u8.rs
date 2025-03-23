@@ -1,6 +1,11 @@
 use crate::*;
 use payload::*;
 
+/// `Vec<u8>` is supported as a default payload type in `brec`.
+///
+/// This payload represents raw binary data. It supports full encoding/decoding,
+/// CRC validation, signature identification, and efficient vectored writing.
+/// No transformation or framing is applied — the raw byte content is stored and restored as-is.
 impl PayloadSize for Vec<u8> {
     fn size(&self) -> std::io::Result<u64> {
         Ok(self.len() as u64)
