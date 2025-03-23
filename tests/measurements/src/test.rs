@@ -86,5 +86,13 @@ proptest! {
         tests::stream::filter_file(BIN_STREAM_LOG_FILE)?;
     }
 
+    #[test]
+    #[serial]
+    fn bin_logs_storage_streamed(rows in proptest::collection::vec(any::<WrappedPacket>(), 100)) {
+        tests::streamed_storage::create_file(rows, 10_000, BIN_LOG_FILE)?;
+        tests::streamed_storage::read_file(BIN_LOG_FILE)?;
+        tests::streamed_storage::filter_file(BIN_LOG_FILE)?;
+    }
+
 
 }

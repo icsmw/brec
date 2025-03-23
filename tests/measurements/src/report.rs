@@ -21,6 +21,7 @@ pub enum Platform {
     Json,
     Storage,
     BinStream,
+    StreamedStorage,
 }
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -170,6 +171,7 @@ impl fmt::Display for Platform {
                 Self::BinStream => "Binary stream",
                 Self::Text => "Plant text",
                 Self::Json => "JSON",
+                Self::StreamedStorage => "Streamed storage",
             }
         )
     }
