@@ -1,65 +1,70 @@
 use crate::*;
 
-/// Defines a callback function type used in the reading rules of `PacketBufReaderDef`.
-/// The callback can be specified either as a static function or a dynamic closure,
-/// providing flexibility to the user while not affecting the internal operation of `PacketBufReaderDef`.
+/// Represents a rule callback, which can be either a dynamic closure or a static function.
+///
+/// This abstraction allows users to define flexible behaviors (e.g., `FnMut` closures),
+/// while also supporting simple static functions for performance or clarity.
+///
+/// # Type Parameters
+/// - `D`: Dynamic callback type (e.g., boxed `FnMut` or `Fn`)
+/// - `S`: Static function type
 pub enum RuleFnDef<D, S> {
+    /// A dynamic, possibly stateful closure.
     Dynamic(D),
+
+    /// A static function pointer.
     Static(S),
 }
 
-/// Callback type for the `Ignored` rule. For more details on rules, see `RuleDef`.
+/// Callback used when `PacketBufReaderDef` encounters unrecognized data.
 pub type IgnoredCallback = RuleFnDef<Box<dyn FnMut(&[u8])>, fn(&[u8])>;
 
-/// Callback type for the `WriteIgnored` rule. For more details on rules, see `RuleDef`.
+/// Callback used to handle and write unrecognized data to a separate writer.
 pub type WriteIgnoredCallback<W> = RuleFnDef<
     Box<dyn FnMut(&mut std::io::BufWriter<W>, &[u8]) -> std::io::Result<()>>,
     fn(&mut std::io::BufWriter<W>, &[u8]) -> std::io::Result<()>,
 >;
 
-/// Callback type for the `FilterByBlocks` rule. For more details on rules, see `RuleDef`.
+/// Callback to filter packets early by inspecting block metadata before full parsing.
 pub type BlocksFilterCallback<BR> = RuleFnDef<Box<dyn Fn(&[BR]) -> bool>, fn(&[BR]) -> bool>;
 
-/// Callback type for the `FilterByBlocks` rule. For more details on rules, see `RuleDef`.
+/// Callback to filter packets by payload content.
 pub type PayloadFilterCallback = RuleFnDef<Box<dyn Fn(&[u8]) -> bool>, fn(&[u8]) -> bool>;
 
-/// Callback type for the `Filter` rule. For more details on rules, see `RuleDef`.
+/// Callback to filter fully parsed packets.
 pub type FilterCallback<B, P, Inner> =
     RuleFnDef<Box<dyn Fn(&PacketDef<B, P, Inner>) -> bool>, fn(&PacketDef<B, P, Inner>) -> bool>;
 
-/// Defines rules for processing data read by `PacketBufReaderDef`. These rules function similarly to hooks.
+/// Defines processing rules used by `PacketBufReaderDef`.
 ///
-/// Since `PacketBufReaderDef` is designed to read not only pure `brec` packet streams but also arbitrary data,
-/// rules allow processing non-`brec` data instead of discarding it.
+/// These rules serve as lightweight hooks, allowing the user to handle non-`brec` binary data,
+/// selectively parse packets, or filter by content without modifying the reader itself.
 ///
-/// For example, the `Ignored` rule allows capturing data that is read but not recognized as `brec` packets.
-/// Similarly, the `WriteIgnored` rule enables saving such data elsewhere.
+/// Rules are additive and modular. Only one rule of each type can be active at a time.
 #[enum_ids::enum_ids(display)]
 pub enum RuleDef<B: BlockDef, BR: BlockReferredDef<B>, P: PayloadDef<Inner>, Inner: PayloadInnerDef>
 {
-    /// Called when `PacketBufReaderDef` encounters data that is not recognized as a `brec` packet.
-    /// The callback receives a slice of the unrecognized data.
+    /// Triggered when unknown or malformed data is encountered.
     Ignored(IgnoredCallback),
 
-    /// The `FilterByBlocks` rule is invoked each time `PacketBufReaderDef` detects a `brec` packet.
+    /// Filters packets early, during partial block parsing.
     ///
-    /// This rule is unique because it is executed during packet parsing rather than after completion.
-    /// The callback receives only the `Blocks` section of the packet, which is not yet fully parsed
-    /// and contains references to raw byte slices.
-    ///
-    /// This allows users to decide whether to continue parsing the payload and completing block parsing
-    /// or to ignore the packet entirely.
-    ///
-    /// Using `FilterByBlocks` can significantly improve performance when users are interested only in specific packet categories.
+    /// This rule receives a list of block references and can reject packets before full parsing,
+    /// avoiding unnecessary processing.
     FilterByBlocks(BlocksFilterCallback<BR>),
 
+    /// Filters packets by inspecting the raw payload buffer (before decoding).
     FilterByPayload(PayloadFilterCallback),
 
+    /// Filters fully parsed packets.
     Filter(FilterCallback<B, P, Inner>),
 }
 
-/// Internal structure responsible for storing and managing rules.
-/// This is used within `PacketBufReaderDef`, and direct access by users is not required.
+/// Internal container for rule management used by `PacketBufReaderDef`.
+///
+/// Stores registered rules and provides runtime dispatch based on rule type.
+///
+/// Users do not interact with `RulesDef` directly — it's driven by `PacketBufReaderDef`.
 pub struct RulesDef<
     B: BlockDef,
     BR: BlockReferredDef<B>,
@@ -72,6 +77,7 @@ pub struct RulesDef<
 impl<B: BlockDef, BR: BlockReferredDef<B>, P: PayloadDef<Inner>, Inner: PayloadInnerDef> Default
     for RulesDef<B, BR, P, Inner>
 {
+    /// Initializes an empty rule set.
     fn default() -> Self {
         Self { rules: Vec::new() }
     }
@@ -79,6 +85,10 @@ impl<B: BlockDef, BR: BlockReferredDef<B>, P: PayloadDef<Inner>, Inner: PayloadI
 impl<B: BlockDef, BR: BlockReferredDef<B>, P: PayloadDef<Inner>, Inner: PayloadInnerDef>
     RulesDef<B, BR, P, Inner>
 {
+    /// Adds a new rule to the rule set.
+    ///
+    /// Only one rule of each type is allowed at any time. Adding a duplicate
+    /// will result in `Error::RuleDuplicate`.
     pub fn add_rule(&mut self, rule: RuleDef<B, BR, P, Inner>) -> Result<(), Error> {
         match &rule {
             RuleDef::FilterByBlocks(..) => {
@@ -114,11 +124,13 @@ impl<B: BlockDef, BR: BlockReferredDef<B>, P: PayloadDef<Inner>, Inner: PayloadI
         Ok(())
     }
 
+    /// Removes a rule by its identifier (`RuleDefId`).
     pub fn remove_rule(&mut self, rule: RuleDefId) {
         self.rules
             .retain(|r| r.id().to_string() != rule.to_string());
     }
 
+    /// Executes the `Ignored` rule (if defined) with the provided data.
     pub fn ignore(&mut self, buffer: &[u8]) -> Result<(), Error> {
         for rule in self.rules.iter_mut() {
             match rule {
@@ -131,6 +143,8 @@ impl<B: BlockDef, BR: BlockReferredDef<B>, P: PayloadDef<Inner>, Inner: PayloadI
         }
         Ok(())
     }
+
+    /// Runs the `FilterByBlocks` rule (if defined) and returns whether to continue parsing.
     pub fn filter_by_blocks(&self, blocks: &[BR]) -> bool {
         let Some(cb) = self.rules.iter().find_map(|r| {
             if let RuleDef::FilterByBlocks(cb) = r {
@@ -146,6 +160,8 @@ impl<B: BlockDef, BR: BlockReferredDef<B>, P: PayloadDef<Inner>, Inner: PayloadI
             RuleFnDef::Dynamic(cb) => cb(blocks),
         }
     }
+
+    /// Runs the `FilterByPayload` rule (if defined) and returns whether to keep the packet.
     pub fn filter_by_payload(&self, buffer: &[u8]) -> bool {
         let Some(cb) = self.rules.iter().find_map(|r| {
             if let RuleDef::FilterByPayload(cb) = r {
@@ -161,6 +177,8 @@ impl<B: BlockDef, BR: BlockReferredDef<B>, P: PayloadDef<Inner>, Inner: PayloadI
             RuleFnDef::Dynamic(cb) => cb(buffer),
         }
     }
+
+    /// Runs the full `Filter` rule on a parsed packet.
     pub fn filter(&self, packet: &PacketDef<B, P, Inner>) -> bool {
         let Some(cb) = self.rules.iter().find_map(|r| {
             if let RuleDef::Filter(cb) = r {

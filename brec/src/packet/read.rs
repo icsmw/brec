@@ -1,10 +1,19 @@
 use crate::*;
 
-/// Returns IO Error if not enough bytes to read a `PacketHeader`. If a header
-/// had been read, but there are not enough bytes to read blocks and payload,
-/// will return IO Error. To compare with traits `TryReadFrom` and `TryReadFromBuffered`
-/// this method doesn't return `Error::NotEnoughData` or `ReadStatus::NotEnoughData` in
-/// case of not enough data.
+/// Reads a complete `PacketDef` from a stream, including header, blocks, and optional payload.
+///
+/// This implementation **does not support partial reads** — if the header is successfully
+/// read but the blocks or payload data are incomplete, an I/O error will be returned.
+///
+/// # Notes
+/// - Does **not** return `Error::NotEnoughData`; instead, read failures always result in `std::io::Error`.
+/// - Use this implementation when you're sure the entire packet is available in the stream.
+///
+/// # Errors
+/// - `Error::SignatureDismatch` or `Error::CrcDismatch` if header validation fails.
+/// - `Error::NotEnoughData` if there’s insufficient data in the inner block stream.
+/// - `Error::MaxBlocksCount` if the block count exceeds the allowed maximum.
+/// - Any decoding or payload-related error from underlying implementations.
 impl<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> ReadFrom
     for PacketDef<B, P, Inner>
 {
@@ -48,6 +57,23 @@ impl<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> ReadFrom
     }
 }
 
+/// Attempts to read a `PacketDef` from a seekable stream with partial read awareness.
+///
+/// This implementation checks if enough data is available before attempting to decode,
+/// and can return `ReadStatus::NotEnoughData(...)` instead of failing with an I/O error.
+///
+/// # Behavior
+/// - If not enough data is available for the entire payload, stream position is reset.
+/// - If read fails partway through (block or payload), stream position is reset and the error returned.
+/// - If block count exceeds `MAX_BLOCKS_COUNT`, returns `Error::MaxBlocksCount`.
+///
+/// # Returns
+/// - `ReadStatus::Success(packet)` — full packet successfully read.
+/// - `ReadStatus::NotEnoughData(bytes)` — more data needed to complete the packet.
+/// - `Error` — on decoding, CRC, signature, or logic errors.
+///
+/// # Stream behavior
+/// Seeks forward to read the packet, and seeks back on early return or error.
 impl<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> TryReadFrom
     for PacketDef<B, P, Inner>
 {
@@ -121,6 +147,23 @@ impl<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> TryReadFrom
     }
 }
 
+/// Attempts to read a `PacketDef` from a buffered reader.
+///
+/// This is similar to `TryReadFrom`, but works with non-seekable buffered sources (e.g., network streams).
+///
+/// # Behavior
+/// - Reads header directly from `BufRead::fill_buf()` and consumes it.
+/// - Ensures that `header.size` bytes are available before decoding.
+/// - Supports partial reads using `ReadStatus::NotEnoughData(...)`.
+///
+/// # Returns
+/// - `ReadStatus::Success(packet)` — if all required data was read and validated.
+/// - `ReadStatus::NotEnoughData(bytes)` — if more bytes are needed.
+/// - `Error::MaxBlocksCount` — if the block limit is exceeded.
+/// - Any decoding or CRC/signature errors.
+///
+/// # Notes
+/// The header and block stream are parsed directly from the internal buffer. Payload data may be buffered or streamed depending on implementation.
 impl<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> TryReadFromBuffered
     for PacketDef<B, P, Inner>
 {
