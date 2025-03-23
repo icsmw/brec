@@ -489,32 +489,13 @@ A `Packet` can be used as a standalone unit for data exchange. It implements the
 `Packet` provides a highly useful method: 
 
 ```rust
-filtered<R: std::io::Read + std::io::Seek, F: FnMut(&[B]) -> bool>(
+filtered<R: std::io::Read + std::io::Seek>(
     reader: &mut R, 
-    mut filter: F
+    rules: &Rules
 ) -> Result<LookInStatus<Packet>, Error>
 ```
 
 This method allows you to "peek" into a packet before processing the payload, which can significantly improve performance when filtering specific packets.
-
-```rust
-brec::include_generated!();
-
-let my_packet = Packet::new(
-    // You are limited to 255 blocks per packet.
-    vec![
-        Block::MyBlockA(MyBlockA::default()),
-        Block::MyBlockC(MyBlockC::default())
-    ],
-    // Note: payload is optional
-    Some(Payload::MyPayloadA(MyPayloadA::default()))
-);
-
-my_packet.filtered(&mut source, |blocks: &[Block]| {
-    // Checking blocks
-    true
-});
-```
 
 # Protocol Tools
 
@@ -609,8 +590,7 @@ In addition to stream reading, `brec` provides a tool for storing packets and ac
 | `add_rule(&mut self, rule: Rule)`    | Adds a filtering rule. |
 | `remove_rule(&mut self, rule: RuleDefId)` | Removes a filtering rule. |
 | `iter(&mut self)`                    | Returns an iterator over the storage. This method does not apply filters, even if previously added. |
-| `filtered(&mut self)`                | Returns an iterator with filters applied (if any were set via `add_rule`). The filtering rules used in `Storage` are identical to those used in `PacketBufReader`.
- |
+| `filtered(&mut self)`                | Returns an iterator with filters applied (if any were set via `add_rule`). The filtering rules used in `Storage` are identical to those used in `PacketBufReader`. |
 | `nth(&mut self, nth: usize)`         | Attempts to read the packet at the specified index. Note that this method does not apply any filtering, even if filters have been previously defined. |
 | `range(&mut self, from: usize, len: usize)` | Returns an iterator over a given range of packets. |
 | `range_filtered(&mut self, from: usize, len: usize)` | Returns an iterator over a range of packets with filters applied (if previously set via `add_rule`). |
