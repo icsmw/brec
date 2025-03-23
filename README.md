@@ -590,52 +590,41 @@ After receiving `NextPacket::NoData`, further calls to `read()` are meaningless,
 
 Another key feature of `PacketBufReader` is that users can define **custom rules** to be applied during data reading. These rules can be updated dynamically between `read()` calls using `add_rule` and `remove_rule`.
 
-| Rule Type        | Available Data   | Description |
-|-----------------|-----------------|-------------|
-| `Rule::Ignored`  | `&[u8]`         | Triggered when non-`brec` data is detected. The user receives a byte slice containing these unrelated data bytes. |
-| `Rule::PreFilter` | `&[Block]`      | Triggered when a packet is detected and partially parsed (blocks only). At this stage, the user can decide whether to continue parsing the "heavy" part (payload) or skip the message. |
-| `Rule::Filter`   | `&Packet`       | Triggered after a packet is fully processed, allowing the user to decide whether to accept or discard it. |
-| `Rule::Each`     | `&Packet`       | Allows the user to inspect every detected packet. |
+| Rule                   | Available Data                      | Description |
+|------------------------|--------------------------------------|-------------|
+| `Rule::Ignored`        | `&[u8]`                              | Triggered when data not related to `brec` messages is encountered. Provides a byte slice of the unrelated data. |
+| `Rule::FilterByBlocks` | `&[BlockReferred<'a>]`              | Triggered when a packet is found and its blocks have been partially parsed. If blocks contain slices, no copying is performed — `BlockReferred` will hold references instead. At this stage, the user can decide whether to proceed with parsing the "heavy" part (i.e., the payload) or skip the packet. |
+| `Rule::FilterByPayload`| `&[u8]`                              | Allows "peeking" into the payload bytes before deserialization. This is especially useful if the payload is, for example, a string — enabling scenarios like substring search. |
+| `Rule::Filter`         | `&Packet`                            | Triggered after the packet is fully parsed, giving the user a final chance to accept or reject the packet. |
 
-The `Rule::PreFilter` rule is particularly useful as it allows avoiding the most resource-intensive operation—parsing the payload section of a message. This can significantly improve reading performance.
+The rules `Rule::FilterByBlocks` and `Rule::FilterByPayload` are particularly effective at improving performance, as they allow you to skip the most expensive part — parsing the payload — if the packet is not needed.
 
 ## `brec` Message Storage
 
-In addition to reading streams, `brec` provides a tool for storing packets and quickly accessing them—`Storage<S: std::io::Read + std::io::Write + std::io::Seek>` (available after code generation by calling `brec::include_generated!()`).
+In addition to stream reading, `brec` provides a tool for storing packets and accessing them efficiently — `Storage<S: std::io::Read + std::io::Write + std::io::Seek>` (available after invoking `brec::include_generated!()`).
 
-### `Storage` Methods
+| Method                                | Description |
+|--------------------------------------|-------------|
+| `insert(&mut self, packet: Packet)`  | Inserts a packet into the storage. |
+| `add_rule(&mut self, rule: Rule)`    | Adds a filtering rule. |
+| `remove_rule(&mut self, rule: RuleDefId)` | Removes a filtering rule. |
+| `iter(&mut self)`                    | Returns an iterator over the storage. This method does not apply filters, even if previously added. |
+| `filtered(&mut self)`                | Returns an iterator with filters applied (if any were set via `add_rule`). The filtering rules used in `Storage` are identical to those used in `PacketBufReader`.
+ |
+| `nth(&mut self, nth: usize)`         | Attempts to read the packet at the specified index. Note that this method does not apply any filtering, even if filters have been previously defined. |
+| `range(&mut self, from: usize, len: usize)` | Returns an iterator over a given range of packets. |
+| `range_filtered(&mut self, from: usize, len: usize)` | Returns an iterator over a range of packets with filters applied (if previously set via `add_rule`). |
 
-| Method | Description |
-|--------|-------------|
-| `insert(&mut self, packet: Packet)` | Stores a packet in the storage. |
-| `iter(&mut self)` | Returns an iterator over all stored packets. |
-| `filtered_by_blocks<PF>(&mut self, filter: PF)` | Returns an iterator with block-based filtering (avoiding full packet parsing). |
-| `filtered_by_packet<F>(&mut self, filter: F)` | Returns an iterator with packet-based filtering. |
-| `filtered<PF, F>(&mut self, pfilter: PF, filter: F)` | Returns an iterator with combined filtering. |
-| `nth(&mut self, nth: usize)` | Attempts to retrieve a packet by its index. |
-| `range_filtered<PF, F>(&mut self, range: RangeInclusive<usize>, pfilter: PF, filter: F)` | Returns an iterator over a specified range of packets with combined filtering. |
-| `range_filtered_by_blocks<PF>(&mut self, range: RangeInclusive<usize>, filter: PF)` | Returns an iterator over a specified range of packets with block-based filtering (avoiding full parsing). |
-| `range_filtered_by_packet<F>(&mut self, range: RangeInclusive<usize>, filter: F)` | Returns an iterator over a specified range of packets with packet-based filtering. |
-| `range(&mut self, range: RangeInclusive<usize>)` | Returns an iterator over a specified range of packets. |
+Filtering by blocks or payload improves performance by allowing the system to avoid fully parsing packets unless necessary.
 
-### Filter Parameters
+### Storage Layout and Slot Design
 
-Filtering functions are provided as closures:
-- `PF: FnMut(&[Block]) -> bool` for **block-based filtering**.
-- `F: FnMut(&Packet) -> bool` for **packet-based filtering**.
+The core design of `Storage` is based on how it organizes packets internally:
+- Packets are not stored sequentially but are grouped into **slots**, with **500 packets per slot**.
+- Each slot stores metadata about packet positions in the file and includes a **CRC** for slot validation, which makes the storage robust against corruption.
+- Thanks to the slot metadata, `Storage` can **quickly locate packets by index** or **return a packet range efficiently**.
 
-It is evident that filtering by blocks improves filtering performance by avoiding full packet parsing.
-
-### Key Features of `Storage`
-
-The main distinguishing feature of `Storage` is how it organizes packet storage:
-- Packets are **not stored sequentially**, but rather in **slots**, with each slot containing up to **100 packets**.
-- Each slot **stores metadata** about the packet locations in the file, as well as a **CRC for the slot**, making the storage resilient to corruption.
-- Thanks to the presence of metadata in the slots, `Storage` can efficiently **look up packets by their index** and **retrieve packets within a range**.
-
-As noted earlier, each slot calculates a **CRC** to verify data integrity. However, **even if the storage file is corrupted** and `Storage` can no longer operate correctly, packets **remain accessible in a "manual" mode**.  
-
-For instance, the previously described `PacketBufReader` can be used to **bypass slot metadata** and perform **sequential file reading**, detecting intact packets while ignoring corrupted data.
+As previously mentioned, each slot maintains its own **CRC** to ensure data integrity. However, even if the storage file becomes corrupted and `Storage` can no longer operate reliably, packets remain accessible in a **manual recovery mode**. For example, you can use `PacketBufReader` to scan the file, ignoring slot metadata and extracting intact packets sequentially.
 
 # Protocol Specification
 
@@ -751,10 +740,86 @@ To test reading, writing, parsing, filtering, and other functions, `brec` uses `
 
 Packets are constructed with **randomly generated blocks and payloads**. Additionally, the ability of `brec` tools to **reliably read and write randomly generated blocks** is also tested, specifically focusing on `Storage<S: std::io::Read + std::io::Write + std::io::Seek>` and `PacketBufReader`.
 
-In total, **over 20 GB of test data** is generated for this type of testing.
+In total, **over 40 GB of test data** is generated for this type of testing.
 
 ## Macro Testing
 
 To validate the behavior of the `block` and `payload` macros, `brec` also uses `proptest`, but this time it **not only generates random data but also randomly constructs block and payload structures**.
 
 Each randomly generated set of structures is saved as a separate crate. After generating these test cases, each one is **compiled and executed** to ensure stability. Specifically, all randomly generated packets **must be successfully encoded and subsequently decoded without errors**.
+
+## Performance and Efficiency
+
+To evaluate the performance of the protocol, the following data structure is used:
+
+```rust
+pub enum Level {
+    Err,
+    Warn,
+    Info,
+    Debug,
+}
+
+pub enum Target {
+    Server,
+    Client,
+    Proxy,
+}
+
+#[block]
+pub struct Metadata {
+    pub level: Level,
+    pub target: Target,
+    pub tm: u64,
+}
+```
+
+Note: Conversion of `Level` and `Target` into `u8` is required but omitted here for brevity.
+
+Each packet consists of a `Metadata` block and a `String` payload. Data is randomly generated, and a special "hook" string is inserted randomly into some messages for use in filtering tests.
+
+### Test Description
+
+- **Storage**: Data is written using the `brec` storage API — `Storage<S: std::io::Read + std::io::Write + std::io::Seek>` — and then read back using the same interface.
+- **Binary Stream**: Data is written to the file as a plain stream of packets, without slots or metadata. Then it is read using `PacketBufReader`.
+- **Streamed Storage**: Data is written using `Storage`, but read using `PacketBufReader`, which ignores slot metadata (treating it as garbage).
+- **Plain Text**: Raw text lines are written to the file, separated by `\n`.
+- **JSON**: The structure shown above is serialized to JSON using `serde_json` and written as one JSON object per line. During reading, each line is deserialized back to the original structure.
+
+Each test is run in two modes:
+- **Reading** — reading all available data.
+- **Filtering** — reading only records that match specific criteria: logs of type "error" and containing a search hook in the payload.
+
+**Plain Text** is used as a baseline due to its minimal overhead — raw sequential file reading with no parsing or decoding.  
+However, `brec` performance is more meaningfully compared with **JSON**, which also involves deserialization.  
+JSON is considered a strong baseline due to its wide use and mature, highly optimized parser.
+
+### Important Notes
+
+- For fairness, **CRC checks are enabled** for all `brec` component. CRC is calculated for blocks, payloads, and slots (in the case of storage).
+- Each test is repeated multiple times to produce averaged values (`Iterations` column).
+
+### Test Results
+
+| Test             | Mode      | Size    | Rows       | Time (ms) | Iterations |
+|------------------|-----------|---------|------------|-----------|------------|
+| Storage          | Filtering | 908 Mb  | 140,000     | 612       | 10         |
+| Storage          | Reading   | 908 Mb  | 1,000,000   | 987       | 10         |
+| JSON             | Reading   | 919 Mb  | 1,000,000   | 597       | 10         |
+| JSON             | Filtering | 919 Mb  | 140,000     | 608       | 10         |
+| Binary Stream    | Reading   | 831 Mb  | 1,000,000   | 764       | 10         |
+| Binary Stream    | Filtering | 831 Mb  | 140,000     | 340       | 10         |
+| Plain Text       | Reading   | 774 Mb  | 1,000,000   | 247       | 10         |
+| Plain Text       | Filtering | 774 Mb  | 150,000     | 276       | 10         |
+| Streamed Storage | Filtering | 908 Mb  | 140,000     | 355       | 10         |
+| Streamed Storage | Reading   | 908 Mb  | 1,000,000   | 790       | 10         |
+
+### Observations
+
+- **Plain text** is the fastest format by nature and serves as a baseline.
+- **Storage** gives the slowest reading time in full-scan mode — which is expected due to CRC verification and slot parsing.
+- However, when **filtering is enabled**, storage is **only 4ms slower than JSON**, which is a **negligible difference**, especially considering that storage data is CRC-protected and recoverable.
+- If the storage file is damaged, packets can still be recovered using `PacketBufReader`, even if the slot metadata becomes unreadable.
+- **Binary stream mode** (stream writing and reading with `PacketBufReader`) shows exceptional filtering performance — nearly **twice as fast as JSON** — and even full reading is only slightly slower than JSON (~167ms on 1 GB), which is not significant in most scenarios.
+
+This efficiency is possible because `brec`'s architecture allows it to skip unnecessary work. In contrast to JSON, where every line must be deserialized, `brec` can **evaluate blocks before parsing payloads**, leading to better filtering performance.
