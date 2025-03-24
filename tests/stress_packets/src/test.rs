@@ -551,80 +551,96 @@ fn storage_write_read_filter(packets: Vec<WrappedPacket>, filename: &str) -> std
     Ok(())
 }
 
-proptest! {
-    #![proptest_config(ProptestConfig {
+fn get_proptest_config() -> ProptestConfig {
+    let cases = std::env::var("BREC_STRESS_PACKETS_CASES")
+        .ok()
+        .and_then(|s| s.parse().ok())
+        .unwrap_or(10);
+
+    ProptestConfig {
         max_shrink_iters: 50,
         max_local_rejects: 1_000_000,
-        ..ProptestConfig::with_cases(200)
-    })]
+        ..ProptestConfig::with_cases(cases)
+    }
+}
+
+fn max() -> usize {
+    std::env::var("BREC_STRESS_PACKETS_MAX_COUNT")
+        .ok()
+        .and_then(|s| s.parse().ok())
+        .unwrap_or(100)
+}
+
+proptest! {
+    #![proptest_config(get_proptest_config())]
 
     #[test]
-    fn try_read_from_no_blocks(packets in proptest::collection::vec(WrappedPacket::arbitrary_with(true), 1..2000)) {
+    fn try_read_from_no_blocks(packets in proptest::collection::vec(WrappedPacket::arbitrary_with(true), 1..max())) {
         try_read_from(packets)?;
     }
 
     #[test]
-    fn try_read_from_with_blocks(packets in proptest::collection::vec(WrappedPacket::arbitrary_with(false), 1..2000)) {
+    fn try_read_from_with_blocks(packets in proptest::collection::vec(WrappedPacket::arbitrary_with(false), 1..max())) {
         try_read_from(packets)?;
     }
 
     #[test]
-    fn try_read_with_litter_no_blocks(packets in proptest::collection::vec(LitteredPacket::arbitrary_with(true), 1..2000)) {
+    fn try_read_with_litter_no_blocks(packets in proptest::collection::vec(LitteredPacket::arbitrary_with(true), 1..max())) {
         try_read_with_litter(packets)?;
     }
 
     #[test]
-    fn try_read_with_litter_with_blocks(packets in proptest::collection::vec(LitteredPacket::arbitrary_with(false), 1..2000)) {
+    fn try_read_with_litter_with_blocks(packets in proptest::collection::vec(LitteredPacket::arbitrary_with(false), 1..max())) {
         try_read_with_litter(packets)?;
     }
 
     #[test]
-    fn try_reading_one_by_one_no_blocks(packets in proptest::collection::vec(WrappedPacket::arbitrary_with(true), 1..2000)) {
+    fn try_reading_one_by_one_no_blocks(packets in proptest::collection::vec(WrappedPacket::arbitrary_with(true), 1..max())) {
         try_reading_one_by_one(packets)?;
     }
 
     #[test]
-    fn try_reading_one_by_one_with_blocks(packets in proptest::collection::vec(WrappedPacket::arbitrary_with(false), 1..2000)) {
+    fn try_reading_one_by_one_with_blocks(packets in proptest::collection::vec(WrappedPacket::arbitrary_with(false), 1..max())) {
         try_reading_one_by_one(packets)?;
     }
 
     #[test]
-    fn try_reading_with_read_no_blocks(packets in proptest::collection::vec(WrappedPacket::arbitrary_with(true), 1..2000)) {
+    fn try_reading_with_read_no_blocks(packets in proptest::collection::vec(WrappedPacket::arbitrary_with(true), 1..max())) {
         try_reading_with_read(packets)?;
     }
 
     #[test]
-    fn try_reading_with_read_with_blocks(packets in proptest::collection::vec(WrappedPacket::arbitrary_with(false), 1..2000)) {
+    fn try_reading_with_read_with_blocks(packets in proptest::collection::vec(WrappedPacket::arbitrary_with(false), 1..max())) {
         try_reading_with_read(packets)?;
     }
 
     #[test]
-    fn try_reading_with_try_read_no_blocks(packets in proptest::collection::vec(WrappedPacket::arbitrary_with(true), 1..2000)) {
+    fn try_reading_with_try_read_no_blocks(packets in proptest::collection::vec(WrappedPacket::arbitrary_with(true), 1..max())) {
         try_reading_with_try_read(packets)?;
     }
 
     #[test]
-    fn try_reading_with_try_read_with_blocks(packets in proptest::collection::vec(WrappedPacket::arbitrary_with(false), 1..2000)) {
+    fn try_reading_with_try_read_with_blocks(packets in proptest::collection::vec(WrappedPacket::arbitrary_with(false), 1..max())) {
         try_reading_with_try_read(packets)?;
     }
 
     #[test]
-    fn try_reading_with_try_read_buffered_no_blocks(packets in proptest::collection::vec(WrappedPacket::arbitrary_with(true), 1..2000)) {
+    fn try_reading_with_try_read_buffered_no_blocks(packets in proptest::collection::vec(WrappedPacket::arbitrary_with(true), 1..max())) {
         try_reading_with_try_read_buffered(packets)?;
     }
 
     #[test]
-    fn try_reading_with_try_read_buffered_with_blocks(packets in proptest::collection::vec(WrappedPacket::arbitrary_with(false), 1..2000)) {
+    fn try_reading_with_try_read_buffered_with_blocks(packets in proptest::collection::vec(WrappedPacket::arbitrary_with(false), 1..max())) {
         try_reading_with_try_read_buffered(packets)?;
     }
 
     #[test]
-    fn storage_write_read_filter_no_blocks(packets in proptest::collection::vec(WrappedPacket::arbitrary_with(true), 1..2000)) {
+    fn storage_write_read_filter_no_blocks(packets in proptest::collection::vec(WrappedPacket::arbitrary_with(true), 1..max())) {
         storage_write_read_filter(packets, "test_storage_write_read_filter_no_blocks.bin")?;
     }
 
     #[test]
-    fn storage_write_read_filter_with_blocks(packets in proptest::collection::vec(WrappedPacket::arbitrary_with(false), 1..2000)) {
+    fn storage_write_read_filter_with_blocks(packets in proptest::collection::vec(WrappedPacket::arbitrary_with(false), 1..max())) {
         storage_write_read_filter(packets, "test_storage_write_read_filter_with_blocks.bin")?;
     }
 

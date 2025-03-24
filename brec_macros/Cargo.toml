@@ -6,7 +6,9 @@ authors = ["d.astafyev@outlook.com"]
 description = "Code generator for brec. Implements the block and payload macros."
 license = "Apache-2.0"
 resolver = "2"
-publish = false
+repository = "https://github.com/icsmw/brec.git"
+homepage = "https://github.com/icsmw/brec"
+readme = "README.md"
 
 [lib]
 proc-macro = true

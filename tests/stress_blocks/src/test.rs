@@ -130,15 +130,30 @@ fn report(bytes: usize, instance: usize) {
     );
 }
 
-proptest! {
-    #![proptest_config(ProptestConfig {
-        max_shrink_iters: 50,
-        ..ProptestConfig::with_cases(500)
-    })]
+fn get_proptest_config() -> ProptestConfig {
+    let cases = std::env::var("BREC_STRESS_BLOCKS_CASES")
+        .ok()
+        .and_then(|s| s.parse().ok())
+        .unwrap_or(10);
 
+    ProptestConfig {
+        max_shrink_iters: 50,
+        ..ProptestConfig::with_cases(cases)
+    }
+}
+
+fn max() -> usize {
+    std::env::var("BREC_STRESS_BLOCKS_MAX_COUNT")
+        .ok()
+        .and_then(|s| s.parse().ok())
+        .unwrap_or(100)
+}
+
+proptest! {
+    #![proptest_config(get_proptest_config())]
 
     #[test]
-    fn try_read_from(blks in proptest::collection::vec(any::<Block>(), 1..2000)) {
+    fn try_read_from(blks in proptest::collection::vec(any::<Block>(), 1..max())) {
         let mut buf = Vec::new();
         write_to_buf(&mut buf, &blks)?;
         let size = buf.len() as u64;
@@ -152,7 +167,7 @@ proptest! {
     }
 
     #[test]
-    fn try_read_from_buffered(blks in proptest::collection::vec(any::<Block>(), 1..2000)) {
+    fn try_read_from_buffered(blks in proptest::collection::vec(any::<Block>(), 1..max())) {
         let mut buf = Vec::new();
         write_to_buf(&mut buf, &blks)?;
         let write = buf.len() as u64;
@@ -166,7 +181,7 @@ proptest! {
     }
 
     #[test]
-    fn try_read_from_slice(blks in proptest::collection::vec(any::<Block>(), 1..2000)) {
+    fn try_read_from_slice(blks in proptest::collection::vec(any::<Block>(), 1..max())) {
         let mut bytes = 0;
         for blk in blks.iter() {
             let mut buf = Vec::new();

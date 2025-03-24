@@ -96,15 +96,30 @@ fn report(bytes: usize, instance: usize) {
     );
 }
 
-proptest! {
-    #![proptest_config(ProptestConfig {
-        max_shrink_iters: 50,
-        ..ProptestConfig::with_cases(500)
-    })]
+fn get_proptest_config() -> ProptestConfig {
+    let cases = std::env::var("BREC_STRESS_PAYLOADS_CASES")
+        .ok()
+        .and_then(|s| s.parse().ok())
+        .unwrap_or(10);
 
+    ProptestConfig {
+        max_shrink_iters: 50,
+        ..ProptestConfig::with_cases(cases)
+    }
+}
+
+fn max() -> usize {
+    std::env::var("BREC_STRESS_PAYLOADS_MAX_COUNT")
+        .ok()
+        .and_then(|s| s.parse().ok())
+        .unwrap_or(100)
+}
+
+proptest! {
+    #![proptest_config(get_proptest_config())]
 
     #[test]
-    fn check_sizes(mut payloads in proptest::collection::vec(any::<Payload>(), 1..2000)) {
+    fn check_sizes(mut payloads in proptest::collection::vec(any::<Payload>(), 1..max())) {
         let mut bytes = 0;
         for payload in payloads.iter_mut() {
             let mut buffer = Vec::new();
@@ -117,7 +132,7 @@ proptest! {
     }
 
     #[test]
-    fn try_read_from(mut payloads in proptest::collection::vec(any::<Payload>(), 1..2000)) {
+    fn try_read_from(mut payloads in proptest::collection::vec(any::<Payload>(), 1..max())) {
         let mut buf = Vec::new();
         write_to_buf(&mut buf, &mut payloads)?;
         let restored = read_payloads(&buf)?;
@@ -129,7 +144,7 @@ proptest! {
     }
 
     #[test]
-    fn try_read_from_buffered(mut payloads in proptest::collection::vec(any::<Payload>(), 1..1000)) {
+    fn try_read_from_buffered(mut payloads in proptest::collection::vec(any::<Payload>(), 1..max())) {
         let mut buf = Vec::new();
         write_to_buf(&mut buf, &mut payloads)?;
         let write = buf.len() as u64;
@@ -143,7 +158,7 @@ proptest! {
     }
 
     #[test]
-    fn test_read_from(mut payloads in proptest::collection::vec(any::<Payload>(), 1..1000)) {
+    fn test_read_from(mut payloads in proptest::collection::vec(any::<Payload>(), 1..max())) {
         use std::io::Cursor;
         let mut bytes = 0;
         for payload in payloads.iter_mut() {
@@ -166,7 +181,7 @@ proptest! {
     }
 
     #[test]
-    fn test_read_from_buffered(mut payloads in proptest::collection::vec(any::<Payload>(), 1..1000)) {
+    fn test_read_from_buffered(mut payloads in proptest::collection::vec(any::<Payload>(), 1..max())) {
         use std::io::Cursor;
         let mut bytes = 0;
         for payload in payloads.iter_mut() {

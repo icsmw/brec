@@ -1,3 +1,5 @@
+#![doc = include_str!("../README.md")]
+
 #[cfg(test)]
 #[cfg(feature = "generate_macro_test")]
 mod tests;

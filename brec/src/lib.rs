@@ -1,3 +1,5 @@
+#![doc = include_str!("../README.md")]
+
 #[cfg(feature = "build")]
 pub mod build;
 #[cfg(feature = "bincode")]
