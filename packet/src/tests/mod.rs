@@ -137,7 +137,7 @@ proptest! {
     #[test]
     fn generate(tcrates in proptest::collection::vec(TCrate::arbitrary(), 10)) {
         let root = std::path::PathBuf::from(std::env::var("CARGO_MANIFEST_DIR").expect("CARGO_MANIFEST_DIR is not set"));
-        let tests_path = root.join("../../../gen_tests");
+        let tests_path = root.join("../gen_tests");
         if !tests_path.exists() {
             std::fs::create_dir(&tests_path)?;
         }

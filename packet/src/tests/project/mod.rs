@@ -20,7 +20,7 @@ struct GeneratedProject {
 impl GeneratedProject {
     pub fn write(&self) -> io::Result<()> {
         let root = self.root();
-        let tests = root.join("../../../gen_tests");
+        let tests = root.join("../gen_tests");
         if !tests.exists() {
             fs::create_dir(&tests)?;
         }

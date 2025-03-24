@@ -2,36 +2,33 @@
 name = "brec"
 version = "0.1.0"
 edition = "2021"
+authors = ["d.astafyev@outlook.com"]
+description = "A flexible binary format for storing and streaming structured data as packets with CRC protection and recoverability from corruption. Built for extensibility and robustness."
+license = "Apache-2.0"
 
-[workspace]
-members = [
-    "macros/packet",
-    "."
+keywords = [
+    "binary",
+    "packet",
+    "storage",
+    "logging",
+    "streaming"
+]
+
+categories = [
+    "encoding",
+    "data-structures",
+    "filesystem",
+    "development-tools",
+    "parser-implementations"
 ]
 
 [features]
     build = []
     bincode = ["dep:bincode"]
 
-
-
 [dependencies]
 thiserror.workspace = true
 crc32fast.workspace = true
 enum_ids.workspace = true
+packet.workspace = true
 bincode = { workspace = true, optional = true }
-packet = { path = "./macros/packet"}
-
-[workspace.dependencies]
-thiserror = "2.0"
-uuid = "1.8"
-proptest = "1.4"
-paste = "1.0"
-syn = {version  = "2.0", features = ["full"]}
-quote = "1.0"
-proc-macro2 = "1.0"
-enum_ids = "0.6"
-crc32fast = "1.4"
-lazy_static = "1.5"
-serde = { version = "1.0", features = ["derive"] }
-bincode = "1.3"

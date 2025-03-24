@@ -1,6 +1,6 @@
 #!/bin/bash
 
-TESTS_DIR="../../../gen_tests"
+TESTS_DIR="../gen_tests"
 
 if [ -d "$TESTS_DIR" ]; then
     echo "Removing previous tests"

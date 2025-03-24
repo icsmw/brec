@@ -1,7 +1,12 @@
 [package]
 name = "packet"
 version = "0.1.0"
-edition = "2018"
+edition = "2021"
+authors = ["d.astafyev@outlook.com"]
+description = "Code generator for brec. Implements the block and payload macros."
+license = "Apache-2.0"
+resolver = "2"
+publish = false
 
 [lib]
 proc-macro = true
