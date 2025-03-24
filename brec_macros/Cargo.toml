@@ -10,6 +10,22 @@ repository = "https://github.com/icsmw/brec.git"
 homepage = "https://github.com/icsmw/brec"
 readme = "README.md"
 
+keywords = [
+    "binary",
+    "packet",
+    "storage",
+    "logging",
+    "streaming"
+]
+
+categories = [
+    "encoding",
+    "data-structures",
+    "filesystem",
+    "development-tools",
+    "parser-implementations"
+]
+
 [lib]
 proc-macro = true
 
