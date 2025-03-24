@@ -6,6 +6,9 @@ edition = "2018"
 [lib]
 proc-macro = true
 
+[features]
+generate_macro_test = []
+
 [dependencies]
 thiserror.workspace = true
 syn.workspace = true

@@ -23,7 +23,7 @@
 ///
 /// # Example
 ///
-/// ```
+/// ```ignore
 /// fn read_all_blocks(buffer: &[u8]) -> std::io::Result<(Vec<Block>, usize)> {
 ///     use brec::BufferedReader;
 ///     use std::io::Cursor;
@@ -69,7 +69,7 @@ impl<'a, R: std::io::BufRead> BufferedReader<'a, R> {
     ///
     /// # Example
     ///
-    /// ```
+    /// ```ignore
     /// fn read_all_blocks(buffer: &[u8]) -> std::io::Result<(Vec<Block>, usize)> {
     ///     use brec::BufferedReader;
     ///     use std::io::Cursor;
@@ -139,7 +139,7 @@ impl<'a, R: std::io::BufRead> BufferedReader<'a, R> {
     /// This method is typically used when there are insufficient bytes available
     /// in the buffer for reading a signature.
     ///
-    /// ```
+    /// ```ignore
     /// buffered_reader.refill()?;
     /// ```
     pub fn refill(&mut self) -> std::io::Result<()> {

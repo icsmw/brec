@@ -1,4 +1,5 @@
 #[cfg(test)]
+#[cfg(feature = "generate_macro_test")]
 mod tests;
 
 mod codegen;

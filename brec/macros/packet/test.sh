@@ -16,7 +16,7 @@ fi
 
 echo "Generate tests"
 
-cargo test --release -- --nocapture 
+cargo test --release --features generate_macro_test -- --nocapture 
 
 for folder in "$TESTS_DIR"/*/; do
     if [ -d "$folder" ]; then
