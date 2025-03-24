@@ -1,6 +1,6 @@
 [package]
 name = "brec_macros"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 authors = ["d.astafyev@outlook.com"]
 description = "Code generator for brec. Implements the block and payload macros."

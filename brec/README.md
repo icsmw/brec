@@ -1,9 +1,23 @@
-`brec` is a tool that allows you to quickly and easily create a custom message exchange protocol with resilience to data "corruption" and the ability to extract messages from mixed streams (i.e., streams containing not only `brec` packets but also any other data).
+`brec` is a tool that allows you to quickly and easily create a custom message exchange protocol with resilience to data "corruption" and the ability to extract messages from mixed streams (i.e., streams containing not only `brec` packets but also any other data). `brec` is developed for designing your own custom binary protocol — without predefined message formats or rigid schemas.
+
+# Key Features
+
+- **Protocol without constraints** – Unlike many alternatives, `brec` doesn’t enforce a fixed message layout. Instead, you define your own building blocks (`blocks`) and arbitrary payloads (`payloads`), combining them freely into custom packets.
+- **Stream-recognizable messages** – Each block, payload, and packet is automatically assigned a unique signature, making them easily discoverable within any byte stream.
+- **Built-in reliability** – All parts of a packet (blocks, payloads, and headers) are automatically linked with their own CRC checksums to ensure data integrity.
+- **Stream-aware reading** – `brec` includes a powerful streaming reader capable of extracting packets even from noisy or corrupted streams — skipping irrelevant or damaged data without breaking.
+- **Non-packet data is preserved** – When reading mixed streams, unrecognized data is not lost. You can capture and process it separately using rules and callbacks.
+- **Persistent storage layer** – `brec` provides a high-performance storage engine for persisting packets. Its slot-based layout enables fast indexed access, filtering, and direct access by packet index.
+- **High performance** – Parsing performance is on par with the most optimized binary parsers (see the Performance section).
+- **Simple to use** – Just annotate your structs with #[block] or #[payload], and brec takes care of the rest — your protocol is ready to go.
 
 # General Overview
+
 The primary unit of information in `brec` is a packet (`Packet`) — a ready-to-transmit message with a unique signature (allowing it to be recognized within mixed data) and a CRC to ensure data integrity.
 
 A packet consists of a set of blocks (`Block`) and, optionally, a payload (`Payload`).
+
+![Scheme](./assets/scheme.svg)
 
 Blocks (`Block`) are the minimal units of information in the `brec` system. A block can contain only primitives, such as numbers, boolean values, and byte slices. A block serves as a kind of packet index, allowing for quick determination of whether a packet requires full processing (i.e., parsing the `Payload`) or can be ignored.
 
@@ -718,11 +732,11 @@ A block supports fields of the following types:
 
 Any structure marked with the `block` macro will have the following extended representation in binary format:
 
-| Field                     | Type         |
-|---------------------------|-------------|
-| Signature                 | [u8; 4]     |
-| User-defined fields       | Available types |
-| CRC                       | [u8; 4]     |
+| Field                     | Type             |
+|---------------------------|------------------|
+| Signature                 | [u8; 4]          |
+| User-defined fields       | Available types  |
+| CRC                       | [u8; 4]          |
 
 Thus, the total binary length of a block is calculated as:
 
