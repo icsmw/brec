@@ -5,7 +5,7 @@ pub use bincode;
 #[cfg(feature = "build")]
 pub use build::*;
 
-extern crate packet as packet_macro;
+extern crate brec_marcos;
 
 pub const MAX_BLOCKS_COUNT: u8 = u8::MAX;
 
@@ -16,8 +16,8 @@ pub mod prelude;
 pub mod storage;
 pub mod traits;
 
+pub use brec_marcos::*;
 pub use crc32fast;
-pub use packet_macro::*;
 pub use payload::{
     PayloadDecode, PayloadEncode, PayloadEncodeReferred, PayloadHeader, PayloadHooks,
 };

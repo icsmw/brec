@@ -43,10 +43,26 @@ name = "brec"
 version = "0.1.0"
 dependencies = [
  "bincode",
+ "brec_marcos",
  "crc32fast",
  "enum_ids",
- "packet",
  "thiserror",
+]
+
+[[package]]
+name = "brec_marcos"
+version = "0.1.0"
+dependencies = [
+ "crc32fast",
+ "enum_ids",
+ "lazy_static",
+ "proc-macro2",
+ "proptest",
+ "quote",
+ "serde",
+ "syn",
+ "thiserror",
+ "uuid",
 ]
 
 [[package]]
@@ -194,22 +210,6 @@ name = "once_cell"
 version = "1.21.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d75b0bedcc4fe52caa0e03d9f1151a323e4aa5e2d78ba3580400cd3c9e2bc4bc"
-
-[[package]]
-name = "packet"
-version = "0.1.0"
-dependencies = [
- "crc32fast",
- "enum_ids",
- "lazy_static",
- "proc-macro2",
- "proptest",
- "quote",
- "serde",
- "syn",
- "thiserror",
- "uuid",
-]
 
 [[package]]
 name = "ppv-lite86"

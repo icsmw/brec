@@ -30,5 +30,5 @@ categories = [
 thiserror.workspace = true
 crc32fast.workspace = true
 enum_ids.workspace = true
-packet.workspace = true
+brec_marcos.workspace = true
 bincode = { workspace = true, optional = true }

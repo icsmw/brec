@@ -1,4 +1,4 @@
-extern crate packet as packet_macro;
+extern crate brec_marcos;
 
 pub use crate::error::*;
 pub use crate::packet::*;
@@ -8,5 +8,5 @@ pub use crate::traits::*;
 
 #[cfg(feature = "bincode")]
 pub use bincode;
+pub use brec_marcos::*;
 pub use crc32fast;
-pub use packet_macro::*;
