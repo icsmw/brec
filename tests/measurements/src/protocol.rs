@@ -167,11 +167,11 @@ impl Arbitrary for Record {
     }
 }
 
-#[payload(bincode)]
-#[derive(serde::Deserialize, serde::Serialize, PartialEq, PartialOrd, Clone, Debug)]
-pub struct Attachment {
-    pub uuid: String,
-    pub name: String,
-    pub chunk: u32,
-    pub data: Vec<u8>,
-}
+// #[payload(bincode)]
+// #[derive(serde::Deserialize, serde::Serialize, PartialEq, PartialOrd, Clone, Debug)]
+// pub struct Attachment {
+//     pub uuid: String,
+//     pub name: String,
+//     pub chunk: u32,
+//     pub data: Vec<u8>,
+// }

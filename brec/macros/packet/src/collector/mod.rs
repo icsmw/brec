@@ -38,36 +38,52 @@ impl Collector {
         let blocks = self.blocks.entry(get_pkg_name()).or_default();
         let fname = block.fullname()?.to_string();
         blocks.entry(fname).or_insert(block);
-        self.write()
+        Ok(())
     }
     pub fn add_payload(&mut self, payload: Payload) -> Result<(), E> {
         let payloads = self.payloads.entry(get_pkg_name()).or_default();
         let fname = payload.fullname()?.to_string();
         payloads.entry(fname).or_insert(payload);
-        self.write()
+        Ok(())
     }
-    pub fn has_payloads(&self) -> bool {
-        self.payloads.contains_key(&get_pkg_name())
+    pub fn is_blocks_empty(&mut self) -> bool {
+        self.blocks.entry(get_pkg_name()).or_default().is_empty()
     }
-    pub fn has_blocks(&self) -> bool {
-        self.blocks.contains_key(&get_pkg_name())
+    pub fn is_payloads_empty(&mut self) -> bool {
+        self.payloads.entry(get_pkg_name()).or_default().is_empty()
     }
-    fn write(&self) -> Result<(), E> {
+    pub fn write(&mut self, cfg: &Config) -> Result<(), E> {
         let pkg_name = get_pkg_name();
-        let block = self
-            .blocks
-            .get(&pkg_name)
-            .map(|blks| blocks::gen(blks.values().collect::<Vec<&Block>>()))
-            .unwrap_or(Ok(quote! {}))?;
-        let payload = self
-            .payloads
-            .get(&pkg_name)
-            .map(|plds| payloads::gen(plds.values().collect::<Vec<&Payload>>()))
-            .unwrap_or(Ok(quote! {}))?;
-        let packet = if self.has_payloads() && self.has_blocks() {
-            packet::gen()?
-        } else {
+        let block = if self.is_blocks_empty() {
             quote! {}
+        } else {
+            blocks::gen(
+                self.blocks
+                    .entry(pkg_name.clone())
+                    .or_default()
+                    .values()
+                    .collect::<Vec<&Block>>(),
+                cfg,
+            )?
+        };
+        let payload = if self.is_payloads_empty() && cfg.is_no_default_payloads() {
+            quote! {}
+        } else {
+            payloads::gen(
+                self.payloads
+                    .entry(pkg_name)
+                    .or_default()
+                    .values()
+                    .collect::<Vec<&Payload>>(),
+                cfg,
+            )?
+        };
+        let packet = if self.is_blocks_empty()
+            || (self.is_payloads_empty() && cfg.is_no_default_payloads())
+        {
+            quote! {}
+        } else {
+            packet::gen()?
         };
         let output = quote! {
             #block

@@ -3,8 +3,7 @@ use proptest::prelude::*;
 
 use crate::*;
 
-// brec::include_generated!("crate::*");
-brec::include_generated!();
+brec::generate!();
 
 impl Arbitrary for Payload {
     type Parameters = ();

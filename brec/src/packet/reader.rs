@@ -75,7 +75,7 @@ pub enum ResolveHeaderReady<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInn
 /// if necessary.
 ///
 /// It is important to note that there is no need to use `PacketBufReaderDef` directly.
-/// When invoking the `include_generated!()` macro, a wrapper type `PacketBufReader<R: std::io::Read, W: std::io::Write>`
+/// When invoking the `generate!()` macro, a wrapper type `PacketBufReader<R: std::io::Read, W: std::io::Write>`
 /// is generated, eliminating the requirement to specify all generic parameters manually. Users should
 /// prefer `PacketBufReader` when creating a reader instance.
 ///

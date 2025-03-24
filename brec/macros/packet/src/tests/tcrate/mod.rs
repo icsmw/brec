@@ -68,7 +68,7 @@ impl TCrate {
 
             #(#declarations)*
 
-            brec::include_generated!();
+            brec::generate!();
 
             fn main() {
                 #(#insts)*
@@ -84,10 +84,8 @@ impl TCrate {
                 }
 
                 let mut restored: Vec<Packet> = Vec::new();
-                let mut inner = std::io::BufReader::new(std::io::Cursor::new(buffer));
-                let mut reader: PacketBufReader<_, std::io::BufWriter<Vec<u8>>> =
-                    PacketBufReader::new(&mut inner);
-
+                let mut inner = std::io::Cursor::new(buffer);
+                let mut reader: PacketBufReader<std::io::Cursor<Vec<u8>>> = PacketBufReader::new(&mut inner);
                 loop {
                     match reader.read() {
                         Ok(next) => match next {

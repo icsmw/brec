@@ -4,7 +4,7 @@ use serial_test::serial;
 
 pub const MATCH: &str = "-match-";
 
-brec::include_generated!();
+brec::generate!(payloads_derive = "Clone, Debug");
 
 #[derive(Debug)]
 pub struct WrappedPacket {

@@ -5,6 +5,7 @@ mod codegen;
 mod collector;
 mod entities;
 mod error;
+mod generate;
 mod modificators;
 mod parser;
 mod parsing;
@@ -14,6 +15,7 @@ use codegen::*;
 use collector::*;
 use entities::*;
 use error::*;
+use generate::*;
 use tokenized::*;
 
 use proc_macro::TokenStream;
@@ -51,7 +53,7 @@ use syn::{parse_macro_input, DeriveInput};
 /// You may use custom `enum` fields in your block if you provide conversions to and from a supported base type.
 /// Here's an example using `Level`:
 ///
-/// ```no_run
+/// ```ignore
 /// pub enum Level {
 ///     Error,
 ///     Warn,
@@ -82,23 +84,23 @@ use syn::{parse_macro_input, DeriveInput};
 ///
 /// ## Integration with Code Generator
 ///
-/// The `#[block]` macro marks this struct for inclusion in the `brec::include_generated!()` macro.  
+/// The `#[block]` macro marks this struct for inclusion in the `brec::generate!()` macro.  
 /// For this to work correctly, the block must be **visible** at the macro invocation site. Example:
 ///
-/// ```no_run
+/// ```ignore
 /// pub use blocks::*;
-/// brec::include_generated!();
+/// brec::generate!();
 /// ```
 ///
 /// If you cannot import the block directly, you may specify the full module path via the `path` directive:
 ///
-/// ```no_run
+/// ```ignore
 /// #[block(path = mycrate::some_module)]
 /// pub struct ExternalBlock { ... }
 /// ```
 ///
 /// Shortcut syntax is also supported:
-/// ```no_run
+/// ```ignore
 /// #[block(mycrate::some_module)]
 /// pub struct ExternalBlock { ... }
 /// ```
@@ -147,9 +149,9 @@ pub fn block(attr: TokenStream, input: TokenStream) -> TokenStream {
 /// - [`String`](std::string::String)
 /// - [`Vec<u8>`](std::vec::Vec)
 ///
-/// When you invoke `brec::include_generated!()`, they are added to the generated `Payload` enum:
+/// When you invoke `brec::generate!()`, they are added to the generated `Payload` enum:
 ///
-/// ```no_run
+/// ```ignore
 /// pub enum Payload {
 ///     // Your custom payloads
 ///     MyCustomType(...),
@@ -165,7 +167,7 @@ pub fn block(attr: TokenStream, input: TokenStream) -> TokenStream {
 /// You can then use `#[payload(bincode)]` to automatically derive all required traits for
 /// any `serde`-compatible type.
 ///
-/// ```no_run
+/// ```ignore
 /// #[payload(bincode)]
 /// #[derive(serde::Serialize, serde::Deserialize)]
 /// pub struct MyPayload { ... }
@@ -180,7 +182,7 @@ pub fn block(attr: TokenStream, input: TokenStream) -> TokenStream {
 /// The macro accepts several optional directives:
 ///
 /// - `path = mod::mod`  
-///   Use if the payload type is defined outside the module where `include_generated!()` is invoked.  
+///   Use if the payload type is defined outside the module where `generate!()` is invoked.  
 ///   This avoids having to re-export the payload, but is not recommended due to maintenance concerns.
 ///
 /// - `no_crc`  
@@ -202,7 +204,7 @@ pub fn block(attr: TokenStream, input: TokenStream) -> TokenStream {
 /// - Any nondeterministic or unstable byte layout will result in failed deserialization.
 ///
 /// **Problematic example**:
-/// ```no_run
+/// ```ignore
 /// #[payload(bincode)]
 /// #[derive(serde::Serialize, serde::Deserialize)]
 /// pub struct Problematic {
@@ -219,15 +221,103 @@ pub fn block(attr: TokenStream, input: TokenStream) -> TokenStream {
 ///
 /// If the payload is defined in another module not directly visible at the generator site, specify `path = mod::mod`:
 ///
-/// ```no_run
+/// ```ignore
 /// #[payload(path = mycrate::data::types)]
 /// pub struct MyPayload { ... }
 /// ```
 ///
-/// This works but is not the recommended way. Prefer explicitly importing your payload at the call site of `brec::include_generated!()`.
+/// This works but is not the recommended way. Prefer explicitly importing your payload at the call site of `brec::generate!()`.
 #[proc_macro_attribute]
 pub fn payload(attr: TokenStream, input: TokenStream) -> TokenStream {
     let attrs = parse_macro_input!(attr as PayloadAttrs);
     let input = parse_macro_input!(input as DeriveInput);
     parser::payload::parse(attrs, input).into()
+}
+
+/// Inserts the generated glue code that connects user-defined `Block` and `Payload` types with the `brec` framework.
+///
+/// This macro must be called exactly once per crate and is responsible for:
+///
+/// - Implementing required `brec` traits for all user-defined `Block` types
+/// - Implementing required `brec` traits for all user-defined `Payload` types
+/// - Generating unified enums for blocks: `enum Block { ... }`
+/// - Generating unified enums for payloads: `enum Payload { ... }`
+/// - Exporting several convenience type aliases to simplify usage
+///
+/// ### Generated Aliases
+/// The macro defines the following aliases to reduce verbosity when using `brec` types:
+///
+/// | Alias                    | Expanded to                                                                 |
+/// |-------------------------|------------------------------------------------------------------------------|
+/// | `Packet`                | `PacketDef<Block, Payload, Payload>`                                        |
+/// | `PacketBufReader<'a, R>`| `PacketBufReaderDef<'a, R, Block, BlockReferred<'a>, Payload, Payload>`     |
+/// | `Rules<'a>`             | `RulesDef<Block, BlockReferred<'a>, Payload, Payload>`                      |
+/// | `Rule<'a>`              | `RuleDef<Block, BlockReferred<'a>, Payload, Payload>`                       |
+/// | `RuleFnDef<D, S>`       | `RuleFnDef<D, S>`                                                            |
+/// | `Storage<S>`            | `StorageDef<S, Block, BlockReferred<'static>, Payload, Payload>`            |
+///
+/// These aliases make it easier to work with generated structures and remove the need to repeat generic parameters.
+///
+/// ---
+///
+/// ### Required Build Script
+///
+/// To enable this macro, you **must** include a `build.rs` file with the following content:
+/// ```ignore
+///     brec::build_setup();
+/// ```
+/// This step ensures the code generator runs during build and provides all required metadata.
+///
+/// ---
+///
+/// ### Usage Constraints
+///
+/// - The macro **must only be called once** per crate. Calling it more than once will result in compilation errors due to duplicate types and impls.
+/// - The macro **must see all relevant types** (`Block`, `Payload`) in scope. You must ensure they are visible in the location where you call the macro.
+///
+/// ### Visibility Requirements
+///
+/// Ensure that all blocks and payloads are imported at the location where the macro is used:
+/// ```ignore
+/// pub use blocks::*;
+/// pub use payloads::*;
+///
+/// brec::generate!();
+/// ```
+///
+/// ### Parameters
+///
+/// The macro can be used with the following parameters:
+///
+/// - `no_default_payload` – Disables the built-in payloads (`String` and `Vec<u8>`).  
+///   This has no impact on runtime performance but may slightly improve compile times and reduce binary size.
+///
+/// - `payloads_derive = "Trait"` –  
+///   By default, `brec` automatically collects all `derive` attributes that are common across user-defined payloads
+///   and applies them to the generated `Payload` enum.  
+///   This parameter allows you to **manually** specify additional derives for the `Payload` enum—useful if you are
+///   only using the built-in payloads (`String`, `Vec<u8>`) and do not define custom ones.
+///
+/// #### Examples
+///
+/// ```ignore
+/// pub use blocks::*;
+///
+/// // You don't define any custom payloads and only want to use the built-in ones (`String`, `Vec<u8>`)
+/// brec::generate!(payloads_derive = "Debug, Clone");
+/// ```
+///
+/// ```ignore
+/// pub use blocks::*;
+///
+/// // You don't define any payloads and explicitly disable the built-in ones
+/// brec::generate!(no_default_payload);
+/// ```
+///
+/// If the user **fully disables** payload support (as in the example above),
+/// the macro will **not generate any packet-related types** (see *Generated Aliases*).
+#[proc_macro]
+pub fn generate(input: TokenStream) -> TokenStream {
+    let config = parse_macro_input!(input as Config);
+    generate::generate(&config).into()
 }

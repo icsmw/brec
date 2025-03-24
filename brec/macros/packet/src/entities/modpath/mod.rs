@@ -7,7 +7,7 @@ use crate::*;
 
 #[derive(Debug, Clone)]
 pub struct ModulePath {
-    inner: String,
+    pub inner: String,
 }
 
 impl ModulePath {

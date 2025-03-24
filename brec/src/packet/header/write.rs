@@ -12,7 +12,7 @@ use crate::*;
 /// # Arguments
 /// * `header` – Reference to the `PacketHeader` to serialize.
 /// * `buffer` – A mutable byte slice where the header will be written.
-///              Must be at least `PacketHeader::SIZE` bytes long.
+///   Must be at least `PacketHeader::SIZE` bytes long.
 fn fill_buf(header: &PacketHeader, buffer: &mut [u8]) {
     let mut offset = 0;
     buffer[offset..offset + 8usize].copy_from_slice(&PACKET_SIG);

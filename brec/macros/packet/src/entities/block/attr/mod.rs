@@ -39,6 +39,7 @@ impl BlockAttrs {
         self.0.iter().any(|attr| matches!(attr, BlockAttr::NoCrc))
     }
 }
+
 #[enum_ids::enum_ids(display_variant_snake)]
 #[derive(Debug, Clone)]
 pub enum BlockAttr {

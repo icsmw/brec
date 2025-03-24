@@ -7,8 +7,7 @@ use std::sync::{
     Arc,
 };
 
-// brec::include_generated!("crate::*");
-brec::include_generated!();
+brec::generate!();
 
 #[derive(PartialEq, PartialOrd, Debug)]
 struct WrappedPacket {

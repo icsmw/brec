@@ -45,7 +45,6 @@ dependencies = [
  "bincode",
  "crc32fast",
  "enum_ids",
- "include",
  "packet",
  "thiserror",
 ]
@@ -146,16 +145,6 @@ name = "hashbrown"
 version = "0.15.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bf151400ff0baff5465007dd2f3e717f3fe502074ca563069ce3a6629d07b289"
-
-[[package]]
-name = "include"
-version = "0.1.0"
-dependencies = [
- "lazy_static",
- "proc-macro2",
- "quote",
- "syn",
-]
 
 [[package]]
 name = "indexmap"

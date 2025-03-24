@@ -42,12 +42,12 @@ pub type NthFilteredPacket<B, P, Inner> = Option<LookInStatus<PacketDef<B, P, In
 /// ## Short type alias
 ///
 /// There is no need to use `StorageDef` directly or specify all generic parameters manually.  
-/// When invoking `brec::include_generated!()`, a short alias `Storage<S>` is generated,  
+/// When invoking `brec::generate!()`, a short alias `Storage<S>` is generated,  
 /// requiring only the stream type `S`. This is the recommended way to use the storage in real projects.
 ///
 /// ## Example
-/// ```no_run
-/// brec::include_generated!();
+/// ```ignore
+/// brec::generate!();
 ///
 /// use std::fs::OpenOptions;
 /// let file = OpenOptions::new().read(true).write(true).open("log.brec")?;
