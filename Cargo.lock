@@ -43,14 +43,14 @@ name = "brec"
 version = "0.1.0"
 dependencies = [
  "bincode",
- "brec_marcos",
+ "brec_macros",
  "crc32fast",
  "enum_ids",
  "thiserror",
 ]
 
 [[package]]
-name = "brec_marcos"
+name = "brec_macros"
 version = "0.1.0"
 dependencies = [
  "crc32fast",
