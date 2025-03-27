@@ -1,5 +1,14 @@
 `brec` is a tool that allows you to quickly and easily create a custom message exchange protocol with resilience to data "corruption" and the ability to extract messages from mixed streams (i.e., streams containing not only `brec` packets but also any other data). `brec` is developed for designing your own custom binary protocol — without predefined message formats or rigid schemas.
 
+> **Notice**: Public Beta
+>
+> The `brec` is currently in a public beta phase. Its core functionality has demonstrated strong reliability under heavy stress testing, and the system is considered stable for most use cases.
+>
+> However, the public API is still evolving as we work to support a wider range of scenarios.
+> We welcome your feedback and would be grateful if you share which features or improvements would make brec more valuable for your needs.
+>
+> **Thanks for being part of the journey!**
+
 # Key Features
 
 - **Protocol without constraints** – Unlike many alternatives, `brec` doesn’t enforce a fixed message layout. Instead, you define your own building blocks (`blocks`) and arbitrary payloads (`payloads`), combining them freely into custom packets.

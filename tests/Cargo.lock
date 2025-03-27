@@ -46,7 +46,7 @@ checksum = "8f68f53c83ab957f72c32642f3868eec03eb974d1fb82e453128456482613d36"
 
 [[package]]
 name = "brec"
-version = "0.1.0"
+version = "0.1.2"
 dependencies = [
  "bincode",
  "brec_macros",
@@ -57,14 +57,13 @@ dependencies = [
 
 [[package]]
 name = "brec_macros"
-version = "0.1.0"
+version = "0.1.2"
 dependencies = [
  "crc32fast",
  "enum_ids",
  "lazy_static",
  "proc-macro2",
  "quote",
- "serde",
  "syn",
  "thiserror",
 ]

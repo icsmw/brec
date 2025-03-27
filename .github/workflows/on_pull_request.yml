@@ -35,3 +35,17 @@ jobs:
         run: chmod +x ./test.sh
       - name: Tests
         run: sh ./test.sh
+
+  examples:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Update rust
+        run: rustup update
+      - name: Make scripts executable
+        run: chmod +x ./build.sh
+        working-directory: ./examples
+      - name: Tests
+        run: sh ./build.sh
+        working-directory: ./examples

@@ -1,6 +1,6 @@
 [package]
 name = "brec_macros"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2021"
 authors = ["d.astafyev@outlook.com"]
 description = "Code generator for brec. Implements the block and payload macros."
@@ -40,7 +40,6 @@ proc-macro2.workspace = true
 enum_ids.workspace = true
 crc32fast.workspace = true
 lazy_static.workspace = true
-serde = { workspace = true , features = ["derive"] }
 
 [dev-dependencies]
 proptest.workspace = true

@@ -1,3 +1,4 @@
+#![deny(unused_crate_dependencies)]
 #![doc = include_str!("../README.md")]
 
 #[cfg(feature = "build")]
