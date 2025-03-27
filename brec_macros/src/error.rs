@@ -20,6 +20,8 @@ pub enum E {
     ReservedFieldName(String),
     #[error("{0} is unknown visibility")]
     FailParseVisibility(String),
+    #[error("Fail parser derive: {0}")]
+    FailParseDerive(String),
 
     #[error("Attribute isn't supported")]
     UnsupportedAttr,

@@ -9,7 +9,7 @@ mod read;
 mod write;
 
 pub fn gen(payloads: Vec<&Payload>, cfg: &Config) -> Result<TokenStream, E> {
-    let derives = Derives::common(payloads.iter().map(|p| &p.derives).collect());
+    let derives = Derives::common(payloads.iter().map(|p| &p.derives).collect())?;
     let payload = enums::gen(&payloads, derives, cfg)?;
     let encode = props::encode(&payloads)?;
     let encode_referred = props::encode_referred(&payloads)?;

@@ -1,4 +1,7 @@
-use syn::DeriveInput;
+use crate::*;
+use proc_macro2::TokenStream;
+use quote::quote;
+use syn::{DeriveInput, Path};
 
 #[derive(Debug, Clone)]
 pub struct Derives {
@@ -6,7 +9,7 @@ pub struct Derives {
 }
 
 impl Derives {
-    pub fn common(derives: Vec<&Self>) -> Vec<String> {
+    pub fn common(derives: Vec<&Self>) -> Result<Vec<TokenStream>, E> {
         let mut common = derives
             .first()
             .map(|der| der.derives.clone())
@@ -15,6 +18,14 @@ impl Derives {
             common.retain(|der| v.derives.contains(der));
         });
         common
+            .into_iter()
+            .map(|derive| {
+                let derive = derive.trim();
+                syn::parse_str::<Path>(derive)
+                    .map(|path| quote!(#path))
+                    .map_err(|_e| E::FailParseDerive(derive.to_owned()))
+            })
+            .collect()
     }
 }
 
@@ -24,10 +35,14 @@ impl From<&DeriveInput> for Derives {
         input.attrs.iter().for_each(|attr| {
             if attr.path().is_ident("derive") {
                 let _ = attr.parse_nested_meta(|meta| {
-                    // TODO: consider other than just ident variants. Could be a path, aka serder::Des.....
-                    if let Some(ident) = meta.path.get_ident() {
-                        derives.push(ident.to_string());
-                    }
+                    let path: &Path = &meta.path;
+                    derives.push(
+                        path.segments
+                            .iter()
+                            .map(|seg| seg.ident.to_string())
+                            .collect::<Vec<_>>()
+                            .join("::"),
+                    );
                     Ok(())
                 });
             }

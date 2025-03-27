@@ -9,7 +9,7 @@ mod read;
 mod write;
 
 pub fn gen(blocks: Vec<&Block>, cfg: &Config) -> Result<TokenStream, E> {
-    let derives = Derives::common(blocks.iter().map(|b| &b.derives).collect());
+    let derives = Derives::common(blocks.iter().map(|b| &b.derives).collect())?;
     let block = enums::gen(&blocks, derives, cfg)?;
     let block_referred = enums::gen_referred(&blocks)?;
     let prop = props::gen(&blocks)?;

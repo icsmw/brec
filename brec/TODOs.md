@@ -1,3 +1,1 @@
-- add developing section with description of tests
-- add full-test and light-test (for crates.io)
 - add example based on wasm
