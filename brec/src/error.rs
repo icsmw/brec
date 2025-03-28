@@ -46,6 +46,8 @@ pub enum Error {
     InvalidPacketReaderLogic,
     #[error("Fail to find free slot")]
     CannotFindFreeSlot,
+    #[error("Fail to find free palce in slot")]
+    CannotFindFreePlaceInSlot,
     #[error("Fail to insert data into slot")]
     CannotInsertIntoSlot,
     #[error("Damaged slot: {0}")]

@@ -699,6 +699,7 @@ In addition to stream reading, `brec` provides a tool for storing packets and ac
 | `insert(&mut self, packet: Packet)`  | Inserts a packet into the storage. |
 | `add_rule(&mut self, rule: Rule)`    | Adds a filtering rule. |
 | `remove_rule(&mut self, rule: RuleDefId)` | Removes a filtering rule. |
+| `count(&self)` | Returns the number of records currently stored. |
 | `iter(&mut self)`                    | Returns an iterator over the storage. This method does not apply filters, even if previously added. |
 | `filtered(&mut self)`                | Returns an iterator with filters applied (if any were set via `add_rule`). The filtering rules used in `Storage` are identical to those used in `PacketBufReader`. |
 | `nth(&mut self, nth: usize)`         | Attempts to read the packet at the specified index. Note that this method does not apply any filtering, even if filters have been previously defined. |

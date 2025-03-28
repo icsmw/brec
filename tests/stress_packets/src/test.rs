@@ -452,6 +452,12 @@ fn try_reading_with_try_read_buffered(packets: Vec<WrappedPacket>) -> std::io::R
 }
 
 fn storage_write_read_filter(packets: Vec<WrappedPacket>, filename: &str) -> std::io::Result<()> {
+    if packets.is_empty() {
+        return Err(std::io::Error::new(
+            std::io::ErrorKind::InvalidData,
+            String::from("Empty packets; no packets to test"),
+        ));
+    }
     let tmp = std::env::temp_dir().join(filename);
     let mut file = std::fs::OpenOptions::new()
         .read(true)
@@ -466,6 +472,8 @@ fn storage_write_read_filter(packets: Vec<WrappedPacket>, filename: &str) -> std
             .insert(packet.into())
             .map_err(|err| std::io::Error::new(std::io::ErrorKind::InvalidData, err.to_string()))?;
     }
+    let storage_count = storage.count();
+    assert_eq!(packets.len(), storage_count);
     let mut restored = Vec::new();
     for packet in storage.iter() {
         match packet {
@@ -547,7 +555,46 @@ fn storage_write_read_filter(packets: Vec<WrappedPacket>, filename: &str) -> std
     }
     let payloads = packets.iter().filter(|pkg| pkg.payload.is_some()).count();
     assert_eq!(payloads, payload_visited.load(Ordering::SeqCst));
+    // Create new storage to same file
+    let mut storage = Storage::new(&mut file)
+        .map_err(|err| std::io::Error::new(std::io::ErrorKind::InvalidData, err.to_string()))?;
+    // Add new packet
+    storage
+        .insert((&packets[0]).into())
+        .map_err(|err| std::io::Error::new(std::io::ErrorKind::InvalidData, err.to_string()))?;
+    assert_eq!(storage.count(), storage_count + 1);
     report_storage(packets.len(), Some(blocks_visited.load(Ordering::SeqCst)));
+    Ok(())
+}
+
+fn storage_slot_locator(
+    packet: &WrappedPacket,
+    filename: &str,
+    count: usize,
+) -> std::io::Result<()> {
+    let tmp = std::env::temp_dir().join(filename);
+    let mut file = std::fs::OpenOptions::new()
+        .read(true)
+        .write(true)
+        .create(true)
+        .truncate(true)
+        .open(&tmp)?;
+    let mut storage = Storage::new(&mut file)
+        .map_err(|err| std::io::Error::new(std::io::ErrorKind::InvalidData, err.to_string()))?;
+    for _ in 0..count {
+        storage
+            .insert(packet.into())
+            .map_err(|err| std::io::Error::new(std::io::ErrorKind::InvalidData, err.to_string()))?;
+    }
+    assert_eq!(count, storage.count());
+    // Locator should setup it self to correct position
+    let mut storage = Storage::new(&mut file)
+        .map_err(|err| std::io::Error::new(std::io::ErrorKind::InvalidData, err.to_string()))?;
+    assert_eq!(count, storage.count());
+    storage
+        .insert(packet.into())
+        .map_err(|err| std::io::Error::new(std::io::ErrorKind::InvalidData, err.to_string()))?;
+    assert_eq!(count + 1, storage.count());
     Ok(())
 }
 
@@ -570,6 +617,12 @@ fn max() -> usize {
         .and_then(|s| s.parse().ok())
         .unwrap_or(100)
 }
+
+const STORAGE_WRITE_READ_FILTER_NO_BLOCKS_FILE: &str =
+    "test_storage_write_read_filter_no_blocks.bin";
+const STORAGE_WRITE_READ_FILTER_BLOCKS_FILE: &str =
+    "test_storage_write_read_filter_with_blocks.bin";
+const STORAGE_SLOT_LOCATOR_FILE: &str = "test_storage_slot_locator.bin";
 
 proptest! {
     #![proptest_config(get_proptest_config())]
@@ -636,12 +689,24 @@ proptest! {
 
     #[test]
     fn storage_write_read_filter_no_blocks(packets in proptest::collection::vec(WrappedPacket::arbitrary_with(true), 1..max())) {
-        storage_write_read_filter(packets, "test_storage_write_read_filter_no_blocks.bin")?;
+        storage_write_read_filter(packets, STORAGE_WRITE_READ_FILTER_NO_BLOCKS_FILE)?;
     }
 
     #[test]
     fn storage_write_read_filter_with_blocks(packets in proptest::collection::vec(WrappedPacket::arbitrary_with(false), 1..max())) {
-        storage_write_read_filter(packets, "test_storage_write_read_filter_with_blocks.bin")?;
+        storage_write_read_filter(packets, STORAGE_WRITE_READ_FILTER_BLOCKS_FILE)?;
+    }
+
+    #[test]
+    fn storage_slot_locator_test(packet in WrappedPacket::arbitrary_with(false)) {
+        storage_slot_locator(&packet, STORAGE_SLOT_LOCATOR_FILE, 0)?;
+        storage_slot_locator(&packet, STORAGE_SLOT_LOCATOR_FILE, 1)?;
+        storage_slot_locator(&packet, STORAGE_SLOT_LOCATOR_FILE, DEFAULT_SLOT_CAPACITY)?;
+        storage_slot_locator(&packet, STORAGE_SLOT_LOCATOR_FILE, DEFAULT_SLOT_CAPACITY - 1)?;
+        storage_slot_locator(&packet, STORAGE_SLOT_LOCATOR_FILE, DEFAULT_SLOT_CAPACITY + 2)?;
+        storage_slot_locator(&packet, STORAGE_SLOT_LOCATOR_FILE, DEFAULT_SLOT_CAPACITY * 2)?;
+        storage_slot_locator(&packet, STORAGE_SLOT_LOCATOR_FILE, DEFAULT_SLOT_CAPACITY * 2 - 1)?;
+        storage_slot_locator(&packet, STORAGE_SLOT_LOCATOR_FILE, DEFAULT_SLOT_CAPACITY * 2 + 1)?;
     }
 
 }

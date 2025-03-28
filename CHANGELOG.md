@@ -1,3 +1,13 @@
+## 0.1.3 (28.03.2025)
+
+### Fixes
+- Fixed issue with `count()` on `StorageDef`
+- Fixed missed setup (on load) of slot's locator 
+
+### Changes
+- Added tests for `count()` on `StorageDef`
+- Updated documentation
+
 ## 0.1.2 (27.03.2025)
 
 ### Fixes

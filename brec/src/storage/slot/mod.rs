@@ -97,6 +97,16 @@ impl Slot {
         Some(self.lenghts[..free_pos].iter().sum::<u64>() + self.size())
     }
 
+    /// Returns the indoex of the first available free slot, or `None` if the slot is full.
+    pub fn get_free_slot_index(&self) -> Option<usize> {
+        if let Some(ln) = self.lenghts.last() {
+            if ln > &0 {
+                return None;
+            }
+        }
+        self.lenghts.iter().position(|ln| ln == &0)
+    }
+
     /// Recomputes and stores the CRC based on current contents.
     pub fn overwrite_crc(&mut self) {
         self.crc = self.crc();

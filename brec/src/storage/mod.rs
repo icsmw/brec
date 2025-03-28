@@ -6,6 +6,7 @@ use crate::*;
 pub(crate) use iters::*;
 pub(crate) use locator::*;
 pub(crate) use slot::*;
+pub use slot::{DEFAULT_SLOT_CAPACITY, STORAGE_SLOT_SIG};
 
 pub type NthFilteredPacket<B, P, Inner> = Option<LookInStatus<PacketDef<B, P, Inner>>>;
 
@@ -121,6 +122,7 @@ impl<
                 Err(err) => return Err(err),
             }
         }
+        self.locator.setup(&self.slots);
         Ok(self)
     }
 
@@ -167,7 +169,7 @@ impl<
         packet.write_all(&mut buffer)?;
         // Insert length of packet
         self.locator.insert(&mut self.slots, buffer.len() as u64)?;
-        // Get update slot data
+        // Get updated slot data
         let (slot_index, slot_offset) = self.locator.current();
         self.inner.flush()?;
         self.inner.seek(std::io::SeekFrom::Start(slot_offset))?;
@@ -183,6 +185,18 @@ impl<
         self.inner.write_all(&buffer)?;
         self.inner.flush()?;
         Ok(())
+    }
+
+    /// Returns the number of records currently stored.
+    pub fn count(&self) -> usize {
+        let (slot_index, _) = self.locator.current();
+        let Some(slot) = self.slots.get(slot_index) else {
+            return self.slots.len() * DEFAULT_SLOT_CAPACITY;
+        };
+        let Some(index) = slot.get_free_slot_index() else {
+            return self.slots.len() * DEFAULT_SLOT_CAPACITY;
+        };
+        slot_index * DEFAULT_SLOT_CAPACITY + index
     }
 
     /// Returns an iterator over all packets in the storage (no filtering).

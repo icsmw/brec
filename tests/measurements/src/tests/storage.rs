@@ -51,6 +51,12 @@ pub fn read_file(filename: &str) -> std::io::Result<()> {
             }
         }
     }
+    if count != storage.count() {
+        return Err(std::io::Error::new(
+            std::io::ErrorKind::Other,
+            format!("Dismatch lengths: {} vs {count}", storage.count()),
+        ));
+    }
     report::add(
         report::Platform::Storage,
         report::TestCase::Reading,

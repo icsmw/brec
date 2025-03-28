@@ -59,4 +59,14 @@ impl FreeSlotLocator {
     pub fn current(&self) -> (usize, u64) {
         (self.next, self.slot_offset)
     }
+
+    pub fn setup(&mut self, slots: &[Slot]) {
+        for slot in slots.iter() {
+            if slot.get_free_slot_offset().is_some() {
+                break;
+            }
+            self.slot_offset += slot.size() + slot.width();
+            self.next += 1;
+        }
+    }
 }
