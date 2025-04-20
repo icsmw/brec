@@ -1,0 +1,21 @@
+site_name: BRec (Binary Record)
+site_url: https://icsmw.github.io/brec/
+docs_dir: docs
+theme:
+  name: material
+nav:
+  - Home: index.md
+  - Overview: overview.md
+  - Getting Started: getting_started.md
+  - Protocol Parts:
+      - Blocks: parts/blocks.md
+      - Payloads: parts/payloads.md
+      - Packets: parts/packets.md
+  - Code Generation: code_generation.md
+  - Protocol Tools:
+      - Buffer: tools/buffer.md
+      - Storage: tools/storage.md
+  - Specification: specification.md  
+  - Stability & Performance:
+      - Tests: stability/tests.md
+      - Performance: stability/performance.md

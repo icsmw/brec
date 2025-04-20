@@ -1,4 +1,4 @@
-[![LICENSE](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE.txt)
+[![LICENSE](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE.md)
 [![](https://github.com/icsmw/brec/actions/workflows/on_pull_request.yml/badge.svg)](https://github.com/icsmw/brec/actions/workflows/on_pull_request.yml)
 ![Crates.io](https://img.shields.io/crates/v/brec)
 
@@ -21,22 +21,8 @@
 - **Stream-aware reading** – `brec` includes a powerful streaming reader capable of extracting packets even from noisy or corrupted streams — skipping irrelevant or damaged data without breaking.
 - **Non-packet data is preserved** – When reading mixed streams, unrecognized data is not lost. You can capture and process it separately using rules and callbacks.
 - **Persistent storage layer** – `brec` provides a high-performance storage engine for persisting packets. Its slot-based layout enables fast indexed access, filtering, and direct access by packet index.
-- **High performance** – Parsing performance is on par with the most optimized binary parsers (see the Performance section in [documentation](./brec/README.md)).
+- **High performance** – Parsing performance is on par with the most optimized binary parsers (see the Performance section in [performance](stability/performance.md)).
 - **Simple to use** – Just annotate your structs with #[block] or #[payload], and brec takes care of the rest — your protocol is ready to go.
-
-## Overview
-
-The primary unit of information in `brec` is a packet (`Packet`) — a ready-to-transmit message with a unique signature (allowing it to be recognized within mixed data) and a CRC to ensure data integrity.
-
-A packet consists of a set of blocks (`Block`) and, optionally, a payload (`Payload`).
-
-Blocks (`Block`) are the minimal units of information in the `brec` system. A block can contain only primitives, such as numbers, boolean values, and byte slices. A block serves as a kind of packet index, allowing for quick determination of whether a packet requires full processing (i.e., parsing the `Payload`) or can be ignored.
-
-The payload (`Payload`) is an optional part of the packet. Unlike blocks (`Block`), it has no restrictions on the type of data it can contain—it can be a `struct` or `enum` of any complexity and nesting level.
-
-Unlike most protocols, `brec` does not require users to define a fixed set of messages but does require them to describe blocks (`Block`) and payload data (`Payload`).
-
-Users can construct packets (messages) by combining various sets of blocks and payloads. This means `brec` does not impose a predefined list of packets (`Packet`) within the protocol but allows them to be defined dynamically. As a result, the same block and/or payload can be used across multiple packets (messages) without any restrictions.
 
 ## Recent Performance Test Results
 
@@ -53,16 +39,4 @@ Users can construct packets (messages) by combining various sets of blocks and p
 | Streamed Storage (brec) | Filtering | 908 Mb  | 140,000     | **355**   | 10         |
 | Streamed Storage (brec) | Reading   | 908 Mb  | 1,000,000   | 790       | 10         |
 
-See more details in the [documentation](./brec/README.md) about how tests are performed and what they mean.
-
-## Documentation
-
-The main documentation for this crate lives in [`brec/README.md`](./brec/README.md).
-
-[Click here to view it](brec/README.md)
-
-## Contributing
-
-We welcome contributions of all kinds — bug reports, performance improvements, documentation fixes, or new features.
-
-[Click here to view it](CONTRIBUTING.md)
+See more details in the [test](stability/tests.md) about how tests are performed and what they mean.
