@@ -21,7 +21,7 @@
 - **Stream-aware reading** – `brec` includes a powerful streaming reader capable of extracting packets even from noisy or corrupted streams — skipping irrelevant or damaged data without breaking.
 - **Non-packet data is preserved** – When reading mixed streams, unrecognized data is not lost. You can capture and process it separately using rules and callbacks.
 - **Persistent storage layer** – `brec` provides a high-performance storage engine for persisting packets. Its slot-based layout enables fast indexed access, filtering, and direct access by packet index.
-- **High performance** – Parsing performance is on par with the most optimized binary parsers (see the Performance section in [documentation](./brec/README.md)).
+- **High performance** – Parsing performance is on par with the most optimized binary parsers (see the Performance section in [documentation](https://icsmw.github.io/brec/)).
 - **Simple to use** – Just annotate your structs with #[block] or #[payload], and brec takes care of the rest — your protocol is ready to go.
 
 ## Overview
@@ -53,13 +53,11 @@ Users can construct packets (messages) by combining various sets of blocks and p
 | Streamed Storage (brec) | Filtering | 908 Mb  | 140,000     | **355**   | 10         |
 | Streamed Storage (brec) | Reading   | 908 Mb  | 1,000,000   | 790       | 10         |
 
-See more details in the [documentation](./brec/README.md) about how tests are performed and what they mean.
+See more details in the [documentation](https://icsmw.github.io/brec/) about how tests are performed and what they mean.
 
 ## Documentation
 
-The main documentation for this crate lives in [`brec/README.md`](./brec/README.md).
-
-[Click here to view it](brec/README.md)
+The main documentation for this crate lives in [documentation](https://icsmw.github.io/brec/).
 
 ## Contributing
 
