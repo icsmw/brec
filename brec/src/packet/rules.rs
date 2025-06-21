@@ -17,23 +17,27 @@ pub enum RuleFnDef<D, S> {
 }
 
 /// Callback used when `PacketBufReaderDef` encounters unrecognized data.
-pub type IgnoredCallback = RuleFnDef<Box<dyn FnMut(&[u8])>, fn(&[u8])>;
+pub type IgnoredCallback = RuleFnDef<Box<dyn FnMut(&[u8]) + Send + 'static>, fn(&[u8])>;
 
 /// Callback used to handle and write unrecognized data to a separate writer.
 pub type WriteIgnoredCallback<W> = RuleFnDef<
-    Box<dyn FnMut(&mut std::io::BufWriter<W>, &[u8]) -> std::io::Result<()>>,
+    Box<dyn FnMut(&mut std::io::BufWriter<W>, &[u8]) -> std::io::Result<()> + Send + 'static>,
     fn(&mut std::io::BufWriter<W>, &[u8]) -> std::io::Result<()>,
 >;
 
 /// Callback to filter packets early by inspecting block metadata before full parsing.
-pub type BlocksFilterCallback<BR> = RuleFnDef<Box<dyn Fn(&[BR]) -> bool>, fn(&[BR]) -> bool>;
+pub type BlocksFilterCallback<BR> =
+    RuleFnDef<Box<dyn Fn(&[BR]) -> bool + Send + 'static>, fn(&[BR]) -> bool>;
 
 /// Callback to filter packets by payload content.
-pub type PayloadFilterCallback = RuleFnDef<Box<dyn Fn(&[u8]) -> bool>, fn(&[u8]) -> bool>;
+pub type PayloadFilterCallback =
+    RuleFnDef<Box<dyn Fn(&[u8]) -> bool + Send + 'static>, fn(&[u8]) -> bool>;
 
 /// Callback to filter fully parsed packets.
-pub type FilterCallback<B, P, Inner> =
-    RuleFnDef<Box<dyn Fn(&PacketDef<B, P, Inner>) -> bool>, fn(&PacketDef<B, P, Inner>) -> bool>;
+pub type FilterCallback<B, P, Inner> = RuleFnDef<
+    Box<dyn Fn(&PacketDef<B, P, Inner>) -> bool + Send + 'static>,
+    fn(&PacketDef<B, P, Inner>) -> bool,
+>;
 
 /// Defines processing rules used by `PacketBufReaderDef`.
 ///

@@ -12,11 +12,4 @@ impl FromBytes for Field {
             let #name = #ty;
         }
     }
-    fn r#unsafe(&self, src: &Ident, offset: usize) -> TokenStream {
-        let name = format_ident!("{}", self.name);
-        let ty = self.ty.r#unsafe(src, offset);
-        quote! {
-            let #name = #ty;
-        }
-    }
 }

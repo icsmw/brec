@@ -61,7 +61,7 @@ impl Slot {
     }
 
     /// Returns an iterator over active ranges in the slot.
-    pub fn iter(&self) -> SlotIterator {
+    pub fn iter(&self) -> SlotIterator<'_> {
         SlotIterator::new(self)
     }
 

@@ -46,7 +46,7 @@ checksum = "8f68f53c83ab957f72c32642f3868eec03eb974d1fb82e453128456482613d36"
 
 [[package]]
 name = "brec"
-version = "0.1.3"
+version = "0.1.4"
 dependencies = [
  "bincode",
  "brec_macros",
@@ -57,7 +57,7 @@ dependencies = [
 
 [[package]]
 name = "brec_macros"
-version = "0.1.3"
+version = "0.1.4"
 dependencies = [
  "crc32fast",
  "enum_ids",
@@ -91,9 +91,9 @@ dependencies = [
 
 [[package]]
 name = "enum_ids"
-version = "0.6.1"
+version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "abf8aba3a682695515d24b4668955e8af13c238356a1244433b1d10b8b5743c7"
+checksum = "b4187077ab498475c7316f3dbfce3bcb9b34deb6d7cb60c8a864f33170104e0f"
 dependencies = [
  "proc-macro2",
  "quote",

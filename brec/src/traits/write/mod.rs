@@ -43,7 +43,7 @@ pub trait WriteVectoredTo {
     }
 
     /// Returns a set of I/O slices representing the data to write.
-    fn slices(&self) -> std::io::Result<IoSlices>;
+    fn slices(&self) -> std::io::Result<IoSlices<'_>>;
 
     /// Writes all data using vectored I/O, ensuring that everything is written.
     fn write_vectored_all<T: std::io::Write>(&self, buf: &mut T) -> std::io::Result<()> {
@@ -61,7 +61,7 @@ pub trait WriteVectoredMutTo {
     }
 
     /// Returns the I/O slices for the data to write.
-    fn slices(&mut self) -> std::io::Result<IoSlices>;
+    fn slices(&mut self) -> std::io::Result<IoSlices<'_>>;
 
     /// Ensures all data is written using vectored I/O.
     fn write_vectored_all<T: std::io::Write>(&mut self, buf: &mut T) -> std::io::Result<()> {
@@ -123,7 +123,7 @@ where
     }
 
     /// Prepares the header and payload slices for vectored I/O.
-    fn slices(&mut self) -> std::io::Result<IoSlices> {
+    fn slices(&mut self) -> std::io::Result<IoSlices<'_>> {
         let mut slices = IoSlices::default();
         let header = PayloadHeader::new(self)?.as_vec();
         slices.add_buffered(header.to_vec());

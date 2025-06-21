@@ -90,7 +90,7 @@ impl<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> WriteVectoredMut
     ///
     /// # Returns
     /// A ready-to-write `IoSlices` that can be passed to `write_vectored`.
-    fn slices(&mut self) -> std::io::Result<IoSlices> {
+    fn slices(&mut self) -> std::io::Result<IoSlices<'_>> {
         let header = PacketHeader::new(&self.blocks, self.payload.as_ref())?;
         let mut slices = IoSlices::default();
         let mut header_bytes: Vec<u8> = Vec::new();

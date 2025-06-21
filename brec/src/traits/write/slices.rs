@@ -44,7 +44,7 @@ impl<'a> IoSlices<'a> {
     ///
     /// # Returns
     /// A vector of `std::io::IoSlice` values ready for `write_vectored`.
-    pub fn get(&self) -> Vec<std::io::IoSlice> {
+    pub fn get(&self) -> Vec<std::io::IoSlice<'_>> {
         self.slots
             .iter()
             .map(|slot| match slot {

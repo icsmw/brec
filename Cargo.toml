@@ -16,7 +16,7 @@ paste = "1.0"
 syn = { version  = "2.0", features = ["full"] }
 quote = "1.0"
 proc-macro2 = "1.0"
-enum_ids = "0.6"
+enum_ids = "0.7"
 crc32fast = "1.4"
 lazy_static = "1.5"
 serde = { version = "1.0", features = ["derive"] }

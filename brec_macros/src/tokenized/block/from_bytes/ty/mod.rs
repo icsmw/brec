@@ -41,27 +41,4 @@ impl FromBytes for Ty {
             }
         }
     }
-
-    fn r#unsafe(&self, src: &Ident, offset: usize) -> TokenStream {
-        let ty = self.direct();
-        if offset == 0 {
-            if matches!(self, Ty::U8) {
-                quote! {
-                    unsafe { &*#src.as_ptr() }
-                }
-            } else {
-                quote! {
-                    unsafe { &*(#src.as_ptr() as *const #ty) }
-                }
-            }
-        } else if matches!(self, Ty::U8) {
-            quote! {
-                unsafe { &*#src.as_ptr().add(#offset) }
-            }
-        } else {
-            quote! {
-               unsafe { &*(#src.as_ptr().add(#offset) as *const #ty) }
-            }
-        }
-    }
 }
