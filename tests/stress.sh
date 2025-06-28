@@ -1,4 +1,5 @@
 #!/bin/bash
+set -e
 
 cd ./stress_blocks
 sh ./stress.sh

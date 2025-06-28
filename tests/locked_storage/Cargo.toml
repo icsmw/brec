@@ -1,0 +1,20 @@
+[package]
+name = "locked_storage"
+version = "0.1.0"
+edition = "2021"
+authors = ["d.astafyev@outlook.com"]
+description = "This crate is intended for testing brec"
+license = "Apache-2.0"
+
+[dependencies]
+brec = { workspace = true, features=["bincode", "locked_storage"]  }
+serde = { workspace = true, features = ["derive"] }
+
+[dev-dependencies]
+proptest.workspace = true
+num-format.workspace = true
+serde_json.workspace = true
+serial_test.workspace = true
+
+[build-dependencies]
+brec = { workspace = true, features=["build"] }

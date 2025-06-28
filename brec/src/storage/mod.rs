@@ -1,3 +1,8 @@
+#[cfg(feature = "locked_storage")]
+mod file;
+#[cfg(feature = "locked_storage")]
+pub use file::{FileStorageDef, FileStorageOptions};
+
 mod iters;
 mod locator;
 mod slot;

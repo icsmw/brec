@@ -24,3 +24,44 @@ The core design of `Storage` is based on how it organizes packets internally:
 - Thanks to the slot metadata, `Storage` can **quickly locate packets by index** or **return a packet range efficiently**.
 
 As previously mentioned, each slot maintains its own **CRC** to ensure data integrity. However, even if the storage file becomes corrupted and `Storage` can no longer operate reliably, packets remain accessible in a **manual recovery mode**. For example, you can use `PacketBufReader` to scan the file, ignoring slot metadata and extracting intact packets sequentially.
+
+## Locked file storage
+
+When the locked_storage feature is enabled, you gain access to `FileStorage`, a file-backed wrapper around `StorageDef` with built-in file locking capabilities.
+
+### How it works
+
+When a new instance of `FileStorage` is created, a .lock file is created alongside the target storage file. An exclusive advisory lock is then applied to the .lock file using the fs4 crate.
+
+This mechanism ensures that:
+
+- Multiple `FileStorage` instances from the same or different processes will respect the lock
+- Only one instance can access the underlying file at a time
+- Lock contention can be resolved automatically via timeout and polling
+
+**Important**: This is an advisory lock. It only prevents access for processes that respect the locking protocol (such as other brec-based tools). It does not prevent other unrelated tools, editors, or system calls from modifying the file.
+
+### Coordinated Access
+
+`FileStorage` supports:
+
+- An optional timeout for acquiring the lock
+- A customizable polling interval while waiting
+
+This allows safe coordination in multi-process environments, without resorting to global OS-level locks.
+
+### Example 
+
+```
+FileStorage::new(
+    &filename,                          // Path to file
+    Some(Duration::from_millis(100)),   // Timeout
+    None,                               // Interval to check lock state (if file was locked and we are waiting)
+);
+
+// Or with options
+FileStorageOptions::new(filename)
+    .timeout(Duration::from_millis(300))
+    .interval(Duration::from_millis(50))
+    .open();
+```

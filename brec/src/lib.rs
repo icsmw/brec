@@ -7,6 +7,8 @@ pub mod build;
 pub use bincode;
 #[cfg(feature = "build")]
 pub use build::*;
+#[cfg(test)]
+pub mod tests;
 
 extern crate brec_macros;
 

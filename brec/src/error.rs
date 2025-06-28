@@ -56,4 +56,14 @@ pub enum Error {
     TooManyAttemptsToReadBlock(usize),
     #[error("Out of bounds; len = {0}; requested = {1}")]
     OutOfBounds(usize, usize),
+    #[error("Path isn't a file: {0}")]
+    PathIsNotFile(String),
+    #[error("File is locked: {0}")]
+    FileIsLocked(String),
+    #[error("Timeout error. File is locked: {0}")]
+    TimeoutToWaitLockedFile(String),
+    #[error("Fail to lock file: {0}")]
+    FailToLockFile(std::io::Error),
+    #[error("Test error has been fired")]
+    Test,
 }

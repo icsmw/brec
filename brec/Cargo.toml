@@ -1,6 +1,6 @@
 [package]
 name = "brec"
-version = "0.1.4"
+version = "0.2.0"
 edition = "2021"
 authors = ["d.astafyev@outlook.com"]
 description = "A flexible binary format for storing and streaming structured data as packets with CRC protection and recoverability from corruption. Built for extensibility and robustness."
@@ -28,10 +28,13 @@ categories = [
 [features]
     build = []
     bincode = ["dep:bincode"]
+    locked_storage = ["fs4", "brec_macros/locked_storage"]
+
 
 [dependencies]
 thiserror.workspace = true
 crc32fast.workspace = true
 enum_ids.workspace = true
-brec_macros.workspace = true
+brec_macros = { workspace = true, features = [], optional = false }
 bincode = { workspace = true, optional = true }
+fs4 = { workspace = true, optional = true }

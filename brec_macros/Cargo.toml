@@ -1,6 +1,6 @@
 [package]
 name = "brec_macros"
-version = "0.1.4"
+version = "0.2.0"
 edition = "2021"
 authors = ["d.astafyev@outlook.com"]
 description = "Code generator for brec. Implements the block and payload macros."
@@ -31,6 +31,7 @@ proc-macro = true
 
 [features]
 generate_macro_test = []
+locked_storage = []
 
 [dependencies]
 thiserror.workspace = true

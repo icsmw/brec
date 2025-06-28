@@ -4,6 +4,14 @@ use quote::quote;
 use crate::*;
 
 pub fn gen() -> Result<TokenStream, E> {
+    let locked_storage = if cfg!(feature = "locked_storage") {
+        quote! {
+            #[allow(dead_code)]
+            pub type FileStorage<'a> = brec::FileStorageDef<Block, BlockReferred<'a>, Payload, Payload>;
+        }
+    } else {
+        quote! {}
+    };
     Ok(quote! {
         #[allow(dead_code)]
         pub type Packet = brec::PacketDef<Block, Payload, Payload>;
@@ -23,5 +31,7 @@ pub fn gen() -> Result<TokenStream, E> {
 
         #[allow(dead_code)]
         pub type Storage<'a, S> = brec::StorageDef<S, Block, BlockReferred<'a>, Payload, Payload>;
+
+        #locked_storage
     })
 }
