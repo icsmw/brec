@@ -175,7 +175,7 @@ fn read_packets(buffer: &[u8]) -> std::io::Result<(usize, Vec<Packet>)> {
                 }
             },
             Err(err) => {
-                println!("ERR: {err}");
+                eprintln!("ERR: {err}");
                 return Err(std::io::Error::new(
                     std::io::ErrorKind::InvalidData,
                     err.to_string(),
@@ -198,21 +198,21 @@ fn read_packets_one_by_one(bytes: &[Vec<u8>]) -> Result<Vec<WrappedPacket>, brec
         let a = match <Packet as ReadFrom>::read(&mut std::io::Cursor::new(inner)) {
             Ok(res) => res,
             Err(err) => {
-                println!("Err: {err}");
+                eprintln!("Err: {err}");
                 return Err(err);
             }
         };
         let b = match <Packet as TryReadFrom>::try_read(&mut std::io::Cursor::new(inner)) {
             Ok(res) => res,
             Err(err) => {
-                println!("Err: {err}");
+                eprintln!("Err: {err}");
                 return Err(err);
             }
         };
         let c = match <Packet as TryReadFromBuffered>::try_read(&mut std::io::Cursor::new(inner)) {
             Ok(res) => res,
             Err(err) => {
-                println!("Err: {err}");
+                eprintln!("Err: {err}");
                 return Err(err);
             }
         };
@@ -233,7 +233,7 @@ fn read_packets_with_read_from(inner: &[u8]) -> Result<Vec<WrappedPacket>, brec:
         let pkg = match <Packet as ReadFrom>::read(&mut cursor) {
             Ok(pkg) => Into::<WrappedPacket>::into(pkg),
             Err(err) => {
-                println!("Err: {err}");
+                println!("Err (expected): {err}");
                 break;
             }
         };
@@ -252,7 +252,7 @@ fn read_packets_with_try_read_from(inner: &[u8]) -> Result<Vec<WrappedPacket>, b
                 break;
             }
             Err(err) => {
-                println!("Err: {err}");
+                println!("Err (expected): {err}");
                 break;
             }
         };
@@ -273,7 +273,7 @@ fn read_packets_with_try_read_from_buffered(
                 break;
             }
             Err(err) => {
-                println!("Err: {err}");
+                println!("Err (expected): {err}");
                 break;
             }
         };
@@ -465,17 +465,19 @@ fn storage_write_read_filter(packets: Vec<WrappedPacket>, filename: &str) -> std
         .create(true)
         .truncate(true)
         .open(&tmp)?;
-    let mut storage = Storage::new(&mut file)
+    let mut writer = Writer::new(&mut file)
         .map_err(|err| std::io::Error::new(std::io::ErrorKind::InvalidData, err.to_string()))?;
     for packet in packets.iter() {
-        storage
+        writer
             .insert(packet.into())
             .map_err(|err| std::io::Error::new(std::io::ErrorKind::InvalidData, err.to_string()))?;
     }
-    let storage_count = storage.count();
+    let mut reader = Reader::new(&file)
+        .map_err(|err| std::io::Error::new(std::io::ErrorKind::InvalidData, err.to_string()))?;
+    let storage_count = reader.count();
     assert_eq!(packets.len(), storage_count);
     let mut restored = Vec::new();
-    for packet in storage.iter() {
+    for packet in reader.iter() {
         match packet {
             Ok(packet) => {
                 restored.push(packet);
@@ -497,7 +499,7 @@ fn storage_write_read_filter(packets: Vec<WrappedPacket>, filename: &str) -> std
     }
     let blocks_visited: Arc<AtomicUsize> = Arc::new(AtomicUsize::new(0));
     let blocks_visited_inner = blocks_visited.clone();
-    storage
+    reader
         .add_rule(Rule::FilterByBlocks(brec::RuleFnDef::Dynamic(Box::new(
             move |blocks: &[BlockReferred]| {
                 blocks_visited_inner.fetch_add(blocks.len(), Ordering::SeqCst);
@@ -511,7 +513,7 @@ fn storage_write_read_filter(packets: Vec<WrappedPacket>, filename: &str) -> std
             continue;
         }
         // Test nth packet reading
-        if let Some(packet) = storage
+        if let Some(packet) = reader
             .nth(n)
             .map_err(|err| std::io::Error::new(std::io::ErrorKind::InvalidData, err.to_string()))?
         {
@@ -519,7 +521,7 @@ fn storage_write_read_filter(packets: Vec<WrappedPacket>, filename: &str) -> std
         }
         // Test range reading
         if n + 10 < packets.len() - 1 {
-            for (i, packet) in storage.range(n, 10).enumerate() {
+            for (i, packet) in reader.range(n, 10).enumerate() {
                 assert_eq!(
                     Into::<WrappedPacket>::into(packet.map_err(|err| std::io::Error::new(
                         std::io::ErrorKind::InvalidData,
@@ -528,7 +530,7 @@ fn storage_write_read_filter(packets: Vec<WrappedPacket>, filename: &str) -> std
                     packets[n + i]
                 );
             }
-            for (i, packet) in storage.range_filtered(n, n + 10).enumerate() {
+            for (i, packet) in reader.range_filtered(n, n + 10).enumerate() {
                 assert_eq!(
                     Into::<WrappedPacket>::into(packet.map_err(|err| std::io::Error::new(
                         std::io::ErrorKind::InvalidData,
@@ -541,8 +543,8 @@ fn storage_write_read_filter(packets: Vec<WrappedPacket>, filename: &str) -> std
     }
     let payload_visited: Arc<AtomicUsize> = Arc::new(AtomicUsize::new(0));
     let payload_visited_inner = payload_visited.clone();
-    storage.remove_rule(RuleDefId::FilterByBlocks);
-    storage
+    reader.remove_rule(RuleDefId::FilterByBlocks);
+    reader
         .add_rule(Rule::FilterByPayload(brec::RuleFnDef::Dynamic(Box::new(
             move |_payload: &[u8]| {
                 payload_visited_inner.fetch_add(1, Ordering::SeqCst);
@@ -550,19 +552,21 @@ fn storage_write_read_filter(packets: Vec<WrappedPacket>, filename: &str) -> std
             },
         ))))
         .unwrap();
-    for _ in storage.filtered() {
+    for _ in reader.filtered() {
         // Itarate all
     }
     let payloads = packets.iter().filter(|pkg| pkg.payload.is_some()).count();
     assert_eq!(payloads, payload_visited.load(Ordering::SeqCst));
     // Create new storage to same file
-    let mut storage = Storage::new(&mut file)
+    let mut writer = Writer::new(&mut file)
         .map_err(|err| std::io::Error::new(std::io::ErrorKind::InvalidData, err.to_string()))?;
     // Add new packet
-    storage
+    writer
         .insert((&packets[0]).into())
         .map_err(|err| std::io::Error::new(std::io::ErrorKind::InvalidData, err.to_string()))?;
-    assert_eq!(storage.count(), storage_count + 1);
+    let reader = Reader::new(&file)
+        .map_err(|err| std::io::Error::new(std::io::ErrorKind::InvalidData, err.to_string()))?;
+    assert_eq!(reader.count(), storage_count + 1);
     report_storage(packets.len(), Some(blocks_visited.load(Ordering::SeqCst)));
     Ok(())
 }
@@ -579,22 +583,25 @@ fn storage_slot_locator(
         .create(true)
         .truncate(true)
         .open(&tmp)?;
-    let mut storage = Storage::new(&mut file)
+    let mut writer = Writer::new(&mut file)
         .map_err(|err| std::io::Error::new(std::io::ErrorKind::InvalidData, err.to_string()))?;
     for _ in 0..count {
-        storage
+        writer
             .insert(packet.into())
             .map_err(|err| std::io::Error::new(std::io::ErrorKind::InvalidData, err.to_string()))?;
     }
-    assert_eq!(count, storage.count());
-    // Locator should setup it self to correct position
-    let mut storage = Storage::new(&mut file)
+    let mut reader = Reader::new(&file)
         .map_err(|err| std::io::Error::new(std::io::ErrorKind::InvalidData, err.to_string()))?;
-    assert_eq!(count, storage.count());
-    storage
+    assert_eq!(count, reader.count());
+    // Locator should setup it self to correct position
+    let mut writer = Writer::new(&mut file)
+        .map_err(|err| std::io::Error::new(std::io::ErrorKind::InvalidData, err.to_string()))?;
+    writer
         .insert(packet.into())
         .map_err(|err| std::io::Error::new(std::io::ErrorKind::InvalidData, err.to_string()))?;
-    assert_eq!(count + 1, storage.count());
+    let mut reader = Reader::new(&file)
+        .map_err(|err| std::io::Error::new(std::io::ErrorKind::InvalidData, err.to_string()))?;
+    assert_eq!(count + 1, reader.count());
     Ok(())
 }
 

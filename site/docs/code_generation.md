@@ -35,7 +35,8 @@ The macro defines the following aliases to reduce verbosity when using `brec` ty
 | `Rules<'a>`             | `RulesDef<Block, BlockReferred<'a>, Payload, Payload>`                      |
 | `Rule<'a>`              | `RuleDef<Block, BlockReferred<'a>, Payload, Payload>`                       |
 | `RuleFnDef<D, S>`       | `RuleFnDef<D, S>`                                                            |
-| `Storage<S>`            | `StorageDef<S, Block, BlockReferred<'static>, Payload, Payload>`            |
+| `Reader<S>`             | `ReaderDef<S, Block, BlockReferred<'static>, Payload, Payload>`            |
+| `Writer<S>`             | `WriterDef<S, Block, Payload, Payload>`            |
 
 These aliases make it easier to work with generated structures and remove the need to repeat generic parameters.
 

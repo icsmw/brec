@@ -185,7 +185,7 @@ impl WriteVectored for Block {
 
             impl brec::WriteVectoredTo for #block_name {
 
-                fn slices(&self) -> std::io::Result<brec::IoSlices> {
+                fn slices(&self) -> std::io::Result<brec::IoSlices<'_>> {
                     use brec::prelude::*;
                     let mut slices = brec::IoSlices::default();
                     slices.add_buffered(#const_sig.to_vec());

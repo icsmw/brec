@@ -1,3 +1,4 @@
+mod anchored;
 mod header;
 mod read;
 mod write;
@@ -5,6 +6,7 @@ mod write;
 use std::ops::RangeInclusive;
 
 use crate::*;
+pub(crate) use anchored::*;
 pub(crate) use header::*;
 
 /// Default slot capacity constant.

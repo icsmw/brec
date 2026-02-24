@@ -41,7 +41,7 @@ pub fn write_vectored_to(blocks: &[&Block]) -> Result<TokenStream, E> {
     }
     Ok(quote! {
         impl brec::WriteVectoredTo for Block {
-            fn slices(&self) -> std::io::Result<brec::IoSlices> {
+            fn slices(&self) -> std::io::Result<brec::IoSlices<'_>> {
                 match self {
                     #(#slices,)*
                 }

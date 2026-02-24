@@ -19,10 +19,10 @@ pub const LOCK_EXT: &str = "lock";
 /// Used when no custom interval is specified via [`FileStorageOptions::interval`].
 pub const WAIT_INTERVAL_MS: u64 = 50;
 
-/// Builder-style configuration for creating a [`FileStorageDef`] instance with custom locking behavior.
+/// Builder-style configuration for creating a [`FileWriterDef`] instance with custom locking behavior.
 ///
 /// This helper allows you to configure timeout and retry interval settings before opening
-/// the storage file. It provides a fluent interface for fine-tuning how `FileStorageDef`
+/// the storage file. It provides a fluent interface for fine-tuning how `FileWriterDef`
 /// attempts to acquire its advisory lock.
 ///
 /// # Examples
@@ -98,7 +98,7 @@ impl FileStorageOptions {
 
     /// Opens the target storage file using the configured lock options.
     ///
-    /// This method consumes the builder and delegates to [`FileStorageDef::new`], passing
+    /// This method consumes the builder and delegates to [`FileWriterDef::new`], passing
     /// in the specified filename, timeout, and retry interval.
     ///
     /// # Type Parameters
@@ -110,52 +110,50 @@ impl FileStorageOptions {
     ///
     /// # Returns
     ///
-    /// A new `FileStorageDef` instance on success, or an appropriate [`Error`] on failure.
+    /// A new `FileWriterDef` instance on success, or an appropriate [`Error`] on failure.
     pub fn open<
         B: BlockDef,
-        BR: BlockReferredDef<B>,
         PL: PayloadDef<Inner>,
         Inner: PayloadInnerDef,
     >(
         self,
-    ) -> Result<FileStorageDef<B, BR, PL, Inner>, Error> {
-        FileStorageDef::new(self.filename, self.timeout, Some(self.interval))
+    ) -> Result<FileWriterDef<B, PL, Inner>, Error> {
+        FileWriterDef::new(self.filename, self.timeout, Some(self.interval))
     }
 }
 
-/// `FileStorageDef` provides a wrapper around `StorageDef<File, ...>` that attempts to prevent
+/// `FileWriterDef` provides a wrapper around `WriterDef<File, ...>` that attempts to prevent
 /// concurrent access to the target storage file by using a filesystem-based locking mechanism.
 ///
 /// When a new instance is created, a `.lock` file is created next to the target file,
 /// and an exclusive file lock is applied to it. This lock is respected by other instances
-/// of `FileStorageDef`, effectively serializing access to the underlying storage.
+/// of `FileWriterDef`, effectively serializing access to the underlying storage.
 ///
 /// Note: this is an *advisory lock*, which means it only prevents access for code that
 /// explicitly respects the lock (e.g., other `brec` - based tools or processes using `fs4`).
 /// It does **not** protect the file from being opened or modified by unrelated programs or
 /// low-level system utilities.
 ///
-/// `FileStorageDef` also supports an optional timeout while waiting for the lock, enabling
+/// `FileWriterDef` also supports an optional timeout while waiting for the lock, enabling
 /// coordinated access patterns in multi-process environments.
-pub struct FileStorageDef<
+pub struct FileWriterDef<
     B: BlockDef,
-    BR: BlockReferredDef<B>,
     PL: PayloadDef<Inner>,
     Inner: PayloadInnerDef,
 > {
     _filelock: File,
-    inner: StorageDef<File, B, BR, PL, Inner>,
+    inner: WriterDef<File, B, PL, Inner>,
 }
 
-impl<B: BlockDef, BR: BlockReferredDef<B>, PL: PayloadDef<Inner>, Inner: PayloadInnerDef>
-    FileStorageDef<B, BR, PL, Inner>
+impl<B: BlockDef, PL: PayloadDef<Inner>, Inner: PayloadInnerDef>
+    FileWriterDef<B, PL, Inner>
 {
-    /// Creates a new instance of `FileStorageDef`, opening the specified storage file and
+    /// Creates a new instance of `FileWriterDef`, opening the specified storage file and
     /// acquiring an exclusive advisory lock via a `.lock` companion file.
     ///
     /// A `.lock` file is created in the same directory as the target file, and an exclusive
     /// OS-level advisory lock is applied to it. This ensures serialized access between
-    /// multiple processes or instances of `FileStorageDef`, assuming they respect the locking protocol.
+    /// multiple processes or instances of `FileWriterDef`, assuming they respect the locking protocol.
     ///
     /// > **Note:** The lock is advisory. It does **not** prevent external programs or non-cooperative
     /// > code from accessing or modifying the file directly.
@@ -181,11 +179,11 @@ impl<B: BlockDef, BR: BlockReferredDef<B>, PL: PayloadDef<Inner>, Inner: Payload
     /// * [`Error::FailToLockFile`] — if the `.lock` file cannot be opened or the locking operation fails
     ///   due to a non-recoverable I/O error.
     /// * [`Error::Io`] — if the actual storage file cannot be opened for reading and writing.
-    /// * Any error returned by [`StorageDef::new`] if initialization of the inner storage fails.
+    /// * Any error returned by [`WriterDef::new`] if initialization of the inner storage fails.
     ///
     /// # Returns
     ///
-    /// A new `FileStorageDef` instance with exclusive access to the specified file, guarded
+    /// A new `FileWriterDef` instance with exclusive access to the specified file, guarded
     /// by a live advisory lock. The lock is automatically released when the instance is dropped.
     pub fn new<P: AsRef<Path>>(
         filename: P,
@@ -243,29 +241,10 @@ impl<B: BlockDef, BR: BlockReferredDef<B>, PL: PayloadDef<Inner>, Inner: Payload
             .open(filename)?;
         Ok(Self {
             _filelock: filelock,
-            inner: StorageDef::new(storage_file)?,
+            inner: WriterDef::new(storage_file)?,
         })
     }
 
-    /// Adds a packet filter or processing rule.
-    ///
-    /// # Arguments
-    /// * `rule` — A new rule to apply (see `RuleDef`)
-    ///
-    /// # Returns
-    /// * `Ok(())` — Rule added successfully
-    /// * `Err(Error::RuleDuplicate)` — Rule of the same type already exists
-    pub fn add_rule(&mut self, rule: RuleDef<B, BR, PL, Inner>) -> Result<(), Error> {
-        self.inner.add_rule(rule)
-    }
-
-    /// Removes a previously added rule by its identifier.
-    ///
-    /// # Arguments
-    /// * `rule` — Identifier of the rule to remove (`RuleDefId`)
-    pub fn remove_rule(&mut self, rule: RuleDefId) {
-        self.inner.remove_rule(rule);
-    }
 
     /// Inserts a new packet into storage at the next available slot.
     ///
@@ -279,77 +258,13 @@ impl<B: BlockDef, BR: BlockReferredDef<B>, PL: PayloadDef<Inner>, Inner: Payload
         self.inner.insert(packet)
     }
 
-    /// Returns the number of records currently stored.
-    pub fn count(&self) -> usize {
-        self.inner.count()
-    }
 
-    /// Returns an iterator over all packets in the storage (no filtering).
-    ///
-    /// # Returns
-    /// * `StorageIterator` yielding `Result<PacketDef<..>, Error>`
-    pub fn iter(&mut self) -> StorageIterator<'_, File, B, PL, Inner> {
-        self.inner.iter()
-    }
-
-    /// Returns a filtered iterator over packets using configured rules.
-    ///
-    /// # Returns
-    /// * `StorageFilteredIterator` yielding packets that pass rules
-    pub fn filtered(&mut self) -> StorageFilteredIterator<'_, File, B, BR, PL, Inner> {
-        self.inner.filtered()
-    }
-
-    /// Retrieves the `nth` packet by global index (across all slots).
-    ///
-    /// # Arguments
-    /// * `nth` — Zero-based index of the packet
-    ///
-    /// # Returns
-    /// * `Ok(Some(PacketDef))` — Packet found
-    /// * `Ok(None)` — No packet exists at this index
-    /// * `Err(Error)` — On slot mismatch, CRC failure, or I/O error
-    pub fn nth(&mut self, nth: usize) -> Result<Option<PacketDef<B, PL, Inner>>, Error> {
-        self.inner.nth(nth)
-    }
-
-    /// Returns an iterator over a specific range of packets by global index.
-    ///
-    /// # Arguments
-    /// * `from` — Starting index (inclusive)
-    /// * `len` — Number of packets to iterate
-    ///
-    /// # Returns
-    /// * `StorageRangeIterator` over the given range
-    pub fn range(
-        &mut self,
-        from: usize,
-        len: usize,
-    ) -> StorageRangeIterator<'_, File, B, BR, PL, Inner> {
-        self.inner.range(from, len)
-    }
-
-    /// Returns a filtered range iterator applying rules to each packet.
-    ///
-    /// # Arguments
-    /// * `from` — Starting index
-    /// * `len` — Number of packets to yield
-    ///
-    /// # Returns
-    /// * `StorageRangeFilteredIterator` that yields only accepted packets
-    pub fn range_filtered(
-        &mut self,
-        from: usize,
-        len: usize,
-    ) -> StorageRangeFilteredIterator<'_, File, B, BR, PL, Inner> {
-        self.inner.range_filtered(from, len)
-    }
 }
 
 #[cfg(test)]
 mod tests {
     use crate::*;
-    use crate::{storage::file::FileStorageOptions, tests::*};
+    use crate::{storage::writer::FileStorageOptions, tests::*};
     use std::{
         env::temp_dir,
         fs,
@@ -367,7 +282,7 @@ mod tests {
         let filename_a = filename.clone();
         let (tx, rx): (Sender<()>, Receiver<()>) = channel();
         let a = spawn(move || {
-            let a = FileStorageDef::<TestBlock, TestBlock, TestPayload, TestPayload>::new(
+            let a = FileWriterDef::<TestBlock, TestPayload, TestPayload>::new(
                 filename_a, None, None,
             )
             .expect("Storage A has been created");
@@ -379,7 +294,7 @@ mod tests {
         let b = spawn(move || {
             rx.recv().expect("Signal  has been gotten");
 
-            FileStorageDef::<TestBlock, TestBlock, TestPayload, TestPayload>::new(
+            FileWriterDef::<TestBlock, TestPayload, TestPayload>::new(
                 &filename,
                 Some(Duration::from_millis(300)),
                 None,
@@ -401,7 +316,7 @@ mod tests {
         let (tx, rx): (Sender<()>, Receiver<()>) = channel();
         let a = spawn(move || {
             let a = FileStorageOptions::new(filename_a)
-                .open::<TestBlock, TestBlock, TestPayload, TestPayload>()
+                .open::<TestBlock, TestPayload, TestPayload>()
                 .expect("Storage A has been created");
             tx.send(()).expect("Signal has been send");
             sleep(Duration::from_millis(100));
@@ -412,7 +327,7 @@ mod tests {
             rx.recv().expect("Signal  has been gotten");
             FileStorageOptions::new(filename)
                 .timeout(Duration::from_millis(300))
-                .open::<TestBlock, TestBlock, TestPayload, TestPayload>()
+                .open::<TestBlock, TestPayload, TestPayload>()
                 .is_ok()
         });
         let a = a.join().expect("Storage A has been created");
@@ -429,7 +344,7 @@ mod tests {
         let filename_a = filename.clone();
         let (tx, rx): (Sender<()>, Receiver<()>) = channel();
         let a = spawn(move || {
-            let a = FileStorageDef::<TestBlock, TestBlock, TestPayload, TestPayload>::new(
+            let a = FileWriterDef::<TestBlock, TestPayload, TestPayload>::new(
                 filename_a, None, None,
             )
             .expect("Storage A has been created");
@@ -440,7 +355,7 @@ mod tests {
         });
         let b = spawn(move || {
             rx.recv().expect("Signal  has been gotten");
-            FileStorageDef::<TestBlock, TestBlock, TestPayload, TestPayload>::new(
+            FileWriterDef::<TestBlock, TestPayload, TestPayload>::new(
                 &filename,
                 Some(Duration::from_millis(100)),
                 None,
@@ -462,7 +377,7 @@ mod tests {
         let filename_a = filename.clone();
         let (tx, rx): (Sender<()>, Receiver<()>) = channel();
         let a = spawn(move || {
-            let a = FileStorageDef::<TestBlock, TestBlock, TestPayload, TestPayload>::new(
+            let a = FileWriterDef::<TestBlock, TestPayload, TestPayload>::new(
                 filename_a, None, None,
             )
             .expect("Storage A has been created");
@@ -473,7 +388,7 @@ mod tests {
         });
         let b = spawn(move || {
             rx.recv().expect("Signal  has been gotten");
-            FileStorageDef::<TestBlock, TestBlock, TestPayload, TestPayload>::new(
+            FileWriterDef::<TestBlock, TestPayload, TestPayload>::new(
                 &filename, None, None,
             )
             .is_ok()

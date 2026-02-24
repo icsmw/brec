@@ -27,7 +27,7 @@ As previously mentioned, each slot maintains its own **CRC** to ensure data inte
 
 ## Locked file storage
 
-When the locked_storage feature is enabled, you gain access to `FileStorage`, a file-backed wrapper around `StorageDef` with built-in file locking capabilities.
+When the locked_storage feature is enabled, you gain access to `FileStorage`, a file-backed wrapper around `WriterDef` with built-in file locking capabilities.
 
 ### How it works
 

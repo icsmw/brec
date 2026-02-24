@@ -60,8 +60,8 @@ impl FreeSlotLocator {
         (self.next, self.slot_offset)
     }
 
-    pub fn setup(&mut self, slots: &[Slot]) {
-        for slot in slots.iter() {
+    pub fn setup<'a, I: Iterator<Item = &'a Slot>>(&mut self, slots: I) {
+        for slot in slots {
             if slot.get_free_slot_offset().is_some() {
                 break;
             }

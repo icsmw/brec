@@ -13,29 +13,24 @@ use crate::*;
 /// The iterator skips over empty slots and automatically adjusts for the internal layout.
 ///
 /// Useful for scanning files or buffers that store serialized packets in slot-based format.
-pub struct PacketsLocatorIterator<'a> {
-    next: usize,
+pub struct PacketsLocatorIterator<'a, I: Iterator<Item = &'a Slot>> {
     offset: u64,
-    slots: &'a [Slot],
+    slots: I,
 }
 
-impl<'a> PacketsLocatorIterator<'a> {
+impl<'a, I: Iterator<Item = &'a Slot>> PacketsLocatorIterator<'a, I> {
     /// Creates a new `PacketsLocatorIterator` over the provided slice of slots.
-    pub fn new(slots: &'a [Slot]) -> Self {
-        Self {
-            next: 0,
-            offset: 0,
-            slots,
-        }
+    pub fn new(slots: I) -> Self {
+        Self { offset: 0, slots }
     }
 }
 
-impl Iterator for PacketsLocatorIterator<'_> {
+impl<'a, I: Iterator<Item = &'a Slot>> Iterator for PacketsLocatorIterator<'a, I> {
     type Item = RangeInclusive<u64>;
 
     /// Returns the next occupied range of packet data, or `None` if finished.
     fn next(&mut self) -> Option<Self::Item> {
-        let slot = self.slots.get(self.next)?;
+        let slot = self.slots.next()?;
         let slot_width = slot.width();
         if slot_width == 0 {
             return None;
@@ -45,14 +40,13 @@ impl Iterator for PacketsLocatorIterator<'_> {
             self.offset + slot_width + slot.size(),
         );
         self.offset += slot_width + slot.size();
-        self.next += 1;
         Some(location)
     }
 }
 
 /// An iterator over stored packets distributed across multiple slots.
 ///
-/// `StorageIterator` reads packets from a `Read + Seek` source (e.g. file or memory stream)
+/// `ReaderIterator` reads packets from a `Read + Seek` source (e.g. file or memory stream)
 /// using a list of `Slot`s and their recorded layout. It internally tracks the position and
 /// reuses an internal buffer (`Cursor<Vec<u8>>`) to efficiently read packet data.
 ///
@@ -63,14 +57,15 @@ impl Iterator for PacketsLocatorIterator<'_> {
 /// - `B`: Block type (must implement `BlockDef`)
 /// - `P`: Payload container type (must implement `PayloadDef`)
 /// - `Inner`: Inner payload object (must implement `PayloadInnerDef`)
-pub struct StorageIterator<
+pub struct ReaderIterator<
     'a,
+    I: Iterator<Item = &'a Slot>,
     S: std::io::Read + std::io::Seek,
     B: BlockDef,
     P: PayloadDef<Inner>,
     Inner: PayloadInnerDef,
 > {
-    locator: PacketsLocatorIterator<'a>,
+    locator: PacketsLocatorIterator<'a, I>,
     source: &'a mut S,
     buffer: Cursor<Vec<u8>>,
     _block: std::marker::PhantomData<B>,
@@ -80,14 +75,15 @@ pub struct StorageIterator<
 
 impl<
         'a,
+        I: Iterator<Item = &'a Slot>,
         S: std::io::Read + std::io::Seek,
         B: BlockDef,
         P: PayloadDef<Inner>,
         Inner: PayloadInnerDef,
-    > StorageIterator<'a, S, B, P, Inner>
+    > ReaderIterator<'a, I, S, B, P, Inner>
 {
-    /// Constructs a new `StorageIterator` from the given stream and slot layout.
-    pub fn new(source: &'a mut S, slots: &'a [Slot]) -> Self {
+    /// Constructs a new `ReaderIterator` from the given stream and slot layout.
+    pub fn new(source: &'a mut S, slots: I) -> Self {
         Self {
             locator: PacketsLocatorIterator::new(slots),
             source,
@@ -100,11 +96,13 @@ impl<
 }
 
 impl<
+        'a,
+        I: Iterator<Item = &'a Slot>,
         S: std::io::Read + std::io::Write + std::io::Seek,
         B: BlockDef,
         P: PayloadDef<Inner>,
         Inner: PayloadInnerDef,
-    > Iterator for StorageIterator<'_, S, B, P, Inner>
+    > Iterator for ReaderIterator<'a, I, S, B, P, Inner>
 {
     type Item = Result<PacketDef<B, P, Inner>, Error>;
 
@@ -135,7 +133,7 @@ impl<
 
 /// An iterator over packets stored in slots with rule-based filtering.
 ///
-/// This iterator functions like `StorageIterator`, but applies `RulesDef`-based
+/// This iterator functions like `ReaderIterator`, but applies `RulesDef`-based
 /// filters to decide whether to yield, skip, or reject packets. The filtering is performed
 /// during parsing using `PacketDef::filtered`, which allows:
 /// - filtering by blocks (`FilterByBlocks`)
@@ -148,15 +146,16 @@ impl<
 /// - `BR`: Referred block type for rule filtering
 /// - `P`: Payload wrapper type
 /// - `Inner`: Inner payload type
-pub struct StorageFilteredIterator<
+pub struct ReaderFilteredIterator<
     'a,
+    I: Iterator<Item = &'a Slot>,
     S: std::io::Read + std::io::Seek,
     B: BlockDef,
     BR: BlockReferredDef<B>,
     P: PayloadDef<Inner>,
     Inner: PayloadInnerDef,
 > {
-    locator: PacketsLocatorIterator<'a>,
+    locator: PacketsLocatorIterator<'a, I>,
     source: &'a mut S,
     rules: &'a RulesDef<B, BR, P, Inner>,
     buffer: Cursor<Vec<u8>>,
@@ -164,15 +163,16 @@ pub struct StorageFilteredIterator<
 
 impl<
         'a,
+        I: Iterator<Item = &'a Slot>,
         S: std::io::Read + std::io::Seek,
         B: BlockDef,
         BR: BlockReferredDef<B>,
         P: PayloadDef<Inner>,
         Inner: PayloadInnerDef,
-    > StorageFilteredIterator<'a, S, B, BR, P, Inner>
+    > ReaderFilteredIterator<'a, I, S, B, BR, P, Inner>
 {
     /// Constructs a new filtered packet iterator from the given stream, slots and rules.
-    pub fn new(source: &'a mut S, slots: &'a [Slot], rules: &'a RulesDef<B, BR, P, Inner>) -> Self {
+    pub fn new(source: &'a mut S, slots: I, rules: &'a RulesDef<B, BR, P, Inner>) -> Self {
         Self {
             locator: PacketsLocatorIterator::new(slots),
             source,
@@ -183,12 +183,14 @@ impl<
 }
 
 impl<
-        S: std::io::Read + std::io::Write + std::io::Seek,
+        'a,
+        I: Iterator<Item = &'a Slot>,
+        S: std::io::Read + std::io::Seek,
         B: BlockDef,
         BR: BlockReferredDef<B>,
         P: PayloadDef<Inner>,
         Inner: PayloadInnerDef,
-    > Iterator for StorageFilteredIterator<'_, S, B, BR, P, Inner>
+    > Iterator for ReaderFilteredIterator<'a, I, S, B, BR, P, Inner>
 {
     type Item = Result<PacketDef<B, P, Inner>, Error>;
 
@@ -229,9 +231,9 @@ impl<
     }
 }
 
-/// An iterator over a specified range of packets within a `StorageDef`.
+/// An iterator over a specified range of packets within a `ReaderDef`.
 ///
-/// Unlike `StorageIterator`, this variant yields a bounded number of packets starting from a specific index.
+/// Unlike `ReaderIterator`, this variant yields a bounded number of packets starting from a specific index.
 /// It uses the internal `storage.nth(n)` method to fetch each packet by logical index.
 ///
 /// # Type Parameters
@@ -240,15 +242,15 @@ impl<
 /// - `BR`: Referred block type
 /// - `P`: Payload type wrapper
 /// - `Inner`: Inner payload object
-pub struct StorageRangeIterator<
+pub struct ReaderRangeIterator<
     'a,
-    S: std::io::Read + std::io::Write + std::io::Seek,
+    S: std::io::Read + std::io::Seek,
     B: BlockDef,
     BR: BlockReferredDef<B>,
     P: PayloadDef<Inner>,
     Inner: PayloadInnerDef,
 > {
-    storage: &'a mut StorageDef<S, B, BR, P, Inner>,
+    storage: &'a mut ReaderDef<S, B, BR, P, Inner>,
     len: usize,
     from: usize,
     _block: std::marker::PhantomData<B>,
@@ -258,15 +260,15 @@ pub struct StorageRangeIterator<
 
 impl<
         'a,
-        S: std::io::Read + std::io::Write + std::io::Seek,
+        S: std::io::Read + std::io::Seek,
         B: BlockDef,
         BR: BlockReferredDef<B>,
         P: PayloadDef<Inner>,
         Inner: PayloadInnerDef,
-    > StorageRangeIterator<'a, S, B, BR, P, Inner>
+    > ReaderRangeIterator<'a, S, B, BR, P, Inner>
 {
     /// Creates a new range-based iterator from the given `storage`, starting at `from`, returning up to `len` items.
-    pub fn new(storage: &'a mut StorageDef<S, B, BR, P, Inner>, from: usize, len: usize) -> Self {
+    pub fn new(storage: &'a mut ReaderDef<S, B, BR, P, Inner>, from: usize, len: usize) -> Self {
         Self {
             storage,
             len,
@@ -279,12 +281,12 @@ impl<
 }
 
 impl<
-        S: std::io::Read + std::io::Write + std::io::Seek,
+        S: std::io::Read + std::io::Seek,
         B: BlockDef,
         BR: BlockReferredDef<B>,
         P: PayloadDef<Inner>,
         Inner: PayloadInnerDef,
-    > Iterator for StorageRangeIterator<'_, S, B, BR, P, Inner>
+    > Iterator for ReaderRangeIterator<'_, S, B, BR, P, Inner>
 {
     type Item = Result<PacketDef<B, P, Inner>, Error>;
 
@@ -308,7 +310,7 @@ impl<
 
 /// An iterator over a specific range of packets from storage with rule-based filtering.
 ///
-/// Similar to `StorageRangeIterator`, but each packet is passed through the configured filtering rules.
+/// Similar to `ReaderRangeIterator`, but each packet is passed through the configured filtering rules.
 /// Internally uses `storage.nth_filtered(index)` to fetch and filter packets.
 ///
 /// Only packets that match all rule conditions are yielded (`LookInStatus::Accepted`).
@@ -319,30 +321,30 @@ impl<
 /// - `BR`: Block reference type for filtering
 /// - `P`: Payload container type
 /// - `Inner`: Inner payload object
-pub struct StorageRangeFilteredIterator<
+pub struct ReaderRangeFilteredIterator<
     'a,
-    S: std::io::Read + std::io::Write + std::io::Seek,
+    S: std::io::Read + std::io::Seek,
     B: BlockDef,
     BR: BlockReferredDef<B>,
     P: PayloadDef<Inner>,
     Inner: PayloadInnerDef,
 > {
-    storage: &'a mut StorageDef<S, B, BR, P, Inner>,
+    storage: &'a mut ReaderDef<S, B, BR, P, Inner>,
     len: usize,
     from: usize,
 }
 
 impl<
         'a,
-        S: std::io::Read + std::io::Write + std::io::Seek,
+        S: std::io::Read + std::io::Seek,
         B: BlockDef,
         BR: BlockReferredDef<B>,
         P: PayloadDef<Inner>,
         Inner: PayloadInnerDef,
-    > StorageRangeFilteredIterator<'a, S, B, BR, P, Inner>
+    > ReaderRangeFilteredIterator<'a, S, B, BR, P, Inner>
 {
     /// Creates a new filtered range-based iterator from `storage`, starting at `from`, returning up to `len` matching packets.
-    pub fn new(storage: &'a mut StorageDef<S, B, BR, P, Inner>, from: usize, len: usize) -> Self {
+    pub fn new(storage: &'a mut ReaderDef<S, B, BR, P, Inner>, from: usize, len: usize) -> Self {
         Self { storage, len, from }
     }
 }
@@ -353,7 +355,7 @@ impl<
         BR: BlockReferredDef<B>,
         P: PayloadDef<Inner>,
         Inner: PayloadInnerDef,
-    > Iterator for StorageRangeFilteredIterator<'_, S, B, BR, P, Inner>
+    > Iterator for ReaderRangeFilteredIterator<'_, S, B, BR, P, Inner>
 {
     type Item = Result<PacketDef<B, P, Inner>, Error>;
 

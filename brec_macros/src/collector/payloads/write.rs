@@ -44,7 +44,7 @@ pub fn writing_vectored_to(payloads: &[&Payload]) -> Result<TokenStream, E> {
     }
     Ok(quote! {
         impl brec::WriteVectoredMutTo for Payload {
-            fn slices(&mut self) -> std::io::Result<brec::IoSlices> {
+            fn slices(&mut self) -> std::io::Result<brec::IoSlices<'_>> {
                 use brec::WriteVectoredPayloadWithHeaderTo;
                 match self {
                     #(#slices,)*

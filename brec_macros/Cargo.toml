@@ -1,29 +1,23 @@
 [package]
-name = "brec_macros"
-version = "0.2.0"
-edition = "2021"
-authors = ["d.astafyev@outlook.com"]
+name        = "brec_macros"
+version     = "0.2.0"
+edition     = "2021"
+authors     = ["d.astafyev@outlook.com"]
 description = "Code generator for brec. Implements the block and payload macros."
-license = "Apache-2.0"
-resolver = "2"
-repository = "https://github.com/icsmw/brec.git"
-homepage = "https://github.com/icsmw/brec"
-readme = "README.md"
+license     = "Apache-2.0"
+resolver    = "2"
+repository  = "https://github.com/icsmw/brec.git"
+homepage    = "https://github.com/icsmw/brec"
+readme      = "README.md"
 
-keywords = [
-    "binary",
-    "packet",
-    "storage",
-    "logging",
-    "streaming"
-]
+keywords = ["binary", "packet", "storage", "logging", "streaming"]
 
 categories = [
     "encoding",
     "data-structures",
     "filesystem",
     "development-tools",
-    "parser-implementations"
+    "parser-implementations",
 ]
 
 [lib]
@@ -31,19 +25,19 @@ proc-macro = true
 
 [features]
 generate_macro_test = []
-locked_storage = []
+locked_storage      = []
 
 [dependencies]
-thiserror.workspace = true
-syn.workspace = true
-quote.workspace = true
+thiserror.workspace   = true
+syn.workspace         = true
+quote.workspace       = true
 proc-macro2.workspace = true
-enum_ids.workspace = true
-crc32fast.workspace = true
+enum_ids.workspace    = true
+crc32fast.workspace   = true
 lazy_static.workspace = true
 
 [dev-dependencies]
-proptest.workspace = true
-quote.workspace = true
+proptest.workspace    = true
+quote.workspace       = true
 proc-macro2.workspace = true
-uuid = { workspace = true , features = ["fast-rng", "macro-diagnostics", "v4"] }
+uuid                  = { workspace = true, features = ["fast-rng", "macro-diagnostics", "v4"] }

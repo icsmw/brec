@@ -20,7 +20,7 @@ pub fn create_file(
         .create(true)
         .truncate(true)
         .open(&tmp)?;
-    let mut storage = Storage::new(&mut file)
+    let mut storage = Writer::new(&mut file)
         .map_err(|err| std::io::Error::new(std::io::ErrorKind::InvalidData, err.to_string()))?;
     while count > 0 {
         for packet in packets.iter() {
@@ -38,7 +38,7 @@ pub fn read_file(filename: &str) -> std::io::Result<()> {
     let tmp = std::env::temp_dir().join(filename);
     let size = metadata(&tmp).expect("Read File Meta").len();
     let mut file: File = File::open(tmp)?;
-    let mut storage = Storage::new(&mut file)
+    let mut storage = Reader::new(&mut file)
         .map_err(|err| std::io::Error::new(std::io::ErrorKind::InvalidData, err.to_string()))?;
     let mut count = 0;
     for packet in storage.iter() {
@@ -74,7 +74,7 @@ pub fn filter_file(filename: &str) -> std::io::Result<()> {
     let tmp = std::env::temp_dir().join(filename);
     let size = metadata(&tmp).expect("Read File Meta").len();
     let mut file: File = File::open(tmp)?;
-    let mut storage = Storage::new(&mut file)
+    let mut storage = Reader::new(&mut file)
         .map_err(|err| std::io::Error::new(std::io::ErrorKind::InvalidData, err.to_string()))?;
     storage
         .add_rule(Rule::FilterByBlocks(brec::RuleFnDef::Dynamic(Box::new(

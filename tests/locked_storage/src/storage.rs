@@ -25,10 +25,11 @@ pub fn create_file(
 
 pub fn read_file(filename: &str) -> std::io::Result<()> {
     let tmp = std::env::temp_dir().join(filename);
-    let mut storage = FileStorage::new(tmp, Some(Duration::from_millis(400)), None)
+    let file = std::fs::OpenOptions::new().read(true).open(&tmp)?;
+    let mut reader = Reader::new(&file)
         .map_err(|err| std::io::Error::new(std::io::ErrorKind::InvalidData, err.to_string()))?;
     let mut count = 0;
-    for packet in storage.iter() {
+    for packet in reader.iter() {
         match packet {
             Ok(_packet) => {
                 count += 1;
@@ -38,11 +39,11 @@ pub fn read_file(filename: &str) -> std::io::Result<()> {
             }
         }
     }
-    if count != storage.count() {
-        return Err(std::io::Error::new(
-            std::io::ErrorKind::Other,
-            format!("Dismatch lengths: {} vs {count}", storage.count()),
-        ));
+    if count != reader.count() {
+        return Err(std::io::Error::other(format!(
+            "Dismatch lengths: {} vs {count}",
+            reader.count()
+        )));
     }
     Ok(())
 }

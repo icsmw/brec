@@ -1,40 +1,40 @@
 [package]
-name = "brec"
-version = "0.2.0"
-edition = "2021"
-authors = ["d.astafyev@outlook.com"]
+name        = "brec"
+version     = "0.2.0"
+edition     = "2021"
+authors     = ["d.astafyev@outlook.com"]
 description = "A flexible binary format for storing and streaming structured data as packets with CRC protection and recoverability from corruption. Built for extensibility and robustness."
-license = "Apache-2.0"
-repository = "https://github.com/icsmw/brec.git"
-homepage = "https://github.com/icsmw/brec"
-readme = "README.md"
+license     = "Apache-2.0"
+repository  = "https://github.com/icsmw/brec.git"
+homepage    = "https://github.com/icsmw/brec"
+readme      = "README.md"
 
-keywords = [
-    "binary",
-    "packet",
-    "storage",
-    "logging",
-    "streaming"
-]
+keywords = ["binary", "packet", "storage", "logging", "streaming"]
 
 categories = [
     "encoding",
     "data-structures",
     "filesystem",
     "development-tools",
-    "parser-implementations"
+    "parser-implementations",
 ]
 
 [features]
-    build = []
-    bincode = ["dep:bincode"]
-    locked_storage = ["fs4", "brec_macros/locked_storage"]
+build          = []
+bincode        = ["dep:bincode"]
+locked_storage = ["fs4", "brec_macros/locked_storage"]
 
 
 [dependencies]
 thiserror.workspace = true
 crc32fast.workspace = true
-enum_ids.workspace = true
-brec_macros = { workspace = true, features = [], optional = false }
-bincode = { workspace = true, optional = true }
-fs4 = { workspace = true, optional = true }
+enum_ids.workspace  = true
+brec_macros         = { workspace = true, features = [], optional = false }
+bincode             = { workspace = true, optional = true }
+notify              = { workspace = true }
+crossbeam           = { workspace = true }
+tracing             = { workspace = true }
+fs4                 = { workspace = true, optional = true }
+
+[dev-dependencies]
+tempfile = { workspace = true }
