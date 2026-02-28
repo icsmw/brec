@@ -49,12 +49,18 @@ impl Slot {
         }
     }
 
+    pub fn expand(&self) -> (Option<u64>, Option<usize>, [u8; 4]) {
+        (
+            self.get_free_slot_offset(),
+            self.get_free_slot_index(),
+            self.crc,
+        )
+    }
+
     /// Returns the total used width (sum of all non-zero chunk lengths).
     pub fn width(&self) -> u64 {
-        if let Some(ln) = self.lenghts.last() {
-            if ln > &0 {
-                return self.lenghts.iter().sum();
-            }
+        if self.is_full() {
+            return self.lenghts.iter().sum();
         }
         let Some(free_pos) = self.lenghts.iter().position(|ln| ln == &0) else {
             return self.lenghts.iter().sum();
@@ -88,12 +94,38 @@ impl Slot {
             .ok_or(Error::OutOfBounds(self.lenghts.len(), nth))
     }
 
+    pub fn count(&self) -> usize {
+        self.lenghts.iter().filter(|&&ln| ln > 0).count()
+    }
+
+    pub fn is_used(&self, idx: usize) -> bool {
+        self.lenghts.get(idx).is_some_and(|ln| *ln > 0)
+    }
+
+    pub fn offset_of(&self, idx: usize) -> Option<u64> {
+        if idx == 0 {
+            return Some(0);
+        }
+        if idx >= self.lenghts.len() || !self.is_used(idx) {
+            return None;
+        }
+        Some(self.lenghts[..idx].iter().sum::<u64>())
+    }
+
+    pub fn is_full(&self) -> bool {
+        if let Some(ln) = self.lenghts.last()
+            && ln > &0
+        {
+            true
+        } else {
+            false
+        }
+    }
+
     /// Returns the offset to the first available free slot, or `None` if the slot is full.
     pub fn get_free_slot_offset(&self) -> Option<u64> {
-        if let Some(ln) = self.lenghts.last() {
-            if ln > &0 {
-                return None;
-            }
+        if self.is_full() {
+            return None;
         }
         let free_pos = self.lenghts.iter().position(|ln| ln == &0)?;
         Some(self.lenghts[..free_pos].iter().sum::<u64>() + self.size())
@@ -101,10 +133,8 @@ impl Slot {
 
     /// Returns the indoex of the first available free slot, or `None` if the slot is full.
     pub fn get_free_slot_index(&self) -> Option<usize> {
-        if let Some(ln) = self.lenghts.last() {
-            if ln > &0 {
-                return None;
-            }
+        if self.is_full() {
+            return None;
         }
         self.lenghts.iter().position(|ln| ln == &0)
     }

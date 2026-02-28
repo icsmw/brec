@@ -6,6 +6,7 @@ members = [
     "stress_payloads",
     "stress_packets",
     "locked_storage",
+    "observer",
 ]
 
 [workspace.dependencies]

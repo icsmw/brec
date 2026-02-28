@@ -23,6 +23,41 @@ impl<'a, I: Iterator<Item = &'a Slot>> PacketsLocatorIterator<'a, I> {
     pub fn new(slots: I) -> Self {
         Self { offset: 0, slots }
     }
+
+    /// Seeks to the specified packet index across the slots.
+    pub fn from(&mut self, packet: usize) -> Result<RangeInclusive<u64>, Error> {
+        let mut count = 0;
+        let mut target = packet;
+        for (idx, slot) in self.slots.by_ref().enumerate() {
+            count += 1;
+            if slot.count() <= target {
+                target -= slot.count();
+                self.offset += slot.size() + slot.width();
+                continue;
+            }
+            if !slot.is_used(target) {
+                return Err(Error::OutOfBounds(
+                    slot.count() + idx * DEFAULT_SLOT_CAPACITY,
+                    packet,
+                ));
+            }
+            let Some(packet_offset) = slot.offset_of(target) else {
+                return Err(Error::OutOfBounds(
+                    slot.count() + idx * DEFAULT_SLOT_CAPACITY,
+                    packet,
+                ));
+            };
+            return Ok(RangeInclusive::new(
+                self.offset + slot.size() + packet_offset,
+                self.offset + slot.size() + slot.width(),
+            ));
+        }
+        if count == 0 {
+            Err(Error::EmptySource)
+        } else {
+            Err(Error::OutOfBounds(count * DEFAULT_SLOT_CAPACITY, packet))
+        }
+    }
 }
 
 impl<'a, I: Iterator<Item = &'a Slot>> Iterator for PacketsLocatorIterator<'a, I> {
@@ -74,13 +109,13 @@ pub struct ReaderIterator<
 }
 
 impl<
-        'a,
-        I: Iterator<Item = &'a Slot>,
-        S: std::io::Read + std::io::Seek,
-        B: BlockDef,
-        P: PayloadDef<Inner>,
-        Inner: PayloadInnerDef,
-    > ReaderIterator<'a, I, S, B, P, Inner>
+    'a,
+    I: Iterator<Item = &'a Slot>,
+    S: std::io::Read + std::io::Seek,
+    B: BlockDef,
+    P: PayloadDef<Inner>,
+    Inner: PayloadInnerDef,
+> ReaderIterator<'a, I, S, B, P, Inner>
 {
     /// Constructs a new `ReaderIterator` from the given stream and slot layout.
     pub fn new(source: &'a mut S, slots: I) -> Self {
@@ -93,16 +128,27 @@ impl<
             _payload_inner: std::marker::PhantomData,
         }
     }
+    /// Seeks to the specified packet index across the slots.
+    pub fn seek(mut self, packet: usize) -> Result<Self, Error> {
+        let location = self.locator.from(packet)?;
+        self.source
+            .seek(std::io::SeekFrom::Start(*location.start()))?;
+        let size = (location.end() - location.start()) as usize;
+        let mut inner = vec![0u8; size];
+        self.source.read_exact(&mut inner).unwrap();
+        self.buffer = Cursor::new(inner);
+        Ok(self)
+    }
 }
 
 impl<
-        'a,
-        I: Iterator<Item = &'a Slot>,
-        S: std::io::Read + std::io::Write + std::io::Seek,
-        B: BlockDef,
-        P: PayloadDef<Inner>,
-        Inner: PayloadInnerDef,
-    > Iterator for ReaderIterator<'a, I, S, B, P, Inner>
+    'a,
+    I: Iterator<Item = &'a Slot>,
+    S: std::io::Read + std::io::Write + std::io::Seek,
+    B: BlockDef,
+    P: PayloadDef<Inner>,
+    Inner: PayloadInnerDef,
+> Iterator for ReaderIterator<'a, I, S, B, P, Inner>
 {
     type Item = Result<PacketDef<B, P, Inner>, Error>;
 
@@ -111,6 +157,7 @@ impl<
     /// Loads the slot's region into an internal buffer and calls `PacketDef::read`.
     /// Returns `None` if all slots are exhausted.
     fn next(&mut self) -> Option<Self::Item> {
+        // TODO: remove unwraps and handle errors properly
         if self.buffer.fill_buf().unwrap().is_empty() {
             let location = self.locator.next()?;
             if let Err(err) = self
@@ -162,14 +209,14 @@ pub struct ReaderFilteredIterator<
 }
 
 impl<
-        'a,
-        I: Iterator<Item = &'a Slot>,
-        S: std::io::Read + std::io::Seek,
-        B: BlockDef,
-        BR: BlockReferredDef<B>,
-        P: PayloadDef<Inner>,
-        Inner: PayloadInnerDef,
-    > ReaderFilteredIterator<'a, I, S, B, BR, P, Inner>
+    'a,
+    I: Iterator<Item = &'a Slot>,
+    S: std::io::Read + std::io::Seek,
+    B: BlockDef,
+    BR: BlockReferredDef<B>,
+    P: PayloadDef<Inner>,
+    Inner: PayloadInnerDef,
+> ReaderFilteredIterator<'a, I, S, B, BR, P, Inner>
 {
     /// Constructs a new filtered packet iterator from the given stream, slots and rules.
     pub fn new(source: &'a mut S, slots: I, rules: &'a RulesDef<B, BR, P, Inner>) -> Self {
@@ -183,14 +230,14 @@ impl<
 }
 
 impl<
-        'a,
-        I: Iterator<Item = &'a Slot>,
-        S: std::io::Read + std::io::Seek,
-        B: BlockDef,
-        BR: BlockReferredDef<B>,
-        P: PayloadDef<Inner>,
-        Inner: PayloadInnerDef,
-    > Iterator for ReaderFilteredIterator<'a, I, S, B, BR, P, Inner>
+    'a,
+    I: Iterator<Item = &'a Slot>,
+    S: std::io::Read + std::io::Seek,
+    B: BlockDef,
+    BR: BlockReferredDef<B>,
+    P: PayloadDef<Inner>,
+    Inner: PayloadInnerDef,
+> Iterator for ReaderFilteredIterator<'a, I, S, B, BR, P, Inner>
 {
     type Item = Result<PacketDef<B, P, Inner>, Error>;
 
@@ -223,7 +270,7 @@ impl<
                     continue;
                 }
                 Ok(LookInStatus::NotEnoughData(needed)) => {
-                    return Some(Err(Error::NotEnoughData(needed)))
+                    return Some(Err(Error::NotEnoughData(needed)));
                 }
                 Err(err) => return Some(Err(err)),
             }
@@ -259,13 +306,13 @@ pub struct ReaderRangeIterator<
 }
 
 impl<
-        'a,
-        S: std::io::Read + std::io::Seek,
-        B: BlockDef,
-        BR: BlockReferredDef<B>,
-        P: PayloadDef<Inner>,
-        Inner: PayloadInnerDef,
-    > ReaderRangeIterator<'a, S, B, BR, P, Inner>
+    'a,
+    S: std::io::Read + std::io::Seek,
+    B: BlockDef,
+    BR: BlockReferredDef<B>,
+    P: PayloadDef<Inner>,
+    Inner: PayloadInnerDef,
+> ReaderRangeIterator<'a, S, B, BR, P, Inner>
 {
     /// Creates a new range-based iterator from the given `storage`, starting at `from`, returning up to `len` items.
     pub fn new(storage: &'a mut ReaderDef<S, B, BR, P, Inner>, from: usize, len: usize) -> Self {
@@ -281,12 +328,12 @@ impl<
 }
 
 impl<
-        S: std::io::Read + std::io::Seek,
-        B: BlockDef,
-        BR: BlockReferredDef<B>,
-        P: PayloadDef<Inner>,
-        Inner: PayloadInnerDef,
-    > Iterator for ReaderRangeIterator<'_, S, B, BR, P, Inner>
+    S: std::io::Read + std::io::Seek,
+    B: BlockDef,
+    BR: BlockReferredDef<B>,
+    P: PayloadDef<Inner>,
+    Inner: PayloadInnerDef,
+> Iterator for ReaderRangeIterator<'_, S, B, BR, P, Inner>
 {
     type Item = Result<PacketDef<B, P, Inner>, Error>;
 
@@ -335,13 +382,13 @@ pub struct ReaderRangeFilteredIterator<
 }
 
 impl<
-        'a,
-        S: std::io::Read + std::io::Seek,
-        B: BlockDef,
-        BR: BlockReferredDef<B>,
-        P: PayloadDef<Inner>,
-        Inner: PayloadInnerDef,
-    > ReaderRangeFilteredIterator<'a, S, B, BR, P, Inner>
+    'a,
+    S: std::io::Read + std::io::Seek,
+    B: BlockDef,
+    BR: BlockReferredDef<B>,
+    P: PayloadDef<Inner>,
+    Inner: PayloadInnerDef,
+> ReaderRangeFilteredIterator<'a, S, B, BR, P, Inner>
 {
     /// Creates a new filtered range-based iterator from `storage`, starting at `from`, returning up to `len` matching packets.
     pub fn new(storage: &'a mut ReaderDef<S, B, BR, P, Inner>, from: usize, len: usize) -> Self {
@@ -350,12 +397,12 @@ impl<
 }
 
 impl<
-        S: std::io::Read + std::io::Write + std::io::Seek,
-        B: BlockDef,
-        BR: BlockReferredDef<B>,
-        P: PayloadDef<Inner>,
-        Inner: PayloadInnerDef,
-    > Iterator for ReaderRangeFilteredIterator<'_, S, B, BR, P, Inner>
+    S: std::io::Read + std::io::Write + std::io::Seek,
+    B: BlockDef,
+    BR: BlockReferredDef<B>,
+    P: PayloadDef<Inner>,
+    Inner: PayloadInnerDef,
+> Iterator for ReaderRangeFilteredIterator<'_, S, B, BR, P, Inner>
 {
     type Item = Result<PacketDef<B, P, Inner>, Error>;
 

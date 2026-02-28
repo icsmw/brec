@@ -19,14 +19,14 @@ pub struct ReaderDef<
 }
 
 impl<
-        S: std::io::Read + std::io::Seek,
-        B: BlockDef,
-        BR: BlockReferredDef<B>,
-        P: PayloadDef<Inner>,
-        Inner: PayloadInnerDef,
-    > ReaderDef<S, B, BR, P, Inner>
+    S: std::io::Read + std::io::Seek,
+    B: BlockDef,
+    BR: BlockReferredDef<B>,
+    P: PayloadDef<Inner>,
+    Inner: PayloadInnerDef,
+> ReaderDef<S, B, BR, P, Inner>
 {
-    /// Creates a new storage instance with the given storage backend.
+    /// Creates a new reader instance with the given storage backend.
     ///
     /// # Arguments
     /// * `inner` - The storage backend implementing `Read`, `Write`, and `Seek`.
@@ -63,10 +63,10 @@ impl<
                     break;
                 }
                 Err(Error::CrcDismatch) => {
-                    return Err(Error::DamagedSlot(Box::new(Error::CrcDismatch)))
+                    return Err(Error::DamagedSlot(Box::new(Error::CrcDismatch)));
                 }
                 Err(Error::SignatureDismatch) => {
-                    return Err(Error::DamagedSlot(Box::new(Error::SignatureDismatch)))
+                    return Err(Error::DamagedSlot(Box::new(Error::SignatureDismatch)));
                 }
                 Err(err) => return Err(err),
             }
@@ -74,6 +74,111 @@ impl<
         self.locator
             .setup(self.slots.iter().map(|anchored| &anchored.inner));
         Ok(self)
+    }
+
+    pub fn reload(&mut self) -> Result<usize, Error> {
+        let mut source_pos;
+
+        let last = match self.slots.last().map(|v| (v, v.inner.expand())) {
+            Some((last, (Some(offset), Some(index), crc))) => {
+                source_pos = last.offset;
+                Some((offset, index, crc))
+            }
+            Some((last, (None, None, _))) => {
+                // Slot is full, because no free offset or/and index
+                source_pos = last.offset + last.inner.width() + last.inner.size();
+                None
+            }
+            _ => {
+                // No slots
+                source_pos = 0;
+                None
+            }
+        };
+        let count = self.slots.len();
+        loop {
+            self.inner.seek(std::io::SeekFrom::Start(source_pos))?;
+            match <Slot as TryReadFrom>::try_read(&mut self.inner) {
+                Ok(ReadStatus::Success(slot)) => {
+                    if let Some((_, _, crc)) = last
+                        && self.slots.len() == count
+                    {
+                        if crc == slot.crc {
+                            return Ok(0);
+                        }
+                        if let Some(lst) = self.slots.get_mut(count.saturating_sub(1)) {
+                            lst.inner = slot;
+                            if lst.inner.get_free_slot_index().is_none() {
+                                // Slot is full, move source position to the end of this slot
+                                source_pos += lst.inner.size() + lst.inner.width();
+                            } else {
+                                // Slot has free space, so we can stop here
+                                break;
+                            }
+                        } else {
+                            return Err(Error::AccessSlot(count.saturating_sub(1)));
+                        }
+                    } else {
+                        let position = source_pos;
+                        source_pos += slot.size() + slot.width();
+                        self.slots.push(AnchoredSlot::new(slot, position));
+                    }
+                }
+                Ok(ReadStatus::NotEnoughData(needed)) => {
+                    match (last.is_none(), self.slots.len() == count) {
+                        (true, true) => {
+                            return Ok(0);
+                        }
+                        (false, true) => {
+                            if needed == SlotHeader::ssize() {
+                                // No space in last slot, no slot after
+                                break;
+                            }
+                            // Cannot read again last slot
+                            return Err(Error::DamagedSlot(Box::new(Error::NotEnoughData(
+                                needed as usize,
+                            ))));
+                        }
+                        (false, false) | (true, false) => break,
+                    }
+                }
+                Err(Error::CrcDismatch) => {
+                    return Err(Error::DamagedSlot(Box::new(Error::CrcDismatch)));
+                }
+                Err(Error::SignatureDismatch) => {
+                    return Err(Error::DamagedSlot(Box::new(Error::SignatureDismatch)));
+                }
+                Err(err) => return Err(err),
+            }
+        }
+
+        let read = match (last, self.slots.len() == count, self.slots.last()) {
+            (Some((_, index, _)), true, Some(last)) => {
+                // Last slot has been update, no new slot has been added
+                if let Some(idx) = last.inner.get_free_slot_index() {
+                    idx.saturating_sub(index)
+                } else {
+                    DEFAULT_SLOT_CAPACITY.saturating_sub(index)
+                }
+            }
+            (Some((_, index, _)), false, Some(last)) => {
+                // Last slot has been updated, but no new slot has been added
+                DEFAULT_SLOT_CAPACITY.saturating_sub(index)
+                    + last.inner.get_free_slot_index().unwrap_or(0)
+                    + self.slots.len().saturating_sub(count) * DEFAULT_SLOT_CAPACITY
+            }
+            (None, false, Some(last)) => {
+                // In cases:
+                // - No last slot, but new slots have been added
+                // - Last slot is full, but new slots have been added
+                last.inner.get_free_slot_index().unwrap_or(0)
+                    + self.slots.len().saturating_sub(count + 1) * DEFAULT_SLOT_CAPACITY
+            }
+            _ => 0,
+        };
+        self.locator
+            .setup(self.slots.iter().map(|anchored| &anchored.inner));
+        Ok(read)
     }
 
     /// Adds a packet filter or processing rule.
@@ -98,6 +203,8 @@ impl<
 
     /// Returns the number of records currently stored.
     pub fn count(&self) -> usize {
+        // TODO: try to get rid of locator
+
         let (slot_index, _) = self.locator.current();
         let Some(slot) = self.slots.get(slot_index) else {
             return self.slots.len() * DEFAULT_SLOT_CAPACITY;
@@ -119,6 +226,17 @@ impl<
             &mut self.inner,
             self.slots.iter().map(|anchored| &anchored.inner),
         )
+    }
+
+    pub fn seek<'a>(
+        &'a mut self,
+        packet: usize,
+    ) -> Result<ReaderIterator<'a, impl Iterator<Item = &'a Slot>, S, B, P, Inner>, Error> {
+        ReaderIterator::new(
+            &mut self.inner,
+            self.slots.iter().map(|anchored| &anchored.inner),
+        )
+        .seek(packet)
     }
 
     /// Returns a filtered iterator over packets using configured rules.

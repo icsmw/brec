@@ -64,9 +64,7 @@ impl TryReadFrom for SlotHeader {
         let len = buf.seek(std::io::SeekFrom::End(0))? - start_pos;
         buf.seek(std::io::SeekFrom::Start(start_pos))?;
         if len < SlotHeader::ssize() {
-            return Ok(ReadStatus::NotEnoughData(
-                PacketHeader::ssize() - SlotHeader::ssize(),
-            ));
+            return Ok(ReadStatus::NotEnoughData(SlotHeader::ssize()));
         }
 
         let mut sig = [0u8; 8];

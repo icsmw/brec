@@ -500,6 +500,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "observer"
+version = "0.1.0"
+dependencies = [
+ "brec",
+ "num-format",
+ "proptest",
+ "serde",
+ "serial_test",
+]
+
+[[package]]
 name = "once_cell"
 version = "1.21.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"

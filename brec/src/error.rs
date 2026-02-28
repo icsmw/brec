@@ -64,6 +64,16 @@ pub enum Error {
     TimeoutToWaitLockedFile(String),
     #[error("Fail to lock file: {0}")]
     FailToLockFile(std::io::Error),
+    #[error("Fail to access slot:{0}")]
+    AccessSlot(usize),
+    #[error("Empty source")]
+    EmptySource,
     #[error("Test error has been fired")]
     Test,
+}
+
+impl From<Error> for std::io::Error {
+    fn from(value: Error) -> Self {
+        std::io::Error::other(value.to_string())
+    }
 }
