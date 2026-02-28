@@ -1,0 +1,1188 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+        <link rel="canonical" href="https://icsmw.github.io/brec/parts/payloads/">
+      
+      
+        <link rel="prev" href="../blocks/">
+      
+      
+        <link rel="next" href="../packets/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.3">
+    
+    
+      
+        <title>Payloads - BRec (Binary Record)</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    <body dir="ltr">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#required-traits" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="BRec (Binary Record)" class="md-header__button md-logo" aria-label="BRec (Binary Record)" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            BRec (Binary Record)
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Payloads
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="BRec (Binary Record)" class="md-nav__button md-logo" aria-label="BRec (Binary Record)" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    BRec (Binary Record)
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../overview/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting_started/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Protocol Parts
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Protocol Parts
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../blocks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Blocks
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Payloads
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Payloads
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#required-traits" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Required Traits
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#automatically-implemented-traits" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Automatically Implemented Traits
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#payload-header-payloadheader" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Payload Header (PayloadHeader)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#automatically-supported-payload-types" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Automatically Supported Payload Types
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#defining-payloads-with-bincode" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Defining Payloads with bincode
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#partial-restrictions-on-payload-types" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Partial Restrictions on Payload Types
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#payload-parameters" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Payload Parameters
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../packets/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Packets
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../code_generation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Code Generation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Protocol Tools
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Protocol Tools
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tools/buffer/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Buffer
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tools/storage/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Storage
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../specification/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Specification
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8" >
+        
+          
+          <label class="md-nav__link" for="__nav_8" id="__nav_8_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Stability & Performance
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_8">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Stability & Performance
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../stability/tests/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tests
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../stability/performance/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Performance
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#required-traits" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Required Traits
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#automatically-implemented-traits" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Automatically Implemented Traits
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#payload-header-payloadheader" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Payload Header (PayloadHeader)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#automatically-supported-payload-types" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Automatically Supported Payload Types
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#defining-payloads-with-bincode" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Defining Payloads with bincode
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#partial-restrictions-on-payload-types" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Partial Restrictions on Payload Types
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#payload-parameters" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Payload Parameters
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+
+  <h1>Payloads</h1>
+
+<p><code>brec</code> does not impose any restrictions on the type of data that can be defined as a payload. However, a payload must implement the following traits:</p>
+<h3 id="required-traits">Required Traits</h3>
+<table>
+<thead>
+<tr>
+<th>Trait</th>
+<th>Method</th>
+<th>Return Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>PayloadSize</code></td>
+<td><code>size(&amp;self)</code></td>
+<td><code>std::io::Result&lt;u64&gt;</code></td>
+<td>Returns the size of the payload body in bytes (excluding the header).</td>
+</tr>
+<tr>
+<td><code>PayloadSignature</code></td>
+<td><code>sig(&amp;self)</code></td>
+<td><code>ByteBlock</code></td>
+<td>Returns the signature, which can have a variable length of 4, 8, 16, 32, 64, or 128 bytes.</td>
+</tr>
+<tr>
+<td><code>StaticPayloadSignature</code></td>
+<td><code>ssig()</code></td>
+<td><code>ByteBlock</code></td>
+<td>Similar to <code>sig</code>, but can be called without creating a payload instance.</td>
+</tr>
+<tr>
+<td><code>PayloadEncode</code></td>
+<td><code>encode(&amp;self)</code></td>
+<td><code>std::io::Result&lt;Vec&lt;u8&gt;&gt;</code></td>
+<td>Creates a binary representation of the payload (excluding the header).</td>
+</tr>
+<tr>
+<td><code>PayloadEncodeReferred</code></td>
+<td><code>encode(&amp;self)</code></td>
+<td><code>std::io::Result&lt;Option&lt;&amp;[u8]&gt;&gt;</code></td>
+<td>Creates a reference representation of the payload, if possible. Used for calculation of payload CRC and can boost performance</td>
+</tr>
+<tr>
+<td><code>PayloadDecode&lt;T&gt;</code></td>
+<td><code>decode(buf: &amp;[u8])</code></td>
+<td><code>std::io::Result&lt;T&gt;</code></td>
+<td>Attempts to reconstruct the payload from a byte slice.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="automatically-implemented-traits">Automatically Implemented Traits</h3>
+<p>The following traits are automatically applied and do not require manual implementation, though they can be overridden if needed:</p>
+<table>
+<thead>
+<tr>
+<th>Trait</th>
+<th>Method</th>
+<th>Return Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>PayloadCrc</code></td>
+<td><code>crc(&amp;self)</code></td>
+<td><code>std::io::Result&lt;ByteBlock&gt;</code></td>
+<td>Returns the CRC of the payload, which can have a variable length of 4, 8, 16, 32, 64, or 128 bytes.</td>
+</tr>
+<tr>
+<td><code>ReadPayloadFrom</code></td>
+<td><code>read&lt;B: std::io::Read&gt;(buf: &amp;mut B, header: &amp;PayloadHeader)</code></td>
+<td><code>Result&lt;T, Error&gt;</code></td>
+<td>Reads the payload from a source.</td>
+</tr>
+<tr>
+<td><code>TryReadPayloadFrom</code></td>
+<td><code>try_read&lt;B: std::io::Read + std::io::Seek&gt;(buf: &amp;mut B, header: &amp;PayloadHeader)</code></td>
+<td><code>Result&lt;ReadStatus&lt;T&gt;, Error&gt;</code></td>
+<td>Attempts to read the payload from a source. If there is insufficient data, it returns a corresponding read status instead of an error.</td>
+</tr>
+<tr>
+<td><code>TryReadPayloadFromBuffered</code></td>
+<td><code>try_read&lt;B: std::io::BufRead&gt;(buf: &amp;mut B, header: &amp;PayloadHeader)</code></td>
+<td><code>Result&lt;ReadStatus&lt;T&gt;, Error&gt;</code></td>
+<td>Similar to <code>TryReadPayloadFrom</code>, but returns a reference representation of the payload (if supported) instead of the actual payload.</td>
+</tr>
+<tr>
+<td><code>WritePayloadWithHeaderTo</code></td>
+<td><code>write&lt;T: std::io::Write&gt;(&amp;mut self, buf: &amp;mut T)</code></td>
+<td><code>std::io::Result&lt;usize&gt;</code></td>
+<td>Equivalent to the standard <code>write</code> method, returning the number of bytes written. Does not guarantee that data is flushed to the output, so calling <code>flush</code> is required if such guarantees are needed.</td>
+</tr>
+<tr>
+<td><code>WritePayloadWithHeaderTo</code></td>
+<td><code>write_all&lt;T: std::io::Write&gt;(&amp;mut self, buf: &amp;mut T)</code></td>
+<td><code>std::io::Result&lt;()&gt;</code></td>
+<td>Equivalent to the standard <code>write_all</code> method.</td>
+</tr>
+<tr>
+<td><code>WriteVectoredPayloadWithHeaderTo</code></td>
+<td><code>write_vectored&lt;T: std::io::Write&gt;(&amp;mut self, buf: &amp;mut T)</code></td>
+<td><code>std::io::Result&lt;usize&gt;</code></td>
+<td>Attempts a vectored write of the payload (analogous to the standard <code>write_vectored</code>).</td>
+</tr>
+<tr>
+<td><code>WriteVectoredPayloadWithHeaderTo</code></td>
+<td><code>slices(&amp;mut self)</code></td>
+<td><code>std::io::Result&lt;IoSlices&gt;</code></td>
+<td>Returns the binary representation of the payload as slices.</td>
+</tr>
+<tr>
+<td><code>WriteVectoredPayloadWithHeaderTo</code></td>
+<td><code>write_vectored_all&lt;T: std::io::Write&gt;(&amp;mut self, buf: &amp;mut T)</code></td>
+<td><code>std::io::Result&lt;()&gt;</code></td>
+<td>Attempts a vectored write of the payload (analogous to the standard <code>write_vectored_all</code>).</td>
+</tr>
+</tbody>
+</table>
+<h3 id="payload-header-payloadheader">Payload Header (<code>PayloadHeader</code>)</h3>
+<p>The payload header is not a generated structure but a static one included in the <code>brec</code> crate. <code>PayloadHeader</code> is used when writing a payload into a packet (<code>Packet</code>) and is always written before the payload body itself. When manually writing a payload to a data source, it is strongly recommended to prepend it with <code>PayloadHeader</code> to facilitate further reading from the source.</p>
+<p><code>PayloadHeader</code> implements the following traits:</p>
+<table>
+<thead>
+<tr>
+<th>Trait</th>
+<th>Method</th>
+<th>Return Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ReadFrom</code></td>
+<td><code>read&lt;T: std::io::Read&gt;(buf: &amp;mut T)</code></td>
+<td><code>Result&lt;Self, Error&gt;</code></td>
+<td>Attempts to read <code>PayloadHeader</code> from a source.</td>
+</tr>
+<tr>
+<td><code>TryReadFrom</code></td>
+<td><code>try_read&lt;T: std::io::Read + std::io::Seek&gt;(buf: &amp;mut T)</code></td>
+<td><code>Result&lt;ReadStatus&lt;Self&gt;, Error&gt;</code></td>
+<td>Attempts to read <code>PayloadHeader</code>, but if data is insufficient, returns a corresponding read status instead of an error. Also, moves the source's position only on successful reading; otherwise, it remains unchanged.</td>
+</tr>
+<tr>
+<td><code>TryReadFromBuffered</code></td>
+<td><code>try_read&lt;T: std::io::BufRead&gt;(reader: &amp;mut T)</code></td>
+<td><code>Result&lt;ReadStatus&lt;Self&gt;, Error&gt;</code></td>
+<td>Identical to <code>TryReadFrom</code>.</td>
+</tr>
+</tbody>
+</table>
+<p>Thus, if you are manually implementing payload reading from a source, you should first read <code>PayloadHeader</code>, and then, using the obtained header, proceed to read the payload itself.</p>
+<p><code>PayloadHeader</code> does not implement any traits for writing to a source. However, it provides the <code>as_vec()</code> method, which returns its binary representation.</p>
+<h3 id="automatically-supported-payload-types">Automatically Supported Payload Types</h3>
+<p>Out of the box, <code>brec</code> supports <code>String</code> and <code>Vec&lt;u8&gt;</code> as payload types. After code generation, these will be included in the corresponding enumeration:</p>
+<pre><code class="language-rust">brec::generate!();
+
+pub enum Payload {
+    // ..
+    // User-defined payloads
+    // ..
+    // Default payloads
+    Bytes(Vec&lt;u8&gt;),
+    String(String),
+}
+</code></pre>
+<h3 id="defining-payloads-with-bincode">Defining Payloads with <code>bincode</code></h3>
+<p>Enabling the <code>bincode</code> feature provides the simplest and most flexible way to define payload types. By specifying <code>#[payload(bincode)]</code>, any type that supports <code>serde</code> serialization and deserialization can be used as a <code>payload</code>.</p>
+<pre><code class="language-rust">#[payload(bincode)]
+#[derive(serde::Deserialize, serde::Serialize)]
+pub struct MyPayloadStruct {
+    // User-defined fields
+}
+
+#[payload(bincode)]
+#[derive(serde::Deserialize, serde::Serialize)]
+pub enum MyPayloadEnum {
+    // User-defined variants
+}
+</code></pre>
+<h3 id="partial-restrictions-on-payload-types">Partial Restrictions on Payload Types</h3>
+<p>It is important to note that the CRC for a payload is generated twice—once when the payload is converted into bytes and again after extraction (to compare with the CRC stored in the payload header). This imposes certain limitations on CRC verification, as <code>brec</code> does not restrict the types of data used in a payload. If a payload contains data types that do not guarantee a strict byte sequence, CRC verification will always fail due to variations in byte order. As a result, extracting such a payload from the stream will become impossible.</p>
+<p>A simple example of this issue is <code>HashMap</code>, which does not guarantee a consistent field order upon reconstruction. For instance:</p>
+<pre><code class="language-rust">#[payload(bincode)]
+#[derive(serde::Deserialize, serde::Serialize)]
+pub struct MyPayloadB {
+    items: HashMap&lt;String, String&gt;,
+}
+</code></pre>
+<p>Extracting such a payload will be impossible because the CRC will always be different (except when the number of keys in the map is ≤ 1). This issue can be resolved in several ways:</p>
+<ul>
+<li>The simplest approach is to avoid using "unstable" data types and instead choose a type that guarantees a fixed byte sequence.</li>
+<li>Disable CRC verification for this specific payload using the <code>no_crc</code> directive: <code>#[payload(no_crc)]</code>.</li>
+<li>Disable automatic CRC calculation and implement the <code>PayloadCrc</code> trait manually for the specific payload. This can be done using the <code>no_auto_crc</code> directive: <code>#[payload(bincode, no_auto_crc)]</code>.</li>
+</ul>
+<h3 id="payload-parameters">Payload Parameters</h3>
+<p>The <code>payload</code> macro can be used with the following directives:</p>
+<ul>
+<li><code>path = mod::mod</code> – Specifies the module path for the payload if it is not directly imported at the location of <code>brec::generate!()</code>. This approach is not recommended (it is better to ensure payload visibility at the generator call site), but it is not inherently inefficient or unstable. However, using this method may make future code maintenance more difficult.</li>
+<li><code>no_crc</code> – Disables CRC verification for the payload. Note that this does not remove the CRC field from the binary representation of the payload (specifically in <code>PayloadHeader</code>). The CRC field will still be present but filled with zeros, and no CRC calculation will be performed.</li>
+<li><code>no_auto_crc</code> – Disables CRC verification for <code>payload(bincode)</code>, requiring a manual implementation of the <code>PayloadCrc</code> trait. This parameter is only relevant when using the <code>bincode</code> feature.</li>
+<li><code>bincode</code> – available only when the bincode feature is enabled. It allows using any structure as a payload as long as it meets the requirements of the bincode crate, i.e., it implements serde serialization and deserialization. Please note that bincode has a number of limitations, which you can review in its official documentation.</li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": [], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>

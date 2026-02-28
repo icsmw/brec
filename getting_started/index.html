@@ -1,0 +1,1295 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+        <link rel="canonical" href="https://icsmw.github.io/brec/getting_started/">
+      
+      
+        <link rel="prev" href="../overview/">
+      
+      
+        <link rel="next" href="../parts/blocks/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.3">
+    
+    
+      
+        <title>Getting Started - BRec (Binary Record)</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    <body dir="ltr">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#your-protocol-in-5-steps" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="BRec (Binary Record)" class="md-header__button md-logo" aria-label="BRec (Binary Record)" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            BRec (Binary Record)
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Getting Started
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="BRec (Binary Record)" class="md-nav__button md-logo" aria-label="BRec (Binary Record)" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    BRec (Binary Record)
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../overview/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#your-protocol-in-5-steps" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Your Protocol in 5 Steps
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Your Protocol in 5 Steps">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#create-a-crate" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Create a Crate
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#define-blocks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Define Blocks
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#define-payload" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Define Payload
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#add-code-generation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Add Code Generation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#final-step" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Final Step
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#done" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Done
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#blocks-and-payloads-in-details" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Blocks and Payloads in details
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#simple-packet-construction" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Simple Packet Construction
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#code-generation-note" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Code Generation Note
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#performance-security-and-efficiency" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Performance, Security, and Efficiency
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Protocol Parts
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Protocol Parts
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../parts/blocks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Blocks
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../parts/payloads/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Payloads
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../parts/packets/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Packets
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../code_generation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Code Generation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Protocol Tools
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Protocol Tools
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tools/buffer/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Buffer
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tools/storage/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Storage
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../specification/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Specification
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8" >
+        
+          
+          <label class="md-nav__link" for="__nav_8" id="__nav_8_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Stability & Performance
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_8">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Stability & Performance
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../stability/tests/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tests
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../stability/performance/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Performance
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#your-protocol-in-5-steps" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Your Protocol in 5 Steps
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Your Protocol in 5 Steps">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#create-a-crate" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Create a Crate
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#define-blocks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Define Blocks
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#define-payload" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Define Payload
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#add-code-generation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Add Code Generation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#final-step" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Final Step
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#done" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Done
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#blocks-and-payloads-in-details" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Blocks and Payloads in details
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#simple-packet-construction" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Simple Packet Construction
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#code-generation-note" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Code Generation Note
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#performance-security-and-efficiency" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Performance, Security, and Efficiency
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+
+  <h1>Getting Started</h1>
+
+<h2 id="your-protocol-in-5-steps">Your Protocol in 5 Steps</h2>
+<h3 id="create-a-crate">Create a Crate</h3>
+<p>It’s best to create a separate crate for your protocol. This helps keep your code clean and organized. Simply create a new crate and include it in your project’s workspace.</p>
+<h3 id="define-blocks">Define Blocks</h3>
+<p>Decide on the blocks for your protocol. Just create Rust structs and annotate them with the <code>#[block]</code> macro.</p>
+<pre><code class="language-rust">#[block]
+pub struct MyBlock {
+    pub field_u8: u8,
+    pub field_u32: u32,
+    pub field_u64: u64,
+    pub blob: [u8; 1000],
+}
+</code></pre>
+<h3 id="define-payload">Define Payload</h3>
+<p>Once the blocks are ready, define the payload. Annotate a struct or enum with the <code>#[payload(bincode)]</code> macro.
+(We recommend starting with the bincode feature.)</p>
+<pre><code class="language-rust">#[derive(Default, serde::Deserialize, serde::Serialize)]
+pub enum MyNestedEntity {
+    One(String),
+    Two(Vec&lt;u8&gt;),
+    #[default]
+    Three,
+}
+
+#[payload(bincode)]
+#[derive(Default, serde::Deserialize, serde::Serialize)]
+pub struct MyPayload {
+    pub field_u8: u8,
+    pub field_u16: u16,
+    pub field_u32: u32,
+    pub field_u64: u64,
+    pub field_u128: u128,
+    pub field_nested: MyNestedEntity,
+}
+</code></pre>
+<h3 id="add-code-generation">Add Code Generation</h3>
+<p>You must call brec::generate!() in a single location in your code to let brec generate the required code for your blocks and payloads.
+The best place to do this is in the lib.rs file of the crate you created.
+Make sure all blocks and payloads are in scope at the call site of <code>brec::generate!()</code>.</p>
+<pre><code class="language-rust">use blocks::*; // Make your blocks visible
+use payloads::*; // Make your payloads visible
+
+// Let `brec` generate a code
+brec::generate!();
+</code></pre>
+<h3 id="final-step">Final Step</h3>
+<p>Add a simple <code>build.rs</code> script.</p>
+<pre><code class="language-rust">    brec::build_setup();
+</code></pre>
+<h3 id="done">Done</h3>
+<p>Your protocol is ready to be used and you can create your first packet</p>
+<pre><code class="language-rust">let my_packet = Packet::new(
+    // You are limited to 255 blocks per packet.
+    vec![
+        Block::MyBlock(MyBlock::default()),
+    ],
+    // Note: payload is optional
+    Some(Payload::MyPayload(MyPayload::default()))
+);
+</code></pre>
+<h2 id="blocks-and-payloads-in-details">Blocks and Payloads in details</h2>
+<p><code>brec</code> includes powerful macros that allow defining the components of a protocol with minimal effort. For example, to define a structure as a block (<code>Block</code>), you simply need to use the <code>block</code> macro:</p>
+<pre><code class="language-rust">#[brec::block]
+pub struct MyBlock {
+    pub field_u8: u8,
+    pub field_u16: u16,
+    pub field_u32: u32,
+    pub field_u64: u64,
+    pub field_u128: u128,
+    pub field_i8: i8,
+    pub field_i16: i16,
+    pub field_i32: i32,
+    pub field_i64: i64,
+    pub field_i128: i128,
+    pub field_f32: f32,
+    pub field_f64: f64,
+    pub field_bool: bool,
+    pub blob_a: [u8; 1],
+    pub blob_b: [u8; 100],
+    pub blob_c: [u8; 1000],
+    pub blob_d: [u8; 10000],
+}
+</code></pre>
+<p>The <code>block</code> macro automatically generates all the necessary code for <code>MyBlock</code> to function as a block. Specifically, it adds:
+- A unique block signature based on its name and path.
+- A <code>CRC</code> field to ensure data integrity.</p>
+<p>All user-defined blocks are ultimately included in a generated enumeration <code>Block</code>, as shown in the example:</p>
+<pre><code class="language-rust">#[brec::block]
+pub struct MyBlockA {
+    pub field: u8,
+    pub blob: [u8; 100],
+}
+
+#[brec::block]
+pub struct MyBlockB {
+    pub field_u16: u16,
+    pub field_u32: u32,
+}
+
+#[brec::block]
+pub struct MyBlockC {
+    pub field: u64,
+    pub blob: [u8; 10000],
+}
+
+// Instruct `brec` to generate and include all protocol types
+brec::generate!();
+
+// Generated by `brec`
+pub enum Block {
+    MyBlockA(MyBlockA),
+    MyBlockB(MyBlockB),
+    MyBlockC(MyBlockC),
+}
+</code></pre>
+<p>The generated <code>Block</code> enumeration is always returned to the user as a result of message (packet) parsing, allowing for easy identification of blocks by their names.</p>
+<p>Similarly to blocks, defining a payload can be done with a simple call to the <code>payload</code> macro.</p>
+<pre><code class="language-rust">#[derive(serde::Deserialize, serde::Serialize)]
+pub enum MyNestedEntity {
+    One(String),
+    Two(Vec&lt;u8&gt;),
+    Three,
+}
+
+#[payload(bincode)]
+#[derive(serde::Deserialize, serde::Serialize)]
+pub struct MyPayload {
+    pub field_u8: u8,
+    pub field_u16: u16,
+    pub field_u32: u32,
+    pub field_u64: u64,
+    pub field_u128: u128,
+    pub field_nested: MyNestedEntity,
+}
+</code></pre>
+<p>A payload is an unrestricted set of data (unlike <code>Block</code>, which is limited to primitive data). It can be either a <code>struct</code> or an <code>enum</code> with unlimited nesting levels. Additionally, there are no restrictions on the use of generic types.</p>
+<p><code>brec</code> imposes only one requirement for payloads: they must implement the traits <code>PayloadEncode</code> and <code>PayloadDecode&lt;T&gt;</code>, which enable encoding and decoding of data into target types.</p>
+<p>Out of the box (with the <code>bincode</code> feature), <code>brec</code> provides automatic support for the required traits by leveraging the <code>bincode</code> crate. This means that to define a fully functional payload, it is enough to use <code>#[payload(bincode)]</code>, eliminating the need for manually implementing the <code>PayloadEncode</code> and <code>PayloadDecode&lt;T&gt;</code> traits. </p>
+<p>Note that <code>bincode</code> requires serialization and deserialization support, which is why the previous examples include <code>#[derive(serde::Deserialize, serde::Serialize)]</code>.</p>
+<p>With <code>brec</code>, defining protocol types (blocks and payloads) is reduced to simply defining structures and annotating them with the <code>block</code> and <code>payload</code> macros.</p>
+<h2 id="simple-packet-construction">Simple Packet Construction</h2>
+<p>Once the protocol data types have been defined, the next step is to include the "unifying" code generated by <code>brec</code> using <code>brec::generate!();</code></p>
+<pre><code class="language-rust">#[brec::block]
+pub struct MyBlockA { ... }
+
+#[brec::block]
+pub struct MyBlockB { ... }
+
+#[brec::block]
+pub struct MyBlockC { ... }
+
+#[payload(bincode)]
+#[derive(serde::Deserialize, serde::Serialize)]
+pub struct MyPayloadA { ... }
+
+#[payload(bincode)]
+#[derive(serde::Deserialize, serde::Serialize)]
+pub struct MyPayloadB { ... }
+
+#[payload(bincode)]
+#[derive(serde::Deserialize, serde::Serialize)]
+pub struct MyPayloadC { ... }
+
+// Instruct `brec` to generate and include all protocol types
+brec::generate!();
+
+// Now available:
+
+// Generalized block representation
+pub enum Block {
+    MyBlockA(MyBlockA),
+    MyBlockB(MyBlockB),
+    MyBlockC(MyBlockC),
+}
+
+// Generalized payload representation
+pub enum Payload {
+    MyPayloadA(MyPayloadA),
+    MyPayloadB(MyPayloadB),
+    MyPayloadC(MyPayloadC),
+}
+
+// Packet type
+pub type Packet = brec::PacketDef&lt;Block, Payload, Payload&gt;;
+</code></pre>
+<p>Once all protocol types are defined and the unifying code is generated, you can start creating packets:</p>
+<pre><code class="language-rust">let my_packet = Packet::new(
+    // You are limited to 255 blocks per packet.
+    vec![
+        Block::MyBlockA(MyBlockA::default()),
+        Block::MyBlockC(MyBlockC::default()),
+    ],
+    // Note: payload is optional
+    Some(Payload::MyPayloadA(MyPayloadA::default()))
+);
+</code></pre>
+<p>At this point, your protocol is ready for use. <code>Packet</code> implements all the necessary methods for reading from and writing to a data source.</p>
+<h2 id="code-generation-note">Code Generation Note</h2>
+<p>Pay special attention: using <code>brec</code> involves code generation. Therefore, after defining the structure of your protocol (<code>blocks</code> and <code>payloads</code>), you must call <code>brec::generate!()</code>. This macro can be invoked only once and only in a single location in your code.</p>
+<p>Additionally, you will need to add a very simple <code>build.rs</code> script. For more details, see the <a href="../code_generation/">Code Generation</a> section.</p>
+<h2 id="performance-security-and-efficiency">Performance, Security, and Efficiency</h2>
+<p><code>brec</code> is a binary protocol, meaning data is always transmitted and stored in a binary format.</p>
+<p>The protocol ensures security through the following mechanisms:
+- Each block includes a unique signature generated based on the block's name. Name conflicts within a single crate are eliminated, as the module path is taken into account.
+- Similar to blocks, each payload also has a unique signature derived from its name.
+- Additionally, <code>Packet</code> itself has a fixed 64-bit signature.</p>
+<p>These features enable reliable entity recognition within a data stream. Furthermore, blocks, payloads, and the packet itself have their own CRCs. While blocks always use a 32-bit CRC, payloads allow for optional support of 64-bit or 128-bit CRC to enhance protocol security.</p>
+<p><code>brec</code> ensures maximum performance through the following optimizations:
+- Minimization of data copying and cloning operations.
+- Incremental packet parsing: first, blocks are parsed, allowing the user to inspect them and decide whether the packet should be fully parsed (including the payload) or skipped. This enables efficient packet filtering based on block values, avoiding the overhead of parsing a heavy payload.
+- If data integrity verification is not required, <code>brec</code> allows CRC to be disabled for all types or selectively. This improves performance by eliminating the need for hash calculations.</p>
+<p>The conceptual separation of a packet into blocks and a payload allows users to efficiently manage traffic load. Blocks can carry "fast" information that requires quick access, while the payload can implement more complex encoding/decoding mechanisms (such as data compression). Filtering based on blocks helps avoid unnecessary operations on the payload when they are not required.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": [], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>
