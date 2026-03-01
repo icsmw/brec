@@ -65,6 +65,13 @@ pub enum Payload {
 
 Enabling the `bincode` feature provides the simplest and most flexible way to define payload types. By specifying `#[payload(bincode)]`, any type that supports `serde` serialization and deserialization can be used as a `payload`.
 
+`#[payload(bincode)]` is available only when the crate dependency enables the `bincode` feature:
+
+```toml
+[dependencies]
+brec = { version = "...", features = ["bincode"] }
+```
+
 ```rust
 #[payload(bincode)]
 #[derive(serde::Deserialize, serde::Serialize)]

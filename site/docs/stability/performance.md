@@ -30,9 +30,9 @@ Each packet consists of a `Metadata` block and a `String` payload. Data is rando
 
 ### Test Description
 
-- **Storage**: Data is written using the `brec` storage API — `Storage<S: std::io::Read + std::io::Write + std::io::Seek>` — and then read back using the same interface.
+- **Storage**: Data is written using the `brec` storage API (`Writer<S>`) and then read back using `Reader<S>`.
 - **Binary Stream**: Data is written to the file as a plain stream of packets, without slots or metadata. Then it is read using `PacketBufReader`.
-- **Streamed Storage**: Data is written using `Storage`, but read using `PacketBufReader`, which ignores slot metadata (treating it as garbage).
+- **Streamed Storage**: Data is written using the storage API, but read using `PacketBufReader`, which ignores slot metadata (treating it as garbage).
 - **Plain Text**: Raw text lines are written to the file, separated by `\n`.
 - **JSON**: The structure shown above is serialized to JSON using `serde_json` and written as one JSON object per line. During reading, each line is deserialized back to the original structure.
 

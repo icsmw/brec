@@ -30,15 +30,33 @@ The macro defines the following aliases to reduce verbosity when using `brec` ty
 
 | Alias                    | Expanded to                                                                 |
 |-------------------------|------------------------------------------------------------------------------|
-| `Packet`                | `PacketDef<Block, Payload, Payload>`                                        |
-| `PacketBufReader<'a, R>`| `PacketBufReaderDef<'a, R, Block, BlockReferred<'a>, Payload, Payload>`     |
-| `Rules<'a>`             | `RulesDef<Block, BlockReferred<'a>, Payload, Payload>`                      |
-| `Rule<'a>`              | `RuleDef<Block, BlockReferred<'a>, Payload, Payload>`                       |
-| `RuleFnDef<D, S>`       | `RuleFnDef<D, S>`                                                            |
-| `Reader<S>`             | `ReaderDef<S, Block, BlockReferred<'static>, Payload, Payload>`            |
-| `Writer<S>`             | `WriterDef<S, Block, Payload, Payload>`            |
+| `Packet` | `PacketDef<Block, Payload, Payload>` |
+| `BorrowedPacketBufReader<'a, R>` | `PacketBufReaderDef<'a, R, Block, BlockReferred<'a>, Payload, Payload>` |
+| `PacketBufReader<'a, R>` | same as `BorrowedPacketBufReader<'a, R>` |
+| `PeekedBlocks<'a>` | `PeekedBlocksDef<'a, BlockReferred<'a>>` |
+| `PeekedBlock<'a>` | `PeekedBlockDef<'a, BlockReferred<'a>>` |
+| `BorrowedRules<'a>` | `RulesDef<Block, BlockReferred<'a>, Payload, Payload>` |
+| `Rules<'a>` | same as `BorrowedRules<'a>` |
+| `BorrowedRule<'a>` | `RuleDef<Block, BlockReferred<'a>, Payload, Payload>` |
+| `Rule<'a>` | same as `BorrowedRule<'a>` |
+| `RuleFnDef<D, S>` | `RuleFnDef<D, S>` |
+| `BorrowedReader<'a, S>` | `ReaderDef<S, Block, BlockReferred<'a>, Payload, Payload>` |
+| `Reader<S>` | `ReaderDef<S, Block, BlockReferred<'static>, Payload, Payload>` |
+| `Writer<S>` | `WriterDef<S, Block, Payload, Payload>` |
 
 These aliases make it easier to work with generated structures and remove the need to repeat generic parameters.
+
+When `brec` is built with the `observer` feature, the macro also generates:
+
+| Alias | Expanded to |
+|-------|-------------|
+| `SubscriptionUpdate` | `brec::SubscriptionUpdate` |
+| `SubscriptionErrorAction` | `brec::SubscriptionErrorAction` |
+| `Subscription` | local facade over `SubscriptionDef<Block, BlockReferred<'static>, Payload, Payload>` |
+| `FileObserverOptions<S>` | local wrapper over `brec::FileObserverOptions<..., SubscriptionWrapper<S>>` |
+| `FileObserver` | local wrapper over `FileObserverDef<Block, BlockReferred<'static>, Payload, Payload>` |
+
+`Subscription` uses `on_*` callbacks: `on_update`, `on_packet`, `on_error`, `on_stopped`, `on_aborted`.
 
 ### Required Build Script
 

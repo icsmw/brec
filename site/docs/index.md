@@ -21,6 +21,7 @@
 - **Stream-aware reading** – `brec` includes a powerful streaming reader capable of extracting packets even from noisy or corrupted streams — skipping irrelevant or damaged data without breaking.
 - **Non-packet data is preserved** – When reading mixed streams, unrecognized data is not lost. You can capture and process it separately using rules and callbacks.
 - **Persistent storage layer** – `brec` provides a high-performance storage engine for persisting packets. Its slot-based layout enables fast indexed access, filtering, and direct access by packet index.
+- **Optional file observer** – Enable the `observer` feature to watch storage files and consume newly appended packets asynchronously.
 - **High performance** – Parsing performance is on par with the most optimized binary parsers (see the Performance section in [performance](stability/performance.md)).
 - **Simple to use** – Just annotate your structs with #[block] or #[payload], and brec takes care of the rest — your protocol is ready to go.
 

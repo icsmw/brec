@@ -5,7 +5,7 @@ The stability of `brec` is ensured through two levels of testing.
 
 To test reading, writing, parsing, filtering, and other functions, `brec` uses `proptest` to generate **random values** for predefined (structurally consistent) blocks and payloads. Blocks and payloads are tested **both separately and in combination** as part of packet testing. 
 
-Packets are constructed with **randomly generated blocks and payloads**. Additionally, the ability of `brec` tools to **reliably read and write randomly generated blocks** is also tested, specifically focusing on `Storage<S: std::io::Read + std::io::Write + std::io::Seek>` and `PacketBufReader`.
+Packets are constructed with **randomly generated blocks and payloads**. Additionally, the ability of `brec` tools to **reliably read and write randomly generated blocks** is also tested, specifically focusing on the generated storage layer (`Writer<S>` and `Reader<S>`) and `PacketBufReader`.
 
 In total, **over 40 GB of test data** is generated for this type of testing.
 

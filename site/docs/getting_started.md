@@ -21,7 +21,15 @@ pub struct MyBlock {
 ### Define Payload
 
 Once the blocks are ready, define the payload. Annotate a struct or enum with the `#[payload(bincode)]` macro.
-(We recommend starting with the bincode feature.)
+
+`#[payload(bincode)]` is available only when the `bincode` feature is enabled in your crate dependency:
+
+```toml
+[dependencies]
+brec = { version = "...", features = ["bincode"] }
+```
+
+For most projects this is the easiest starting point.
 
 ```rust
 #[derive(Default, serde::Deserialize, serde::Serialize)]
@@ -241,6 +249,13 @@ let my_packet = Packet::new(
 ```
 
 At this point, your protocol is ready for use. `Packet` implements all the necessary methods for reading from and writing to a data source.
+
+If you also need file watching for appended packets, enable the `observer` feature:
+
+```toml
+[dependencies]
+brec = { version = "...", features = ["bincode", "observer"] }
+```
 
 ## Code Generation Note
 

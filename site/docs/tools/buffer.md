@@ -73,8 +73,91 @@ Another key feature of `PacketBufReader` is that users can define **custom rules
 | Rule                   | Available Data                      | Description |
 |------------------------|--------------------------------------|-------------|
 | `Rule::Ignored`        | `&[u8]`                              | Triggered when data not related to `brec` messages is encountered. Provides a byte slice of the unrelated data. |
-| `Rule::FilterByBlocks` | `&[BlockReferred<'a>]`              | Triggered when a packet is found and its blocks have been partially parsed. If blocks contain slices, no copying is performed — `BlockReferred` will hold references instead. At this stage, the user can decide whether to proceed with parsing the "heavy" part (i.e., the payload) or skip the packet. |
-| `Rule::FilterByPayload`| `&[u8]`                              | Allows "peeking" into the payload bytes before deserialization. This is especially useful if the payload is, for example, a string — enabling scenarios like substring search. |
-| `Rule::Filter`         | `&Packet`                            | Triggered after the packet is fully parsed, giving the user a final chance to accept or reject the packet. |
+| `Rule::Prefilter`      | `PeekedBlocks<'a>`                   | Triggered when a packet is found and its blocks have been partially parsed in zero-copy mode. This is the cheapest place to decide whether the payload should be parsed at all. |
+| `Rule::FilterPayload`  | `&[u8]`                              | Allows peeking into the payload bytes before deserialization. This is especially useful if the payload is, for example, a string — enabling scenarios like substring search. |
+| `Rule::FilterPacket`   | `&Packet`                            | Triggered after the packet is fully parsed, giving the user a final chance to accept or reject the packet. |
 
-The rules `Rule::FilterByBlocks` and `Rule::FilterByPayload` are particularly effective at improving performance, as they allow you to skip the most expensive part — parsing the payload — if the packet is not needed.
+`PeekedBlocks` is the main user-facing facade for cheap prefiltering. It hides the low-level `BlockReferred<'a>` representation while still allowing advanced access through `PeekedBlock::as_referred()` and `PeekedBlocks::as_slice()` when needed.
+
+The rules `Rule::Prefilter` and `Rule::FilterPayload` are particularly effective at improving performance, as they allow you to skip the most expensive part — parsing the payload — if the packet is not needed.
+
+### Recommended Filtering Flow
+
+In practice, filtering is most effective when it is performed in three stages:
+
+1. `Rule::Prefilter`
+2. `Rule::FilterPayload`
+3. `Rule::FilterPacket`
+
+This staged approach minimizes unnecessary work:
+
+- `Prefilter` avoids decoding the payload at all.
+- `FilterPayload` avoids full payload deserialization when raw bytes are enough.
+- `FilterPacket` is the final, most expensive decision point.
+
+### Using `PeekedBlocks`
+
+`PeekedBlocks<'a>` is the main facade for cheap block-based filtering. It intentionally exposes operations in terms of user-defined block types instead of forcing manual matching on `BlockReferred<'a>`.
+
+Available methods:
+
+| Method | Description |
+|--------|-------------|
+| `has::<T>()` | Returns `true` if at least one block of type `T` is present. |
+| `get::<T>()` | Returns the first block of type `T`. |
+| `find::<T, _>(predicate)` | Returns the first block of type `T` that satisfies the predicate. |
+| `iter_as::<T>()` | Iterates only over blocks of type `T`. |
+| `iter()` | Iterates over all blocks as `PeekedBlock`. |
+| `nth(index)` | Returns the block view at the specified position. |
+| `as_slice()` | Returns the underlying slice of referred blocks. This is the advanced escape hatch. |
+
+Available methods on `PeekedBlock<'a>`:
+
+| Method | Description |
+|--------|-------------|
+| `as_type::<T>()` | Attempts to view the current block as a concrete block type `T`. |
+| `as_referred()` | Returns the underlying referred block. This is the advanced escape hatch. |
+
+#### Example: fast prefilter by a block type
+
+```rust
+reader
+    .add_rule(Rule::Prefilter(brec::RuleFnDef::Dynamic(Box::new(
+        move |blocks| blocks.has::<Metadata>(),
+    ))))
+    .unwrap();
+```
+
+#### Example: find a specific block value
+
+```rust
+reader
+    .add_rule(Rule::Prefilter(brec::RuleFnDef::Dynamic(Box::new(
+        move |blocks| {
+            blocks
+                .find::<Metadata, _>(|meta| matches!(meta.level, Level::Err))
+                .is_some()
+        },
+    ))))
+    .unwrap();
+```
+
+#### Example: iterate only over one block type
+
+```rust
+reader
+    .add_rule(Rule::Prefilter(brec::RuleFnDef::Dynamic(Box::new(
+        move |blocks| {
+            blocks
+                .iter_as::<Metadata>()
+                .any(|meta| matches!(meta.level, Level::Err))
+        },
+    ))))
+    .unwrap();
+```
+
+Use `PeekedBlock::as_referred()` or `PeekedBlocks::as_slice()` only when:
+
+- you need direct access to the generated low-level representation,
+- the typed helpers are not expressive enough for your case,
+- or you are building advanced integrations on top of `brec`.
