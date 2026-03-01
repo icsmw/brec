@@ -25,6 +25,16 @@ impl<'a, I: Iterator<Item = &'a Slot>> PacketsLocatorIterator<'a, I> {
     }
 
     /// Seeks to the specified packet index across the slots.
+    ///
+    /// # Arguments
+    /// * `packet` - The logical packet index to locate.
+    ///
+    /// # Returns
+    /// Returns a `RangeInclusive<u64>` representing the byte range of the packet data within the source
+    ///
+    /// # Errors
+    /// Returns `Error::OutOfBounds` if the packet index exceeds the total number of packets available in the slots.
+    /// Returns `Error::EmptySource` if there are no slots to search through.
     pub fn from(&mut self, packet: usize) -> Result<RangeInclusive<u64>, Error> {
         let mut count = 0;
         let mut target = packet;
@@ -47,9 +57,11 @@ impl<'a, I: Iterator<Item = &'a Slot>> PacketsLocatorIterator<'a, I> {
                     packet,
                 ));
             };
+            let slot_offset = self.offset;
+            self.offset += slot.size() + slot.width();
             return Ok(RangeInclusive::new(
-                self.offset + slot.size() + packet_offset,
-                self.offset + slot.size() + slot.width(),
+                slot_offset + slot.size() + packet_offset,
+                slot_offset + slot.size() + slot.width(),
             ));
         }
         if count == 0 {
@@ -129,6 +141,17 @@ impl<
         }
     }
     /// Seeks to the specified packet index across the slots.
+    ///
+    /// # Arguments
+    /// * `packet` - The logical packet index to locate.
+    ///
+    /// # Returns
+    /// Returns a `RangeInclusive<u64>` representing the byte range of the packet data within the source
+    ///
+    /// # Errors
+    /// Returns `Error::OutOfBounds` if the packet index exceeds the total number of packets available in the slots.
+    /// Returns `Error::EmptySource` if there are no slots to search through.
+    /// Returns other errors related to IO operation
     pub fn seek(mut self, packet: usize) -> Result<Self, Error> {
         let location = self.locator.from(packet)?;
         self.source

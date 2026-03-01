@@ -4,6 +4,7 @@ mod reader;
 mod slot;
 mod writer;
 
+pub use observer::*;
 pub use reader::*;
 pub use writer::*;
 

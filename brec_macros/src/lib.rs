@@ -249,15 +249,18 @@ pub fn payload(attr: TokenStream, input: TokenStream) -> TokenStream {
 /// ### Generated Aliases
 /// The macro defines the following aliases to reduce verbosity when using `brec` types:
 ///
-/// | Alias                    | Expanded to                                                                 |
-/// |-------------------------|------------------------------------------------------------------------------|
-/// | `Packet`                | `PacketDef<Block, Payload, Payload>`                                        |
-/// | `PacketBufReader<'a, R>`| `PacketBufReaderDef<'a, R, Block, BlockReferred<'a>, Payload, Payload>`     |
-/// | `Rules<'a>`             | `RulesDef<Block, BlockReferred<'a>, Payload, Payload>`                      |
-/// | `Rule<'a>`              | `RuleDef<Block, BlockReferred<'a>, Payload, Payload>`                       |
-/// | `RuleFnDef<D, S>`       | `RuleFnDef<D, S>`                                                            |
-/// | `Reader<S>`             | `ReaderDef<S, Block, BlockReferred<'static>, Payload, Payload>`            |
-/// | `Writer<S>`             | `WriterDef<S, Block, Payload, Payload>`            |
+/// | Alias                   | Expanded to                                                                                |
+/// |-------------------------|--------------------------------------------------------------------------------------------|
+/// | `Packet`                | `PacketDef<Block, Payload, Payload>`                                                       |
+/// | `PacketBufReader<'a, R>`| `PacketBufReaderDef<'a, R, Block, BlockReferred<'a>, Payload, Payload>`                    |
+/// | `Rules<'a>`             | `RulesDef<Block, BlockReferred<'a>, Payload, Payload>`                                     |
+/// | `Rule<'a>`              | `RuleDef<Block, BlockReferred<'a>, Payload, Payload>`                                      |
+/// | `RuleFnDef<D, S>`       | `RuleFnDef<D, S>`                                                                          |
+/// | `Reader<S>`             | `ReaderDef<S, Block, BlockReferred<'static>, Payload, Payload>`                            |
+/// | `Writer<S>`             | `WriterDef<S, Block, Payload, Payload>`                                                    |
+/// | `Subscription`          | Local trait facade over `SubscriptionDef<Block, BlockReferred<'static>, Payload, Payload>` |
+/// | `FileObserverOptions<S>`| Local wrapper over `brec::FileObserverOptions<..., SubscriptionWrapper<S>>`                |
+/// | `FileObserver`          | Local wrapper over `FileObserverDef<Block, BlockReferred<'static>, Payload, Payload>`      |
 ///
 /// These aliases make it easier to work with generated structures and remove the need to repeat generic parameters.
 ///

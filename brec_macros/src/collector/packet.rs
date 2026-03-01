@@ -35,6 +35,101 @@ pub fn gen() -> Result<TokenStream, E> {
         #[allow(dead_code)]
         pub type Writer<'a, S> = brec::WriterDef<S, Block, Payload, Payload>;
 
+        #[allow(dead_code)]
+        pub trait Subscription: Send + 'static {
+            fn update(&mut self, total: usize, added: usize) -> bool;
+
+            fn packet(&mut self, packet: Packet) {
+                let _ = packet;
+            }
+
+            fn err(&mut self, err: brec::Error) -> bool {
+                let _ = err;
+                false
+            }
+
+            fn stopped(&mut self) {}
+
+            fn aborted(&mut self) {}
+        }
+
+        #[allow(dead_code)]
+        struct SubscriptionWrapper<S>(S);
+
+        impl<S> brec::SubscriptionDef<Block, BlockReferred<'static>, Payload, Payload>
+            for SubscriptionWrapper<S>
+        where
+            S: Subscription,
+        {
+            fn update(&mut self, total: usize, added: usize) -> bool {
+                self.0.update(total, added)
+            }
+
+            fn packet(&mut self, packet: Packet) {
+                self.0.packet(packet)
+            }
+
+            fn err(&mut self, err: brec::Error) -> bool {
+                self.0.err(err)
+            }
+
+            fn stopped(&mut self) {
+                self.0.stopped()
+            }
+
+            fn aborted(&mut self) {
+                self.0.aborted()
+            }
+        }
+
+        #[allow(dead_code)]
+        pub struct FileObserverOptions<S>
+        where
+            S: Subscription,
+        {
+            inner: brec::FileObserverOptions<
+                Block,
+                BlockReferred<'static>,
+                Payload,
+                Payload,
+                SubscriptionWrapper<S>,
+            >,
+        }
+
+        impl<S> FileObserverOptions<S>
+        where
+            S: Subscription,
+        {
+            pub fn new(path: impl AsRef<std::path::Path>) -> Self {
+                Self {
+                    inner: brec::FileObserverOptions::new(path),
+                }
+            }
+
+            pub fn subscribe(mut self, subscription: S) -> Self {
+                self.inner = self.inner.subscribe(SubscriptionWrapper(subscription));
+                self
+            }
+        }
+
+        #[allow(dead_code)]
+        pub struct FileObserver(
+            brec::FileObserverDef<Block, BlockReferred<'static>, Payload, Payload>,
+        );
+
+        impl FileObserver {
+            pub fn new<S>(options: FileObserverOptions<S>) -> Result<Self, brec::Error>
+            where
+                S: Subscription,
+            {
+                brec::FileObserverDef::new(options.inner).map(Self)
+            }
+
+            pub async fn shutdown(&mut self) {
+                self.0.shutdown().await
+            }
+        }
+
         #locked_storage
     })
 }

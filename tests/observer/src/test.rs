@@ -2,6 +2,8 @@ use brec::prelude::*;
 use proptest::arbitrary::any;
 use proptest::prelude::*;
 use proptest::strategy::ValueTree;
+use tokio::task::JoinHandle;
+use tokio_util::sync::CancellationToken;
 
 use crate::*;
 
@@ -53,7 +55,7 @@ impl Arbitrary for WrappedPacket {
 }
 
 #[test]
-fn storage_write_read_filter() -> std::io::Result<()> {
+fn update_reader_by_steps() -> std::io::Result<()> {
     let count = brec::storage::DEFAULT_SLOT_CAPACITY
         .saturating_mul(2)
         .saturating_add(10 + 1);
@@ -67,8 +69,116 @@ fn storage_write_read_filter() -> std::io::Result<()> {
         started.elapsed().as_secs()
     );
 
-    let filename = format!("brec_test_{}.tmp", std::process::id());
-    let tmp = std::env::temp_dir().join(filename);
+    let filename = format!(
+        "brec_test_update_reader_by_steps_{}.tmp",
+        std::process::id()
+    );
+    let tmp = std::env::temp_dir().join(&filename);
+    let mut wfile = std::fs::OpenOptions::new()
+        .read(true)
+        .write(true)
+        .create(true)
+        .truncate(true)
+        .open(&tmp)?;
+
+    let mut writer = Writer::new(&mut wfile)
+        .map_err(|err| std::io::Error::new(std::io::ErrorKind::InvalidData, err.to_string()))?;
+
+    let rfile = std::fs::OpenOptions::new().read(true).open(&tmp)?;
+
+    let mut reader = Reader::new(&rfile)
+        .map_err(|err| std::io::Error::new(std::io::ErrorKind::InvalidData, err.to_string()))?;
+    let mut last = 0;
+    let mut total = 0;
+    for (idx, packet) in packets.iter().enumerate() {
+        if idx % 30 == 0 || idx == packets.len() - 1 {
+            let added = reader.reload().map_err(|err| {
+                std::io::Error::new(std::io::ErrorKind::InvalidData, err.to_string())
+            })?;
+            println!("Checkpoint {idx}: added {added} packets");
+            assert_eq!(added + last, idx);
+            // Repeated reload should not add more packets
+            let added = reader.reload().map_err(|err| {
+                std::io::Error::new(std::io::ErrorKind::InvalidData, err.to_string())
+            })?;
+            assert_eq!(added, 0);
+            assert_eq!(reader.count(), idx);
+            // Try to seek to the last packet, which should be valid
+            match reader.seek(last) {
+                Err(Error::EmptySource) => {}
+                Err(err) => panic!("Unexpected error on seek to {last} from {idx}: {err}"),
+                Ok(mut iterator) => {
+                    let mut read = 0;
+                    // Check packets from the last checkpoint to the current index
+                    for (i, expected) in packets[last..idx].iter().enumerate() {
+                        read += 1;
+                        let Some(pkg) = iterator.next() else {
+                            panic!("Expected packet at index {} but got None", last + i);
+                        };
+                        if let Err(err) = pkg {
+                            panic!("Error reading packet at index {}: {err}", last + i);
+                        } else {
+                            let pkg = pkg.unwrap();
+                            let wrapped: WrappedPacket = pkg.into();
+                            assert_eq!(
+                                &wrapped,
+                                expected,
+                                "Packet mismatch at index {}: ",
+                                last + i,
+                            );
+                        }
+                    }
+                    assert!(
+                        iterator.next().is_none(),
+                        "Expected no more packets after index {}, but got some",
+                        idx - 1
+                    );
+                    println!(
+                        "\t- has been read {} packets from index {} to {}; all packets match as expected.",
+                        read,
+                        last,
+                        idx - 1
+                    );
+                    total += read;
+                }
+            };
+            last = idx;
+        }
+        writer
+            .insert(packet.into())
+            .map_err(|err| std::io::Error::new(std::io::ErrorKind::InvalidData, err.to_string()))?;
+    }
+    // Last package is not expected to be read since it is added after the last checkpoint
+    assert_eq!(total, packets.len() - 1);
+    if let Err(err) = std::fs::remove_file(&tmp) {
+        eprintln!(
+            "Test PASS, but cannot remove tmp file:\nfile:{}\nerror: {err}",
+            tmp.display()
+        );
+    }
+    Ok(())
+}
+
+#[test]
+fn update_reader_by_checkpoints() -> std::io::Result<()> {
+    let count = brec::storage::DEFAULT_SLOT_CAPACITY
+        .saturating_mul(2)
+        .saturating_add(10 + 1);
+    let started = std::time::Instant::now();
+    println!("Generate {count} packets...");
+
+    let packets = gen_n::<WrappedPacket>(count);
+
+    println!(
+        "Generated {count} packets in {}s",
+        started.elapsed().as_secs()
+    );
+
+    let filename = format!(
+        "brec_test_update_reader_by_checkpoints_{}.tmp",
+        std::process::id()
+    );
+    let tmp = std::env::temp_dir().join(&filename);
     let mut wfile = std::fs::OpenOptions::new()
         .read(true)
         .write(true)
@@ -171,6 +281,96 @@ fn storage_write_read_filter() -> std::io::Result<()> {
     }
     // Last package is not expected to be read since it is added after the last checkpoint
     assert_eq!(total, packets.len() - 1);
+    if let Err(err) = std::fs::remove_file(&tmp) {
+        eprintln!(
+            "Test PASS, but cannot remove tmp file:\nfile:{}\nerror: {err}",
+            tmp.display()
+        );
+    }
+    Ok(())
+}
+
+struct MySubscription {
+    count: usize,
+    expected: usize,
+    token: CancellationToken,
+}
+
+impl MySubscription {
+    pub fn new(expected: usize, token: CancellationToken) -> Self {
+        Self {
+            count: 0,
+            expected,
+            token,
+        }
+    }
+}
+
+impl Subscription for MySubscription {
+    fn update(&mut self, total: usize, _added: usize) -> bool {
+        if total == self.expected {
+            self.token.cancel();
+        }
+        false
+    }
+    fn packet(&mut self, _packet: PacketDef<Block, Payload, Payload>) {
+        self.count += 1;
+    }
+}
+
+#[tokio::test]
+async fn observer() -> std::io::Result<()> {
+    let count = brec::storage::DEFAULT_SLOT_CAPACITY
+        .saturating_mul(2)
+        .saturating_add(10 + 1);
+    let started = std::time::Instant::now();
+    println!("Generate {count} packets...");
+
+    let packets = gen_n::<WrappedPacket>(count);
+
+    println!(
+        "Generated {count} packets in {}s",
+        started.elapsed().as_secs()
+    );
+
+    let filename = format!("brec_test_observer_{}.tmp", std::process::id());
+    let tmp = std::env::temp_dir().join(&filename);
+    let mut wfile = std::fs::OpenOptions::new()
+        .read(true)
+        .write(true)
+        .create(true)
+        .truncate(true)
+        .open(&tmp)?;
+
+    let token = CancellationToken::new();
+    let options =
+        FileObserverOptions::new(&tmp).subscribe(MySubscription::new(count, token.clone()));
+    let mut observer = FileObserver::new(options)
+        .map_err(|err| std::io::Error::new(std::io::ErrorKind::InvalidData, err.to_string()))?;
+    let handle: JoinHandle<Result<(), Error>> = tokio::task::spawn(async move {
+        let mut writer = Writer::new(&mut wfile)
+            .map_err(|err| std::io::Error::new(std::io::ErrorKind::InvalidData, err.to_string()))?;
+        for (idx, packet) in packets.iter().enumerate() {
+            if idx % 30 == 0 {
+                tokio::time::sleep(tokio::time::Duration::from_millis(50)).await;
+            }
+            if let Err(err) = writer.insert(packet.into()) {
+                eprintln!("Error during writing: {err}");
+                return Err(err);
+            }
+        }
+        Ok(())
+    });
+    token.cancelled().await;
+    let _ = handle.await;
+    observer.shutdown().await;
+
+    if let Err(err) = std::fs::remove_file(&tmp) {
+        eprintln!(
+            "Test PASS, but cannot remove tmp file:\nfile:{}\nerror: {err}",
+            tmp.display()
+        );
+    }
     Ok(())
 }
 

@@ -11,9 +11,9 @@ brec  = { workspace = true, features = ["bincode"] }
 serde = { workspace = true, features = ["derive"] }
 
 [dev-dependencies]
-proptest.workspace    = true
-num-format.workspace  = true
-serial_test.workspace = true
+proptest.workspace = true
+tokio              = { workspace = true, features = ["full"] }
+tokio-util         = { workspace = true }
 
 [build-dependencies]
 brec = { workspace = true, features = ["build"] }

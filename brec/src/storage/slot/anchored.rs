@@ -1,8 +1,11 @@
 use crate::traits::Size;
 use crate::*;
 
+/// An anchored slot is a wrapper around a `Slot` that includes an offset indicating its position in storage.
 pub struct AnchoredSlot {
+    /// The inner `Slot` containing the chunk lengths, capacity, and CRC.
     pub inner: Slot,
+    /// The byte offset in storage where this slot is located.
     pub offset: u64,
 }
 

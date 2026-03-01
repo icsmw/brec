@@ -49,6 +49,7 @@ impl Slot {
         }
     }
 
+    /// Expands the slot into its components: free slot offset, free slot index, and CRC.
     pub fn expand(&self) -> (Option<u64>, Option<usize>, [u8; 4]) {
         (
             self.get_free_slot_offset(),
@@ -94,14 +95,27 @@ impl Slot {
             .ok_or(Error::OutOfBounds(self.lenghts.len(), nth))
     }
 
+    /// Counts the number of used (non-zero) chunks in the slot.
     pub fn count(&self) -> usize {
         self.lenghts.iter().filter(|&&ln| ln > 0).count()
     }
 
+    /// Checks if the chunk at the given index is used (non-zero length).
+    ///
+    /// # Arguments
+    /// * `idx` - The index of the chunk to check.
     pub fn is_used(&self, idx: usize) -> bool {
         self.lenghts.get(idx).is_some_and(|ln| *ln > 0)
     }
 
+    /// Calculates the byte offset to the start of the chunk at the given index.
+    ///
+    /// # Arguments
+    /// * `idx` - The index of the chunk to calculate the offset for.
+    ///
+    /// # Returns
+    /// * `Some(u64)` - The byte offset to the start of the chunk if the index is valid and the chunk is used.
+    /// * `None` - If the index is out of bounds or the chunk at the index is unused (zero-length).
     pub fn offset_of(&self, idx: usize) -> Option<u64> {
         if idx == 0 {
             return Some(0);
@@ -112,6 +126,7 @@ impl Slot {
         Some(self.lenghts[..idx].iter().sum::<u64>())
     }
 
+    /// Checks if slot has space
     pub fn is_full(&self) -> bool {
         if let Some(ln) = self.lenghts.last()
             && ln > &0

@@ -32,9 +32,10 @@ enum_ids.workspace  = true
 brec_macros         = { workspace = true, features = [], optional = false }
 bincode             = { workspace = true, optional = true }
 notify              = { workspace = true }
-crossbeam           = { workspace = true }
 tracing             = { workspace = true }
 fs4                 = { workspace = true, optional = true }
+tokio               = { workspace = true, features = ["full"] }
+tokio-util          = { workspace = true }
 
 [dev-dependencies]
 tempfile = { workspace = true }

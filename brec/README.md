@@ -550,6 +550,9 @@ The macro defines the following aliases to reduce verbosity when using `brec` ty
 | `RuleFnDef<D, S>`       | `RuleFnDef<D, S>`                                                            |
 | `Reader<S>`             | `ReaderDef<S, Block, BlockReferred<'static>, Payload, Payload>`            |
 | `Writer<S>`             | `WriterDef<S, Block, Payload, Payload>`            |
+| `Subscription`          | local facade over `SubscriptionDef<Block, BlockReferred<'static>, Payload, Payload>` |
+| `FileObserverOptions<S>`| local wrapper over `brec::FileObserverOptions<..., SubscriptionWrapper<S>>` |
+| `FileObserver`          | local wrapper over `FileObserverDef<Block, BlockReferred<'static>, Payload, Payload>` |
 
 These aliases make it easier to work with generated structures and remove the need to repeat generic parameters.
 

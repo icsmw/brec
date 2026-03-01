@@ -14,8 +14,8 @@ pub enum SensorError {
     Disconnected,
 }
 
-impl<T> From<crossbeam::channel::SendError<T>> for SensorError {
-    fn from(_: crossbeam::channel::SendError<T>) -> Self {
+impl<T> From<tokio::sync::mpsc::error::SendError<T>> for SensorError {
+    fn from(_: tokio::sync::mpsc::error::SendError<T>) -> Self {
         SensorError::SendError
     }
 }

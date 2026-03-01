@@ -1,25 +1,147 @@
+mod options;
 mod sensor;
 
-use crate::*;
-use sensor::*;
+use std::marker::PhantomData;
+use tokio::{
+    select,
+    task::{self, JoinHandle},
+};
+use tokio_util::sync::CancellationToken;
+use tracing::{debug, instrument};
 
-pub struct ObserverDef<
-    S: std::io::Read + std::io::Seek,
-    B: BlockDef,
-    BR: BlockReferredDef<B>,
-    P: PayloadDef<Inner>,
-    Inner: PayloadInnerDef,
+use crate::*;
+pub use options::*;
+pub use sensor::*;
+
+pub struct FileObserverDef<
+    B: BlockDef + Send + 'static,
+    BR: BlockReferredDef<B> + 'static,
+    P: PayloadDef<Inner> + Send + 'static,
+    Inner: PayloadInnerDef + Send + 'static,
 > {
-    reader: ReaderDef<S, B, BR, P, Inner>,
-    sensor: Sensor,
+    handler: Option<JoinHandle<()>>,
+    sd: CancellationToken,
+    _phantom: PhantomData<(B, BR, P, Inner)>,
 }
 
 impl<
-        S: std::io::Read + std::io::Seek,
-        B: BlockDef,
-        BR: BlockReferredDef<B>,
-        P: PayloadDef<Inner>,
-        Inner: PayloadInnerDef,
-    > ObserverDef<S, B, BR, P, Inner>
+    B: BlockDef + Send + 'static,
+    BR: BlockReferredDef<B> + 'static,
+    P: PayloadDef<Inner> + Send + 'static,
+    Inner: PayloadInnerDef + Send + 'static,
+> FileObserverDef<B, BR, P, Inner>
 {
+    #[instrument]
+    pub fn new<S>(mut options: FileObserverOptions<B, BR, P, Inner, S>) -> Result<Self, Error>
+    where
+        S: SubscriptionDef<B, BR, P, Inner> + 'static,
+    {
+        let Some(mut subscription) = options.subscription.take() else {
+            return Err(Error::NoSubscription);
+        };
+        let sd = CancellationToken::new();
+        let shutdown = sd.clone();
+        let file = std::fs::File::open(&options.path)?;
+        let mut reader: ReaderDef<std::fs::File, B, BR, P, Inner> =
+            ReaderDef::new(file.try_clone()?)?;
+
+        let (sensor, mut wake_rx) = Sensor::new(&options.path)?;
+
+        let handler = task::spawn(async move {
+            let mut last = 0;
+            let mut count = reader.count();
+            if subscription.update(count, count) {
+                // Load first existed
+                while let Some(pkg) = reader.iter().next() {
+                    last += 1;
+                    match pkg {
+                        Ok(packet) => {
+                            subscription.packet(packet);
+                        }
+                        Err(err) => {
+                            if subscription.err(err) {
+                                subscription.stopped();
+                                return;
+                            }
+                        }
+                    }
+                }
+            }
+            if shutdown.is_cancelled() {
+                subscription.aborted();
+                return;
+            }
+            select! {
+                _ = shutdown.cancelled() => {
+                    debug!("Cancel signal has been gotten");
+                    subscription.aborted();
+                }
+                _ = async {
+                    while wake_rx.recv().await.is_some() {
+                        let added = match reader.reload() {
+                            Ok(added) => added,
+                            Err(Error::NotEnoughData(_)) => {
+                                continue;
+                            }
+                            Err(err) => {
+                                subscription.err(err);
+                                break;
+                            }
+                        };
+                        if let Err(err) = sensor.processed(reader.get_offset()) {
+                            subscription.err(err.into());
+                            break;
+                        }
+                        if added == 0 {
+                            continue;
+                        }
+                        count += added;
+                        if !subscription.update(count, added) {
+                            continue;
+                        }
+                        match reader.seek(last + 1) {
+                            Ok(mut iterator) => {
+                                for pkg in iterator.by_ref() {
+                                    last += 1;
+                                    match pkg {
+                                        Ok(packet) => {
+                                            subscription.packet(packet);
+                                        }
+                                        Err(err) => {
+                                            if subscription.err(err) {
+                                                break;
+                                            }
+                                        }
+                                    }
+                                }
+                            },
+                            Err(err) => {
+                                subscription.err(err);
+                                break;
+                            }
+                        }
+                    }
+                    subscription.stopped();
+                    drop(sensor);
+                } => {
+                    debug!("sensor loop is closed")
+                }
+            };
+        });
+        Ok(Self {
+            handler: Some(handler),
+            sd,
+            _phantom: PhantomData,
+        })
+    }
+
+    pub async fn shutdown(&mut self) {
+        let Some(handler) = self.handler.take() else {
+            return;
+        };
+        if !handler.is_finished() {
+            self.sd.cancel();
+        }
+        let _ = handler.await;
+    }
 }
