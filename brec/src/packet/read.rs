@@ -24,10 +24,10 @@ impl<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> ReadFrom
         let header = PacketHeader::read(buf)?;
         let mut pkg = PacketDef::default();
         let mut read = 0;
-        let mut inner = vec![0u8; header.size as usize];
-        buf.read_exact(&mut inner)?;
-        let mut reader = std::io::Cursor::new(&mut inner);
         if header.blocks_len > 0 {
+            let mut blocks = vec![0u8; header.blocks_len as usize];
+            buf.read_exact(&mut blocks)?;
+            let mut reader = std::io::Cursor::new(blocks);
             let mut iterations = 0;
             loop {
                 match <B as TryReadFromBuffered>::try_read(&mut reader)? {
@@ -49,8 +49,8 @@ impl<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> ReadFrom
             }
         }
         if header.payload {
-            let header = <PayloadHeader as ReadFrom>::read(&mut reader)?;
-            let payload = <P as ExtractPayloadFrom<Inner>>::read(&mut reader, &header)?;
+            let header = <PayloadHeader as ReadFrom>::read(buf)?;
+            let payload = <P as ExtractPayloadFrom<Inner>>::read(buf, &header)?;
             pkg.payload = Some(payload);
         }
         Ok(pkg)

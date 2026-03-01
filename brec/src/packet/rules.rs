@@ -313,6 +313,12 @@ impl<B: BlockDef, BR: BlockReferredDef<B>, P: PayloadDef<Inner>, Inner: PayloadI
         }
     }
 
+    pub fn has_payload_filter(&self) -> bool {
+        self.rules
+            .iter()
+            .any(|rule| matches!(rule, RuleDef::FilterPayload(..)))
+    }
+
     /// Runs the full packet filter rule on a parsed packet.
     pub fn filter_packet(&self, packet: &PacketDef<B, P, Inner>) -> bool {
         let Some(cb) = self.rules.iter().find_map(|r| {

@@ -124,15 +124,14 @@ impl<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> PacketDef<B, P, 
         Self: Sized,
     {
         let header = <PacketHeader as ReadFrom>::read(reader)?;
-        let mut read = 0;
+        let mut read = 0usize;
         let mut blocks = Vec::new();
-        let mut packet_buffer = vec![0; header.size as usize];
-        reader.read_exact(&mut packet_buffer)?;
         let blocks_len = header.blocks_len as usize;
         if blocks_len > 0 {
+            let mut blocks_buffer = vec![0; blocks_len];
+            reader.read_exact(&mut blocks_buffer)?;
             loop {
-                let blk =
-                    <BR as ReadBlockFromSlice>::read_from_slice(&packet_buffer[read..], false)?;
+                let blk = <BR as ReadBlockFromSlice>::read_from_slice(&blocks_buffer[read..], false)?;
                 read += blk.size() as usize;
                 blocks.push(blk);
                 if read == blocks_len {
@@ -142,35 +141,51 @@ impl<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> PacketDef<B, P, 
         }
         let packet_size = header.size as usize;
         if !rules.prefilter(&blocks) {
+            if header.payload {
+                let to_skip = packet_size.saturating_sub(blocks_len);
+                if to_skip > 0 {
+                    reader.seek(std::io::SeekFrom::Current(to_skip as i64))?;
+                }
+            }
             return Ok(LookInStatus::Denied(packet_size));
         }
         let pkg = if header.payload {
-            let mut payload_buffer = &packet_buffer[blocks_len..];
-            match <PayloadHeader as TryReadFromBuffered>::try_read(&mut payload_buffer)? {
-                ReadStatus::Success(header) => {
-                    let mut payload_buffer = &packet_buffer[blocks_len + header.size()..];
-                    if !rules.filter_payload(payload_buffer) {
-                        // PacketDef marked as ignored
-                        return Ok(LookInStatus::Denied(packet_size));
+            let payload_header = <PayloadHeader as ReadFrom>::read(reader)?;
+            let payload_body_len = payload_header.payload_len();
+            if rules.has_payload_filter() {
+                let mut payload_buffer = vec![0; payload_body_len];
+                reader.read_exact(&mut payload_buffer)?;
+                if !rules.filter_payload(&payload_buffer) {
+                    return Ok(LookInStatus::Denied(packet_size));
+                }
+                let mut payload_reader = std::io::Cursor::new(payload_buffer);
+                match <P as TryExtractPayloadFromBuffered<Inner>>::try_read(
+                    &mut payload_reader,
+                    &payload_header,
+                ) {
+                    Ok(ReadStatus::Success(payload)) => PacketDef::new(
+                        blocks.into_iter().map(|blk| blk.into()).collect::<Vec<B>>(),
+                        Some(payload),
+                    ),
+                    Ok(ReadStatus::NotEnoughData(needed)) => {
+                        return Err(Error::NotEnoughData(needed as usize));
                     }
-                    match <P as TryExtractPayloadFromBuffered<Inner>>::try_read(
-                        &mut payload_buffer,
-                        &header,
-                    ) {
-                        Ok(ReadStatus::Success(payload)) => PacketDef::new(
-                            blocks.into_iter().map(|blk| blk.into()).collect::<Vec<B>>(),
-                            Some(payload),
-                        ),
-                        Ok(ReadStatus::NotEnoughData(needed)) => {
-                            return Err(Error::NotEnoughData(needed as usize));
-                        }
-                        Err(err) => {
-                            return Err(err);
-                        }
+                    Err(err) => {
+                        return Err(err);
                     }
                 }
-                ReadStatus::NotEnoughData(needed) => {
-                    return Err(Error::NotEnoughData(needed as usize));
+            } else {
+                match <P as TryExtractPayloadFrom<Inner>>::try_read(reader, &payload_header) {
+                    Ok(ReadStatus::Success(payload)) => PacketDef::new(
+                        blocks.into_iter().map(|blk| blk.into()).collect::<Vec<B>>(),
+                        Some(payload),
+                    ),
+                    Ok(ReadStatus::NotEnoughData(needed)) => {
+                        return Err(Error::NotEnoughData(needed as usize));
+                    }
+                    Err(err) => {
+                        return Err(err);
+                    }
                 }
             }
         } else {
