@@ -2,7 +2,7 @@ mod byte_block;
 
 pub use byte_block::*;
 
-use crate::payload::{PayloadEncode, PayloadEncodeReferred, PayloadHooks};
+use crate::payload::{PayloadEncoded, PayloadHooks};
 
 /// Trait for types that provide a static 4-byte signature.
 ///
@@ -30,7 +30,7 @@ pub trait CrcU32 {
 /// The CRC is always returned as a `ByteBlock::Len4`.
 pub trait PayloadCrc
 where
-    Self: PayloadEncode + PayloadHooks + PayloadEncodeReferred,
+    Self: PayloadEncoded + PayloadHooks,
 {
     /// Computes CRC32 of the encoded payload.
     ///
@@ -40,11 +40,7 @@ where
     /// A 4-byte `ByteBlock` containing the CRC checksum.
     fn crc(&self) -> std::io::Result<ByteBlock> {
         let mut hasher = crc32fast::Hasher::new();
-        if let Some(bytes) = PayloadEncodeReferred::encode(self)? {
-            hasher.update(bytes);
-        } else {
-            hasher.update(&PayloadEncode::encode(self)?);
-        }
+        hasher.update(self.encoded()?.as_slice());
         Ok(ByteBlock::Len4(hasher.finalize().to_le_bytes()))
     }
     fn crc_size() -> usize {
@@ -83,10 +79,12 @@ pub trait Size {
 /// Trait for payload types that return size as a `Result`.
 ///
 /// This accounts for I/O or encoding-related failures during size calculation.
-pub trait PayloadSize {
+pub trait PayloadSize: PayloadEncoded {
     /// Returns the total size (in bytes) of the payload.
     ///
     /// # Errors
     /// Returns an I/O error if size computation fails.
-    fn size(&self) -> std::io::Result<u64>;
+    fn size(&self) -> std::io::Result<u64> {
+        Ok(self.encoded()?.len() as u64)
+    }
 }

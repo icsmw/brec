@@ -40,7 +40,7 @@ impl Base for Payload {
 
                 impl brec::PayloadEncode for #payload_name {
                     fn encode(&self) -> std::io::Result<Vec<u8>> {
-                        brec::bincode::serialize(self)
+                        brec::bincode::serde::encode_to_vec(self, brec::bincode::config::standard())
                             .map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidData, e.to_string()))
                     }
                 }
@@ -53,7 +53,8 @@ impl Base for Payload {
 
                 impl brec::PayloadDecode<#payload_name> for #payload_name {
                     fn decode(buf: &[u8]) -> std::io::Result<#payload_name> {
-                        brec::bincode::deserialize(buf)
+                        brec::bincode::serde::decode_from_slice(buf, brec::bincode::config::standard())
+                            .map(|(value, _)| value)
                             .map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidData, e.to_string()))
                     }
                 }

@@ -33,12 +33,7 @@ impl Size for Payload {
         let payload_name = self.name();
         if self.attrs.is_bincode() {
             quote! {
-                impl brec::PayloadSize for #payload_name {
-                    fn size(&self) -> std::io::Result<u64> {
-                        brec::bincode::serialized_size(self)
-                            .map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidData, e.to_string()))
-                    }
-                }
+                impl brec::PayloadSize for #payload_name {}
             }
         } else {
             quote! {}

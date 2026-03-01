@@ -1,4 +1,5 @@
 use crate::*;
+use crate::payload::EncodedPayload;
 
 /// Implements mutable stream writing for a full `PacketDef`, including header, blocks, and payload.
 ///
@@ -23,7 +24,17 @@ impl<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> WriteMutTo
     ///
     /// Use `write_all()` if full delivery is required.
     fn write<T: std::io::Write>(&mut self, buf: &mut T) -> std::io::Result<usize> {
-        let header = PacketHeader::new(&self.blocks, self.payload.as_ref())?;
+        let prepared_payload = if let Some(payload) = self.payload.as_ref() {
+            Some(prepare_payload(payload)?)
+        } else {
+            None
+        };
+        let payload_len = prepared_payload
+            .as_ref()
+            .map(|(header, body)| (header.size() + body.len()) as u64)
+            .unwrap_or(0);
+        let blocks_len: u64 = self.blocks.iter().map(|blk| blk.size()).sum();
+        let header = PacketHeader::from_lengths(blocks_len, payload_len, prepared_payload.is_some());
         let mut total = header.write(buf)?;
         if total < PacketHeader::SIZE as usize {
             return Ok(total);
@@ -36,13 +47,19 @@ impl<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> WriteMutTo
             }
             total += written;
         }
-        if let Some(payload) = self.payload.as_mut() {
-            let written = payload.write(buf)?;
-            if written < payload.size()? as usize + PayloadHeader::ssize(payload)? {
+        if let Some((payload_header, payload_body)) = prepared_payload.as_ref() {
+            let payload_header = payload_header.as_vec();
+            let written = buf.write(&payload_header)?;
+            if written < payload_header.len() {
                 return Ok(total + written);
-            } else {
-                total += written
             }
+            total += written;
+
+            let written = buf.write(payload_body.as_slice())?;
+            if written < payload_body.len() {
+                return Ok(total + written);
+            }
+            total += written;
         }
         Ok(total)
     }
@@ -54,13 +71,24 @@ impl<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> WriteMutTo
     /// - each individual block
     /// - optional payload
     fn write_all<T: std::io::Write>(&mut self, buf: &mut T) -> std::io::Result<()> {
-        let header = PacketHeader::new(&self.blocks, self.payload.as_ref())?;
+        let prepared_payload = if let Some(payload) = self.payload.as_ref() {
+            Some(prepare_payload(payload)?)
+        } else {
+            None
+        };
+        let payload_len = prepared_payload
+            .as_ref()
+            .map(|(header, body)| (header.size() + body.len()) as u64)
+            .unwrap_or(0);
+        let blocks_len: u64 = self.blocks.iter().map(|blk| blk.size()).sum();
+        let header = PacketHeader::from_lengths(blocks_len, payload_len, prepared_payload.is_some());
         header.write_all(buf)?;
         for blk in self.blocks.iter() {
             blk.write_all(buf)?;
         }
-        if let Some(payload) = self.payload.as_mut() {
-            payload.write_all(buf)?;
+        if let Some((payload_header, payload_body)) = prepared_payload.as_ref() {
+            buf.write_all(&payload_header.as_vec())?;
+            buf.write_all(payload_body.as_slice())?;
         }
         Ok(())
     }
@@ -91,7 +119,17 @@ impl<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> WriteVectoredMut
     /// # Returns
     /// A ready-to-write `IoSlices` that can be passed to `write_vectored`.
     fn slices(&mut self) -> std::io::Result<IoSlices<'_>> {
-        let header = PacketHeader::new(&self.blocks, self.payload.as_ref())?;
+        let prepared_payload = if let Some(payload) = self.payload.as_ref() {
+            Some(prepare_payload(payload)?)
+        } else {
+            None
+        };
+        let payload_len = prepared_payload
+            .as_ref()
+            .map(|(header, body)| (header.size() + body.len()) as u64)
+            .unwrap_or(0);
+        let blocks_len: u64 = self.blocks.iter().map(|blk| blk.size()).sum();
+        let header = PacketHeader::from_lengths(blocks_len, payload_len, prepared_payload.is_some());
         let mut slices = IoSlices::default();
         let mut header_bytes: Vec<u8> = Vec::new();
         header.write_all(&mut header_bytes)?;
@@ -99,8 +137,12 @@ impl<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> WriteVectoredMut
         for blk in self.blocks.iter() {
             slices.append(blk.slices()?);
         }
-        if let Some(payload) = self.payload.as_mut() {
-            slices.append(payload.slices()?);
+        if let Some((payload_header, payload_body)) = prepared_payload {
+            slices.add_buffered(payload_header.as_vec());
+            match payload_body {
+                EncodedPayload::Borrowed(bytes) => slices.add_slice(bytes),
+                EncodedPayload::Owned(bytes) => slices.add_buffered(bytes),
+            }
         }
         Ok(slices)
     }

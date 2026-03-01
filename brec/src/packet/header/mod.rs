@@ -52,6 +52,22 @@ impl PacketHeader {
         + std::mem::size_of::<u32>()
     ) as u64;
 
+    pub(crate) fn from_lengths(blocks_len: u64, payload_len: u64, has_payload: bool) -> Self {
+        let size = blocks_len + payload_len;
+        let mut hasher = crc32fast::Hasher::new();
+        hasher.update(&size.to_le_bytes());
+        hasher.update(&blocks_len.to_le_bytes());
+        hasher.update(if has_payload { &[1] } else { &[0] });
+        let crc = hasher.finalize();
+
+        Self {
+            size,
+            blocks_len,
+            payload: has_payload,
+            crc,
+        }
+    }
+
     /// Constructs a new `PacketHeader` from a list of blocks and an optional payload.
     ///
     /// # Arguments
@@ -72,18 +88,7 @@ impl PacketHeader {
             .as_ref()
             .map(|payload| Self::payload_size(*payload))
             .unwrap_or(Ok(0))?;
-        let size = blocks_len + payload_len;
-        let mut hasher = crc32fast::Hasher::new();
-        hasher.update(&size.to_le_bytes());
-        hasher.update(&blocks_len.to_le_bytes());
-        hasher.update(payload.map(|_| &[1]).unwrap_or(&[0]));
-        let crc = hasher.finalize();
-        Ok(Self {
-            size,
-            blocks_len,
-            payload: payload.is_some(),
-            crc,
-        })
+        Ok(Self::from_lengths(blocks_len, payload_len, payload.is_some()))
     }
 
     /// Calculates the total size of the payload, including its header and body.

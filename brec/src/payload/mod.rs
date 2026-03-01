@@ -3,6 +3,33 @@ mod header;
 
 pub use header::*;
 
+/// Represents an encoded payload body, either borrowed from the original value
+/// or materialized into an owned buffer.
+pub enum EncodedPayload<'a> {
+    Borrowed(&'a [u8]),
+    Owned(Vec<u8>),
+}
+
+impl EncodedPayload<'_> {
+    /// Returns the encoded bytes as a contiguous slice.
+    pub fn as_slice(&self) -> &[u8] {
+        match self {
+            Self::Borrowed(bytes) => bytes,
+            Self::Owned(bytes) => bytes.as_slice(),
+        }
+    }
+
+    /// Returns the length of the encoded payload body.
+    pub fn len(&self) -> usize {
+        self.as_slice().len()
+    }
+
+    /// Returns `true` when the encoded payload body is empty.
+    pub fn is_empty(&self) -> bool {
+        self.as_slice().is_empty()
+    }
+}
+
 /// Optional lifecycle hooks for payload encoding and decoding.
 ///
 /// These hooks can be used to prepare the payload before serialization
@@ -57,6 +84,24 @@ pub trait PayloadEncodeReferred {
     /// - `None` if the payload must be encoded with [`PayloadEncode`].
     fn encode(&self) -> std::io::Result<Option<&[u8]>>;
 }
+
+/// Resolves the payload body into either a borrowed slice or an owned buffer.
+///
+/// This provides a single internal representation that can be reused for
+/// computing the payload length, CRC, and actual write operations without
+/// repeating the same encode step multiple times.
+pub trait PayloadEncoded: PayloadEncode + PayloadEncodeReferred {
+    /// Returns the encoded payload body.
+    fn encoded(&self) -> std::io::Result<EncodedPayload<'_>> {
+        if let Some(bytes) = PayloadEncodeReferred::encode(self)? {
+            Ok(EncodedPayload::Borrowed(bytes))
+        } else {
+            Ok(EncodedPayload::Owned(PayloadEncode::encode(self)?))
+        }
+    }
+}
+
+impl<T> PayloadEncoded for T where T: PayloadEncode + PayloadEncodeReferred {}
 
 /// Trait for decoding a payload from a byte buffer.
 ///
