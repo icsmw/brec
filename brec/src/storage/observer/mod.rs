@@ -48,19 +48,26 @@ impl<
         let (sensor, mut wake_rx) = Sensor::new(&options.path)?;
 
         let handler = task::spawn(async move {
+            let mut stop_reason: Option<Error> = None;
             let mut last = 0;
             let mut count = reader.count();
-            if subscription.update(count, count) {
+            if matches!(
+                subscription.on_update(count, count),
+                SubscriptionUpdate::Read
+            ) {
                 // Load first existed
                 while let Some(pkg) = reader.iter().next() {
                     last += 1;
                     match pkg {
                         Ok(packet) => {
-                            subscription.packet(packet);
+                            subscription.on_packet(packet);
                         }
                         Err(err) => {
-                            if subscription.err(err) {
-                                subscription.stopped();
+                            if matches!(
+                                subscription.on_error(&err),
+                                SubscriptionErrorAction::Stop
+                            ) {
+                                subscription.on_stopped(Some(err));
                                 return;
                             }
                         }
@@ -68,13 +75,13 @@ impl<
                 }
             }
             if shutdown.is_cancelled() {
-                subscription.aborted();
+                subscription.on_aborted();
                 return;
             }
             select! {
                 _ = shutdown.cancelled() => {
                     debug!("Cancel signal has been gotten");
-                    subscription.aborted();
+                    subscription.on_aborted();
                 }
                 _ = async {
                     while wake_rx.recv().await.is_some() {
@@ -84,19 +91,25 @@ impl<
                                 continue;
                             }
                             Err(err) => {
-                                subscription.err(err);
+                                let _ = subscription.on_error(&err);
+                                stop_reason = Some(err);
                                 break;
                             }
                         };
                         if let Err(err) = sensor.processed(reader.get_offset()) {
-                            subscription.err(err.into());
+                            let err = Error::from(err);
+                            let _ = subscription.on_error(&err);
+                            stop_reason = Some(err);
                             break;
                         }
                         if added == 0 {
                             continue;
                         }
                         count += added;
-                        if !subscription.update(count, added) {
+                        if !matches!(
+                            subscription.on_update(count, added),
+                            SubscriptionUpdate::Read
+                        ) {
                             continue;
                         }
                         match reader.seek(last + 1) {
@@ -105,10 +118,14 @@ impl<
                                     last += 1;
                                     match pkg {
                                         Ok(packet) => {
-                                            subscription.packet(packet);
+                                            subscription.on_packet(packet);
                                         }
                                         Err(err) => {
-                                            if subscription.err(err) {
+                                            if matches!(
+                                                subscription.on_error(&err),
+                                                SubscriptionErrorAction::Stop
+                                            ) {
+                                                stop_reason = Some(err);
                                                 break;
                                             }
                                         }
@@ -116,12 +133,16 @@ impl<
                                 }
                             },
                             Err(err) => {
-                                subscription.err(err);
+                                let _ = subscription.on_error(&err);
+                                stop_reason = Some(err);
                                 break;
                             }
                         }
+                        if stop_reason.is_some() {
+                            break;
+                        }
                     }
-                    subscription.stopped();
+                    subscription.on_stopped(stop_reason);
                     drop(sensor);
                 } => {
                     debug!("sensor loop is closed")

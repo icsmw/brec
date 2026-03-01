@@ -15,21 +15,29 @@ pub fn generate() -> Result<TokenStream, E> {
     let observer = if cfg!(feature = "observer") {
         quote! {
             #[allow(dead_code)]
-            pub trait Subscription: Send + 'static {
-                fn update(&mut self, total: usize, added: usize) -> bool;
+            pub type SubscriptionUpdate = brec::SubscriptionUpdate;
 
-                fn packet(&mut self, packet: Packet) {
+            #[allow(dead_code)]
+            pub type SubscriptionErrorAction = brec::SubscriptionErrorAction;
+
+            #[allow(dead_code)]
+            pub trait Subscription: Send + 'static {
+                fn on_update(&mut self, total: usize, added: usize) -> SubscriptionUpdate;
+
+                fn on_packet(&mut self, packet: Packet) {
                     let _ = packet;
                 }
 
-                fn err(&mut self, err: brec::Error) -> bool {
+                fn on_error(&mut self, err: &brec::Error) -> SubscriptionErrorAction {
                     let _ = err;
-                    false
+                    SubscriptionErrorAction::Continue
                 }
 
-                fn stopped(&mut self) {}
+                fn on_stopped(&mut self, reason: Option<brec::Error>) {
+                    let _ = reason;
+                }
 
-                fn aborted(&mut self) {}
+                fn on_aborted(&mut self) {}
             }
 
             #[allow(dead_code)]
@@ -40,24 +48,24 @@ pub fn generate() -> Result<TokenStream, E> {
             where
                 S: Subscription,
             {
-                fn update(&mut self, total: usize, added: usize) -> bool {
-                    self.0.update(total, added)
+                fn on_update(&mut self, total: usize, added: usize) -> brec::SubscriptionUpdate {
+                    self.0.on_update(total, added)
                 }
 
-                fn packet(&mut self, packet: Packet) {
-                    self.0.packet(packet)
+                fn on_packet(&mut self, packet: Packet) {
+                    self.0.on_packet(packet)
                 }
 
-                fn err(&mut self, err: brec::Error) -> bool {
-                    self.0.err(err)
+                fn on_error(&mut self, err: &brec::Error) -> brec::SubscriptionErrorAction {
+                    self.0.on_error(err)
                 }
 
-                fn stopped(&mut self) {
-                    self.0.stopped()
+                fn on_stopped(&mut self, reason: Option<brec::Error>) {
+                    self.0.on_stopped(reason)
                 }
 
-                fn aborted(&mut self) {
-                    self.0.aborted()
+                fn on_aborted(&mut self) {
+                    self.0.on_aborted()
                 }
             }
 

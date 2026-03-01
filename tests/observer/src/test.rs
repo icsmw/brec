@@ -307,13 +307,13 @@ impl MySubscription {
 }
 
 impl Subscription for MySubscription {
-    fn update(&mut self, total: usize, _added: usize) -> bool {
+    fn on_update(&mut self, total: usize, _added: usize) -> SubscriptionUpdate {
         if total == self.expected {
             self.token.cancel();
         }
-        false
+        SubscriptionUpdate::Skip
     }
-    fn packet(&mut self, _packet: PacketDef<Block, Payload, Payload>) {
+    fn on_packet(&mut self, _packet: PacketDef<Block, Payload, Payload>) {
         self.count += 1;
     }
 }

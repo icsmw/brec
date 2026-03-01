@@ -557,9 +557,13 @@ When `brec` is built with the `observer` feature, the macro also generates:
 
 | Alias                    | Expanded to                                                                 |
 |-------------------------|------------------------------------------------------------------------------|
+| `SubscriptionUpdate`    | `brec::SubscriptionUpdate`                                                   |
+| `SubscriptionErrorAction` | `brec::SubscriptionErrorAction`                                           |
 | `Subscription`          | local facade over `SubscriptionDef<Block, BlockReferred<'static>, Payload, Payload>` |
 | `FileObserverOptions<S>`| local wrapper over `brec::FileObserverOptions<..., SubscriptionWrapper<S>>` |
 | `FileObserver`          | local wrapper over `FileObserverDef<Block, BlockReferred<'static>, Payload, Payload>` |
+
+`Subscription` uses `on_*` callbacks: `on_update`, `on_packet`, `on_error`, `on_stopped`, `on_aborted`.
 
 ### Required Build Script
 
