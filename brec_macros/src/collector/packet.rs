@@ -125,11 +125,26 @@ pub fn generate() -> Result<TokenStream, E> {
         pub type Packet = brec::PacketDef<Block, Payload, Payload>;
 
         #[allow(dead_code)]
-        pub type PacketBufReader<'a, R> =
+        pub type BorrowedPacketBufReader<'a, R> =
             brec::PacketBufReaderDef<'a, R, Block, BlockReferred<'a>, Payload, Payload>;
 
         #[allow(dead_code)]
+        pub type PacketBufReader<'a, R> = BorrowedPacketBufReader<'a, R>;
+
+        #[allow(dead_code)]
+        pub type PeekedBlocks<'a> = brec::PeekedBlocksDef<'a, BlockReferred<'a>>;
+
+        #[allow(dead_code)]
+        pub type PeekedBlock<'a> = brec::PeekedBlockDef<'a, BlockReferred<'a>>;
+
+        #[allow(dead_code)]
+        pub type BorrowedRules<'a> = brec::RulesDef<Block, BlockReferred<'a>, Payload, Payload>;
+
+        #[allow(dead_code)]
         pub type Rules<'a> = brec::RulesDef<Block, BlockReferred<'a>, Payload, Payload>;
+
+        #[allow(dead_code)]
+        pub type BorrowedRule<'a> = brec::RuleDef<Block, BlockReferred<'a>, Payload, Payload>;
 
         #[allow(dead_code)]
         pub type Rule<'a> = brec::RuleDef<Block, BlockReferred<'a>, Payload, Payload>;
@@ -138,7 +153,11 @@ pub fn generate() -> Result<TokenStream, E> {
         pub type RuleFnDef<D, S> = brec::RuleFnDef<D, S>;
 
         #[allow(dead_code)]
-        pub type Reader<'a, S> = brec::ReaderDef<S, Block, BlockReferred<'a>, Payload, Payload>;
+        pub type BorrowedReader<'a, S> =
+            brec::ReaderDef<S, Block, BlockReferred<'a>, Payload, Payload>;
+
+        #[allow(dead_code)]
+        pub type Reader<S> = brec::ReaderDef<S, Block, BlockReferred<'static>, Payload, Payload>;
 
         #[allow(dead_code)]
         pub type Writer<'a, S> = brec::WriterDef<S, Block, Payload, Payload>;

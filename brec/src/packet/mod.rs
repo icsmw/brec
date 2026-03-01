@@ -99,7 +99,7 @@ impl<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> PacketDef<B, P, 
     /// This function:
     /// - Reads the `PacketHeader`
     /// - Loads all blocks into memory
-    /// - Applies the `FilterByBlocks` rule
+    /// - Applies the prefilter rule
     /// - Optionally parses and filters the payload
     /// - Returns the final result via `LookInStatus`
     ///
@@ -141,7 +141,7 @@ impl<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> PacketDef<B, P, 
             }
         }
         let packet_size = header.size as usize;
-        if !rules.filter_by_blocks(&blocks) {
+        if !rules.prefilter(&blocks) {
             return Ok(LookInStatus::Denied(packet_size));
         }
         let pkg = if header.payload {
@@ -149,7 +149,7 @@ impl<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> PacketDef<B, P, 
             match <PayloadHeader as TryReadFromBuffered>::try_read(&mut payload_buffer)? {
                 ReadStatus::Success(header) => {
                     let mut payload_buffer = &packet_buffer[blocks_len + header.size()..];
-                    if !rules.filter_by_payload(payload_buffer) {
+                    if !rules.filter_payload(payload_buffer) {
                         // PacketDef marked as ignored
                         return Ok(LookInStatus::Denied(packet_size));
                     }
@@ -179,7 +179,7 @@ impl<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> PacketDef<B, P, 
                 None,
             )
         };
-        if !rules.filter(&pkg) {
+        if !rules.filter_packet(&pkg) {
             // PacketDef marked as ignored
             Ok(LookInStatus::Denied(packet_size))
         } else {

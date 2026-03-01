@@ -130,7 +130,7 @@ fn read_packets(buffer: &[u8]) -> std::io::Result<(usize, Vec<Packet>)> {
     let prefilter_count: Arc<AtomicUsize> = Arc::new(AtomicUsize::new(0));
     let prefilter_count_inner = prefilter_count.clone();
     reader
-        .add_rule(Rule::FilterByBlocks(brec::RuleFnDef::Dynamic(Box::new(
+        .add_rule(Rule::Prefilter(brec::RuleFnDef::Dynamic(Box::new(
             move |_| {
                 prefilter_count_inner.fetch_add(1, Ordering::SeqCst);
                 true
@@ -140,7 +140,7 @@ fn read_packets(buffer: &[u8]) -> std::io::Result<(usize, Vec<Packet>)> {
     let payload_filter_count: Arc<AtomicUsize> = Arc::new(AtomicUsize::new(0));
     let payload_filter_count_inner = payload_filter_count.clone();
     reader
-        .add_rule(Rule::FilterByPayload(brec::RuleFnDef::Dynamic(Box::new(
+        .add_rule(Rule::FilterPayload(brec::RuleFnDef::Dynamic(Box::new(
             move |_| {
                 payload_filter_count_inner.fetch_add(1, Ordering::SeqCst);
                 true
@@ -150,7 +150,7 @@ fn read_packets(buffer: &[u8]) -> std::io::Result<(usize, Vec<Packet>)> {
     let filter_count: Arc<AtomicUsize> = Arc::new(AtomicUsize::new(0));
     let filter_count_inner = filter_count.clone();
     reader
-        .add_rule(Rule::Filter(brec::RuleFnDef::Dynamic(Box::new(
+        .add_rule(Rule::FilterPacket(brec::RuleFnDef::Dynamic(Box::new(
             move |_| {
                 filter_count_inner.fetch_add(1, Ordering::SeqCst);
                 true
@@ -500,8 +500,8 @@ fn storage_write_read_filter(packets: Vec<WrappedPacket>, filename: &str) -> std
     let blocks_visited: Arc<AtomicUsize> = Arc::new(AtomicUsize::new(0));
     let blocks_visited_inner = blocks_visited.clone();
     reader
-        .add_rule(Rule::FilterByBlocks(brec::RuleFnDef::Dynamic(Box::new(
-            move |blocks: &[BlockReferred]| {
+        .add_rule(Rule::Prefilter(brec::RuleFnDef::Dynamic(Box::new(
+            move |blocks| {
                 blocks_visited_inner.fetch_add(blocks.len(), Ordering::SeqCst);
                 false
             },
@@ -543,9 +543,9 @@ fn storage_write_read_filter(packets: Vec<WrappedPacket>, filename: &str) -> std
     }
     let payload_visited: Arc<AtomicUsize> = Arc::new(AtomicUsize::new(0));
     let payload_visited_inner = payload_visited.clone();
-    reader.remove_rule(RuleDefId::FilterByBlocks);
+    reader.remove_rule(RuleDefId::Prefilter);
     reader
-        .add_rule(Rule::FilterByPayload(brec::RuleFnDef::Dynamic(Box::new(
+        .add_rule(Rule::FilterPayload(brec::RuleFnDef::Dynamic(Box::new(
             move |_payload: &[u8]| {
                 payload_visited_inner.fetch_add(1, Ordering::SeqCst);
                 false

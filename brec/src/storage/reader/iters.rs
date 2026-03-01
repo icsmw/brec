@@ -206,9 +206,9 @@ impl<
 /// This iterator functions like `ReaderIterator`, but applies `RulesDef`-based
 /// filters to decide whether to yield, skip, or reject packets. The filtering is performed
 /// during parsing using `PacketDef::filtered`, which allows:
-/// - filtering by blocks (`FilterByBlocks`)
-/// - filtering by payload (`FilterByPayload`)
-/// - filtering by fully parsed packet (`Filter`)
+/// - prefiltering by blocks
+/// - filtering by payload
+/// - filtering by fully parsed packet
 ///
 /// # Type Parameters
 /// - `S`: Input stream (`Read + Seek`)

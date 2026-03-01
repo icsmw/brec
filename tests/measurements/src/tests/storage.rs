@@ -77,17 +77,14 @@ pub fn filter_file(filename: &str) -> std::io::Result<()> {
     let mut storage = Reader::new(&mut file)
         .map_err(|err| std::io::Error::new(std::io::ErrorKind::InvalidData, err.to_string()))?;
     storage
-        .add_rule(Rule::FilterByBlocks(brec::RuleFnDef::Dynamic(Box::new(
-            move |blocks: &[BlockReferred]| {
-                blocks.iter().any(|bl| {
-                    let BlockReferred::Metadata(bl) = bl;
-                    matches!(bl.level, Level::Err)
-                })
+        .add_rule(Rule::Prefilter(brec::RuleFnDef::Dynamic(Box::new(
+            move |blocks| {
+                blocks.find::<Metadata, _>(|bl| matches!(bl.level, Level::Err)).is_some()
             },
         ))))
         .unwrap();
     storage
-        .add_rule(Rule::FilterByPayload(brec::RuleFnDef::Dynamic(Box::new(
+        .add_rule(Rule::FilterPayload(brec::RuleFnDef::Dynamic(Box::new(
             move |pl: &[u8]| {
                 std::str::from_utf8(pl)
                     .expect("Valid string")

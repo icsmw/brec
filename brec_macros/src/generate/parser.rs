@@ -23,11 +23,11 @@ impl Parse for Config {
                         ))?
                         .to_string();
                     if key == SettingId::PayloadsDerive.to_string() {
-                        if let Expr::Lit(expr_lit) = &*assign.right {
-                            if let syn::Lit::Str(lit_str) = &expr_lit.lit {
-                                settings.push(Setting::PayloadsDerive(lit_str.value()));
-                                continue;
-                            }
+                        if let Expr::Lit(expr_lit) = &*assign.right
+                            && let syn::Lit::Str(lit_str) = &expr_lit.lit
+                        {
+                            settings.push(Setting::PayloadsDerive(lit_str.value()));
+                            continue;
                         }
                         return Err(syn::Error::new_spanned(assign, E::UnsupportedAttr));
                     } else {

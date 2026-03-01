@@ -15,6 +15,7 @@ pub fn generate(blocks: Vec<&Block>, cfg: &Config) -> Result<TokenStream, E> {
     let prop = props::generate(&blocks)?;
     let prop_referred = props::gen_referred(&blocks)?;
     let referred_into = props::referred_into(&blocks)?;
+    let peek_as = props::peek_as(&blocks)?;
     let read_from = read::read_from(&blocks)?;
     let read_block_from = read::read_block_from(&blocks)?;
     let read_from_slice = read::read_from_slice(&blocks)?;
@@ -28,6 +29,7 @@ pub fn generate(blocks: Vec<&Block>, cfg: &Config) -> Result<TokenStream, E> {
         #prop
         #prop_referred
         #referred_into
+        #peek_as
         #read_from
         #read_block_from
         #read_from_slice

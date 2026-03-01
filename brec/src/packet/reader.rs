@@ -387,7 +387,7 @@ impl<
                 }
             }
         }
-        if !self.rules.filter_by_blocks(&blocks) {
+        if !self.rules.prefilter(&blocks) {
             // PacketDef marked as ignored
             return self.drop_and_consume(consume, Ok(NextPacket::Skipped));
         }
@@ -397,7 +397,7 @@ impl<
             match <PayloadHeader as TryReadFromBuffered>::try_read(&mut payload_buffer) {
                 Ok(ReadStatus::Success(header)) => {
                     let mut payload_buffer = &packet_buffer[blocks_len + header.size()..];
-                    if !self.rules.filter_by_payload(payload_buffer) {
+                    if !self.rules.filter_payload(payload_buffer) {
                         // PacketDef marked as ignored
                         return self.drop_and_consume(consume, Ok(NextPacket::Skipped));
                     }
@@ -437,7 +437,7 @@ impl<
                 None,
             )
         };
-        if !self.rules.filter(&pkg) {
+        if !self.rules.filter_packet(&pkg) {
             // PacketDef marked as ignored
             self.drop_and_consume(consume, Ok(NextPacket::Skipped))
         } else {

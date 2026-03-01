@@ -52,10 +52,10 @@ impl TryFrom<&TypeArray> for Ty {
     type Error = syn::Error;
     fn try_from(ty: &TypeArray) -> Result<Self, Self::Error> {
         fn extract_array_len(len: &Expr) -> Result<usize, syn::Error> {
-            if let Expr::Lit(expr_lit) = len {
-                if let syn::Lit::Int(lit_int) = &expr_lit.lit {
-                    return lit_int.base10_parse::<usize>();
-                }
+            if let Expr::Lit(expr_lit) = len
+                && let syn::Lit::Int(lit_int) = &expr_lit.lit
+            {
+                return lit_int.base10_parse::<usize>();
             }
             Err(syn::Error::new_spanned(len, E::MissedArraySize))
         }

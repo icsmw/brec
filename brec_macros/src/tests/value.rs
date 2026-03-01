@@ -60,6 +60,7 @@ impl Value {
     }
 }
 
+#[allow(clippy::derivable_impls)]
 impl Default for ValueId {
     fn default() -> Self {
         Self::U8

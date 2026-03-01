@@ -57,3 +57,28 @@ pub fn referred_into(blocks: &[&Block]) -> Result<TokenStream, E> {
         }
     })
 }
+
+pub fn peek_as(blocks: &[&Block]) -> Result<TokenStream, E> {
+    let mut impls = Vec::new();
+    for blk in blocks.iter() {
+        let block_name = blk.name();
+        let fullname = blk.fullname()?;
+        let referred_name = blk.referred_name();
+        impls.push(quote! {
+            impl<'a> brec::PeekAs<'a, #block_name> for BlockReferred<'a> {
+                type Peeked = #referred_name<'a>;
+
+                #[allow(unreachable_patterns)]
+                fn peek_as(&'a self) -> Option<&'a Self::Peeked> {
+                    match self {
+                        BlockReferred::#fullname(inner) => Some(inner),
+                        _ => None,
+                    }
+                }
+            }
+        });
+    }
+    Ok(quote! {
+        #(#impls)*
+    })
+}

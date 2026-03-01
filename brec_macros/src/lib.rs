@@ -251,13 +251,19 @@ pub fn payload(attr: TokenStream, input: TokenStream) -> TokenStream {
 ///
 /// | Alias                   | Expanded to                                                                                |
 /// |-------------------------|--------------------------------------------------------------------------------------------|
-/// | `Packet`                | `PacketDef<Block, Payload, Payload>`                                                       |
-/// | `PacketBufReader<'a, R>`| `PacketBufReaderDef<'a, R, Block, BlockReferred<'a>, Payload, Payload>`                    |
-/// | `Rules<'a>`             | `RulesDef<Block, BlockReferred<'a>, Payload, Payload>`                                     |
-/// | `Rule<'a>`              | `RuleDef<Block, BlockReferred<'a>, Payload, Payload>`                                      |
-/// | `RuleFnDef<D, S>`       | `RuleFnDef<D, S>`                                                                          |
-/// | `Reader<S>`             | `ReaderDef<S, Block, BlockReferred<'static>, Payload, Payload>`                            |
-/// | `Writer<S>`             | `WriterDef<S, Block, Payload, Payload>`                                                    |
+/// | `Packet`                    | `PacketDef<Block, Payload, Payload>`                                                       |
+/// | `BorrowedPacketBufReader<'a, R>` | `PacketBufReaderDef<'a, R, Block, BlockReferred<'a>, Payload, Payload>`              |
+/// | `PacketBufReader<'a, R>`     | same as `BorrowedPacketBufReader<'a, R>`                                                 |
+/// | `PeekedBlocks<'a>`           | `PeekedBlocksDef<'a, BlockReferred<'a>>`                                                 |
+/// | `PeekedBlock<'a>`            | `PeekedBlockDef<'a, BlockReferred<'a>>`                                                  |
+/// | `BorrowedRules<'a>`          | `RulesDef<Block, BlockReferred<'a>, Payload, Payload>`                                   |
+/// | `Rules<'a>`                  | same as `BorrowedRules<'a>`                                                              |
+/// | `BorrowedRule<'a>`           | `RuleDef<Block, BlockReferred<'a>, Payload, Payload>`                                    |
+/// | `Rule<'a>`                   | same as `BorrowedRule<'a>`                                                               |
+/// | `RuleFnDef<D, S>`            | `RuleFnDef<D, S>`                                                                        |
+/// | `BorrowedReader<'a, S>`      | `ReaderDef<S, Block, BlockReferred<'a>, Payload, Payload>`                               |
+/// | `Reader<S>`                  | `ReaderDef<S, Block, BlockReferred<'static>, Payload, Payload>`                          |
+/// | `Writer<S>`                  | `WriterDef<S, Block, Payload, Payload>`                                                  |
 ///
 /// These aliases make it easier to work with generated structures and remove the need to repeat generic parameters.
 ///
