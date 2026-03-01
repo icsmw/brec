@@ -7,7 +7,7 @@ description = "This crate is intended for testing brec"
 license     = "Apache-2.0"
 
 [dependencies]
-brec  = { workspace = true, features = ["bincode"] }
+brec  = { workspace = true, features = ["bincode", "observer"] }
 serde = { workspace = true, features = ["derive"] }
 
 [dev-dependencies]

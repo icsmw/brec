@@ -20,9 +20,16 @@ categories = [
 ]
 
 [features]
-build          = []
-bincode        = ["dep:bincode"]
+build = []
+bincode = ["dep:bincode"]
 locked_storage = ["fs4", "brec_macros/locked_storage"]
+observer = [
+    "dep:notify",
+    "dep:tokio",
+    "dep:tokio-util",
+    "dep:tracing",
+    "brec_macros/observer",
+]
 
 
 [dependencies]
@@ -31,11 +38,11 @@ crc32fast.workspace = true
 enum_ids.workspace  = true
 brec_macros         = { workspace = true, features = [], optional = false }
 bincode             = { workspace = true, optional = true }
-notify              = { workspace = true }
-tracing             = { workspace = true }
+notify              = { workspace = true, optional = true }
+tracing             = { workspace = true, optional = true }
 fs4                 = { workspace = true, optional = true }
-tokio               = { workspace = true, features = ["full"] }
-tokio-util          = { workspace = true }
+tokio               = { workspace = true, features = ["full"], optional = true }
+tokio-util          = { workspace = true, optional = true }
 
 [dev-dependencies]
-tempfile = { workspace = true }
+tempfile.workspace = true

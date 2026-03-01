@@ -590,7 +590,7 @@ fn storage_slot_locator(
             .insert(packet.into())
             .map_err(|err| std::io::Error::new(std::io::ErrorKind::InvalidData, err.to_string()))?;
     }
-    let mut reader = Reader::new(&file)
+    let reader = Reader::new(&file)
         .map_err(|err| std::io::Error::new(std::io::ErrorKind::InvalidData, err.to_string()))?;
     assert_eq!(count, reader.count());
     // Locator should setup it self to correct position
@@ -599,7 +599,7 @@ fn storage_slot_locator(
     writer
         .insert(packet.into())
         .map_err(|err| std::io::Error::new(std::io::ErrorKind::InvalidData, err.to_string()))?;
-    let mut reader = Reader::new(&file)
+    let reader = Reader::new(&file)
         .map_err(|err| std::io::Error::new(std::io::ErrorKind::InvalidData, err.to_string()))?;
     assert_eq!(count + 1, reader.count());
     Ok(())

@@ -1,5 +1,7 @@
-use crate::storage::SensorError;
 use thiserror::Error;
+
+#[cfg(feature = "observer")]
+use crate::storage::SensorError;
 
 #[derive(Error, Debug)]
 pub enum Error {
@@ -69,8 +71,10 @@ pub enum Error {
     AccessSlot(usize),
     #[error("Empty source")]
     EmptySource,
+    #[cfg(feature = "observer")]
     #[error("Sensor: {0}")]
     Sensor(SensorError),
+    #[cfg(feature = "observer")]
     #[error("No subscription")]
     NoSubscription,
     #[error("Test error has been fired")]
@@ -83,6 +87,7 @@ impl From<Error> for std::io::Error {
     }
 }
 
+#[cfg(feature = "observer")]
 impl From<SensorError> for Error {
     fn from(value: SensorError) -> Self {
         Error::Sensor(value)

@@ -9,6 +9,8 @@ pub use bincode;
 pub use build::*;
 #[cfg(test)]
 pub mod tests;
+#[cfg(test)]
+use tempfile as _;
 
 extern crate brec_macros;
 

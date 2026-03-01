@@ -17,3 +17,6 @@ cd ./locked_storage
 cargo test  --release -- --nocapture
 cd ..
 
+cd ./observer
+cargo test  --release -- --nocapture
+cd ..

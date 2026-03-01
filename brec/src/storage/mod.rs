@@ -1,9 +1,12 @@
 mod locator;
-mod observer;
 mod reader;
 mod slot;
 mod writer;
 
+#[cfg(feature = "observer")]
+mod observer;
+
+#[cfg(feature = "observer")]
 pub use observer::*;
 pub use reader::*;
 pub use writer::*;

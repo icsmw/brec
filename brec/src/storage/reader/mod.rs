@@ -97,12 +97,11 @@ impl<
             }
         };
         let origin_source_pos = source_pos;
-        let count = self.slots.len();
         loop {
             self.inner.seek(std::io::SeekFrom::Start(source_pos))?;
             match <Slot as TryReadFrom>::try_read(&mut self.inner) {
                 Ok(ReadStatus::Success(slot)) => {
-                    if let Some((o, i, crc)) = last
+                    if let Some((_, _, crc)) = last
                         && source_pos == origin_source_pos
                     {
                         if crc == slot.crc {

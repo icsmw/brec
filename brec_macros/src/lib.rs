@@ -258,11 +258,16 @@ pub fn payload(attr: TokenStream, input: TokenStream) -> TokenStream {
 /// | `RuleFnDef<D, S>`       | `RuleFnDef<D, S>`                                                                          |
 /// | `Reader<S>`             | `ReaderDef<S, Block, BlockReferred<'static>, Payload, Payload>`                            |
 /// | `Writer<S>`             | `WriterDef<S, Block, Payload, Payload>`                                                    |
-/// | `Subscription`          | Local trait facade over `SubscriptionDef<Block, BlockReferred<'static>, Payload, Payload>` |
-/// | `FileObserverOptions<S>`| Local wrapper over `brec::FileObserverOptions<..., SubscriptionWrapper<S>>`                |
-/// | `FileObserver`          | Local wrapper over `FileObserverDef<Block, BlockReferred<'static>, Payload, Payload>`      |
 ///
 /// These aliases make it easier to work with generated structures and remove the need to repeat generic parameters.
+///
+/// When `brec` is built with the `observer` feature, the macro also generates:
+///
+/// | Alias                    | Expanded to                                                                                 |
+/// |-------------------------|---------------------------------------------------------------------------------------------|
+/// | `Subscription`          | Local trait facade over `SubscriptionDef<Block, BlockReferred<'static>, Payload, Payload>` |
+/// | `FileObserverOptions<S>`| Local wrapper over `brec::FileObserverOptions<..., SubscriptionWrapper<S>>`                 |
+/// | `FileObserver`          | Local wrapper over `FileObserverDef<Block, BlockReferred<'static>, Payload, Payload>`       |
 ///
 /// ---
 ///

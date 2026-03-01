@@ -26,6 +26,7 @@ proc-macro = true
 [features]
 generate_macro_test = []
 locked_storage      = []
+observer            = []
 
 [dependencies]
 thiserror.workspace   = true
