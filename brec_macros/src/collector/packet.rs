@@ -3,7 +3,7 @@ use quote::quote;
 
 use crate::*;
 
-pub fn gen() -> Result<TokenStream, E> {
+pub fn generate() -> Result<TokenStream, E> {
     let locked_storage = if cfg!(feature = "locked_storage") {
         quote! {
             #[allow(dead_code)]
@@ -134,7 +134,7 @@ pub fn gen() -> Result<TokenStream, E> {
 
         #[allow(dead_code)]
         pub type Writer<'a, S> = brec::WriterDef<S, Block, Payload, Payload>;
-        
+
         #observer
 
         #locked_storage

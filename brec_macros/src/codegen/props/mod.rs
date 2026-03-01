@@ -6,9 +6,9 @@ use crate::*;
 use proc_macro2::TokenStream;
 
 pub trait Size {
-    fn gen(&self) -> TokenStream;
+    fn generate(&self) -> TokenStream;
 }
 
 pub trait Crc {
-    fn gen(&self) -> Result<TokenStream, E>;
+    fn generate(&self) -> Result<TokenStream, E>;
 }

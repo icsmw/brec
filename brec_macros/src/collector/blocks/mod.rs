@@ -8,11 +8,11 @@ mod props;
 mod read;
 mod write;
 
-pub fn gen(blocks: Vec<&Block>, cfg: &Config) -> Result<TokenStream, E> {
+pub fn generate(blocks: Vec<&Block>, cfg: &Config) -> Result<TokenStream, E> {
     let derives = Derives::common(blocks.iter().map(|b| &b.derives).collect())?;
-    let block = enums::gen(&blocks, derives, cfg)?;
+    let block = enums::generate(&blocks, derives, cfg)?;
     let block_referred = enums::gen_referred(&blocks)?;
-    let prop = props::gen(&blocks)?;
+    let prop = props::generate(&blocks)?;
     let prop_referred = props::gen_referred(&blocks)?;
     let referred_into = props::referred_into(&blocks)?;
     let read_from = read::read_from(&blocks)?;

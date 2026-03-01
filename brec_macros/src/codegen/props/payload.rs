@@ -3,7 +3,7 @@ use proc_macro2::TokenStream;
 use quote::quote;
 
 impl Crc for Payload {
-    fn gen(&self) -> Result<TokenStream, E> {
+    fn generate(&self) -> Result<TokenStream, E> {
         let payload_name = self.name();
         Ok(
             if self.attrs.is_bincode() && !self.attrs.is_no_auto_crc() && !self.attrs.is_no_crc() {
@@ -29,7 +29,7 @@ impl Crc for Payload {
 }
 
 impl Size for Payload {
-    fn gen(&self) -> TokenStream {
+    fn generate(&self) -> TokenStream {
         let payload_name = self.name();
         if self.attrs.is_bincode() {
             quote! {

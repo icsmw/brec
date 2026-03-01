@@ -3,7 +3,7 @@ use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
 
 impl Read for Block {
-    fn gen(&self) -> Result<TokenStream, E> {
+    fn generate(&self) -> Result<TokenStream, E> {
         let block_name = self.name();
         let const_sig = self.const_sig_name();
         let mut fields = Vec::new();
@@ -50,7 +50,7 @@ impl Read for Block {
 }
 
 impl ReadFromSlice for Block {
-    fn gen(&self) -> Result<TokenStream, E> {
+    fn generate(&self) -> Result<TokenStream, E> {
         let referred_name = self.referred_name();
         let block_name = self.name();
         let const_sig = self.const_sig_name();
@@ -128,7 +128,7 @@ impl ReadFromSlice for Block {
 }
 
 impl TryRead for Block {
-    fn gen(&self) -> Result<TokenStream, E> {
+    fn generate(&self) -> Result<TokenStream, E> {
         let block_name = self.name();
         let const_sig = self.const_sig_name();
         let sig_len = self.sig_len();
@@ -165,7 +165,7 @@ impl TryRead for Block {
 }
 
 impl TryReadBuffered for Block {
-    fn gen(&self) -> Result<TokenStream, E> {
+    fn generate(&self) -> Result<TokenStream, E> {
         let block_name = self.name();
         let const_sig = self.const_sig_name();
         let sig_len = self.sig_len();

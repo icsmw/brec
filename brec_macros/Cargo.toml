@@ -1,7 +1,7 @@
 [package]
 name        = "brec_macros"
 version     = "0.2.0"
-edition     = "2021"
+edition     = "2024"
 authors     = ["d.astafyev@outlook.com"]
 description = "Code generator for brec. Implements the block and payload macros."
 license     = "Apache-2.0"

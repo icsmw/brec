@@ -3,7 +3,7 @@ use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
 
 impl Write for Block {
-    fn gen(&self) -> Result<TokenStream, E> {
+    fn generate(&self) -> Result<TokenStream, E> {
         let block_name = self.name();
         let mut buf_fillers = Vec::new();
         for field in self.fields.iter().filter(|f| !f.injected) {
@@ -87,7 +87,7 @@ impl Write for Block {
 }
 
 impl WriteVectored for Block {
-    fn gen(&self) -> Result<TokenStream, E> {
+    fn generate(&self) -> Result<TokenStream, E> {
         let block_name = self.name();
         let mut groups = Vec::new();
         let mut slices = Vec::new();

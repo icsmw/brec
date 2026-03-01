@@ -3,7 +3,7 @@ use proc_macro2::TokenStream;
 use quote::quote;
 
 impl Crc for Block {
-    fn gen(&self) -> Result<TokenStream, E> {
+    fn generate(&self) -> Result<TokenStream, E> {
         let block_name = self.name();
         let referred_name = self.referred_name();
         if self.attrs.is_no_crc() {
@@ -66,7 +66,7 @@ impl Crc for Block {
 }
 
 impl Size for Block {
-    fn gen(&self) -> TokenStream {
+    fn generate(&self) -> TokenStream {
         let block_name = self.name();
         let mut size = 0u64;
         for field in self.fields.iter() {

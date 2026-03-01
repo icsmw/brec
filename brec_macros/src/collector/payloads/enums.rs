@@ -3,7 +3,7 @@ use crate::*;
 use proc_macro2::TokenStream;
 use quote::quote;
 
-pub fn gen(
+pub fn generate(
     payloads: &[&Payload],
     derives: Vec<TokenStream>,
     cfg: &Config,

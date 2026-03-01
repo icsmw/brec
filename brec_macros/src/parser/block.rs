@@ -9,7 +9,7 @@ pub fn parse(attrs: BlockAttrs, mut input: DeriveInput) -> TokenStream {
         Ok(p) => p,
         Err(err) => return err.to_compile_error(),
     };
-    let reflected = match codegen::Gen::gen(&block) {
+    let reflected = match codegen::Gen::generate(&block) {
         Ok(p) => p,
         Err(err) => {
             return syn::Error::new_spanned(&input, err).to_compile_error();

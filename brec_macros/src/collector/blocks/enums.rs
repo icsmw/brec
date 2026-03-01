@@ -3,7 +3,11 @@ use crate::*;
 use proc_macro2::TokenStream;
 use quote::quote;
 
-pub fn gen(blocks: &[&Block], derives: Vec<TokenStream>, _cfg: &Config) -> Result<TokenStream, E> {
+pub fn generate(
+    blocks: &[&Block],
+    derives: Vec<TokenStream>,
+    _cfg: &Config,
+) -> Result<TokenStream, E> {
     let mut variants = Vec::new();
     for blk in blocks.iter() {
         let fullname = blk.fullname()?;

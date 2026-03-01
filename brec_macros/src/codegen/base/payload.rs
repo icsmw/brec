@@ -3,7 +3,7 @@ use proc_macro2::TokenStream;
 use quote::quote;
 
 impl Base for Payload {
-    fn gen(&self) -> Result<TokenStream, E> {
+    fn generate(&self) -> Result<TokenStream, E> {
         let payload_name = self.name();
         let sig = self.sig()?;
         let sig_impl = if self.attrs.no_default_sig() {
@@ -69,15 +69,15 @@ impl Base for Payload {
 }
 
 impl Gen for Payload {
-    fn gen(&self) -> Result<TokenStream, E> {
-        let base = Base::gen(self)?;
-        let read = Read::gen(self)?;
-        let try_read = TryRead::gen(self)?;
-        let try_read_buffered = TryReadBuffered::gen(self)?;
-        let crc = Crc::gen(self)?;
-        let size = Size::gen(self);
-        let write = Write::gen(self)?;
-        let write_vec = WriteVectored::gen(self)?;
+    fn generate(&self) -> Result<TokenStream, E> {
+        let base = Base::generate(self)?;
+        let read = Read::generate(self)?;
+        let try_read = TryRead::generate(self)?;
+        let try_read_buffered = TryReadBuffered::generate(self)?;
+        let crc = Crc::generate(self)?;
+        let size = Size::generate(self);
+        let write = Write::generate(self)?;
+        let write_vec = WriteVectored::generate(self)?;
         Ok(quote! {
             #base
             #crc

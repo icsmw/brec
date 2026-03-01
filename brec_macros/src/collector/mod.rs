@@ -57,7 +57,7 @@ impl Collector {
         let block = if self.is_blocks_empty() {
             quote! {}
         } else {
-            blocks::gen(
+            blocks::generate(
                 self.blocks
                     .entry(pkg_name.clone())
                     .or_default()
@@ -69,7 +69,7 @@ impl Collector {
         let payload = if self.is_payloads_empty() && cfg.is_no_default_payloads() {
             quote! {}
         } else {
-            payloads::gen(
+            payloads::generate(
                 self.payloads
                     .entry(pkg_name)
                     .or_default()
@@ -83,7 +83,7 @@ impl Collector {
         {
             quote! {}
         } else {
-            packet::gen()?
+            packet::generate()?
         };
         let output = quote! {
             #block
