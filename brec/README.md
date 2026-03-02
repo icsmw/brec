@@ -11,14 +11,14 @@
 
 # Key Features
 
-- **Protocol without constraints** – Unlike many alternatives, `brec` doesn’t enforce a fixed message layout. Instead, you define your own building blocks (`blocks`) and arbitrary payloads (`payloads`), combining them freely into custom packets.
-- **Stream-recognizable messages** – Each block, payload, and packet is automatically assigned a unique signature, making them easily discoverable within any byte stream.
-- **Built-in reliability** – All parts of a packet (blocks, payloads, and headers) are automatically linked with their own CRC checksums to ensure data integrity.
-- **Stream-aware reading** – `brec` includes a powerful streaming reader capable of extracting packets even from noisy or corrupted streams — skipping irrelevant or damaged data without breaking.
-- **Non-packet data is preserved** – When reading mixed streams, unrecognized data is not lost. You can capture and process it separately using rules and callbacks.
-- **Persistent storage layer** – `brec` provides a high-performance storage engine for persisting packets. Its slot-based layout enables fast indexed access, filtering, and direct access by packet index.
-- **High performance** – Parsing performance is on par with the most optimized binary parsers (see the Performance section).
-- **Simple to use** – Just annotate your structs with #[block] or #[payload], and brec takes care of the rest — your protocol is ready to go.
+- **Protocol without constraints** - Unlike many alternatives, `brec` doesn’t enforce a fixed message layout. Instead, you define your own building blocks (`blocks`) and arbitrary payloads (`payloads`), combining them freely into custom packets.
+- **Stream-recognizable messages** - Each block, payload, and packet is automatically assigned a unique signature, making them easily discoverable within any byte stream.
+- **Built-in reliability** - All parts of a packet (blocks, payloads, and headers) are automatically linked with their own CRC checksums to ensure data integrity.
+- **Stream-aware reading** - `brec` includes a powerful streaming reader capable of extracting packets even from noisy or corrupted streams — skipping irrelevant or damaged data without breaking.
+- **Non-packet data is preserved** - When reading mixed streams, unrecognized data is not lost. You can capture and process it separately using rules and callbacks.
+- **Persistent storage layer** - `brec` provides a high-performance storage engine for persisting packets. Its slot-based layout enables fast indexed access, filtering, and direct access by packet index.
+- **High performance** - Parsing performance is on par with the most optimized binary parsers (see the Performance section).
+- **Simple to use** - Just annotate your structs with #[block] or #[payload], and brec takes care of the rest — your protocol is ready to go.
 
 # General Overview
 
@@ -341,8 +341,8 @@ As seen above, the reference representation of a block does not store the slice 
 
 The `block` macro can be used with the following directives:
 
-- `path = mod::mod` – Specifies the module path for the block if it is not directly imported at the location of `brec::generate!()`. This approach is not recommended (it is better to ensure block visibility at the generator call site), but it is not inherently inefficient or unstable. However, using this method may make future code maintenance more difficult.
-- `no_crc` – Disables CRC verification for the block. Note that this does not remove the CRC field from the binary representation of the block. The CRC field will still be present but filled with zeros, and no CRC calculation will be performed.
+- `path = mod::mod` - Specifies the module path for the block if it is not directly imported at the location of `brec::generate!()`. This approach is not recommended (it is better to ensure block visibility at the generator call site), but it is not inherently inefficient or unstable. However, using this method may make future code maintenance more difficult.
+- `no_crc` - Disables CRC verification for the block. Note that this does not remove the CRC field from the binary representation of the block. The CRC field will still be present but filled with zeros, and no CRC calculation will be performed.
 
 ## Payloads
 
@@ -450,10 +450,10 @@ Extracting such a payload will be impossible because the CRC will always be diff
 
 The `payload` macro can be used with the following directives:
 
-- `path = mod::mod` – Specifies the module path for the payload if it is not directly imported at the location of `brec::generate!()`. This approach is not recommended (it is better to ensure payload visibility at the generator call site), but it is not inherently inefficient or unstable. However, using this method may make future code maintenance more difficult.
-- `no_crc` – Disables CRC verification for the payload. Note that this does not remove the CRC field from the binary representation of the payload (specifically in `PayloadHeader`). The CRC field will still be present but filled with zeros, and no CRC calculation will be performed.
-- `no_auto_crc` – Disables CRC verification for `payload(bincode)`, requiring a manual implementation of the `PayloadCrc` trait. This parameter is only relevant when using the `bincode` feature.
-- `bincode` – available only when the bincode feature is enabled. It allows using any structure as a payload as long as it meets the requirements of the bincode crate, i.e., it implements serde serialization and deserialization. Please note that bincode has a number of limitations, which you can review in its official documentation.
+- `path = mod::mod` - Specifies the module path for the payload if it is not directly imported at the location of `brec::generate!()`. This approach is not recommended (it is better to ensure payload visibility at the generator call site), but it is not inherently inefficient or unstable. However, using this method may make future code maintenance more difficult.
+- `no_crc` - Disables CRC verification for the payload. Note that this does not remove the CRC field from the binary representation of the payload (specifically in `PayloadHeader`). The CRC field will still be present but filled with zeros, and no CRC calculation will be performed.
+- `no_auto_crc` - Disables CRC verification for `payload(bincode)`, requiring a manual implementation of the `PayloadCrc` trait. This parameter is only relevant when using the `bincode` feature.
+- `bincode` - available only when the bincode feature is enabled. It allows using any structure as a payload as long as it meets the requirements of the bincode crate, i.e., it implements serde serialization and deserialization. Please note that bincode has a number of limitations, which you can review in its official documentation.
 
 ## Packets
 
@@ -598,10 +598,10 @@ brec::generate!();
 
 The macro can be used with the following parameters:
 
-- `no_default_payload` – Disables the built-in payloads (`String` and `Vec<u8>`).  
+- `no_default_payload` - Disables the built-in payloads (`String` and `Vec<u8>`).  
   This has no impact on runtime performance but may slightly improve compile times and reduce binary size.
 
-- `payloads_derive = "Trait"` –  
+- `payloads_derive = "Trait"` -  
   By default, `brec` automatically collects all `derive` attributes that are common across user-defined payloads
   and applies them to the generated `Payload` enum.  
   This parameter allows you to **manually** specify additional derives for the `Payload` enum—useful if you are

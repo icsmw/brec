@@ -49,7 +49,7 @@ impl FileStorageOptions {
     ///
     /// # Arguments
     ///
-    /// * `filename` – Path to the target storage file.
+    /// * `filename` - Path to the target storage file.
     ///
     /// # Returns
     ///
@@ -69,7 +69,7 @@ impl FileStorageOptions {
     ///
     /// # Arguments
     ///
-    /// * `interval` – Duration to wait between retries.
+    /// * `interval` - Duration to wait between retries.
     ///
     /// # Returns
     ///
@@ -86,7 +86,7 @@ impl FileStorageOptions {
     ///
     /// # Arguments
     ///
-    /// * `timeout` – Maximum duration to wait for the lock.
+    /// * `timeout` - Maximum duration to wait for the lock.
     ///
     /// # Returns
     ///
@@ -103,10 +103,10 @@ impl FileStorageOptions {
     ///
     /// # Type Parameters
     ///
-    /// * `B` – Block definition type.
-    /// * `BR` – Block reference definition.
-    /// * `PL` – Payload definition.
-    /// * `Inner` – Payload internals.
+    /// * `B` - Block definition type.
+    /// * `BR` - Block reference definition.
+    /// * `PL` - Payload definition.
+    /// * `Inner` - Payload internals.
     ///
     /// # Returns
     ///

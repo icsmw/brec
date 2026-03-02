@@ -120,5 +120,5 @@ As seen above, the reference representation of a block does not store the slice 
 
 The `block` macro can be used with the following directives:
 
-- `path = mod::mod` – Specifies the module path for the block if it is not directly imported at the location of `brec::generate!()`. This approach is not recommended (it is better to ensure block visibility at the generator call site), but it is not inherently inefficient or unstable. However, using this method may make future code maintenance more difficult.
-- `no_crc` – Disables CRC verification for the block. Note that this does not remove the CRC field from the binary representation of the block. The CRC field will still be present but filled with zeros, and no CRC calculation will be performed.
+- `path = mod::mod` - Specifies the module path for the block if it is not directly imported at the location of `brec::generate!()`. This approach is not recommended (it is better to ensure block visibility at the generator call site), but it is not inherently inefficient or unstable. However, using this method may make future code maintenance more difficult.
+- `no_crc` - Disables CRC verification for the block. Note that this does not remove the CRC field from the binary representation of the block. The CRC field will still be present but filled with zeros, and no CRC calculation will be performed.

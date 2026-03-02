@@ -110,7 +110,7 @@ pub trait PayloadDecode<T>: PayloadHooks {
     /// Deserializes a payload from the provided byte slice.
     ///
     /// # Arguments
-    /// * `buf` – The raw buffer containing the payload data.
+    /// * `buf` - The raw buffer containing the payload data.
     ///
     /// # Returns
     /// The decoded payload object.

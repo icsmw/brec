@@ -47,7 +47,7 @@ impl ByteBlock {
     /// Allowed sizes: 4, 8, 16, 32, 64, 128.
     ///
     /// # Arguments
-    /// * `cap` – Capacity in bytes to validate.
+    /// * `cap` - Capacity in bytes to validate.
     ///
     /// # Returns
     /// `Ok(())` if the capacity is valid, or an `Error::InvalidCapacity` otherwise.
@@ -69,7 +69,7 @@ impl TryFrom<Vec<u8>> for ByteBlock {
     /// Attempts to convert a `Vec<u8>` into a `ByteBlock` of matching length.
     ///
     /// # Arguments
-    /// * `value` – The vector to convert. Length must be one of the supported sizes.
+    /// * `value` - The vector to convert. Length must be one of the supported sizes.
     ///
     /// # Returns
     /// A corresponding `ByteBlock` variant on success, or an error on failure:

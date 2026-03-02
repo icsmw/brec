@@ -32,8 +32,8 @@ impl<B: BlockDef, BR: BlockReferredDef<B>> PacketReferred<'_, B, BR> {
     /// The payload is not set by default and must be attached manually if needed.
     ///
     /// # Arguments
-    /// - `blocks` – A list of parsed or referred blocks.
-    /// - `header` – The parsed packet header associated with the packet.
+    /// - `blocks` - A list of parsed or referred blocks.
+    /// - `header` - The parsed packet header associated with the packet.
     ///
     /// # Returns
     /// A new `PacketReferred` instance with `payload = None`.

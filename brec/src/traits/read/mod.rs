@@ -13,7 +13,7 @@ pub trait ReadFrom {
     /// Reads and constructs the value from a binary reader.
     ///
     /// # Arguments
-    /// * `buf` – A mutable reference to a type implementing `std::io::Read`.
+    /// * `buf` - A mutable reference to a type implementing `std::io::Read`.
     ///
     /// # Returns
     /// A deserialized instance of the implementing type or an error.
@@ -29,8 +29,8 @@ pub trait ReadBlockFromSlice {
     /// Reads the structure from a slice of bytes.
     ///
     /// # Arguments
-    /// * `buf` – The source byte slice.
-    /// * `skip_sig` – Whether to skip reading and verifying the signature.
+    /// * `buf` - The source byte slice.
+    /// * `skip_sig` - Whether to skip reading and verifying the signature.
     ///
     /// # Returns
     /// The deserialized block or an error if validation or decoding fails.
@@ -46,8 +46,8 @@ pub trait ReadBlockFrom {
     /// Reads the structure from a stream.
     ///
     /// # Arguments
-    /// * `buf` – A stream implementing `std::io::Read`.
-    /// * `skip_sig` – Whether to skip reading and verifying the signature.
+    /// * `buf` - A stream implementing `std::io::Read`.
+    /// * `skip_sig` - Whether to skip reading and verifying the signature.
     fn read<T: std::io::Read>(buf: &mut T, skip_sig: bool) -> Result<Self, Error>
     where
         Self: Sized;

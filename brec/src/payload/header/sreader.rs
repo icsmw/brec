@@ -99,7 +99,7 @@ impl<'a, T: std::io::Read + std::io::Seek> SafeHeaderReader<'a, T> {
     /// `NextChunk::NotEnoughData(needed)`.
     ///
     /// # Arguments
-    /// * `capacity` – Number of bytes to read.
+    /// * `capacity` - Number of bytes to read.
     pub fn next_bytes(&mut self, capacity: u64) -> Result<NextChunk, Error> {
         if self.len < self.read + capacity {
             self.buf.seek(std::io::SeekFrom::Start(self.spos))?;

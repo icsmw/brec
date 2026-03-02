@@ -85,10 +85,10 @@ brec::generate!();
 
 The macro can be used with the following parameters:
 
-- `no_default_payload` – Disables the built-in payloads (`String` and `Vec<u8>`).  
+- `no_default_payload` - Disables the built-in payloads (`String` and `Vec<u8>`).  
   This has no impact on runtime performance but may slightly improve compile times and reduce binary size.
 
-- `payloads_derive = "Trait"` –  
+- `payloads_derive = "Trait"` -  
   By default, `brec` automatically collects all `derive` attributes that are common across user-defined payloads
   and applies them to the generated `Payload` enum.  
   This parameter allows you to **manually** specify additional derives for the `Payload` enum—useful if you are

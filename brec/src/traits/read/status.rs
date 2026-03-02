@@ -19,7 +19,7 @@ impl<T> ReadStatus<T> {
     /// a new `ReadStatus::Success`. If the status is `NotEnoughData`, it is returned unchanged.
     ///
     /// # Arguments
-    /// * `mapper` – A function to apply to the `Success` value.
+    /// * `mapper` - A function to apply to the `Success` value.
     ///
     /// # Returns
     /// A new `ReadStatus` with the mapped type.

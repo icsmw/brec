@@ -25,7 +25,7 @@ impl<'a> IoSlices<'a> {
     /// Adds a borrowed slice to the buffer.
     ///
     /// # Arguments
-    /// * `buf` – A borrowed slice (`&[u8]`) to be written.
+    /// * `buf` - A borrowed slice (`&[u8]`) to be written.
     pub fn add_slice(&mut self, buf: &'a [u8]) {
         self.slots.push(SliceSlot::Slice(buf));
     }
@@ -33,7 +33,7 @@ impl<'a> IoSlices<'a> {
     /// Adds an owned buffer to the buffer list.
     ///
     /// # Arguments
-    /// * `buf` – A `Vec<u8>` to be owned and written.
+    /// * `buf` - A `Vec<u8>` to be owned and written.
     pub fn add_buffered(&mut self, buf: Vec<u8>) {
         self.slots.push(SliceSlot::Buf(buf));
     }
@@ -57,7 +57,7 @@ impl<'a> IoSlices<'a> {
     /// Appends another `IoSlices` into this one, consuming the other buffer.
     ///
     /// # Arguments
-    /// * `another` – Another `IoSlices` instance to merge into this one.
+    /// * `another` - Another `IoSlices` instance to merge into this one.
     pub fn append(&mut self, mut another: IoSlices<'a>) {
         self.slots.append(&mut another.slots);
     }
@@ -67,7 +67,7 @@ impl<'a> IoSlices<'a> {
     /// Handles partial writes and retries until all slices are written.
     ///
     /// # Arguments
-    /// * `buf` – A writable output stream.
+    /// * `buf` - A writable output stream.
     ///
     /// # Errors
     /// Returns an error if the write operation fails or stalls (`WriteZero`).

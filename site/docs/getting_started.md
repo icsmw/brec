@@ -117,6 +117,7 @@ pub struct MyBlock {
 ```
 
 The `block` macro automatically generates all the necessary code for `MyBlock` to function as a block. Specifically, it adds:
+
 - A unique block signature based on its name and path.
 - A `CRC` field to ensure data integrity.
 
@@ -268,6 +269,7 @@ Additionally, you will need to add a very simple `build.rs` script. For more det
 `brec` is a binary protocol, meaning data is always transmitted and stored in a binary format.
 
 The protocol ensures security through the following mechanisms:
+
 - Each block includes a unique signature generated based on the block's name. Name conflicts within a single crate are eliminated, as the module path is taken into account.
 - Similar to blocks, each payload also has a unique signature derived from its name.
 - Additionally, `Packet` itself has a fixed 64-bit signature.
@@ -275,6 +277,7 @@ The protocol ensures security through the following mechanisms:
 These features enable reliable entity recognition within a data stream. Furthermore, blocks, payloads, and the packet itself have their own CRCs. While blocks always use a 32-bit CRC, payloads allow for optional support of 64-bit or 128-bit CRC to enhance protocol security.
 
 `brec` ensures maximum performance through the following optimizations:
+
 - Minimization of data copying and cloning operations.
 - Incremental packet parsing: first, blocks are parsed, allowing the user to inspect them and decide whether the packet should be fully parsed (including the payload) or skipped. This enables efficient packet filtering based on block values, avoiding the overhead of parsing a heavy payload.
 - If data integrity verification is not required, `brec` allows CRC to be disabled for all types or selectively. This improves performance by eliminating the need for hash calculations.

@@ -22,7 +22,7 @@ impl FreeSlotLocator {
     /// Internally advances to the next slot if the current one is full.
     ///
     /// # Arguments
-    /// * `slots` – A slice of `Slot` structures to scan.
+    /// * `slots` - A slice of `Slot` structures to scan.
     ///
     /// # Returns
     /// The absolute offset in the full space, or `None` if no free slot was found.
@@ -43,8 +43,8 @@ impl FreeSlotLocator {
     /// Attempts to insert data of the given `length` into the current slot.
     ///
     /// # Arguments
-    /// * `slots` – A mutable slice of `Slot` values.
-    /// * `length` – The number of bytes to insert.
+    /// * `slots` - A mutable slice of `Slot` values.
+    /// * `length` - The number of bytes to insert.
     ///
     /// # Errors
     /// Returns `Error::CannotInsertIntoSlot` if the current slot is not available or full.

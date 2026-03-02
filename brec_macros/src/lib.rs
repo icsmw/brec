@@ -21,7 +21,7 @@ use generate::*;
 use tokenized::*;
 
 use proc_macro::TokenStream;
-use syn::{parse_macro_input, DeriveInput};
+use syn::{DeriveInput, parse_macro_input};
 
 /// Marks a struct as a `Block` type used within the `brec` system.
 ///
@@ -194,7 +194,7 @@ pub fn block(attr: TokenStream, input: TokenStream) -> TokenStream {
 /// - `no_auto_crc`  
 ///   Disables CRC calculation only for `#[payload(bincode)]`, requiring a **manual implementation** of `PayloadCrc`.
 ///
-/// - `bincode` – available only when the bincode feature is enabled. It allows using any structure as a payload as
+/// - `bincode` - available only when the bincode feature is enabled. It allows using any structure as a payload as
 ///   long as it meets the requirements of the bincode crate, i.e., it implements serde serialization and deserialization.
 ///   Please note that bincode has a number of limitations, which you can review in its official documentation.
 ///
@@ -310,10 +310,10 @@ pub fn payload(attr: TokenStream, input: TokenStream) -> TokenStream {
 ///
 /// The macro can be used with the following parameters:
 ///
-/// - `no_default_payload` – Disables the built-in payloads (`String` and `Vec<u8>`).  
+/// - `no_default_payload` - Disables the built-in payloads (`String` and `Vec<u8>`).  
 ///   This has no impact on runtime performance but may slightly improve compile times and reduce binary size.
 ///
-/// - `payloads_derive = "Trait"` –  
+/// - `payloads_derive = "Trait"` -  
 ///   By default, `brec` automatically collects all `derive` attributes that are common across user-defined payloads
 ///   and applies them to the generated `Payload` enum.  
 ///   This parameter allows you to **manually** specify additional derives for the `Payload` enum—useful if you are

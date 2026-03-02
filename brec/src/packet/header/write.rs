@@ -10,8 +10,8 @@ use crate::*;
 /// - CRC: `u32` (little-endian)
 ///
 /// # Arguments
-/// * `header` – Reference to the `PacketHeader` to serialize.
-/// * `buffer` – A mutable byte slice where the header will be written.
+/// * `header` - Reference to the `PacketHeader` to serialize.
+/// * `buffer` - A mutable byte slice where the header will be written.
 ///   Must be at least `PacketHeader::SIZE` bytes long.
 fn fill_buf(header: &PacketHeader, buffer: &mut [u8]) {
     let mut offset = 0;
@@ -30,7 +30,7 @@ impl WriteTo for PacketHeader {
     /// Serializes and writes the `PacketHeader` into the given output stream.
     ///
     /// # Arguments
-    /// * `buf` – A writer implementing `std::io::Write`.
+    /// * `buf` - A writer implementing `std::io::Write`.
     ///
     /// # Returns
     /// The number of bytes written (always `PacketHeader::SIZE`) on success.

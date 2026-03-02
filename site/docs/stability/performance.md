@@ -37,6 +37,7 @@ Each packet consists of a `Metadata` block and a `String` payload. Data is rando
 - **JSON**: The structure shown above is serialized to JSON using `serde_json` and written as one JSON object per line. During reading, each line is deserialized back to the original structure.
 
 Each test is run in two modes:
+
 - **Reading** — reading all available data.
 - **Filtering** — reading only records that match specific criteria: logs of type "error" and containing a search hook in the payload.
 
