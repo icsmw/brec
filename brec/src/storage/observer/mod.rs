@@ -1,5 +1,6 @@
 mod options;
 mod sensor;
+mod stream;
 
 use std::marker::PhantomData;
 use tokio::{
@@ -12,6 +13,7 @@ use tracing::{debug, instrument};
 use crate::*;
 pub use options::*;
 pub use sensor::*;
+pub use stream::*;
 
 pub struct FileObserverDef<
     B: BlockDef + Send + 'static,
@@ -112,7 +114,7 @@ impl<
                         ) {
                             continue;
                         }
-                        match reader.seek(last + 1) {
+                        match reader.seek(last) {
                             Ok(mut iterator) => {
                                 for pkg in iterator.by_ref() {
                                     last += 1;

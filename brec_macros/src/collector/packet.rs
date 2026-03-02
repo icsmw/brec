@@ -116,6 +116,10 @@ pub fn generate() -> Result<TokenStream, E> {
                     self.0.shutdown().await
                 }
             }
+
+            #[allow(dead_code)]
+            pub type FileObserverStream =
+                brec::FileObserverStreamDef<Block, BlockReferred<'static>, Payload, Payload>;
         }
     } else {
         quote! {}

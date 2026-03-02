@@ -568,6 +568,7 @@ When `brec` is built with the `observer` feature, the macro also generates:
 | `Subscription`          | local facade over `SubscriptionDef<Block, BlockReferred<'static>, Payload, Payload>` |
 | `FileObserverOptions<S>`| local wrapper over `brec::FileObserverOptions<..., SubscriptionWrapper<S>>` |
 | `FileObserver`          | local wrapper over `FileObserverDef<Block, BlockReferred<'static>, Payload, Payload>` |
+| `FileObserverStream`    | `brec::FileObserverStreamDef<Block, BlockReferred<'static>, Payload, Payload>` |
 
 `Subscription` uses `on_*` callbacks: `on_update`, `on_packet`, `on_error`, `on_stopped`, `on_aborted`.
 
@@ -827,6 +828,87 @@ The core design of `Storage` is based on how it organizes packets internally:
 - Thanks to the slot metadata, `Storage` can **quickly locate packets by index** or **return a packet range efficiently**.
 
 As previously mentioned, each slot maintains its own **CRC** to ensure data integrity. However, even if the storage file becomes corrupted and `Storage` can no longer operate reliably, packets remain accessible in a **manual recovery mode**. For example, you can use `PacketBufReader` to scan the file, ignoring slot metadata and extracting intact packets sequentially.
+
+## File Observation
+
+When `brec` is built with the `observer` feature, it can watch a storage file and react to newly appended packets.
+
+There are two public facades generated for this:
+
+- `FileObserver` - callback-based consumption through `Subscription`
+- `FileObserverStream` - Tokio stream of observer events
+
+### Callback-based Observation
+
+Use `FileObserver` when you want push-style handling through a subscription object:
+
+```ignore
+struct MySubscription;
+
+impl Subscription for MySubscription {
+    fn on_update(&mut self, total: usize, added: usize) -> SubscriptionUpdate {
+        let _ = (total, added);
+        SubscriptionUpdate::Read
+    }
+
+    fn on_packet(&mut self, packet: Packet) {
+        let _ = packet;
+    }
+}
+
+let options = FileObserverOptions::new(path).subscribe(MySubscription);
+let mut observer = FileObserver::new(options)?;
+```
+
+`Subscription` uses `on_*` callbacks:
+
+- `on_update`
+- `on_packet`
+- `on_error`
+- `on_stopped`
+- `on_aborted`
+
+### Stream-based Observation
+
+Use `FileObserverStream` when you want pull-style integration in Tokio code:
+
+```ignore
+use tokio_stream::StreamExt;
+
+let mut stream = FileObserverStream::new(path)?;
+
+while let Some(event) = stream.next().await {
+    match event {
+        brec::FileObserverEvent::Packet(packet) => {
+            let _ = packet;
+        }
+        brec::FileObserverEvent::Update { total, added } => {
+            let _ = (total, added);
+        }
+        brec::FileObserverEvent::Error(err) => {
+            eprintln!("{err}");
+        }
+        brec::FileObserverEvent::Stopped(reason) => {
+            let _ = reason;
+            break;
+        }
+        brec::FileObserverEvent::Aborted => {
+            break;
+        }
+    }
+}
+```
+
+### Important Runtime Note
+
+The observer integrates well with Tokio and exposes an async-friendly API, but at the low level it still relies on synchronous, blocking file I/O (`std::fs::File`, `Read`, `Seek`) through the storage reader.
+
+In other words:
+
+- async orchestration: yes
+- true non-blocking disk access: no
+
+This is the current design and should be kept in mind when embedding the observer into latency-sensitive async workflows.
 
 # Protocol Specification
 

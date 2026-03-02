@@ -2,14 +2,20 @@ use brec::prelude::*;
 use proptest::arbitrary::any;
 use proptest::prelude::*;
 use proptest::strategy::ValueTree;
+use std::sync::{
+    Arc,
+    atomic::{AtomicBool, Ordering},
+    Mutex,
+};
 use tokio::task::JoinHandle;
+use tokio_stream::StreamExt;
 use tokio_util::sync::CancellationToken;
 
 use crate::*;
 
 brec::generate!();
 
-#[derive(PartialEq, PartialOrd, Debug)]
+#[derive(Clone, PartialEq, PartialOrd, Debug)]
 struct WrappedPacket {
     blocks: Vec<Block>,
     payload: Option<Payload>,
@@ -318,6 +324,94 @@ impl Subscription for MySubscription {
     }
 }
 
+#[derive(Default)]
+struct ObserverVerificationState {
+    next: usize,
+    failure: Option<String>,
+}
+
+struct VerifyingSubscription {
+    expected: Vec<WrappedPacket>,
+    state: Arc<Mutex<ObserverVerificationState>>,
+    token: CancellationToken,
+}
+
+impl VerifyingSubscription {
+    fn new(
+        expected: Vec<WrappedPacket>,
+        state: Arc<Mutex<ObserverVerificationState>>,
+        token: CancellationToken,
+    ) -> Self {
+        Self {
+            expected,
+            state,
+            token,
+        }
+    }
+}
+
+impl Subscription for VerifyingSubscription {
+    fn on_update(&mut self, _total: usize, _added: usize) -> SubscriptionUpdate {
+        SubscriptionUpdate::Read
+    }
+
+    fn on_packet(&mut self, packet: PacketDef<Block, Payload, Payload>) {
+        let wrapped: WrappedPacket = packet.into();
+        let mut state = self.state.lock().unwrap();
+        if state.failure.is_some() {
+            self.token.cancel();
+            return;
+        }
+        let idx = state.next;
+        let Some(expected) = self.expected.get(idx) else {
+            state.failure = Some(format!(
+                "Observer emitted an unexpected extra packet at index {idx}: {wrapped:?}"
+            ));
+            self.token.cancel();
+            return;
+        };
+        if &wrapped != expected {
+            state.failure = Some(format!(
+                "Packet mismatch at index {idx}: expected {expected:?}, got {wrapped:?}"
+            ));
+            self.token.cancel();
+            return;
+        }
+        state.next += 1;
+        if state.next == self.expected.len() {
+            self.token.cancel();
+        }
+    }
+
+    fn on_error(&mut self, err: &brec::Error) -> SubscriptionErrorAction {
+        let mut state = self.state.lock().unwrap();
+        state.failure = Some(format!("Observer returned an error: {err}"));
+        self.token.cancel();
+        SubscriptionErrorAction::Stop
+    }
+
+    fn on_stopped(&mut self, reason: Option<brec::Error>) {
+        if let Some(reason) = reason {
+            let mut state = self.state.lock().unwrap();
+            if state.failure.is_none() {
+                state.failure = Some(format!("Observer stopped unexpectedly: {reason}"));
+            }
+            self.token.cancel();
+        }
+    }
+
+    fn on_aborted(&mut self) {
+        let mut state = self.state.lock().unwrap();
+        if state.failure.is_none() && state.next != self.expected.len() {
+            state.failure = Some(format!(
+                "Observer aborted after reading {} of {} packets",
+                state.next,
+                self.expected.len()
+            ));
+        }
+    }
+}
+
 #[tokio::test]
 async fn observer() -> std::io::Result<()> {
     let count = brec::storage::DEFAULT_SLOT_CAPACITY
@@ -364,6 +458,188 @@ async fn observer() -> std::io::Result<()> {
     token.cancelled().await;
     let _ = handle.await;
     observer.shutdown().await;
+
+    if let Err(err) = std::fs::remove_file(&tmp) {
+        eprintln!(
+            "Test PASS, but cannot remove tmp file:\nfile:{}\nerror: {err}",
+            tmp.display()
+        );
+    }
+    Ok(())
+}
+
+#[tokio::test]
+async fn observer_reads_packets_one_by_one() -> std::io::Result<()> {
+    let count = brec::storage::DEFAULT_SLOT_CAPACITY
+        .saturating_mul(2)
+        .saturating_add(1);
+    let started = std::time::Instant::now();
+    println!("Generate {count} packets...");
+
+    let packets = gen_n::<WrappedPacket>(count);
+
+    println!(
+        "Generated {count} packets in {}s",
+        started.elapsed().as_secs()
+    );
+
+    let filename = format!("brec_test_observer_one_by_one_{}.tmp", std::process::id());
+    let tmp = std::env::temp_dir().join(&filename);
+    let mut wfile = std::fs::OpenOptions::new()
+        .read(true)
+        .write(true)
+        .create(true)
+        .truncate(true)
+        .open(&tmp)?;
+
+    let token = CancellationToken::new();
+    let state = Arc::new(Mutex::new(ObserverVerificationState::default()));
+    let options = FileObserverOptions::new(&tmp).subscribe(VerifyingSubscription::new(
+        packets.clone(),
+        state.clone(),
+        token.clone(),
+    ));
+    let mut observer = FileObserver::new(options)
+        .map_err(|err| std::io::Error::new(std::io::ErrorKind::InvalidData, err.to_string()))?;
+
+    let handle: JoinHandle<Result<(), Error>> = tokio::task::spawn(async move {
+        let mut writer = Writer::new(&mut wfile)
+            .map_err(|err| std::io::Error::new(std::io::ErrorKind::InvalidData, err.to_string()))?;
+        for packet in &packets {
+            writer.insert(packet.into())?;
+            tokio::time::sleep(tokio::time::Duration::from_millis(3)).await;
+        }
+        Ok(())
+    });
+
+    token.cancelled().await;
+    let writer_result = handle
+        .await
+        .map_err(|err| std::io::Error::other(err.to_string()))?;
+    writer_result
+        .map_err(|err| std::io::Error::new(std::io::ErrorKind::InvalidData, err.to_string()))?;
+    observer.shutdown().await;
+
+    let state = state.lock().unwrap();
+    if let Some(failure) = &state.failure {
+        panic!("{failure}");
+    }
+    assert_eq!(state.next, count, "Observer did not read all packets");
+
+    if let Err(err) = std::fs::remove_file(&tmp) {
+        eprintln!(
+            "Test PASS, but cannot remove tmp file:\nfile:{}\nerror: {err}",
+            tmp.display()
+        );
+    }
+    Ok(())
+}
+
+#[tokio::test]
+async fn observer_stream_reads_packets_while_writing() -> std::io::Result<()> {
+    let count = brec::storage::DEFAULT_SLOT_CAPACITY
+        .saturating_mul(2)
+        .saturating_add(1);
+    let started = std::time::Instant::now();
+    println!("Generate {count} packets...");
+
+    let packets = gen_n::<WrappedPacket>(count);
+
+    println!(
+        "Generated {count} packets in {}s",
+        started.elapsed().as_secs()
+    );
+
+    let filename = format!("brec_test_observer_stream_{}.tmp", std::process::id());
+    let tmp = std::env::temp_dir().join(&filename);
+    let mut wfile = std::fs::OpenOptions::new()
+        .read(true)
+        .write(true)
+        .create(true)
+        .truncate(true)
+        .open(&tmp)?;
+
+    let mut stream =
+        FileObserverStream::new(&tmp)
+            .map_err(|err| std::io::Error::new(std::io::ErrorKind::InvalidData, err.to_string()))?;
+
+    let expected = packets.clone();
+    let done = Arc::new(AtomicBool::new(false));
+    let done_writer = done.clone();
+    let handle: JoinHandle<Result<(), Error>> = tokio::task::spawn(async move {
+        let mut writer = Writer::new(&mut wfile)
+            .map_err(|err| std::io::Error::new(std::io::ErrorKind::InvalidData, err.to_string()))?;
+        println!("Start writing...");
+        for (idx, packet) in packets.iter().enumerate() {
+            writer.insert(packet.into())?;
+            if idx == 0 {
+                tokio::time::sleep(tokio::time::Duration::from_millis(150)).await;
+            } else if idx % 50 == 0 {
+                tokio::time::sleep(tokio::time::Duration::from_millis(5)).await;
+            }
+        }
+        println!("Written {} packets", packets.len());
+        done_writer.store(true, Ordering::SeqCst);
+        Ok(())
+    });
+
+    let mut read = 0usize;
+    let mut announced_total = 0usize;
+    let mut first_packet_before_finish = false;
+    println!("Start reading...");
+    while read < expected.len() {
+        let event = tokio::time::timeout(tokio::time::Duration::from_secs(10), stream.next())
+            .await
+            .map_err(|_| std::io::Error::new(std::io::ErrorKind::TimedOut, "observer stream timeout"))?;
+        let Some(event) = event else {
+            panic!("Observer stream closed unexpectedly after reading {read} packets");
+        };
+        match event {
+            brec::FileObserverEvent::Update { total, .. } => {
+                assert!(
+                    total >= read,
+                    "Observer announced total {total}, but {read} packets were already read"
+                );
+                announced_total = total;
+            }
+            brec::FileObserverEvent::Packet(packet) => {
+                assert!(
+                    announced_total > read,
+                    "Packet at index {read} arrived before observer announced it via Update"
+                );
+                if read == 0 {
+                    first_packet_before_finish = !done.load(Ordering::SeqCst);
+                    assert!(
+                        first_packet_before_finish,
+                        "The first packet was emitted only after writing had already finished"
+                    );
+                }
+                let wrapped: WrappedPacket = packet.into();
+                assert_eq!(
+                    wrapped, expected[read],
+                    "Packet mismatch at index {read}"
+                );
+                read += 1;
+            }
+            brec::FileObserverEvent::Error(err) => {
+                panic!("Observer stream returned an error event: {err}");
+            }
+            brec::FileObserverEvent::Stopped(reason) => {
+                panic!("Observer stream stopped unexpectedly: {reason:?}");
+            }
+            brec::FileObserverEvent::Aborted => {
+                panic!("Observer stream aborted unexpectedly");
+            }
+        }
+    }
+    println!("Read {read} packets");
+    assert!(first_packet_before_finish);
+    let writer_result = handle
+        .await
+        .map_err(|err| std::io::Error::other(err.to_string()))?;
+    writer_result
+        .map_err(|err| std::io::Error::new(std::io::ErrorKind::InvalidData, err.to_string()))?;
+    stream.shutdown().await;
 
     if let Err(err) = std::fs::remove_file(&tmp) {
         eprintln!(

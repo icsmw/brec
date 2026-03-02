@@ -27,6 +27,7 @@ observer = [
     "dep:notify",
     "dep:tokio",
     "dep:tokio-util",
+    "dep:tokio-stream",
     "dep:tracing",
     "brec_macros/observer",
 ]
@@ -43,6 +44,7 @@ tracing             = { workspace = true, optional = true }
 fs4                 = { workspace = true, optional = true }
 tokio               = { workspace = true, features = ["full"], optional = true }
 tokio-util          = { workspace = true, optional = true }
+tokio-stream        = { workspace = true, optional = true }
 
 [dev-dependencies]
 tempfile.workspace = true

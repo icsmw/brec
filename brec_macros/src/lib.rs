@@ -276,6 +276,7 @@ pub fn payload(attr: TokenStream, input: TokenStream) -> TokenStream {
 /// | `Subscription`          | Local trait facade over `SubscriptionDef<Block, BlockReferred<'static>, Payload, Payload>` |
 /// | `FileObserverOptions<S>`| Local wrapper over `brec::FileObserverOptions<..., SubscriptionWrapper<S>>`                 |
 /// | `FileObserver`          | Local wrapper over `FileObserverDef<Block, BlockReferred<'static>, Payload, Payload>`       |
+/// | `FileObserverStream`    | `brec::FileObserverStreamDef<Block, BlockReferred<'static>, Payload, Payload>`              |
 ///
 /// `Subscription` uses `on_*` callbacks: `on_update`, `on_packet`, `on_error`, `on_stopped`, `on_aborted`.
 ///
