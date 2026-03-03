@@ -8,7 +8,7 @@ pub fn create_file(
 ) -> std::io::Result<()> {
     let tmp = std::env::temp_dir().join(filename);
     if tmp.exists() {
-        return Ok(());
+        std::fs::remove_file(&tmp)?;
     }
     let mut storage = FileStorage::new(tmp, Some(Duration::from_millis(400)), None)
         .map_err(|err| std::io::Error::new(std::io::ErrorKind::InvalidData, err.to_string()))?;
