@@ -27,8 +27,9 @@ pub fn create_file(rows: Vec<TextualRow>, mut count: usize, filename: &str) -> s
     file.flush()
 }
 
-pub fn read_file(filename: &str) -> std::io::Result<()> {
+pub fn read_file(payload: report::PayloadKind, filename: &str) -> std::io::Result<()> {
     let now = Instant::now();
+    let metrics = crate::metrics::Tracker::start();
     let tmp = std::env::temp_dir().join(filename);
     let size = metadata(&tmp).expect("Read File Meta").len();
     let file = File::open(tmp)?;
@@ -38,20 +39,26 @@ pub fn read_file(filename: &str) -> std::io::Result<()> {
         let _line = line_result?;
         count += 1;
     }
+    let usage = metrics.finish();
     report::add(
+        payload,
         report::Platform::Text,
         report::TestCase::Reading,
         report::TestResults {
             size,
             count,
             time: now.elapsed().as_millis(),
+            cpu_ms: usage.cpu_ms,
+            rss_kb: usage.rss_kb,
+            peak_rss_kb: usage.peak_rss_kb,
         },
     );
     Ok(())
 }
 
-pub fn filter_file(filename: &str) -> std::io::Result<()> {
+pub fn filter_file(payload: report::PayloadKind, filename: &str) -> std::io::Result<()> {
     let now = Instant::now();
+    let metrics = crate::metrics::Tracker::start();
     let tmp = std::env::temp_dir().join(filename);
     let size = metadata(&tmp).expect("Read File Meta").len();
     let file = File::open(tmp)?;
@@ -64,13 +71,18 @@ pub fn filter_file(filename: &str) -> std::io::Result<()> {
             count += 1;
         }
     }
+    let usage = metrics.finish();
     report::add(
+        payload,
         report::Platform::Text,
         report::TestCase::Filtering,
         report::TestResults {
             size,
             count,
             time: now.elapsed().as_millis(),
+            cpu_ms: usage.cpu_ms,
+            rss_kb: usage.rss_kb,
+            peak_rss_kb: usage.peak_rss_kb,
         },
     );
     Ok(())

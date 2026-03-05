@@ -1,8 +1,13 @@
 use brec::prelude::*;
 
-use crate::test::MATCH;
+use crate::{
+    JSONRow, TextualRow,
+    content::MatchValue,
+    report::PayloadKind,
+    test::{Block, MATCH, Payload, WrappedPacket},
+};
 use proptest::prelude::*;
-use std::fmt;
+use std::{collections::BTreeMap, fmt};
 
 #[derive(Debug, serde::Deserialize, serde::Serialize, PartialEq, PartialOrd, Clone)]
 pub enum Level {
@@ -108,6 +113,58 @@ pub struct Record {
     pub msg: String,
 }
 
+#[derive(Debug, PartialEq, PartialOrd, Clone)]
+pub struct RecordBincode {
+    pub mt: Metadata,
+    pub atc: AttachmentBincode,
+}
+
+pub trait MeasurementRecord:
+    Arbitrary<Parameters = (), Strategy = BoxedStrategy<Self>> + Clone + fmt::Debug + Sized
+{
+    type JsonPayload: MatchValue
+        + serde::Serialize
+        + for<'de> serde::Deserialize<'de>
+        + Clone
+        + fmt::Debug
+        + PartialEq
+        + PartialOrd;
+
+    const PAYLOAD: PayloadKind;
+
+    fn metadata(&self) -> &Metadata;
+    fn text_value(&self) -> String;
+    fn json_payload(&self) -> Self::JsonPayload;
+    fn packet_payload(&self) -> Payload;
+
+    fn into_text_row(&self) -> TextualRow {
+        let meta = self.metadata().clone();
+        TextualRow {
+            msg: format!(
+                "{}{} {} {}",
+                meta.level,
+                meta.target,
+                meta.tm,
+                self.text_value()
+            ),
+        }
+    }
+
+    fn into_json_row(&self) -> JSONRow<Self::JsonPayload> {
+        JSONRow {
+            meta: self.metadata().clone(),
+            payload: self.json_payload(),
+        }
+    }
+
+    fn into_packet(&self) -> WrappedPacket {
+        WrappedPacket {
+            blocks: vec![Block::Metadata(self.metadata().clone())],
+            payload: Some(self.packet_payload()),
+        }
+    }
+}
+
 impl Arbitrary for Level {
     type Parameters = ();
 
@@ -167,11 +224,103 @@ impl Arbitrary for Record {
     }
 }
 
-// #[payload(bincode)]
-// #[derive(serde::Deserialize, serde::Serialize, PartialEq, PartialOrd, Clone, Debug)]
-// pub struct Attachment {
-//     pub uuid: String,
-//     pub name: String,
-//     pub chunk: u32,
-//     pub data: Vec<u8>,
-// }
+impl Arbitrary for RecordBincode {
+    type Parameters = ();
+
+    type Strategy = BoxedStrategy<Self>;
+
+    fn arbitrary_with(_: ()) -> Self::Strategy {
+        (any::<Metadata>(), any::<AttachmentBincode>(), 0..100usize)
+            .prop_map(|(mt, mut atc, rate)| {
+                if rate > 50 {
+                    atc.name = format!("{}{MATCH}{}", atc.name, atc.chunk);
+                }
+                RecordBincode { mt, atc }
+            })
+            .boxed()
+    }
+}
+
+#[payload(bincode)]
+#[derive(serde::Deserialize, serde::Serialize, PartialEq, PartialOrd, Clone, Debug)]
+pub struct AttachmentBincode {
+    pub uuid: String,
+    pub name: String,
+    pub chunk: u32,
+    pub data: Vec<u8>,
+    pub fields: BTreeMap<String, String>,
+}
+
+impl Arbitrary for AttachmentBincode {
+    type Parameters = ();
+    type Strategy = BoxedStrategy<Self>;
+
+    fn arbitrary_with(_: ()) -> Self::Strategy {
+        (
+            "[a-f0-9]{32}",
+            ".{1,32}",
+            any::<u32>(),
+            proptest::collection::vec(any::<u8>(), 10..250),
+            proptest::collection::btree_map(".{1,20}", ".{1,250}", 0..10),
+        )
+            .prop_map(|(uuid, name, chunk, data, fields)| Self {
+                uuid,
+                name,
+                chunk,
+                data,
+                fields,
+            })
+            .boxed()
+    }
+}
+
+impl MeasurementRecord for Record {
+    type JsonPayload = String;
+
+    const PAYLOAD: PayloadKind = PayloadKind::Record;
+
+    fn metadata(&self) -> &Metadata {
+        &self.mt
+    }
+
+    fn text_value(&self) -> String {
+        self.msg.clone()
+    }
+
+    fn json_payload(&self) -> Self::JsonPayload {
+        self.msg.clone()
+    }
+
+    fn packet_payload(&self) -> Payload {
+        Payload::String(self.msg.clone())
+    }
+}
+
+impl MeasurementRecord for RecordBincode {
+    type JsonPayload = AttachmentBincode;
+
+    const PAYLOAD: PayloadKind = PayloadKind::RecordBincode;
+
+    fn metadata(&self) -> &Metadata {
+        &self.mt
+    }
+
+    fn text_value(&self) -> String {
+        format!(
+            "{} {} {} {} {}",
+            self.atc.uuid,
+            self.atc.name,
+            self.atc.chunk,
+            serde_json::to_string(&self.atc.data).expect("Serialize attachment data"),
+            serde_json::to_string(&self.atc.fields).expect("Serialize attachment data")
+        )
+    }
+
+    fn json_payload(&self) -> Self::JsonPayload {
+        self.atc.clone()
+    }
+
+    fn packet_payload(&self) -> Payload {
+        Payload::AttachmentBincode(self.atc.clone())
+    }
+}

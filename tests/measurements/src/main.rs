@@ -11,6 +11,8 @@ pub(crate) use protocol::*;
 #[cfg(test)]
 mod report;
 #[cfg(test)]
+mod metrics;
+#[cfg(test)]
 mod test;
 #[cfg(test)]
 mod tests;

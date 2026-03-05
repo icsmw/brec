@@ -18,3 +18,4 @@ num-format  = "0.4"
 serial_test = "3.2.0"
 tokio       = "1.49"
 tokio-util  = "0.7"
+sysinfo     = { version = "0.37", default-features = false, features = ["system"] }

@@ -1,7 +1,7 @@
 use crate::test::*;
 use crate::*;
 use std::{
-    fs::{metadata, File},
+    fs::{File, metadata},
     time::Instant,
 };
 
@@ -33,8 +33,9 @@ pub fn create_file(
     Ok(())
 }
 
-pub fn read_file(filename: &str) -> std::io::Result<()> {
+pub fn read_file(payload: report::PayloadKind, filename: &str) -> std::io::Result<()> {
     let now = Instant::now();
+    let metrics = crate::metrics::Tracker::start();
     let tmp = std::env::temp_dir().join(filename);
     let size = metadata(&tmp).expect("Read File Meta").len();
     let mut file: File = File::open(tmp)?;
@@ -52,25 +53,31 @@ pub fn read_file(filename: &str) -> std::io::Result<()> {
         }
     }
     if count != storage.count() {
-        return Err(std::io::Error::new(
-            std::io::ErrorKind::Other,
-            format!("Dismatch lengths: {} vs {count}", storage.count()),
-        ));
+        return Err(std::io::Error::other(format!(
+            "Dismatch lengths: {} vs {count}",
+            storage.count()
+        )));
     }
+    let usage = metrics.finish();
     report::add(
+        payload,
         report::Platform::Storage,
         report::TestCase::Reading,
         report::TestResults {
             size,
             count,
             time: now.elapsed().as_millis(),
+            cpu_ms: usage.cpu_ms,
+            rss_kb: usage.rss_kb,
+            peak_rss_kb: usage.peak_rss_kb,
         },
     );
     Ok(())
 }
 
-pub fn filter_file(filename: &str) -> std::io::Result<()> {
+pub fn filter_file(payload: report::PayloadKind, filename: &str) -> std::io::Result<()> {
     let now = Instant::now();
+    let metrics = crate::metrics::Tracker::start();
     let tmp = std::env::temp_dir().join(filename);
     let size = metadata(&tmp).expect("Read File Meta").len();
     let mut file: File = File::open(tmp)?;
@@ -79,17 +86,15 @@ pub fn filter_file(filename: &str) -> std::io::Result<()> {
     storage
         .add_rule(Rule::Prefilter(brec::RuleFnDef::Dynamic(Box::new(
             move |blocks| {
-                blocks.find::<Metadata, _>(|bl| matches!(bl.level, Level::Err)).is_some()
+                blocks
+                    .find::<Metadata, _>(|bl| matches!(bl.level, Level::Err))
+                    .is_some()
             },
         ))))
         .unwrap();
     storage
-        .add_rule(Rule::FilterPayload(brec::RuleFnDef::Dynamic(Box::new(
-            move |pl: &[u8]| {
-                std::str::from_utf8(pl)
-                    .expect("Valid string")
-                    .contains(MATCH)
-            },
+        .add_rule(Rule::FilterPacket(brec::RuleFnDef::Dynamic(Box::new(
+            tests::is_match_packet,
         ))))
         .unwrap();
     let mut count = 0;
@@ -103,13 +108,18 @@ pub fn filter_file(filename: &str) -> std::io::Result<()> {
             }
         }
     }
+    let usage = metrics.finish();
     report::add(
+        payload,
         report::Platform::Storage,
         report::TestCase::Filtering,
         report::TestResults {
             size,
             count,
             time: now.elapsed().as_millis(),
+            cpu_ms: usage.cpu_ms,
+            rss_kb: usage.rss_kb,
+            peak_rss_kb: usage.peak_rss_kb,
         },
     );
     Ok(())
