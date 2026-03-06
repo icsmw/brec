@@ -3,28 +3,30 @@ mod iters;
 use crate::*;
 pub(crate) use iters::*;
 
-pub type NthFilteredPacket<B, P, Inner> = Option<LookInStatus<PacketDef<B, P, Inner>>>;
+pub type NthFilteredPacket<O, B, P, Inner> = Option<LookInStatus<PacketDef<O, B, P, Inner>>>;
 
 pub struct ReaderDef<
+    O: Default,
     S: std::io::Read + std::io::Seek,
     B: BlockDef,
     BR: BlockReferredDef<B>,
-    P: PayloadDef<Inner>,
-    Inner: PayloadInnerDef,
+    P: PayloadDef<O, Inner>,
+    Inner: PayloadInnerDef<O>,
 > {
     pub slots: Vec<AnchoredSlot>,
     inner: S,
     locator: FreeSlotLocator,
-    rules: RulesDef<B, BR, P, Inner>,
+    rules: RulesDef<O, B, BR, P, Inner>,
 }
 
 impl<
+    O: Default,
     S: std::io::Read + std::io::Seek,
     B: BlockDef,
     BR: BlockReferredDef<B>,
-    P: PayloadDef<Inner>,
-    Inner: PayloadInnerDef,
-> ReaderDef<S, B, BR, P, Inner>
+    P: PayloadDef<O, Inner>,
+    Inner: PayloadInnerDef<O>,
+> ReaderDef<O, S, B, BR, P, Inner>
 {
     /// Creates a new reader instance with the given storage backend.
     ///
@@ -168,7 +170,7 @@ impl<
     /// # Returns
     /// * `Ok(())` — Rule added successfully
     /// * `Err(Error::RuleDuplicate)` — Rule of the same type already exists
-    pub fn add_rule(&mut self, rule: RuleDef<B, BR, P, Inner>) -> Result<(), Error> {
+    pub fn add_rule(&mut self, rule: RuleDef<O, B, BR, P, Inner>) -> Result<(), Error> {
         self.rules.add_rule(rule)
     }
 
@@ -207,7 +209,7 @@ impl<
     /// * `ReaderIterator` yielding `Result<PacketDef<..>, Error>`
     pub fn iter<'a>(
         &'a mut self,
-    ) -> ReaderIterator<'a, impl Iterator<Item = &'a Slot>, S, B, P, Inner> {
+    ) -> ReaderIterator<'a, O, impl Iterator<Item = &'a Slot>, S, B, P, Inner> {
         ReaderIterator::new(
             &mut self.inner,
             self.slots.iter().map(|anchored| &anchored.inner),
@@ -217,7 +219,7 @@ impl<
     pub fn seek<'a>(
         &'a mut self,
         packet: usize,
-    ) -> Result<ReaderIterator<'a, impl Iterator<Item = &'a Slot>, S, B, P, Inner>, Error> {
+    ) -> Result<ReaderIterator<'a, O, impl Iterator<Item = &'a Slot>, S, B, P, Inner>, Error> {
         ReaderIterator::new(
             &mut self.inner,
             self.slots.iter().map(|anchored| &anchored.inner),
@@ -231,7 +233,7 @@ impl<
     /// * `ReaderFilteredIterator` yielding packets that pass rules
     pub fn filtered<'a>(
         &'a mut self,
-    ) -> ReaderFilteredIterator<'a, impl Iterator<Item = &'a Slot>, S, B, BR, P, Inner> {
+    ) -> ReaderFilteredIterator<'a, O, impl Iterator<Item = &'a Slot>, S, B, BR, P, Inner> {
         ReaderFilteredIterator::new(
             &mut self.inner,
             self.slots.iter().map(|anchored| &anchored.inner),
@@ -248,7 +250,7 @@ impl<
     /// * `Ok(Some(PacketDef))` — Packet found
     /// * `Ok(None)` — No packet exists at this index
     /// * `Err(Error)` — On slot mismatch, CRC failure, or I/O error
-    pub fn nth(&mut self, nth: usize) -> Result<Option<PacketDef<B, P, Inner>>, Error> {
+    pub fn nth(&mut self, nth: usize) -> Result<Option<PacketDef<O, B, P, Inner>>, Error> {
         let slot_index = nth / DEFAULT_SLOT_CAPACITY;
         let index_in_slot = nth % DEFAULT_SLOT_CAPACITY;
         let Some(slot) = self.slots.get(slot_index) else {
@@ -265,7 +267,7 @@ impl<
             .map(|slot| slot.width() + slot.size())
             .sum::<u64>();
         self.inner.seek(std::io::SeekFrom::Start(offset))?;
-        match <PacketDef<B, P, Inner> as TryReadFrom>::try_read(&mut self.inner)? {
+        match <PacketDef<O, B, P, Inner> as TryReadFrom>::try_read(&mut self.inner)? {
             ReadStatus::Success(pkg) => Ok(Some(pkg)),
             ReadStatus::NotEnoughData(needed) => Err(Error::NotEnoughData(needed as usize)),
         }
@@ -283,7 +285,7 @@ impl<
         &mut self,
         from: usize,
         len: usize,
-    ) -> ReaderRangeIterator<'_, S, B, BR, P, Inner> {
+    ) -> ReaderRangeIterator<'_, O, S, B, BR, P, Inner> {
         ReaderRangeIterator::new(self, from, len)
     }
 
@@ -299,7 +301,7 @@ impl<
         &mut self,
         from: usize,
         len: usize,
-    ) -> ReaderRangeFilteredIterator<'_, S, B, BR, P, Inner> {
+    ) -> ReaderRangeFilteredIterator<'_, O, S, B, BR, P, Inner> {
         ReaderRangeFilteredIterator::new(self, from, len)
     }
 
@@ -319,7 +321,7 @@ impl<
     pub(crate) fn nth_filtered(
         &mut self,
         from: usize,
-    ) -> Result<NthFilteredPacket<B, P, Inner>, Error> {
+    ) -> Result<NthFilteredPacket<O, B, P, Inner>, Error> {
         let slot_index = from / DEFAULT_SLOT_CAPACITY;
         let index_in_slot = from % DEFAULT_SLOT_CAPACITY;
         let Some(slot) = self.slots.get(slot_index) else {

@@ -102,7 +102,7 @@ impl PayloadSignature for TestPayload {
 }
 
 impl PayloadEncodeReferred for TestPayload {
-    fn encode(&self) -> std::io::Result<Option<&[u8]>> {
+    fn encode_with(&self, _opt: &()) -> std::io::Result<Option<&[u8]>> {
         Err(std::io::Error::other("test"))
     }
 }
@@ -117,7 +117,7 @@ impl PayloadHooks for TestPayload {
 }
 
 impl PayloadEncode for TestPayload {
-    fn encode(&self) -> std::io::Result<Vec<u8>> {
+    fn encode_with(&self, _opt: &()) -> std::io::Result<Vec<u8>> {
         Err(std::io::Error::other("test"))
     }
 }
@@ -162,4 +162,4 @@ impl ExtractPayloadFrom<TestPayload> for TestPayload {
     }
 }
 
-impl PayloadDef<TestPayload> for TestPayload {}
+impl PayloadDef<(), TestPayload> for TestPayload {}

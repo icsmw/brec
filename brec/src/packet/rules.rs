@@ -165,9 +165,9 @@ pub type PayloadFilterCallback =
     RuleFnDef<Box<dyn Fn(&[u8]) -> bool + Send + 'static>, fn(&[u8]) -> bool>;
 
 /// Callback to filter fully parsed packets.
-pub type FilterCallback<B, P, Inner> = RuleFnDef<
-    Box<dyn Fn(&PacketDef<B, P, Inner>) -> bool + Send + 'static>,
-    fn(&PacketDef<B, P, Inner>) -> bool,
+pub type FilterCallback<O, B, P, Inner> = RuleFnDef<
+    Box<dyn Fn(&PacketDef<O, B, P, Inner>) -> bool + Send + 'static>,
+    fn(&PacketDef<O, B, P, Inner>) -> bool,
 >;
 
 /// Defines processing rules used by `PacketBufReaderDef`.
@@ -177,7 +177,13 @@ pub type FilterCallback<B, P, Inner> = RuleFnDef<
 ///
 /// Rules are additive and modular. Only one rule of each type can be active at a time.
 #[enum_ids::enum_ids(display)]
-pub enum RuleDef<B: BlockDef, BR: BlockReferredDef<B>, P: PayloadDef<Inner>, Inner: PayloadInnerDef>
+pub enum RuleDef<
+    O: Default,
+    B: BlockDef,
+    BR: BlockReferredDef<B>,
+    P: PayloadDef<O, Inner>,
+    Inner: PayloadInnerDef<O>,
+>
 {
     /// Triggered when unknown or malformed data is encountered.
     Ignored(IgnoredCallback),
@@ -192,7 +198,7 @@ pub enum RuleDef<B: BlockDef, BR: BlockReferredDef<B>, P: PayloadDef<Inner>, Inn
     FilterPayload(PayloadFilterCallback),
 
     /// Filters fully parsed packets.
-    FilterPacket(FilterCallback<B, P, Inner>),
+    FilterPacket(FilterCallback<O, B, P, Inner>),
 }
 
 /// Internal container for rule management used by `PacketBufReaderDef`.
@@ -201,30 +207,36 @@ pub enum RuleDef<B: BlockDef, BR: BlockReferredDef<B>, P: PayloadDef<Inner>, Inn
 ///
 /// Users do not interact with `RulesDef` directly — it's driven by `PacketBufReaderDef`.
 pub struct RulesDef<
+    O: Default,
     B: BlockDef,
     BR: BlockReferredDef<B>,
-    P: PayloadDef<Inner>,
-    Inner: PayloadInnerDef,
+    P: PayloadDef<O, Inner>,
+    Inner: PayloadInnerDef<O>,
 > {
-    pub rules: Vec<RuleDef<B, BR, P, Inner>>,
+    pub rules: Vec<RuleDef<O, B, BR, P, Inner>>,
 }
 
-impl<B: BlockDef, BR: BlockReferredDef<B>, P: PayloadDef<Inner>, Inner: PayloadInnerDef> Default
-    for RulesDef<B, BR, P, Inner>
+impl<O: Default, B: BlockDef, BR: BlockReferredDef<B>, P: PayloadDef<O, Inner>, Inner: PayloadInnerDef<O>>
+    Default for RulesDef<O, B, BR, P, Inner>
 {
     /// Initializes an empty rule set.
     fn default() -> Self {
         Self { rules: Vec::new() }
     }
 }
-impl<B: BlockDef, BR: BlockReferredDef<B>, P: PayloadDef<Inner>, Inner: PayloadInnerDef>
-    RulesDef<B, BR, P, Inner>
+impl<
+    O: Default,
+    B: BlockDef,
+    BR: BlockReferredDef<B>,
+    P: PayloadDef<O, Inner>,
+    Inner: PayloadInnerDef<O>,
+> RulesDef<O, B, BR, P, Inner>
 {
     /// Adds a new rule to the rule set.
     ///
     /// Only one rule of each type is allowed at any time. Adding a duplicate
     /// will result in `Error::RuleDuplicate`.
-    pub fn add_rule(&mut self, rule: RuleDef<B, BR, P, Inner>) -> Result<(), Error> {
+    pub fn add_rule(&mut self, rule: RuleDef<O, B, BR, P, Inner>) -> Result<(), Error> {
         match &rule {
             RuleDef::Prefilter(..) => {
                 if self
@@ -320,7 +332,7 @@ impl<B: BlockDef, BR: BlockReferredDef<B>, P: PayloadDef<Inner>, Inner: PayloadI
     }
 
     /// Runs the full packet filter rule on a parsed packet.
-    pub fn filter_packet(&self, packet: &PacketDef<B, P, Inner>) -> bool {
+    pub fn filter_packet(&self, packet: &PacketDef<O, B, P, Inner>) -> bool {
         let Some(cb) = self.rules.iter().find_map(|r| {
             if let RuleDef::FilterPacket(cb) = r {
                 Some(cb)

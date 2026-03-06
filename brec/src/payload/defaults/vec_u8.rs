@@ -29,19 +29,19 @@ impl StaticPayloadSignature for Vec<u8> {
 }
 
 impl PayloadEncode for Vec<u8> {
-    fn encode(&self) -> std::io::Result<Vec<u8>> {
+    fn encode_with(&self, _opt: &()) -> std::io::Result<Vec<u8>> {
         Ok(self.clone())
     }
 }
 
 impl PayloadEncodeReferred for Vec<u8> {
-    fn encode(&self) -> std::io::Result<Option<&[u8]>> {
+    fn encode_with(&self, _opt: &()) -> std::io::Result<Option<&[u8]>> {
         Ok(Some(self))
     }
 }
 
 impl PayloadDecode<Vec<u8>> for Vec<u8> {
-    fn decode(buf: &[u8]) -> std::io::Result<Vec<u8>> {
+    fn decode_with(buf: &[u8], _opt: &()) -> std::io::Result<Vec<u8>> {
         Ok(buf.to_vec())
     }
 }

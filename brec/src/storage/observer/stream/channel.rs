@@ -12,19 +12,21 @@ use super::FileObserverEvent;
 /// This type is intentionally kept private to avoid exposing callback-oriented
 /// details in the public stream API.
 pub(super) struct StreamSubscription<
+    O: Default + Send + 'static,
     B: BlockDef + Send + 'static,
-    P: PayloadDef<Inner> + Send + 'static,
-    Inner: PayloadInnerDef + Send + 'static,
+    P: PayloadDef<O, Inner> + Send + 'static,
+    Inner: PayloadInnerDef<O> + Send + 'static,
 > {
-    tx: mpsc::UnboundedSender<FileObserverEvent<B, P, Inner>>,
+    tx: mpsc::UnboundedSender<FileObserverEvent<O, B, P, Inner>>,
 }
 
 impl<
+    O: Default + Send + 'static,
     B: BlockDef + Send + 'static,
     BR: BlockReferredDef<B> + 'static,
-    P: PayloadDef<Inner> + Send + 'static,
-    Inner: PayloadInnerDef + Send + 'static,
-> SubscriptionDef<B, BR, P, Inner> for StreamSubscription<B, P, Inner>
+    P: PayloadDef<O, Inner> + Send + 'static,
+    Inner: PayloadInnerDef<O> + Send + 'static,
+> SubscriptionDef<O, B, BR, P, Inner> for StreamSubscription<O, B, P, Inner>
 {
     /// Always requests packet delivery and forwards the update event to the
     /// stream consumer.
@@ -34,7 +36,7 @@ impl<
     }
 
     /// Forwards parsed packets to the stream consumer.
-    fn on_packet(&mut self, packet: PacketDef<B, P, Inner>) {
+    fn on_packet(&mut self, packet: PacketDef<O, B, P, Inner>) {
         let _ = self.tx.send(FileObserverEvent::Packet(packet));
     }
 
@@ -64,28 +66,30 @@ impl<
 /// The observer remains Tokio-backed, but the actual storage reads performed by
 /// the observer are still synchronous and blocking at the file I/O layer.
 pub(super) struct ObserverStreamState<
+    O: Default + Send + 'static,
     B: BlockDef + Send + 'static,
     BR: BlockReferredDef<B> + 'static,
-    P: PayloadDef<Inner> + Send + 'static,
-    Inner: PayloadInnerDef + Send + 'static,
+    P: PayloadDef<O, Inner> + Send + 'static,
+    Inner: PayloadInnerDef<O> + Send + 'static,
 > {
-    observer: FileObserverDef<B, BR, P, Inner>,
-    pub(super) rx: mpsc::UnboundedReceiver<FileObserverEvent<B, P, Inner>>,
+    observer: FileObserverDef<O, B, BR, P, Inner>,
+    pub(super) rx: mpsc::UnboundedReceiver<FileObserverEvent<O, B, P, Inner>>,
     _phantom: PhantomData<BR>,
 }
 
 impl<
+    O: Default + Send + 'static,
     B: BlockDef + Send + 'static,
     BR: BlockReferredDef<B> + 'static,
-    P: PayloadDef<Inner> + Send + 'static,
-    Inner: PayloadInnerDef + Send + 'static,
-> ObserverStreamState<B, BR, P, Inner>
+    P: PayloadDef<O, Inner> + Send + 'static,
+    Inner: PayloadInnerDef<O> + Send + 'static,
+> ObserverStreamState<O, B, BR, P, Inner>
 {
     /// Creates the internal observer and wires it to the channel-backed stream
     /// adapter.
     pub(super) fn new(path: impl AsRef<Path>) -> Result<Self, Error> {
         let (tx, rx) = mpsc::unbounded_channel();
-        let subscription = StreamSubscription::<B, P, Inner> { tx };
+        let subscription = StreamSubscription::<O, B, P, Inner> { tx };
         let observer = FileObserverDef::new(FileObserverOptions::new(path).subscribe(subscription))?;
         Ok(Self {
             observer,

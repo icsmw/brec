@@ -13,8 +13,8 @@ use crate::payload::EncodedPayload;
 ///
 /// # Errors
 /// Returns any I/O error or encoding failure from `BlockDef`, `PayloadDef`, or `PayloadHeader`.
-impl<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> WriteMutTo
-    for PacketDef<B, P, Inner>
+impl<O: Default, B: BlockDef, P: PayloadDef<O, Inner>, Inner: PayloadInnerDef<O>> WriteMutTo
+    for PacketDef<O, B, P, Inner>
 {
     /// Writes the packet to a stream, allowing for partial write detection.
     ///
@@ -106,8 +106,8 @@ impl<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> WriteMutTo
 ///
 /// # Errors
 /// Returns an error if header construction, encoding, or slice generation fails.
-impl<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> WriteVectoredMutTo
-    for PacketDef<B, P, Inner>
+impl<O: Default, B: BlockDef, P: PayloadDef<O, Inner>, Inner: PayloadInnerDef<O>>
+    WriteVectoredMutTo for PacketDef<O, B, P, Inner>
 {
     /// Returns an `IoSlices` collection representing the full serialized packet.
     ///

@@ -112,12 +112,13 @@ impl FileStorageOptions {
     ///
     /// A new `FileWriterDef` instance on success, or an appropriate [`Error`] on failure.
     pub fn open<
+        O: Default,
         B: BlockDef,
-        PL: PayloadDef<Inner>,
-        Inner: PayloadInnerDef,
+        PL: PayloadDef<O, Inner>,
+        Inner: PayloadInnerDef<O>,
     >(
         self,
-    ) -> Result<FileWriterDef<B, PL, Inner>, Error> {
+    ) -> Result<FileWriterDef<O, B, PL, Inner>, Error> {
         FileWriterDef::new(self.filename, self.timeout, Some(self.interval))
     }
 }
@@ -137,16 +138,17 @@ impl FileStorageOptions {
 /// `FileWriterDef` also supports an optional timeout while waiting for the lock, enabling
 /// coordinated access patterns in multi-process environments.
 pub struct FileWriterDef<
+    O: Default,
     B: BlockDef,
-    PL: PayloadDef<Inner>,
-    Inner: PayloadInnerDef,
+    PL: PayloadDef<O, Inner>,
+    Inner: PayloadInnerDef<O>,
 > {
     _filelock: File,
-    inner: WriterDef<File, B, PL, Inner>,
+    inner: WriterDef<O, File, B, PL, Inner>,
 }
 
-impl<B: BlockDef, PL: PayloadDef<Inner>, Inner: PayloadInnerDef>
-    FileWriterDef<B, PL, Inner>
+impl<O: Default, B: BlockDef, PL: PayloadDef<O, Inner>, Inner: PayloadInnerDef<O>>
+    FileWriterDef<O, B, PL, Inner>
 {
     /// Creates a new instance of `FileWriterDef`, opening the specified storage file and
     /// acquiring an exclusive advisory lock via a `.lock` companion file.
@@ -254,7 +256,7 @@ impl<B: BlockDef, PL: PayloadDef<Inner>, Inner: PayloadInnerDef>
     /// # Returns
     /// * `Ok(())` — Packet successfully written
     /// * `Err(Error)` — If no space is found or write fails
-    pub fn insert(&mut self, packet: PacketDef<B, PL, Inner>) -> Result<(), Error> {
+    pub fn insert(&mut self, packet: PacketDef<O, B, PL, Inner>) -> Result<(), Error> {
         self.inner.insert(packet)
     }
 
@@ -282,7 +284,7 @@ mod tests {
         let filename_a = filename.clone();
         let (tx, rx): (Sender<()>, Receiver<()>) = channel();
         let a = spawn(move || {
-            let a = FileWriterDef::<TestBlock, TestPayload, TestPayload>::new(
+            let a = FileWriterDef::<(), TestBlock, TestPayload, TestPayload>::new(
                 filename_a, None, None,
             )
             .expect("Storage A has been created");
@@ -294,7 +296,7 @@ mod tests {
         let b = spawn(move || {
             rx.recv().expect("Signal  has been gotten");
 
-            FileWriterDef::<TestBlock, TestPayload, TestPayload>::new(
+            FileWriterDef::<(), TestBlock, TestPayload, TestPayload>::new(
                 &filename,
                 Some(Duration::from_millis(300)),
                 None,
@@ -316,7 +318,7 @@ mod tests {
         let (tx, rx): (Sender<()>, Receiver<()>) = channel();
         let a = spawn(move || {
             let a = FileStorageOptions::new(filename_a)
-                .open::<TestBlock, TestPayload, TestPayload>()
+                .open::<(), TestBlock, TestPayload, TestPayload>()
                 .expect("Storage A has been created");
             tx.send(()).expect("Signal has been send");
             sleep(Duration::from_millis(100));
@@ -327,7 +329,7 @@ mod tests {
             rx.recv().expect("Signal  has been gotten");
             FileStorageOptions::new(filename)
                 .timeout(Duration::from_millis(300))
-                .open::<TestBlock, TestPayload, TestPayload>()
+                .open::<(), TestBlock, TestPayload, TestPayload>()
                 .is_ok()
         });
         let a = a.join().expect("Storage A has been created");
@@ -344,7 +346,7 @@ mod tests {
         let filename_a = filename.clone();
         let (tx, rx): (Sender<()>, Receiver<()>) = channel();
         let a = spawn(move || {
-            let a = FileWriterDef::<TestBlock, TestPayload, TestPayload>::new(
+            let a = FileWriterDef::<(), TestBlock, TestPayload, TestPayload>::new(
                 filename_a, None, None,
             )
             .expect("Storage A has been created");
@@ -355,7 +357,7 @@ mod tests {
         });
         let b = spawn(move || {
             rx.recv().expect("Signal  has been gotten");
-            FileWriterDef::<TestBlock, TestPayload, TestPayload>::new(
+            FileWriterDef::<(), TestBlock, TestPayload, TestPayload>::new(
                 &filename,
                 Some(Duration::from_millis(100)),
                 None,
@@ -377,7 +379,7 @@ mod tests {
         let filename_a = filename.clone();
         let (tx, rx): (Sender<()>, Receiver<()>) = channel();
         let a = spawn(move || {
-            let a = FileWriterDef::<TestBlock, TestPayload, TestPayload>::new(
+            let a = FileWriterDef::<(), TestBlock, TestPayload, TestPayload>::new(
                 filename_a, None, None,
             )
             .expect("Storage A has been created");
@@ -388,7 +390,7 @@ mod tests {
         });
         let b = spawn(move || {
             rx.recv().expect("Signal  has been gotten");
-            FileWriterDef::<TestBlock, TestPayload, TestPayload>::new(
+            FileWriterDef::<(), TestBlock, TestPayload, TestPayload>::new(
                 &filename, None, None,
             )
             .is_ok()

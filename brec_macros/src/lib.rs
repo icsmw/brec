@@ -251,19 +251,19 @@ pub fn payload(attr: TokenStream, input: TokenStream) -> TokenStream {
 ///
 /// | Alias                   | Expanded to                                                                                |
 /// |-------------------------|--------------------------------------------------------------------------------------------|
-/// | `Packet`                    | `PacketDef<Block, Payload, Payload>`                                                       |
-/// | `BorrowedPacketBufReader<'a, R>` | `PacketBufReaderDef<'a, R, Block, BlockReferred<'a>, Payload, Payload>`              |
-/// | `PacketBufReader<'a, R>`     | same as `BorrowedPacketBufReader<'a, R>`                                                 |
+/// | `Packet<O = ()>`             | `PacketDef<O, Block, Payload, Payload>`                                                   |
+/// | `BorrowedPacketBufReader<'a, R, O = ()>` | `PacketBufReaderDef<'a, O, R, Block, BlockReferred<'a>, Payload, Payload>` |
+/// | `PacketBufReader<'a, R, O = ()>` | same as `BorrowedPacketBufReader<'a, R, O>`                                         |
 /// | `PeekedBlocks<'a>`           | `PeekedBlocksDef<'a, BlockReferred<'a>>`                                                 |
 /// | `PeekedBlock<'a>`            | `PeekedBlockDef<'a, BlockReferred<'a>>`                                                  |
-/// | `BorrowedRules<'a>`          | `RulesDef<Block, BlockReferred<'a>, Payload, Payload>`                                   |
-/// | `Rules<'a>`                  | same as `BorrowedRules<'a>`                                                              |
-/// | `BorrowedRule<'a>`           | `RuleDef<Block, BlockReferred<'a>, Payload, Payload>`                                    |
-/// | `Rule<'a>`                   | same as `BorrowedRule<'a>`                                                               |
+/// | `BorrowedRules<'a, O = ()>`  | `RulesDef<O, Block, BlockReferred<'a>, Payload, Payload>`                                |
+/// | `Rules<'a, O = ()>`          | same as `BorrowedRules<'a, O>`                                                           |
+/// | `BorrowedRule<'a, O = ()>`   | `RuleDef<O, Block, BlockReferred<'a>, Payload, Payload>`                                 |
+/// | `Rule<'a, O = ()>`           | same as `BorrowedRule<'a, O>`                                                            |
 /// | `RuleFnDef<D, S>`            | `RuleFnDef<D, S>`                                                                        |
-/// | `BorrowedReader<'a, S>`      | `ReaderDef<S, Block, BlockReferred<'a>, Payload, Payload>`                               |
-/// | `Reader<S>`                  | `ReaderDef<S, Block, BlockReferred<'static>, Payload, Payload>`                          |
-/// | `Writer<S>`                  | `WriterDef<S, Block, Payload, Payload>`                                                  |
+/// | `BorrowedReader<'a, S, O = ()>` | `ReaderDef<O, S, Block, BlockReferred<'a>, Payload, Payload>`                        |
+/// | `Reader<S, O = ()>`          | `ReaderDef<O, S, Block, BlockReferred<'static>, Payload, Payload>`                       |
+/// | `Writer<S, O = ()>`          | `WriterDef<O, S, Block, Payload, Payload>`                                               |
 ///
 /// These aliases make it easier to work with generated structures and remove the need to repeat generic parameters.
 ///
@@ -273,10 +273,10 @@ pub fn payload(attr: TokenStream, input: TokenStream) -> TokenStream {
 /// |-------------------------|---------------------------------------------------------------------------------------------|
 /// | `SubscriptionUpdate`     | `brec::SubscriptionUpdate`                                                                  |
 /// | `SubscriptionErrorAction`| `brec::SubscriptionErrorAction`                                                             |
-/// | `Subscription`          | Local trait facade over `SubscriptionDef<Block, BlockReferred<'static>, Payload, Payload>` |
+/// | `Subscription`          | Local trait facade over `SubscriptionDef<(), Block, BlockReferred<'static>, Payload, Payload>` |
 /// | `FileObserverOptions<S>`| Local wrapper over `brec::FileObserverOptions<..., SubscriptionWrapper<S>>`                 |
-/// | `FileObserver`          | Local wrapper over `FileObserverDef<Block, BlockReferred<'static>, Payload, Payload>`       |
-/// | `FileObserverStream`    | `brec::FileObserverStreamDef<Block, BlockReferred<'static>, Payload, Payload>`              |
+/// | `FileObserver`          | Local wrapper over `FileObserverDef<(), Block, BlockReferred<'static>, Payload, Payload>`   |
+/// | `FileObserverStream`    | `brec::FileObserverStreamDef<(), Block, BlockReferred<'static>, Payload, Payload>`          |
 ///
 /// `Subscription` uses `on_*` callbacks: `on_update`, `on_packet`, `on_error`, `on_stopped`, `on_aborted`.
 ///

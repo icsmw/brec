@@ -59,7 +59,8 @@ pub trait PayloadHooks {
 /// Trait for serializing a payload into a byte buffer.
 ///
 /// Requires `PayloadHooks`, so `before_encode()` will always be invoked before encoding.
-pub trait PayloadEncode: PayloadHooks {
+pub trait PayloadEncode<O: Default = ()>: PayloadHooks {
+    fn encode_with(&self, opt: &O) -> std::io::Result<Vec<u8>>;
     /// Encodes the payload and returns a `Vec<u8>` containing serialized bytes.
     ///
     /// # Returns
@@ -67,7 +68,10 @@ pub trait PayloadEncode: PayloadHooks {
     ///
     /// # Errors
     /// Any I/O or serialization error encountered during encoding.
-    fn encode(&self) -> std::io::Result<Vec<u8>>;
+    fn encode(&self) -> std::io::Result<Vec<u8>> {
+        let opt = O::default();
+        self.encode_with(&opt)
+    }
 }
 
 /// Provides an optional reference to an already-encoded payload.
@@ -76,13 +80,18 @@ pub trait PayloadEncode: PayloadHooks {
 /// this trait can return a reference to the existing bytes and skip re-encoding.
 ///
 /// Useful in zero-copy or deferred encoding scenarios.
-pub trait PayloadEncodeReferred {
+pub trait PayloadEncodeReferred<O: Default = ()> {
+    fn encode_with(&self, opt: &O) -> std::io::Result<Option<&[u8]>>;
+
     /// Optionally returns a reference to a pre-encoded payload.
     ///
     /// # Returns
     /// - `Some(&[u8])` if the encoded buffer is available.
     /// - `None` if the payload must be encoded with [`PayloadEncode`].
-    fn encode(&self) -> std::io::Result<Option<&[u8]>>;
+    fn encode(&self) -> std::io::Result<Option<&[u8]>> {
+        let opt = O::default();
+        self.encode_with(&opt)
+    }
 }
 
 /// Resolves the payload body into either a borrowed slice or an owned buffer.
@@ -106,7 +115,9 @@ impl<T> PayloadEncoded for T where T: PayloadEncode + PayloadEncodeReferred {}
 /// Trait for decoding a payload from a byte buffer.
 ///
 /// Requires `PayloadHooks`, so `after_decode()` will always be called after decoding.
-pub trait PayloadDecode<T>: PayloadHooks {
+pub trait PayloadDecode<T, O: Default = ()>: PayloadHooks {
+    fn decode_with(buf: &[u8], opt: &O) -> std::io::Result<T>;
+
     /// Deserializes a payload from the provided byte slice.
     ///
     /// # Arguments
@@ -117,5 +128,8 @@ pub trait PayloadDecode<T>: PayloadHooks {
     ///
     /// # Errors
     /// Any error encountered while decoding or validating the payload.
-    fn decode(buf: &[u8]) -> std::io::Result<T>;
+    fn decode(buf: &[u8]) -> std::io::Result<T> {
+        let opt = O::default();
+        Self::decode_with(buf, &opt)
+    }
 }

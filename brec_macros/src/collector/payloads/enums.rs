@@ -38,9 +38,9 @@ pub fn generate(
 
         impl brec::PayloadHooks for Payload {}
 
-        impl brec::PayloadInnerDef for Payload {}
+        impl brec::PayloadInnerDef<()> for Payload {}
 
-        impl brec::PayloadDef<Payload> for Payload {}
+        impl brec::PayloadDef<(), Payload> for Payload {}
 
     })
 }

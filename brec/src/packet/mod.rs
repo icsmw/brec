@@ -31,8 +31,14 @@ pub trait BlockDef:
 /// Defines the actual inner payload object used in packets.
 ///
 /// Includes encoding, CRC, size, hooks, and full write logic (including headers).
-pub trait PayloadInnerDef:
-    Sized + PayloadEncode + PayloadHooks + PayloadEncodeReferred + PayloadSize + PayloadCrc + PayloadSignature
+pub trait PayloadInnerDef<O: Default = ()>:
+    Sized
+    + PayloadEncode<O>
+    + PayloadHooks
+    + PayloadEncodeReferred<O>
+    + PayloadSize
+    + PayloadCrc
+    + PayloadSignature
     // In code generator will be forced usage of WritePayloadWithHeaderTo
     + WriteMutTo
     // In code generator will be forced usage of WriteVectoredPayloadWithHeaderTo
@@ -41,7 +47,7 @@ pub trait PayloadInnerDef:
 }
 
 /// Defines the outer container responsible for extracting a payload of a given `Inner` type.
-pub trait PayloadDef<Inner: PayloadInnerDef>:
+pub trait PayloadDef<O: Default, Inner: PayloadInnerDef<O>>:
     ExtractPayloadFrom<Inner>
     + TryExtractPayloadFrom<Inner>
     + TryExtractPayloadFromBuffered<Inner>
@@ -74,7 +80,8 @@ pub enum LookInStatus<T> {
 /// - `B`: Block type (fully parsed)
 /// - `P`: Payload definition handler (extractor, size, etc.)
 /// - `Inner`: Actual payload instance type
-pub struct PacketDef<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> {
+pub struct PacketDef<O: Default, B: BlockDef, P: PayloadDef<O, Inner>, Inner: PayloadInnerDef<O>>
+{
     pub blocks: Vec<B>,
 
     /// Optional decoded payload.
@@ -82,15 +89,19 @@ pub struct PacketDef<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> 
 
     /// Internal marker for payload definition type.
     _pi: PhantomData<P>,
+    _po: PhantomData<fn() -> O>,
 }
 
-impl<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> PacketDef<B, P, Inner> {
+impl<O: Default, B: BlockDef, P: PayloadDef<O, Inner>, Inner: PayloadInnerDef<O>>
+    PacketDef<O, B, P, Inner>
+{
     /// Creates a new packet from given blocks and optional payload.
     pub fn new(blocks: Vec<B>, payload: Option<Inner>) -> Self {
         Self {
             blocks,
             payload,
             _pi: PhantomData,
+            _po: PhantomData,
         }
     }
 
@@ -116,8 +127,8 @@ impl<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> PacketDef<B, P, 
     /// - Propagates all decoding and parsing errors from blocks and payload
     pub fn filtered<R, BR>(
         reader: &mut R,
-        rules: &RulesDef<B, BR, P, Inner>,
-    ) -> Result<LookInStatus<PacketDef<B, P, Inner>>, Error>
+        rules: &RulesDef<O, B, BR, P, Inner>,
+    ) -> Result<LookInStatus<PacketDef<O, B, P, Inner>>, Error>
     where
         R: std::io::Read + std::io::Seek,
         BR: BlockReferredDef<B>,
@@ -203,13 +214,16 @@ impl<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> PacketDef<B, P, 
     }
 }
 
-impl<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> Default for PacketDef<B, P, Inner> {
+impl<O: Default, B: BlockDef, P: PayloadDef<O, Inner>, Inner: PayloadInnerDef<O>> Default
+    for PacketDef<O, B, P, Inner>
+{
     /// Creates an empty `PacketDef` with no blocks and no payload.
     fn default() -> Self {
         Self {
             blocks: Vec::new(),
             payload: None,
             _pi: PhantomData,
+            _po: PhantomData,
         }
     }
 }

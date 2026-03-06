@@ -14,8 +14,8 @@ use crate::*;
 /// - `Error::NotEnoughData` if there’s insufficient data in the inner block stream.
 /// - `Error::MaxBlocksCount` if the block count exceeds the allowed maximum.
 /// - Any decoding or payload-related error from underlying implementations.
-impl<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> ReadFrom
-    for PacketDef<B, P, Inner>
+impl<O: Default, B: BlockDef, P: PayloadDef<O, Inner>, Inner: PayloadInnerDef<O>> ReadFrom
+    for PacketDef<O, B, P, Inner>
 {
     fn read<T: std::io::Read>(buf: &mut T) -> Result<Self, Error>
     where
@@ -74,8 +74,8 @@ impl<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> ReadFrom
 ///
 /// # Stream behavior
 /// Seeks forward to read the packet, and seeks back on early return or error.
-impl<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> TryReadFrom
-    for PacketDef<B, P, Inner>
+impl<O: Default, B: BlockDef, P: PayloadDef<O, Inner>, Inner: PayloadInnerDef<O>> TryReadFrom
+    for PacketDef<O, B, P, Inner>
 {
     fn try_read<T: std::io::Read + std::io::Seek>(buf: &mut T) -> Result<ReadStatus<Self>, Error>
     where
@@ -164,8 +164,8 @@ impl<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> TryReadFrom
 ///
 /// # Notes
 /// The header and block stream are parsed directly from the internal buffer. Payload data may be buffered or streamed depending on implementation.
-impl<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> TryReadFromBuffered
-    for PacketDef<B, P, Inner>
+impl<O: Default, B: BlockDef, P: PayloadDef<O, Inner>, Inner: PayloadInnerDef<O>>
+    TryReadFromBuffered for PacketDef<O, B, P, Inner>
 {
     fn try_read<T: std::io::BufRead>(reader: &mut T) -> Result<ReadStatus<Self>, Error>
     where

@@ -16,27 +16,29 @@ pub use sensor::*;
 pub use stream::*;
 
 pub struct FileObserverDef<
+    O: Default + Send + 'static,
     B: BlockDef + Send + 'static,
     BR: BlockReferredDef<B> + 'static,
-    P: PayloadDef<Inner> + Send + 'static,
-    Inner: PayloadInnerDef + Send + 'static,
+    P: PayloadDef<O, Inner> + Send + 'static,
+    Inner: PayloadInnerDef<O> + Send + 'static,
 > {
     handler: Option<JoinHandle<()>>,
     sd: CancellationToken,
-    _phantom: PhantomData<(B, BR, P, Inner)>,
+    _phantom: PhantomData<(B, BR, P, Inner, O)>,
 }
 
 impl<
+    O: Default + Send + 'static,
     B: BlockDef + Send + 'static,
     BR: BlockReferredDef<B> + 'static,
-    P: PayloadDef<Inner> + Send + 'static,
-    Inner: PayloadInnerDef + Send + 'static,
-> FileObserverDef<B, BR, P, Inner>
+    P: PayloadDef<O, Inner> + Send + 'static,
+    Inner: PayloadInnerDef<O> + Send + 'static,
+> FileObserverDef<O, B, BR, P, Inner>
 {
     #[instrument]
-    pub fn new<S>(mut options: FileObserverOptions<B, BR, P, Inner, S>) -> Result<Self, Error>
+    pub fn new<S>(mut options: FileObserverOptions<O, B, BR, P, Inner, S>) -> Result<Self, Error>
     where
-        S: SubscriptionDef<B, BR, P, Inner> + 'static,
+        S: SubscriptionDef<O, B, BR, P, Inner> + 'static,
     {
         let Some(mut subscription) = options.subscription.take() else {
             return Err(Error::NoSubscription);
@@ -44,7 +46,7 @@ impl<
         let sd = CancellationToken::new();
         let shutdown = sd.clone();
         let file = std::fs::File::open(&options.path)?;
-        let mut reader: ReaderDef<std::fs::File, B, BR, P, Inner> =
+        let mut reader: ReaderDef<O, std::fs::File, B, BR, P, Inner> =
             ReaderDef::new(file.try_clone()?)?;
 
         let (sensor, mut wake_rx) = Sensor::new(&options.path)?;

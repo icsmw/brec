@@ -6,23 +6,25 @@ pub use locker::{FileStorageOptions, FileWriterDef};
 use crate::*;
 
 pub struct WriterDef<
+    O: Default,
     S: std::io::Read + std::io::Write + std::io::Seek,
     B: BlockDef,
-    P: PayloadDef<Inner>,
-    Inner: PayloadInnerDef,
+    P: PayloadDef<O, Inner>,
+    Inner: PayloadInnerDef<O>,
 > {
     pub slots: Vec<Slot>,
     inner: S,
     locator: FreeSlotLocator,
-    _phantom: std::marker::PhantomData<(B, P, Inner)>,
+    _phantom: std::marker::PhantomData<(B, P, Inner, O)>,
 }
 
 impl<
+        O: Default,
         S: std::io::Read + std::io::Write + std::io::Seek,
         B: BlockDef,
-        P: PayloadDef<Inner>,
-        Inner: PayloadInnerDef,
-    > WriterDef<S, B, P, Inner>
+        P: PayloadDef<O, Inner>,
+        Inner: PayloadInnerDef<O>,
+    > WriterDef<O, S, B, P, Inner>
 {
     /// Creates a new storage instance with the given storage backend.
     ///
@@ -80,7 +82,7 @@ impl<
     /// # Returns
     /// * `Ok(())` — Packet successfully written
     /// * `Err(Error)` — If no space is found or write fails
-    pub fn insert(&mut self, mut packet: PacketDef<B, P, Inner>) -> Result<(), Error> {
+    pub fn insert(&mut self, mut packet: PacketDef<O, B, P, Inner>) -> Result<(), Error> {
         let offset = match self.locator.next(&self.slots) {
             Some(offset) => offset,
             None => {

@@ -7,15 +7,15 @@ pub fn encode(payloads: &[&Payload]) -> Result<TokenStream, E> {
     let mut variants = Vec::new();
     for payload in payloads.iter() {
         let fullname = payload.fullname()?;
-        variants.push(quote! {Payload::#fullname(pl) => brec::PayloadEncode::encode(pl)});
+        variants.push(quote! {Payload::#fullname(pl) => brec::PayloadEncode::encode_with(pl, _opt)});
     }
     Ok(quote! {
         impl brec::PayloadEncode for Payload {
-            fn encode(&self) -> std::io::Result<Vec<u8>> {
+            fn encode_with(&self, _opt: &()) -> std::io::Result<Vec<u8>> {
                 match self {
                     #(#variants,)*
-                    Payload::Bytes(pl) => brec::PayloadEncode::encode(pl),
-                    Payload::String(pl) => brec::PayloadEncode::encode(pl),
+                    Payload::Bytes(pl) => brec::PayloadEncode::encode_with(pl, _opt),
+                    Payload::String(pl) => brec::PayloadEncode::encode_with(pl, _opt),
                 }
             }
         }
@@ -26,15 +26,15 @@ pub fn encode_referred(payloads: &[&Payload]) -> Result<TokenStream, E> {
     let mut variants = Vec::new();
     for payload in payloads.iter() {
         let fullname = payload.fullname()?;
-        variants.push(quote! {Payload::#fullname(pl) => brec::PayloadEncodeReferred::encode(pl)});
+        variants.push(quote! {Payload::#fullname(pl) => brec::PayloadEncodeReferred::encode_with(pl, _opt)});
     }
     Ok(quote! {
         impl brec::PayloadEncodeReferred for Payload {
-            fn encode(&self) -> std::io::Result<Option<&[u8]>> {
+            fn encode_with(&self, _opt: &()) -> std::io::Result<Option<&[u8]>> {
                 match self {
                     #(#variants,)*
-                    Payload::Bytes(pl) => brec::PayloadEncodeReferred::encode(pl),
-                    Payload::String(pl) => brec::PayloadEncodeReferred::encode(pl),
+                    Payload::Bytes(pl) => brec::PayloadEncodeReferred::encode_with(pl, _opt),
+                    Payload::String(pl) => brec::PayloadEncodeReferred::encode_with(pl, _opt),
                 }
             }
         }

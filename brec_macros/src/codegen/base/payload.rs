@@ -39,20 +39,20 @@ impl Base for Payload {
                 #hooks_impl
 
                 impl brec::PayloadEncode for #payload_name {
-                    fn encode(&self) -> std::io::Result<Vec<u8>> {
+                    fn encode_with(&self, _opt: &()) -> std::io::Result<Vec<u8>> {
                         brec::bincode::serde::encode_to_vec(self, brec::bincode::config::standard())
                             .map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidData, e.to_string()))
                     }
                 }
 
                 impl brec::PayloadEncodeReferred for #payload_name {
-                    fn encode(&self) -> std::io::Result<Option<&[u8]>> {
+                    fn encode_with(&self, _opt: &()) -> std::io::Result<Option<&[u8]>> {
                         Ok(None)
                     }
                 }
 
                 impl brec::PayloadDecode<#payload_name> for #payload_name {
-                    fn decode(buf: &[u8]) -> std::io::Result<#payload_name> {
+                    fn decode_with(buf: &[u8], _opt: &()) -> std::io::Result<#payload_name> {
                         brec::bincode::serde::decode_from_slice(buf, brec::bincode::config::standard())
                             .map(|(value, _)| value)
                             .map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidData, e.to_string()))

@@ -9,24 +9,26 @@ use std::{
 pub use subscription::*;
 
 pub struct FileObserverOptions<
+    O: Default + Send + 'static,
     B: BlockDef + Send + 'static,
     BR: BlockReferredDef<B> + 'static,
-    P: PayloadDef<Inner> + Send + 'static,
-    Inner: PayloadInnerDef + Send + 'static,
-    S: SubscriptionDef<B, BR, P, Inner> + 'static,
+    P: PayloadDef<O, Inner> + Send + 'static,
+    Inner: PayloadInnerDef<O> + Send + 'static,
+    S: SubscriptionDef<O, B, BR, P, Inner> + 'static,
 > {
     pub path: PathBuf,
     pub subscription: Option<S>,
-    _phantom: PhantomData<(B, BR, P, Inner)>,
+    _phantom: PhantomData<(B, BR, P, Inner, O)>,
 }
 
 impl<
+    O: Default + Send + 'static,
     B: BlockDef + Send + 'static,
     BR: BlockReferredDef<B> + 'static,
-    P: PayloadDef<Inner> + Send + 'static,
-    Inner: PayloadInnerDef + Send + 'static,
-    S: SubscriptionDef<B, BR, P, Inner> + 'static,
-> FileObserverOptions<B, BR, P, Inner, S>
+    P: PayloadDef<O, Inner> + Send + 'static,
+    Inner: PayloadInnerDef<O> + Send + 'static,
+    S: SubscriptionDef<O, B, BR, P, Inner> + 'static,
+> FileObserverOptions<O, B, BR, P, Inner, S>
 {
     pub fn new(path: impl AsRef<Path>) -> Self {
         Self {
@@ -42,12 +44,13 @@ impl<
 }
 
 impl<
+    O: Default + Send + 'static,
     B: BlockDef + Send + 'static,
     BR: BlockReferredDef<B> + 'static,
-    P: PayloadDef<Inner> + Send + 'static,
-    Inner: PayloadInnerDef + Send + 'static,
-    S: SubscriptionDef<B, BR, P, Inner> + 'static,
-> std::fmt::Debug for FileObserverOptions<B, BR, P, Inner, S>
+    P: PayloadDef<O, Inner> + Send + 'static,
+    Inner: PayloadInnerDef<O> + Send + 'static,
+    S: SubscriptionDef<O, B, BR, P, Inner> + 'static,
+> std::fmt::Debug for FileObserverOptions<O, B, BR, P, Inner, S>
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "FileObserverOptions: {}", self.path.display())

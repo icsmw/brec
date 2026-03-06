@@ -319,7 +319,7 @@ impl Subscription for MySubscription {
         }
         SubscriptionUpdate::Skip
     }
-    fn on_packet(&mut self, _packet: PacketDef<Block, Payload, Payload>) {
+    fn on_packet(&mut self, _packet: PacketDef<(), Block, Payload, Payload>) {
         self.count += 1;
     }
 }
@@ -355,7 +355,7 @@ impl Subscription for VerifyingSubscription {
         SubscriptionUpdate::Read
     }
 
-    fn on_packet(&mut self, packet: PacketDef<Block, Payload, Payload>) {
+    fn on_packet(&mut self, packet: PacketDef<(), Block, Payload, Payload>) {
         let wrapped: WrappedPacket = packet.into();
         let mut state = self.state.lock().unwrap();
         if state.failure.is_some() {
