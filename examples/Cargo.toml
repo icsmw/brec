@@ -1,10 +1,4 @@
 [workspace]
 resolver = "2"
-members = [
-    "wasmjs"
-]
-
-[workspace.dependencies]
-brec = { path = "../brec" }
-serde = "1.0"
-serde_json = "1.0.140"
+members  = ["ctx", "bincode", "crypt", "packets"]
+exclude  = ["wasm"]
