@@ -25,6 +25,8 @@ This macro must be called exactly **once per crate** and is responsible for:
 - Generating unified enums for payloads: `enum Payload { ... }`
 - Exporting several convenience type aliases to simplify usage
 
+When context types are declared with `#[payload(ctx)]`, `generate!()` also constructs the crate-local `PayloadContext<'a>` type. See [Payload Context](parts/context.md).
+
 ### Generated Aliases
 The macro defines the following aliases to reduce verbosity when using `brec` types:
 
@@ -52,9 +54,10 @@ When `brec` is built with the `observer` feature, the macro also generates:
 |-------|-------------|
 | `SubscriptionUpdate` | `brec::SubscriptionUpdate` |
 | `SubscriptionErrorAction` | `brec::SubscriptionErrorAction` |
-| `Subscription` | local facade over `SubscriptionDef<Block, BlockReferred<'static>, Payload, Payload>` |
+| `Subscription` | local facade over `SubscriptionDef<Block, BlockReferred<'static>, Payload, Payload, ()>` |
 | `FileObserverOptions<S>` | local wrapper over `brec::FileObserverOptions<..., SubscriptionWrapper<S>>` |
-| `FileObserver` | local wrapper over `FileObserverDef<Block, BlockReferred<'static>, Payload, Payload>` |
+| `FileObserver` | local wrapper over `FileObserverDef<Block, BlockReferred<'static>, Payload, Payload, ()>` |
+| `FileObserverStream` | `brec::FileObserverStreamDef<Block, BlockReferred<'static>, Payload, Payload, ()>` |
 
 `Subscription` uses `on_*` callbacks: `on_update`, `on_packet`, `on_error`, `on_stopped`, `on_aborted`.
 

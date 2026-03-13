@@ -31,6 +31,10 @@ brec = { version = "...", features = ["bincode"] }
 
 For most projects this is the easiest starting point.
 
+If you later need runtime payload state during encoding or decoding, see [Payload Context](parts/context.md).
+
+If you need some payloads to be encrypted while others stay open, see [Crypt](parts/crypt.md).
+
 ```rust
 #[derive(Default, serde::Deserialize, serde::Serialize)]
 pub enum MyNestedEntity {

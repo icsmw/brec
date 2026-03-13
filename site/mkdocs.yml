@@ -10,6 +10,8 @@ nav:
   - Protocol Parts:
       - Blocks: parts/blocks.md
       - Payloads: parts/payloads.md
+      - Payload Context: parts/context.md
+      - Crypt: parts/crypt.md
       - Packets: parts/packets.md
   - Code Generation: code_generation.md
   - Protocol Tools:

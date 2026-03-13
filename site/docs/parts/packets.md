@@ -30,14 +30,14 @@ A `Packet` can be used as a standalone unit for data exchange. It implements the
 
 | Trait                 | Method | Return Type | Description |
 |-----------------------|--------|-------------|-------------|
-| `ReadFrom`           | `read<T: std::io::Read>(buf: &mut T)` | `Result<Self, Error>` | Attempts to read a packet from a source. |
-| `TryReadFrom`        | `try_read<T: std::io::Read + std::io::Seek>(buf: &mut T)` | `Result<ReadStatus<Self>, Error>` | Attempts to read a packet, but if data is insufficient, it returns a corresponding read status instead of an error. Also, moves the source’s position only upon successful reading; otherwise, it remains unchanged. |
-| `TryReadFromBuffered` | `try_read<T: std::io::BufRead>(reader: &mut T)` | `Result<ReadStatus<Self>, Error>` | Identical to `TryReadFrom`. |
-| `WriteMutTo`         | `write<T: std::io::Write>(&mut self, buf: &mut T)` | `std::io::Result<usize>` | Equivalent to the standard `write` method, returning the number of bytes written. Does not guarantee that data is flushed to the output, so calling `flush` is required if such guarantees are needed. |
-| `WriteMutTo`         | `write_all<T: std::io::Write>(&mut self, buf: &mut T)` | `std::io::Result<()>` | Equivalent to the standard `write_all` method. |
-| `WriteVectoredMutTo` | `slices(&mut self)` | `std::io::Result<IoSlices>` | Returns the binary representation of the packet as slices. |
-| `WriteVectoredMutTo` | `write_vectored<T: std::io::Write>(&mut self, buf: &mut T)` | `std::io::Result<usize>` | Attempts a vectored write of the packet (analogous to the standard `write_vectored`). |
-| `WriteVectoredMutTo` | `write_vectored_all<T: std::io::Write>(&mut self, buf: &mut T)` | `std::io::Result<()>` | Attempts a vectored write of the packet (analogous to the standard `write_vectored_all`). |
+| `ReadPacketFrom`           | `read<T: std::io::Read>(buf: &mut T, ctx: &mut Self::Context<'_>)` | `Result<Self, Error>` | Attempts to read a packet from a source. |
+| `TryReadPacketFrom`        | `try_read<T: std::io::Read + std::io::Seek>(buf: &mut T, ctx: &mut Self::Context<'_>)` | `Result<ReadStatus<Self>, Error>` | Attempts to read a packet, but if data is insufficient, it returns a corresponding read status instead of an error. Also, moves the source’s position only upon successful reading; otherwise, it remains unchanged. |
+| `TryReadPacketFromBuffered` | `try_read<T: std::io::BufRead>(reader: &mut T, ctx: &mut Self::Context<'_>)` | `Result<ReadStatus<Self>, Error>` | Identical to `TryReadPacketFrom`, but for buffered sources. |
+| `WriteMutTo`         | `write<T: std::io::Write>(&mut self, buf: &mut T, ctx: &mut Self::Context<'_>)` | `std::io::Result<usize>` | Equivalent to the standard `write` method, returning the number of bytes written. Does not guarantee that data is flushed to the output, so calling `flush` is required if such guarantees are needed. |
+| `WriteMutTo`         | `write_all<T: std::io::Write>(&mut self, buf: &mut T, ctx: &mut Self::Context<'_>)` | `std::io::Result<()>` | Equivalent to the standard `write_all` method. |
+| `WriteVectoredMutTo` | `slices(&mut self, ctx: &mut Self::Context<'_>)` | `std::io::Result<IoSlices>` | Returns the binary representation of the packet as slices. |
+| `WriteVectoredMutTo` | `write_vectored<T: std::io::Write>(&mut self, buf: &mut T, ctx: &mut Self::Context<'_>)` | `std::io::Result<usize>` | Attempts a vectored write of the packet (analogous to the standard `write_vectored`). |
+| `WriteVectoredMutTo` | `write_vectored_all<T: std::io::Write>(&mut self, buf: &mut T, ctx: &mut Self::Context<'_>)` | `std::io::Result<()>` | Attempts a vectored write of the packet (analogous to the standard `write_vectored_all`). |
 
 ### Packet Filtering
 
@@ -46,7 +46,8 @@ A `Packet` can be used as a standalone unit for data exchange. It implements the
 ```rust
 filtered<R: std::io::Read + std::io::Seek>(
     reader: &mut R, 
-    rules: &Rules
+    rules: &Rules,
+    ctx: &mut <Payload as brec::PayloadSchema>::Context<'_>,
 ) -> Result<LookInStatus<Packet>, Error>
 ```
 
