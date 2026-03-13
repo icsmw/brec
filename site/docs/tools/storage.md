@@ -2,8 +2,8 @@
 
 In addition to stream reading, `brec` provides a storage layer built around two generated types:
 
-- `Writer<S>` — appends packets to storage
-- `Reader<S>` — reads packets back with indexed access and filtering
+- `Writer<S>` - appends packets to storage
+- `Reader<S>` - reads packets back with indexed access and filtering
 
 Both become available after invoking `brec::generate!()`.
 

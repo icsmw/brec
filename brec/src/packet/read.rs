@@ -2,7 +2,7 @@ use crate::*;
 
 /// Reads a complete `PacketDef` from a stream, including header, blocks, and optional payload.
 ///
-/// This implementation **does not support partial reads** — if the header is successfully
+/// This implementation **does not support partial reads** - if the header is successfully
 /// read but the blocks or payload data are incomplete, an I/O error will be returned.
 ///
 /// # Notes
@@ -71,9 +71,9 @@ impl<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> ReadPacketFrom
 /// - If block count exceeds `MAX_BLOCKS_COUNT`, returns `Error::MaxBlocksCount`.
 ///
 /// # Returns
-/// - `ReadStatus::Success(packet)` — full packet successfully read.
-/// - `ReadStatus::NotEnoughData(bytes)` — more data needed to complete the packet.
-/// - `Error` — on decoding, CRC, signature, or logic errors.
+/// - `ReadStatus::Success(packet)` - full packet successfully read.
+/// - `ReadStatus::NotEnoughData(bytes)` - more data needed to complete the packet.
+/// - `Error` - on decoding, CRC, signature, or logic errors.
 ///
 /// # Stream behavior
 /// Seeks forward to read the packet, and seeks back on early return or error.
@@ -163,9 +163,9 @@ impl<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> TryReadPacketFro
 /// - Supports partial reads using `ReadStatus::NotEnoughData(...)`.
 ///
 /// # Returns
-/// - `ReadStatus::Success(packet)` — if all required data was read and validated.
-/// - `ReadStatus::NotEnoughData(bytes)` — if more bytes are needed.
-/// - `Error::MaxBlocksCount` — if the block limit is exceeded.
+/// - `ReadStatus::Success(packet)` - if all required data was read and validated.
+/// - `ReadStatus::NotEnoughData(bytes)` - if more bytes are needed.
+/// - `Error::MaxBlocksCount` - if the block limit is exceeded.
 /// - Any decoding or CRC/signature errors.
 ///
 /// # Notes

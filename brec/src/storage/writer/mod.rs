@@ -77,11 +77,11 @@ impl<
     /// Inserts a new packet into storage at the next available slot.
     ///
     /// # Arguments
-    /// * `packet` — The `PacketDef` to be written
+    /// * `packet` - The `PacketDef` to be written
     ///
     /// # Returns
-    /// * `Ok(())` — Packet successfully written
-    /// * `Err(Error)` — If no space is found or write fails
+    /// * `Ok(())` - Packet successfully written
+    /// * `Err(Error)` - If no space is found or write fails
     pub fn insert(
         &mut self,
         mut packet: PacketDef<B, P, Inner>,

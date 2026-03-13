@@ -5,7 +5,7 @@ use payload::*;
 ///
 /// This payload represents raw binary data. It supports full encoding/decoding,
 /// CRC validation, signature identification, and efficient vectored writing.
-/// No transformation or framing is applied — the raw byte content is stored and restored as-is.
+/// No transformation or framing is applied - the raw byte content is stored and restored as-is.
 impl PayloadSize for Vec<u8> {
     fn size(&self, _: &mut Self::Context<'_>) -> std::io::Result<u64> {
         Ok(self.len() as u64)

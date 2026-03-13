@@ -97,7 +97,7 @@ pub enum MyPayloadEnum {
 
 ### Partial Restrictions on Payload Types
 
-It is important to note that the CRC for a payload is generated twice—once when the payload is converted into bytes and again after extraction (to compare with the CRC stored in the payload header). This imposes certain limitations on CRC verification, as `brec` does not restrict the types of data used in a payload. If a payload contains data types that do not guarantee a strict byte sequence, CRC verification will always fail due to variations in byte order. As a result, extracting such a payload from the stream will become impossible.
+It is important to note that the CRC for a payload is generated twice-once when the payload is converted into bytes and again after extraction (to compare with the CRC stored in the payload header). This imposes certain limitations on CRC verification, as `brec` does not restrict the types of data used in a payload. If a payload contains data types that do not guarantee a strict byte sequence, CRC verification will always fail due to variations in byte order. As a result, extracting such a payload from the stream will become impossible.
 
 A simple example of this issue is `HashMap`, which does not guarantee a consistent field order upon reconstruction. For instance:
 

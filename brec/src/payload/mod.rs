@@ -49,7 +49,7 @@ impl EncodedPayload<'_> {
 /// These hooks can be used to prepare the payload before serialization
 /// or to perform post-processing after deserialization.
 ///
-/// They are **never required** to do anything — by default, they are no-ops.
+/// They are **never required** to do anything - by default, they are no-ops.
 ///
 /// Implement this trait when you want to:
 /// - Reset or update internal state before encoding

@@ -1,7 +1,7 @@
 # Contributing to `brec`
 
 First of all, thank you for your interest in contributing to `brec`!  
-We welcome contributions of all kinds — bug reports, performance improvements, documentation fixes, or new features.
+We welcome contributions of all kinds - bug reports, performance improvements, documentation fixes, or new features.
 
 Please follow the guidelines below to ensure a smooth review and merge process.
 
@@ -18,7 +18,7 @@ The contribution process follows the standard GitHub workflow:
    - what the changes do,
    - why they are necessary or useful.
 
-Please be clear and thorough in your description — it helps maintainers understand your intentions quickly.
+Please be clear and thorough in your description - it helps maintainers understand your intentions quickly.
 
 ---
 
@@ -38,7 +38,7 @@ cargo test --release -- --nocapture
 2. Then run the same test **after your changes**.
 
 Include the performance comparison in your pull request description.  
-Unjustified performance regressions may result in the PR being rejected — unless the change is required to fix a critical bug.
+Unjustified performance regressions may result in the PR being rejected - unless the change is required to fix a critical bug.
 
 ---
 
@@ -46,7 +46,7 @@ Unjustified performance regressions may result in the PR being rejected — unle
 
 There are two levels of tests:
 
-### 1. `test.sh` — Fast CI Tests
+### 1. `test.sh` - Fast CI Tests
 
 A lightweight test script that runs quickly and is used in the CI pipeline.
 
@@ -60,7 +60,7 @@ You can run it locally:
 
 ---
 
-### 2. `stress.sh` — Mandatory for Critical Paths
+### 2. `stress.sh` - Mandatory for Critical Paths
 
 The full stress test script generates over **40 GB of test data** to validate robustness.
 
@@ -96,5 +96,5 @@ This checks formatting, lints the code, and ensures consistency.
 
 ---
 
-Thank you again for contributing — we appreciate your time and effort!  
+Thank you again for contributing - we appreciate your time and effort!  
 If you have any questions, feel free to open an issue or discussion thread.

@@ -1,4 +1,4 @@
-`brec` is a tool that allows you to quickly and easily create a custom message exchange protocol with resilience to data "corruption" and the ability to extract messages from mixed streams (i.e., streams containing not only `brec` packets but also any other data). `brec` is developed for designing your own custom binary protocol — without predefined message formats or rigid schemas.
+`brec` is a tool that allows you to quickly and easily create a custom message exchange protocol with resilience to data "corruption" and the ability to extract messages from mixed streams (i.e., streams containing not only `brec` packets but also any other data). `brec` is developed for designing your own custom binary protocol - without predefined message formats or rigid schemas.
 
 > **Notice**: Public Beta
 >
@@ -14,17 +14,17 @@
 - **Protocol without constraints** - Unlike many alternatives, `brec` doesn’t enforce a fixed message layout. Instead, you define your own building blocks (`blocks`) and arbitrary payloads (`payloads`), combining them freely into custom packets.
 - **Stream-recognizable messages** - Each block, payload, and packet is automatically assigned a unique signature, making them easily discoverable within any byte stream.
 - **Built-in reliability** - All parts of a packet (blocks, payloads, and headers) are automatically linked with their own CRC checksums to ensure data integrity.
-- **Stream-aware reading** - `brec` includes a powerful streaming reader capable of extracting packets even from noisy or corrupted streams — skipping irrelevant or damaged data without breaking.
+- **Stream-aware reading** - `brec` includes a powerful streaming reader capable of extracting packets even from noisy or corrupted streams - skipping irrelevant or damaged data without breaking.
 - **Non-packet data is preserved** - When reading mixed streams, unrecognized data is not lost. You can capture and process it separately using rules and callbacks.
 - **Persistent storage layer** - `brec` provides a high-performance storage engine for persisting packets. Its slot-based layout enables fast indexed access, filtering, and direct access by packet index.
 - **Payload runtime context** - Payloads may depend on explicit runtime state during encoding and decoding.
 - **Optional payload encryption** - With the `crypt` feature, selected payloads can be encrypted while others in the same protocol remain open.
 - **High performance** - Parsing performance is on par with the most optimized binary parsers (see the Performance section).
-- **Simple to use** - Just annotate your structs with #[block] or #[payload], and brec takes care of the rest — your protocol is ready to go.
+- **Simple to use** - Just annotate your structs with #[block] or #[payload], and brec takes care of the rest - your protocol is ready to go.
 
 # General Overview
 
-The primary unit of information in `brec` is a packet (`Packet`) — a ready-to-transmit message with a unique signature (allowing it to be recognized within mixed data) and a CRC to ensure data integrity.
+The primary unit of information in `brec` is a packet (`Packet`) - a ready-to-transmit message with a unique signature (allowing it to be recognized within mixed data) and a CRC to ensure data integrity.
 
 A packet consists of a set of blocks (`Block`) and, optionally, a payload (`Payload`).
 
@@ -32,7 +32,7 @@ A packet consists of a set of blocks (`Block`) and, optionally, a payload (`Payl
 
 Blocks (`Block`) are the minimal units of information in the `brec` system. A block can contain only primitives, such as numbers, boolean values, and byte slices. A block serves as a kind of packet index, allowing for quick determination of whether a packet requires full processing (i.e., parsing the `Payload`) or can be ignored.
 
-The payload (`Payload`) is an optional part of the packet. Unlike blocks (`Block`), it has no restrictions on the type of data it can contain—it can be a `struct` or `enum` of any complexity and nesting level.
+The payload (`Payload`) is an optional part of the packet. Unlike blocks (`Block`), it has no restrictions on the type of data it can contain-it can be a `struct` or `enum` of any complexity and nesting level.
 
 Unlike most protocols, `brec` does not require users to define a fixed set of messages but does require them to describe blocks (`Block`) and payload data (`Payload`).
 
@@ -438,7 +438,7 @@ pub enum MyPayloadEnum {
 
 ### Partial Restrictions on Payload Types
 
-It is important to note that the CRC for a payload is generated twice—once when the payload is converted into bytes and again after extraction (to compare with the CRC stored in the payload header). This imposes certain limitations on CRC verification, as `brec` does not restrict the types of data used in a payload. If a payload contains data types that do not guarantee a strict byte sequence, CRC verification will always fail due to variations in byte order. As a result, extracting such a payload from the stream will become impossible.
+It is important to note that the CRC for a payload is generated twice-once when the payload is converted into bytes and again after extraction (to compare with the CRC stored in the payload header). This imposes certain limitations on CRC verification, as `brec` does not restrict the types of data used in a payload. If a payload contains data types that do not guarantee a strict byte sequence, CRC verification will always fail due to variations in byte order. As a result, extracting such a payload from the stream will become impossible.
 
 A simple example of this issue is `HashMap`, which does not guarantee a consistent field order upon reconstruction. For instance:
 
@@ -1207,7 +1207,7 @@ The macro can be used with the following parameters:
 - `payloads_derive = "Trait"` -  
   By default, `brec` automatically collects all `derive` attributes that are common across user-defined payloads
   and applies them to the generated `Payload` enum.  
-  This parameter allows you to **manually** specify additional derives for the `Payload` enum—useful if you are
+  This parameter allows you to **manually** specify additional derives for the `Payload` enum-useful if you are
   only using the built-in payloads (`String`, `Vec<u8>`) and do not define custom ones.
 
 For example,
@@ -1307,12 +1307,12 @@ Another key feature of `PacketBufReader` is that users can define **custom rules
 |------------------------|--------------------------------------|-------------|
 | `Rule::Ignored`        | `&[u8]`                              | Triggered when data not related to `brec` messages is encountered. Provides a byte slice of the unrelated data. |
 | `Rule::Prefilter`      | `PeekedBlocks<'a>`                   | Triggered when a packet is found and its blocks have been partially parsed in zero-copy mode. This is the cheapest place to decide whether the payload should be parsed at all. |
-| `Rule::FilterPayload`  | `&[u8]`                              | Allows peeking into the payload bytes before deserialization. This is especially useful if the payload is, for example, a string — enabling scenarios like substring search. |
+| `Rule::FilterPayload`  | `&[u8]`                              | Allows peeking into the payload bytes before deserialization. This is especially useful if the payload is, for example, a string - enabling scenarios like substring search. |
 | `Rule::FilterPacket`   | `&Packet`                            | Triggered after the packet is fully parsed, giving the user a final chance to accept or reject the packet. |
 
 `PeekedBlocks` is the main user-facing facade for cheap prefiltering. It hides the low-level `BlockReferred<'a>` representation while still allowing advanced access through `PeekedBlock::as_referred()` and `PeekedBlocks::as_slice()` when needed.
 
-The rules `Rule::Prefilter` and `Rule::FilterPayload` are particularly effective at improving performance, as they allow you to skip the most expensive part — parsing the payload — if the packet is not needed.
+The rules `Rule::Prefilter` and `Rule::FilterPayload` are particularly effective at improving performance, as they allow you to skip the most expensive part - parsing the payload - if the packet is not needed.
 
 ### Recommended Filtering Flow
 
@@ -1406,7 +1406,7 @@ That keeps the common filtering path compact while still preserving the full low
 
 ## `brec` Message Storage
 
-In addition to stream reading, `brec` provides a tool for storing packets and accessing them efficiently — `Storage<S: std::io::Read + std::io::Write + std::io::Seek>` (available after invoking `brec::generate!()`).
+In addition to stream reading, `brec` provides a tool for storing packets and accessing them efficiently - `Storage<S: std::io::Read + std::io::Write + std::io::Seek>` (available after invoking `brec::generate!()`).
 
 | Method                                | Description |
 |--------------------------------------|-------------|
@@ -1666,17 +1666,17 @@ Each packet consists of a `Metadata` block and a `String` payload. Data is rando
 
 ### Test Description
 
-- **Storage**: Data is written using the `brec` storage API — `Storage<S: std::io::Read + std::io::Write + std::io::Seek>` — and then read back using the same interface.
+- **Storage**: Data is written using the `brec` storage API - `Storage<S: std::io::Read + std::io::Write + std::io::Seek>` - and then read back using the same interface.
 - **Binary Stream**: Data is written to the file as a plain stream of packets, without slots or metadata. Then it is read using `PacketBufReader`.
 - **Streamed Storage**: Data is written using `Storage`, but read using `PacketBufReader`, which ignores slot metadata (treating it as garbage).
 - **Plain Text**: Raw text lines are written to the file, separated by `\n`.
 - **JSON**: The structure shown above is serialized to JSON using `serde_json` and written as one JSON object per line. During reading, each line is deserialized back to the original structure.
 
 Each test is run in two modes:
-- **Reading** — reading all available data.
-- **Filtering** — reading only records that match specific criteria: logs of type "error" and containing a search hook in the payload.
+- **Reading** - reading all available data.
+- **Filtering** - reading only records that match specific criteria: logs of type "error" and containing a search hook in the payload.
 
-**Plain Text** is used as a baseline due to its minimal overhead — raw sequential file reading with no parsing or decoding.  
+**Plain Text** is used as a baseline due to its minimal overhead - raw sequential file reading with no parsing or decoding.  
 However, `brec` performance is more meaningfully compared with **JSON**, which also involves deserialization.  
 JSON is considered a strong baseline due to its wide use and mature, highly optimized parser.
 
@@ -1703,9 +1703,9 @@ JSON is considered a strong baseline due to its wide use and mature, highly opti
 ### Observations
 
 - **Plain text** is the fastest format by nature and serves as a baseline.
-- **Storage** gives the slowest reading time in full-scan mode — which is expected due to CRC verification and slot parsing.
+- **Storage** gives the slowest reading time in full-scan mode - which is expected due to CRC verification and slot parsing.
 - However, when **filtering is enabled**, storage is **only 4ms slower than JSON**, which is a **negligible difference**, especially considering that storage data is CRC-protected and recoverable.
 - If the storage file is damaged, packets can still be recovered using `PacketBufReader`, even if the slot metadata becomes unreadable.
-- **Binary stream mode** (stream writing and reading with `PacketBufReader`) shows exceptional filtering performance — nearly **twice as fast as JSON** — and even full reading is only slightly slower than JSON (~167ms on 1 GB), which is not significant in most scenarios.
+- **Binary stream mode** (stream writing and reading with `PacketBufReader`) shows exceptional filtering performance - nearly **twice as fast as JSON** - and even full reading is only slightly slower than JSON (~167ms on 1 GB), which is not significant in most scenarios.
 
 This efficiency is possible because `brec`'s architecture allows it to skip unnecessary work. In contrast to JSON, where every line must be deserialized, `brec` can **evaluate blocks before parsing payloads**, leading to better filtering performance.

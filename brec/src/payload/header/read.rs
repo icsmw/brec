@@ -98,8 +98,8 @@ impl TryReadFromBuffered for PayloadHeader {
     /// using a `Cursor`.
     ///
     /// # Returns
-    /// - `ReadStatus::Success(header)` — fully parsed header
-    /// - `ReadStatus::NotEnoughData(bytes)` — indicates how many more bytes are needed
+    /// - `ReadStatus::Success(header)` - fully parsed header
+    /// - `ReadStatus::NotEnoughData(bytes)` - indicates how many more bytes are needed
     /// - `Error::InvalidCapacity` if signature or CRC size is unsupported
     fn try_read<T: std::io::BufRead>(reader: &mut T) -> Result<ReadStatus<Self>, Error> {
         /// Helper function used in `try_read` to early-return if not enough bytes are in buffer.

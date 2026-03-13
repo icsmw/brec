@@ -74,12 +74,12 @@ Another key feature of `PacketBufReader` is that users can define **custom rules
 |------------------------|--------------------------------------|-------------|
 | `Rule::Ignored`        | `&[u8]`                              | Triggered when data not related to `brec` messages is encountered. Provides a byte slice of the unrelated data. |
 | `Rule::Prefilter`      | `PeekedBlocks<'a>`                   | Triggered when a packet is found and its blocks have been partially parsed in zero-copy mode. This is the cheapest place to decide whether the payload should be parsed at all. |
-| `Rule::FilterPayload`  | `&[u8]`                              | Allows peeking into the payload bytes before deserialization. This is especially useful if the payload is, for example, a string — enabling scenarios like substring search. |
+| `Rule::FilterPayload`  | `&[u8]`                              | Allows peeking into the payload bytes before deserialization. This is especially useful if the payload is, for example, a string - enabling scenarios like substring search. |
 | `Rule::FilterPacket`   | `&Packet`                            | Triggered after the packet is fully parsed, giving the user a final chance to accept or reject the packet. |
 
 `PeekedBlocks` is the main user-facing facade for cheap prefiltering. It hides the low-level `BlockReferred<'a>` representation while still allowing advanced access through `PeekedBlock::as_referred()` and `PeekedBlocks::as_slice()` when needed.
 
-The rules `Rule::Prefilter` and `Rule::FilterPayload` are particularly effective at improving performance, as they allow you to skip the most expensive part — parsing the payload — if the packet is not needed.
+The rules `Rule::Prefilter` and `Rule::FilterPayload` are particularly effective at improving performance, as they allow you to skip the most expensive part - parsing the payload - if the packet is not needed.
 
 ### Recommended Filtering Flow
 

@@ -94,7 +94,7 @@ The macro can be used with the following parameters:
 - `payloads_derive = "Trait"` -  
   By default, `brec` automatically collects all `derive` attributes that are common across user-defined payloads
   and applies them to the generated `Payload` enum.  
-  This parameter allows you to **manually** specify additional derives for the `Payload` enum—useful if you are
+  This parameter allows you to **manually** specify additional derives for the `Payload` enum-useful if you are
   only using the built-in payloads (`String`, `Vec<u8>`) and do not define custom ones.
 
 For example,

@@ -177,12 +177,12 @@ where
     ///
     /// This function returns:
     ///
-    /// * [`Error::PathIsNotFile`] — if the specified path exists but is not a regular file.
-    /// * [`Error::TimeoutToWaitLockedFile`] — if the lock is not acquired within the timeout period.
-    /// * [`Error::FileIsLocked`] — if the lock is held and no timeout was specified.
-    /// * [`Error::FailToLockFile`] — if the `.lock` file cannot be opened or the locking operation fails
+    /// * [`Error::PathIsNotFile`] - if the specified path exists but is not a regular file.
+    /// * [`Error::TimeoutToWaitLockedFile`] - if the lock is not acquired within the timeout period.
+    /// * [`Error::FileIsLocked`] - if the lock is held and no timeout was specified.
+    /// * [`Error::FailToLockFile`] - if the `.lock` file cannot be opened or the locking operation fails
     ///   due to a non-recoverable I/O error.
-    /// * [`Error::Io`] — if the actual storage file cannot be opened for reading and writing.
+    /// * [`Error::Io`] - if the actual storage file cannot be opened for reading and writing.
     /// * Any error returned by [`WriterDef::new`] if initialization of the inner storage fails.
     ///
     /// # Returns
@@ -265,11 +265,11 @@ where
     /// Inserts a new packet into storage at the next available slot.
     ///
     /// # Arguments
-    /// * `packet` — The `PacketDef` to be written
+    /// * `packet` - The `PacketDef` to be written
     ///
     /// # Returns
-    /// * `Ok(())` — Packet successfully written
-    /// * `Err(Error)` — If no space is found or write fails
+    /// * `Ok(())` - Packet successfully written
+    /// * `Err(Error)` - If no space is found or write fails
     pub fn insert(&mut self, packet: PacketDef<B, PL, Inner>) -> Result<(), Error> {
         self.inner.insert(packet, &mut self.opt)
     }

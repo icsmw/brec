@@ -167,11 +167,11 @@ impl<
     /// Adds a packet filter or processing rule.
     ///
     /// # Arguments
-    /// * `rule` — A new rule to apply (see `RuleDef`)
+    /// * `rule` - A new rule to apply (see `RuleDef`)
     ///
     /// # Returns
-    /// * `Ok(())` — Rule added successfully
-    /// * `Err(Error::RuleDuplicate)` — Rule of the same type already exists
+    /// * `Ok(())` - Rule added successfully
+    /// * `Err(Error::RuleDuplicate)` - Rule of the same type already exists
     pub fn add_rule(&mut self, rule: RuleDef<B, BR, P, Inner>) -> Result<(), Error> {
         self.rules.add_rule(rule)
     }
@@ -179,7 +179,7 @@ impl<
     /// Removes a previously added rule by its identifier.
     ///
     /// # Arguments
-    /// * `rule` — Identifier of the rule to remove (`RuleDefId`)
+    /// * `rule` - Identifier of the rule to remove (`RuleDefId`)
     pub fn remove_rule(&mut self, rule: RuleDefId) {
         self.rules.remove_rule(rule);
     }
@@ -254,12 +254,12 @@ impl<
     /// Retrieves the `nth` packet by global index (across all slots).
     ///
     /// # Arguments
-    /// * `nth` — Zero-based index of the packet
+    /// * `nth` - Zero-based index of the packet
     ///
     /// # Returns
-    /// * `Ok(Some(PacketDef))` — Packet found
-    /// * `Ok(None)` — No packet exists at this index
-    /// * `Err(Error)` — On slot mismatch, CRC failure, or I/O error
+    /// * `Ok(Some(PacketDef))` - Packet found
+    /// * `Ok(None)` - No packet exists at this index
+    /// * `Err(Error)` - On slot mismatch, CRC failure, or I/O error
     pub fn nth(
         &mut self,
         nth: usize,
@@ -290,8 +290,8 @@ impl<
     /// Returns an iterator over a specific range of packets by global index.
     ///
     /// # Arguments
-    /// * `from` — Starting index (inclusive)
-    /// * `len` — Number of packets to iterate
+    /// * `from` - Starting index (inclusive)
+    /// * `len` - Number of packets to iterate
     ///
     /// # Returns
     /// * `ReaderRangeIterator` over the given range
@@ -307,8 +307,8 @@ impl<
     /// Returns a filtered range iterator applying rules to each packet.
     ///
     /// # Arguments
-    /// * `from` — Starting index
-    /// * `len` — Number of packets to yield
+    /// * `from` - Starting index
+    /// * `len` - Number of packets to yield
     ///
     /// # Returns
     /// * `ReaderRangeFilteredIterator` that yields only accepted packets
@@ -326,14 +326,14 @@ impl<
     /// This method applies all configured rules (block, payload, full packet).
     ///
     /// # Arguments
-    /// * `from` — Index of the packet to filter
+    /// * `from` - Index of the packet to filter
     ///
     /// # Returns
-    /// * `Ok(Some(LookInStatus::Accepted(size, packet)))` — Passed all filters
-    /// * `Ok(Some(LookInStatus::Denied(size)))` — Filtered out
-    /// * `Ok(Some(LookInStatus::NotEnoughData(n)))` — Incomplete
-    /// * `Ok(None)` — No packet at index
-    /// * `Err(Error)` — On I/O or parse failure
+    /// * `Ok(Some(LookInStatus::Accepted(size, packet)))` - Passed all filters
+    /// * `Ok(Some(LookInStatus::Denied(size)))` - Filtered out
+    /// * `Ok(Some(LookInStatus::NotEnoughData(n)))` - Incomplete
+    /// * `Ok(None)` - No packet at index
+    /// * `Err(Error)` - On I/O or parse failure
     pub(crate) fn nth_filtered(
         &mut self,
         from: usize,

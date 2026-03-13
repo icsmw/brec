@@ -2,7 +2,7 @@
 [![](https://github.com/icsmw/brec/actions/workflows/on_pull_request.yml/badge.svg)](https://github.com/icsmw/brec/actions/workflows/on_pull_request.yml)
 ![Crates.io](https://img.shields.io/crates/v/brec)
 
-`brec` is a tool that allows you to quickly and easily create a custom message exchange protocol with resilience to data "corruption" and the ability to extract messages from mixed streams (i.e., streams containing not only `brec` packets but also any other data). `brec` is developed for designing your own custom binary protocol — without predefined message formats or rigid schemas.
+`brec` is a tool that allows you to quickly and easily create a custom message exchange protocol with resilience to data "corruption" and the ability to extract messages from mixed streams (i.e., streams containing not only `brec` packets but also any other data). `brec` is developed for designing your own custom binary protocol - without predefined message formats or rigid schemas.
 
 > **Notice**: Public Beta
 >
@@ -18,24 +18,24 @@
 - **Protocol without constraints** - Unlike many alternatives, `brec` doesn’t enforce a fixed message layout. Instead, you define your own building blocks (`blocks`) and arbitrary payloads (`payloads`), combining them freely into custom packets.
 - **Stream-recognizable messages** - Each block, payload, and packet is automatically assigned a unique signature, making them easily discoverable within any byte stream.
 - **Built-in reliability** - All parts of a packet (blocks, payloads, and headers) are automatically linked with their own CRC checksums to ensure data integrity.
-- **Stream-aware reading** - `brec` includes a powerful streaming reader capable of extracting packets even from noisy or corrupted streams — skipping irrelevant or damaged data without breaking.
+- **Stream-aware reading** - `brec` includes a powerful streaming reader capable of extracting packets even from noisy or corrupted streams - skipping irrelevant or damaged data without breaking.
 - **Non-packet data is preserved** - When reading mixed streams, unrecognized data is not lost. You can capture and process it separately using rules and callbacks.
 - **Persistent storage layer** - `brec` provides a high-performance storage engine for persisting packets. Its slot-based layout enables fast indexed access, filtering, and direct access by packet index.
 - **Optional file observer** - Enable the `observer` feature to watch storage files and consume newly appended packets asynchronously.
 - **Payload runtime context** - Payloads may use explicit runtime state during encode/decode, which makes features like custom context-aware payload logic and crypto integration possible.
 - **Optional payload encryption** - With the `crypt` feature, selected payloads can be encrypted while other payloads in the same protocol remain open.
 - **High performance** - Parsing performance is on par with the most optimized binary parsers (see the Performance section in [documentation](https://icsmw.github.io/brec/)).
-- **Simple to use** - Just annotate your structs with #[block] or #[payload], and brec takes care of the rest — your protocol is ready to go.
+- **Simple to use** - Just annotate your structs with #[block] or #[payload], and brec takes care of the rest - your protocol is ready to go.
 
 ## Overview
 
-The primary unit of information in `brec` is a packet (`Packet`) — a ready-to-transmit message with a unique signature (allowing it to be recognized within mixed data) and a CRC to ensure data integrity.
+The primary unit of information in `brec` is a packet (`Packet`) - a ready-to-transmit message with a unique signature (allowing it to be recognized within mixed data) and a CRC to ensure data integrity.
 
 A packet consists of a set of blocks (`Block`) and, optionally, a payload (`Payload`).
 
 Blocks (`Block`) are the minimal units of information in the `brec` system. A block can contain only primitives, such as numbers, boolean values, and byte slices. A block serves as a kind of packet index, allowing for quick determination of whether a packet requires full processing (i.e., parsing the `Payload`) or can be ignored.
 
-The payload (`Payload`) is an optional part of the packet. Unlike blocks (`Block`), it has no restrictions on the type of data it can contain—it can be a `struct` or `enum` of any complexity and nesting level.
+The payload (`Payload`) is an optional part of the packet. Unlike blocks (`Block`), it has no restrictions on the type of data it can contain - it can be a `struct` or `enum` of any complexity and nesting level.
 
 Unlike most protocols, `brec` does not require users to define a fixed set of messages but does require them to describe blocks (`Block`) and payload data (`Payload`).
 
@@ -82,6 +82,6 @@ Useful entry points:
 
 ## Contributing
 
-We welcome contributions of all kinds — bug reports, performance improvements, documentation fixes, or new features.
+We welcome contributions of all kinds - bug reports, performance improvements, documentation fixes, or new features.
 
 [Click here to view it](CONTRIBUTING.md)

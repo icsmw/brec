@@ -216,7 +216,7 @@ pub enum RuleDef<B: BlockDef, BR: BlockReferredDef<B>, P: PayloadDef<Inner>, Inn
 ///
 /// Stores registered rules and provides runtime dispatch based on rule type.
 ///
-/// Users do not interact with `RulesDef` directly — it's driven by `PacketBufReaderDef`.
+/// Users do not interact with `RulesDef` directly - it's driven by `PacketBufReaderDef`.
 pub struct RulesDef<
     B: BlockDef,
     BR: BlockReferredDef<B>,

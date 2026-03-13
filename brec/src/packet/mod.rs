@@ -119,9 +119,9 @@ impl<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> PacketDef<B, P, 
     /// - Will fail if the entire packet is not already in the stream
     ///
     /// # Returns
-    /// - `Accepted(bytes, packet)` — if all filters passed
-    /// - `Denied(bytes)` — if blocked by rules
-    /// - `NotEnoughData(bytes)` — if more input is needed
+    /// - `Accepted(bytes, packet)` - if all filters passed
+    /// - `Denied(bytes)` - if blocked by rules
+    /// - `NotEnoughData(bytes)` - if more input is needed
     ///
     /// # Errors
     /// - Propagates all decoding and parsing errors from blocks and payload
