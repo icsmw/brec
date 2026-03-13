@@ -1,5 +1,5 @@
-use crate::*;
 use crate::payload::EncodedPayload;
+use crate::*;
 
 /// Implements mutable stream writing for a full `PacketDef`, including header, blocks, and payload.
 ///
@@ -13,8 +13,8 @@ use crate::payload::EncodedPayload;
 ///
 /// # Errors
 /// Returns any I/O error or encoding failure from `BlockDef`, `PayloadDef`, or `PayloadHeader`.
-impl<O: Default, B: BlockDef, P: PayloadDef<O, Inner>, Inner: PayloadInnerDef<O>> WriteMutTo
-    for PacketDef<O, B, P, Inner>
+impl<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> WriteMutTo
+    for PacketDef<B, P, Inner>
 {
     /// Writes the packet to a stream, allowing for partial write detection.
     ///
@@ -23,9 +23,13 @@ impl<O: Default, B: BlockDef, P: PayloadDef<O, Inner>, Inner: PayloadInnerDef<O>
     /// writer cannot accept all data in one go.
     ///
     /// Use `write_all()` if full delivery is required.
-    fn write<T: std::io::Write>(&mut self, buf: &mut T) -> std::io::Result<usize> {
+    fn write<T: std::io::Write>(
+        &mut self,
+        buf: &mut T,
+        ctx: &mut <Self as PayloadSchema>::Context<'_>,
+    ) -> std::io::Result<usize> {
         let prepared_payload = if let Some(payload) = self.payload.as_ref() {
-            Some(prepare_payload(payload)?)
+            Some(prepare_payload(payload, ctx)?)
         } else {
             None
         };
@@ -34,7 +38,8 @@ impl<O: Default, B: BlockDef, P: PayloadDef<O, Inner>, Inner: PayloadInnerDef<O>
             .map(|(header, body)| (header.size() + body.len()) as u64)
             .unwrap_or(0);
         let blocks_len: u64 = self.blocks.iter().map(|blk| blk.size()).sum();
-        let header = PacketHeader::from_lengths(blocks_len, payload_len, prepared_payload.is_some());
+        let header =
+            PacketHeader::from_lengths(blocks_len, payload_len, prepared_payload.is_some());
         let mut total = header.write(buf)?;
         if total < PacketHeader::SIZE as usize {
             return Ok(total);
@@ -70,9 +75,13 @@ impl<O: Default, B: BlockDef, P: PayloadDef<O, Inner>, Inner: PayloadInnerDef<O>
     /// - the computed `PacketHeader`
     /// - each individual block
     /// - optional payload
-    fn write_all<T: std::io::Write>(&mut self, buf: &mut T) -> std::io::Result<()> {
+    fn write_all<T: std::io::Write>(
+        &mut self,
+        buf: &mut T,
+        ctx: &mut <Self as PayloadSchema>::Context<'_>,
+    ) -> std::io::Result<()> {
         let prepared_payload = if let Some(payload) = self.payload.as_ref() {
-            Some(prepare_payload(payload)?)
+            Some(prepare_payload(payload, ctx)?)
         } else {
             None
         };
@@ -81,7 +90,8 @@ impl<O: Default, B: BlockDef, P: PayloadDef<O, Inner>, Inner: PayloadInnerDef<O>
             .map(|(header, body)| (header.size() + body.len()) as u64)
             .unwrap_or(0);
         let blocks_len: u64 = self.blocks.iter().map(|blk| blk.size()).sum();
-        let header = PacketHeader::from_lengths(blocks_len, payload_len, prepared_payload.is_some());
+        let header =
+            PacketHeader::from_lengths(blocks_len, payload_len, prepared_payload.is_some());
         header.write_all(buf)?;
         for blk in self.blocks.iter() {
             blk.write_all(buf)?;
@@ -106,8 +116,8 @@ impl<O: Default, B: BlockDef, P: PayloadDef<O, Inner>, Inner: PayloadInnerDef<O>
 ///
 /// # Errors
 /// Returns an error if header construction, encoding, or slice generation fails.
-impl<O: Default, B: BlockDef, P: PayloadDef<O, Inner>, Inner: PayloadInnerDef<O>>
-    WriteVectoredMutTo for PacketDef<O, B, P, Inner>
+impl<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> WriteVectoredMutTo
+    for PacketDef<B, P, Inner>
 {
     /// Returns an `IoSlices` collection representing the full serialized packet.
     ///
@@ -118,9 +128,12 @@ impl<O: Default, B: BlockDef, P: PayloadDef<O, Inner>, Inner: PayloadInnerDef<O>
     ///
     /// # Returns
     /// A ready-to-write `IoSlices` that can be passed to `write_vectored`.
-    fn slices(&mut self) -> std::io::Result<IoSlices<'_>> {
+    fn slices(
+        &mut self,
+        ctx: &mut <Self as PayloadSchema>::Context<'_>,
+    ) -> std::io::Result<IoSlices<'_>> {
         let prepared_payload = if let Some(payload) = self.payload.as_ref() {
-            Some(prepare_payload(payload)?)
+            Some(prepare_payload(payload, ctx)?)
         } else {
             None
         };
@@ -129,7 +142,8 @@ impl<O: Default, B: BlockDef, P: PayloadDef<O, Inner>, Inner: PayloadInnerDef<O>
             .map(|(header, body)| (header.size() + body.len()) as u64)
             .unwrap_or(0);
         let blocks_len: u64 = self.blocks.iter().map(|blk| blk.size()).sum();
-        let header = PacketHeader::from_lengths(blocks_len, payload_len, prepared_payload.is_some());
+        let header =
+            PacketHeader::from_lengths(blocks_len, payload_len, prepared_payload.is_some());
         let mut slices = IoSlices::default();
         let mut header_bytes: Vec<u8> = Vec::new();
         header.write_all(&mut header_bytes)?;

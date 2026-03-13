@@ -1,14 +1,18 @@
+/// Helpers for building vectored write payload/body slices.
 pub mod slices;
 
 pub use slices::*;
 
 use crate::prelude::*;
 
-pub(crate) fn prepare_payload<T>(payload: &T) -> std::io::Result<(PayloadHeader, EncodedPayload<'_>)>
+pub(crate) fn prepare_payload<'a, T>(
+    payload: &'a T,
+    ctx: &mut T::Context<'_>,
+) -> std::io::Result<(PayloadHeader, EncodedPayload<'a>)>
 where
-    T: PayloadSignature + PayloadEncode + PayloadEncodeReferred,
+    T: PayloadSignature + PayloadEncoded,
 {
-    let body = payload.encoded()?;
+    let body = payload.encoded(ctx)?;
     let len = body.len();
     if len > u32::MAX as usize {
         return Err(std::io::Error::new(
@@ -44,15 +48,23 @@ pub trait WriteTo {
 /// Trait for writing a mutable reference to a writable stream.
 ///
 /// This is useful when the data to be written may require mutation during encoding.
-pub trait WriteMutTo {
+pub trait WriteMutTo: PayloadSchema {
     /// Writes the encoded contents to the given writer.
     ///
     /// # Returns
     /// The number of bytes written.
-    fn write<T: std::io::Write>(&mut self, buf: &mut T) -> std::io::Result<usize>;
+    fn write<T: std::io::Write>(
+        &mut self,
+        buf: &mut T,
+        ctx: &mut <Self as PayloadSchema>::Context<'_>,
+    ) -> std::io::Result<usize>;
 
     /// Writes all encoded content to the stream, ensuring complete output.
-    fn write_all<T: std::io::Write>(&mut self, buf: &mut T) -> std::io::Result<()>;
+    fn write_all<T: std::io::Write>(
+        &mut self,
+        buf: &mut T,
+        ctx: &mut <Self as PayloadSchema>::Context<'_>,
+    ) -> std::io::Result<()>;
 }
 
 /// Trait for writing using vectored I/O with immutable data.
@@ -79,18 +91,29 @@ pub trait WriteVectoredTo {
 /// Trait for vectored I/O with mutable data.
 ///
 /// This variant allows mutation when preparing data for writing.
-pub trait WriteVectoredMutTo {
+pub trait WriteVectoredMutTo: PayloadSchema {
     /// Writes the encoded data using vectored I/O.
-    fn write_vectored<T: std::io::Write>(&mut self, buf: &mut T) -> std::io::Result<usize> {
-        buf.write_vectored(&self.slices()?.get())
+    fn write_vectored<T: std::io::Write>(
+        &mut self,
+        buf: &mut T,
+        ctx: &mut <Self as PayloadSchema>::Context<'_>,
+    ) -> std::io::Result<usize> {
+        buf.write_vectored(&self.slices(ctx)?.get())
     }
 
     /// Returns the I/O slices for the data to write.
-    fn slices(&mut self) -> std::io::Result<IoSlices<'_>>;
+    fn slices(
+        &mut self,
+        ctx: &mut <Self as PayloadSchema>::Context<'_>,
+    ) -> std::io::Result<IoSlices<'_>>;
 
     /// Ensures all data is written using vectored I/O.
-    fn write_vectored_all<T: std::io::Write>(&mut self, buf: &mut T) -> std::io::Result<()> {
-        self.slices()?.write_vectored_all(buf)
+    fn write_vectored_all<T: std::io::Write>(
+        &mut self,
+        buf: &mut T,
+        ctx: &mut <Self as PayloadSchema>::Context<'_>,
+    ) -> std::io::Result<()> {
+        self.slices(ctx)?.write_vectored_all(buf)
     }
 }
 
@@ -111,16 +134,24 @@ where
     ///
     /// # Returns
     /// The total number of bytes written.
-    fn write<T: std::io::Write>(&mut self, buf: &mut T) -> std::io::Result<usize> {
-        let (header, body) = prepare_payload(self)?;
+    fn write<T: std::io::Write>(
+        &mut self,
+        buf: &mut T,
+        ctx: &mut <Self as PayloadSchema>::Context<'_>,
+    ) -> std::io::Result<usize> {
+        let (header, body) = prepare_payload(self, ctx)?;
         let header = header.as_vec();
         buf.write_all(&header)?;
         buf.write(body.as_slice()).map(|s| s + header.len())
     }
 
     /// Writes the entire header and payload, ensuring completeness.
-    fn write_all<T: std::io::Write>(&mut self, buf: &mut T) -> std::io::Result<()> {
-        let (header, body) = prepare_payload(self)?;
+    fn write_all<T: std::io::Write>(
+        &mut self,
+        buf: &mut T,
+        ctx: &mut <Self as PayloadSchema>::Context<'_>,
+    ) -> std::io::Result<()> {
+        let (header, body) = prepare_payload(self, ctx)?;
         buf.write_all(&header.as_vec())?;
         buf.write_all(body.as_slice())
     }
@@ -135,14 +166,21 @@ where
         Sized + PayloadEncode + PayloadEncodeReferred + PayloadSignature + PayloadCrc + PayloadSize,
 {
     /// Writes the header and payload using vectored I/O.
-    fn write_vectored<T: std::io::Write>(&mut self, buf: &mut T) -> std::io::Result<usize> {
-        buf.write_vectored(&self.slices()?.get())
+    fn write_vectored<T: std::io::Write>(
+        &mut self,
+        buf: &mut T,
+        ctx: &mut <Self as PayloadSchema>::Context<'_>,
+    ) -> std::io::Result<usize> {
+        buf.write_vectored(&self.slices(ctx)?.get())
     }
 
     /// Prepares the header and payload slices for vectored I/O.
-    fn slices(&mut self) -> std::io::Result<IoSlices<'_>> {
+    fn slices(
+        &mut self,
+        ctx: &mut <Self as PayloadSchema>::Context<'_>,
+    ) -> std::io::Result<IoSlices<'_>> {
         let mut slices = IoSlices::default();
-        let (header, body) = prepare_payload(self)?;
+        let (header, body) = prepare_payload(self, ctx)?;
         let header = header.as_vec();
         slices.add_buffered(header.to_vec());
         match body {
@@ -153,7 +191,11 @@ where
     }
 
     /// Writes all header and payload data using vectored I/O.
-    fn write_vectored_all<T: std::io::Write>(&mut self, buf: &mut T) -> std::io::Result<()> {
-        self.slices()?.write_vectored_all(buf)
+    fn write_vectored_all<T: std::io::Write>(
+        &mut self,
+        buf: &mut T,
+        ctx: &mut <Self as PayloadSchema>::Context<'_>,
+    ) -> std::io::Result<()> {
+        self.slices(ctx)?.write_vectored_all(buf)
     }
 }

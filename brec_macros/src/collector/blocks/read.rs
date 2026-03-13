@@ -21,10 +21,7 @@ pub fn read_from(blocks: &[&Block]) -> Result<TokenStream, E> {
     }
     Ok(quote! {
         impl brec::ReadFrom for Block {
-            fn read<T: std::io::Read>(buf: &mut T) -> Result<Self, brec::Error>
-            where
-                Self: Sized,
-            {
+            fn read<T: std::io::Read>(buf: &mut T) -> Result<Self, brec::Error> {
                 #(#variants)*
                 Err(brec::Error::SignatureDismatch)
             }
@@ -84,12 +81,7 @@ pub fn try_read_from(blocks: &[&Block]) -> Result<TokenStream, E> {
     }
     Ok(quote! {
         impl brec::TryReadFrom for Block {
-            fn try_read<T: std::io::Read + std::io::Seek>(
-                buf: &mut T,
-            ) -> Result<brec::ReadStatus<Self>, brec::Error>
-            where
-                Self: Sized,
-            {
+            fn try_read<T: std::io::Read + std::io::Seek>(buf: &mut T) -> Result<brec::ReadStatus<Self>, brec::Error> {
                 #(#variants)*
                 Err(brec::Error::SignatureDismatch)
             }
@@ -120,10 +112,7 @@ pub fn try_read_from_buffered(blocks: &[&Block]) -> Result<TokenStream, E> {
     }
     Ok(quote! {
         impl brec::TryReadFromBuffered for Block {
-            fn try_read<T: std::io::BufRead>(buf: &mut T) -> Result<brec::ReadStatus<Self>, brec::Error>
-            where
-                Self: Sized,
-            {
+            fn try_read<T: std::io::BufRead>(buf: &mut T) -> Result<brec::ReadStatus<Self>, brec::Error> {
                 #(#variants)*
                 Err(brec::Error::SignatureDismatch)
             }

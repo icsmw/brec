@@ -20,8 +20,11 @@ use crate::*;
 /// - `payload`: Optional raw payload slice (usually borrowed from a buffer).
 /// - `_b`: Phantom marker to retain the `B` type.
 pub struct PacketReferred<'a, B: BlockDef, BR: BlockReferredDef<B>> {
+    /// Blocks represented in referred or zero-copy form.
     pub blocks: Vec<BR>,
+    /// Parsed packet header.
     pub header: PacketHeader,
+    /// Optional raw payload body borrowed from the source buffer.
     pub payload: Option<&'a [u8]>,
     _b: PhantomData<B>,
 }

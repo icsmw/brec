@@ -82,13 +82,18 @@ impl PacketHeader {
     pub fn new<B: BlockDef, Inner: PayloadInnerDef>(
         blocks: &[B],
         payload: Option<&Inner>,
+        ctx: &mut <Inner as PayloadSchema>::Context<'_>,
     ) -> std::io::Result<Self> {
         let blocks_len: u64 = blocks.iter().map(|blk| blk.size()).sum();
         let payload_len: u64 = payload
             .as_ref()
-            .map(|payload| Self::payload_size(*payload))
+            .map(|payload| Self::payload_size(*payload, ctx))
             .unwrap_or(Ok(0))?;
-        Ok(Self::from_lengths(blocks_len, payload_len, payload.is_some()))
+        Ok(Self::from_lengths(
+            blocks_len,
+            payload_len,
+            payload.is_some(),
+        ))
     }
 
     /// Calculates the total size of the payload, including its header and body.
@@ -98,9 +103,12 @@ impl PacketHeader {
     ///
     /// # Returns
     /// The total payload size in bytes (`header + body`), or an error if size calculation fails.
-    pub fn payload_size<Inner: PayloadInnerDef>(payload: &Inner) -> std::io::Result<u64> {
-        let payload_header_len: u64 = PayloadHeader::ssize(payload).map(|s| s as u64)?;
-        let payload_body_len: u64 = payload.size()?;
+    pub fn payload_size<Inner: PayloadInnerDef>(
+        payload: &Inner,
+        ctx: &mut <Inner as PayloadSchema>::Context<'_>,
+    ) -> std::io::Result<u64> {
+        let payload_header_len: u64 = PayloadHeader::ssize::<Inner>(payload).map(|s| s as u64)?;
+        let payload_body_len: u64 = payload.size(ctx)?;
         Ok(payload_body_len + payload_header_len)
     }
 

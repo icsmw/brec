@@ -8,7 +8,7 @@ use tokio::{
     task::{self, JoinHandle},
 };
 use tokio_util::sync::CancellationToken;
-use tracing::{debug, instrument};
+use tracing::debug;
 
 use crate::*;
 pub use options::*;
@@ -16,11 +16,11 @@ pub use sensor::*;
 pub use stream::*;
 
 pub struct FileObserverDef<
-    O: Default + Send + 'static,
     B: BlockDef + Send + 'static,
     BR: BlockReferredDef<B> + 'static,
-    P: PayloadDef<O, Inner> + Send + 'static,
-    Inner: PayloadInnerDef<O> + Send + 'static,
+    P: PayloadDef<Inner> + Send + 'static,
+    Inner: PayloadInnerDef + Send + 'static,
+    O: Send + Sync + 'static,
 > {
     handler: Option<JoinHandle<()>>,
     sd: CancellationToken,
@@ -28,17 +28,21 @@ pub struct FileObserverDef<
 }
 
 impl<
-    O: Default + Send + 'static,
     B: BlockDef + Send + 'static,
     BR: BlockReferredDef<B> + 'static,
-    P: PayloadDef<O, Inner> + Send + 'static,
-    Inner: PayloadInnerDef<O> + Send + 'static,
-> FileObserverDef<O, B, BR, P, Inner>
+    P: PayloadDef<Inner> + Send + 'static,
+    Inner: PayloadInnerDef + Send + 'static,
+    O: Send + Sync + 'static,
+> FileObserverDef<B, BR, P, Inner, O>
+where
+    for<'a> Inner: PayloadSchema<Context<'a> = O>,
 {
-    #[instrument]
-    pub fn new<S>(mut options: FileObserverOptions<O, B, BR, P, Inner, S>) -> Result<Self, Error>
+    pub fn with_opt<S>(
+        mut options: FileObserverOptions<B, BR, P, Inner, S, O>,
+        opt: O,
+    ) -> Result<Self, Error>
     where
-        S: SubscriptionDef<O, B, BR, P, Inner> + 'static,
+        S: SubscriptionDef<B, BR, P, Inner, O> + 'static,
     {
         let Some(mut subscription) = options.subscription.take() else {
             return Err(Error::NoSubscription);
@@ -46,12 +50,13 @@ impl<
         let sd = CancellationToken::new();
         let shutdown = sd.clone();
         let file = std::fs::File::open(&options.path)?;
-        let mut reader: ReaderDef<O, std::fs::File, B, BR, P, Inner> =
+        let mut reader: ReaderDef<std::fs::File, B, BR, P, Inner> =
             ReaderDef::new(file.try_clone()?)?;
 
         let (sensor, mut wake_rx) = Sensor::new(&options.path)?;
 
         let handler = task::spawn(async move {
+            let mut opt = opt;
             let mut stop_reason: Option<Error> = None;
             let mut last = 0;
             let mut count = reader.count();
@@ -60,17 +65,15 @@ impl<
                 SubscriptionUpdate::Read
             ) {
                 // Load first existed
-                while let Some(pkg) = reader.iter().next() {
+                while let Some(pkg) = reader.iter(&mut opt).next() {
                     last += 1;
                     match pkg {
                         Ok(packet) => {
                             subscription.on_packet(packet);
                         }
                         Err(err) => {
-                            if matches!(
-                                subscription.on_error(&err),
-                                SubscriptionErrorAction::Stop
-                            ) {
+                            if matches!(subscription.on_error(&err), SubscriptionErrorAction::Stop)
+                            {
                                 subscription.on_stopped(Some(err));
                                 return;
                             }
@@ -116,7 +119,7 @@ impl<
                         ) {
                             continue;
                         }
-                        match reader.seek(last) {
+                        match reader.seek(last, &mut opt) {
                             Ok(mut iterator) => {
                                 for pkg in iterator.by_ref() {
                                     last += 1;
@@ -158,6 +161,14 @@ impl<
             sd,
             _phantom: PhantomData,
         })
+    }
+
+    pub fn new<S>(options: FileObserverOptions<B, BR, P, Inner, S, O>) -> Result<Self, Error>
+    where
+        S: SubscriptionDef<B, BR, P, Inner, O> + 'static,
+        O: Default,
+    {
+        Self::with_opt(options, O::default())
     }
 
     pub async fn shutdown(&mut self) {

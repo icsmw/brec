@@ -1,4 +1,4 @@
-use syn::{parse_quote, DeriveInput};
+use syn::{DeriveInput, parse_quote};
 
 pub fn inject_repr_c(input: &mut DeriveInput) -> Result<(), syn::Error> {
     let mut has_repr_c = false;

@@ -1,8 +1,8 @@
 use crate::*;
 use syn::{
+    Expr, Token,
     parse::{self, Parse, ParseStream},
     punctuated::Punctuated,
-    Expr, Token,
 };
 
 impl Parse for Config {

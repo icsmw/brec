@@ -3,7 +3,7 @@ use std::io::BufRead;
 use crate::*;
 
 /// Represents the result of reading from `PacketBufReaderDef`.
-pub enum NextPacket<O: Default, B: BlockDef, P: PayloadDef<O, Inner>, Inner: PayloadInnerDef<O>> {
+pub enum NextPacket<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> {
     /// Not enough data available to read the current packet.
     /// This does not necessarily mean that a `brec` packet was detected but rather that
     /// additional data is required to determine its presence.
@@ -28,7 +28,7 @@ pub enum NextPacket<O: Default, B: BlockDef, P: PayloadDef<O, Inner>, Inner: Pay
     Skipped,
 
     /// Indicates successful parsing of a `brec` packet that has passed filtering rules (if any exist).
-    Found(PacketDef<O, B, P, Inner>),
+    Found(PacketDef<B, P, Inner>),
 }
 /// Internal structure used by `PacketBufReaderDef` when reading packet headers.
 pub enum PacketHeaderState {
@@ -60,9 +60,9 @@ pub enum HeaderReadState {
 }
 
 /// Internal structure used by `PacketBufReaderDef` for handling packet header resolution.
-pub enum ResolveHeaderReady<O: Default, B: BlockDef, P: PayloadDef<O, Inner>, Inner: PayloadInnerDef<O>> {
+pub enum ResolveHeaderReady<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> {
     /// Indicates that the next action should be taken in processing.
-    Next(NextPacket<O, B, P, Inner>),
+    Next(NextPacket<B, P, Inner>),
     /// The packet header has been successfully resolved.
     Resolved(PacketHeader),
 }
@@ -84,17 +84,16 @@ pub enum ResolveHeaderReady<O: Default, B: BlockDef, P: PayloadDef<O, Inner>, In
 /// This abstraction frees the user from the need to explicitly propagate these types.
 pub struct PacketBufReaderDef<
     'a,
-    O: Default,
     R: std::io::Read,
     B: BlockDef,
     BR: BlockReferredDef<B>,
-    P: PayloadDef<O, Inner>,
-    Inner: PayloadInnerDef<O>,
+    P: PayloadDef<Inner>,
+    Inner: PayloadInnerDef,
 > {
     /// Buffered reader for handling input stream operations.
     inner: std::io::BufReader<&'a mut R>,
     /// Collection of processing rules applied to incoming data.
-    rules: RulesDef<O, B, BR, P, Inner>,
+    rules: RulesDef<B, BR, P, Inner>,
     /// Stores the current state of the header reading process.
     recent: HeaderReadState,
     /// Internal buffer for accumulating data before processing.
@@ -102,14 +101,13 @@ pub struct PacketBufReaderDef<
 }
 
 impl<
-        'a,
-        O: Default,
-        R: std::io::Read,
-        B: BlockDef,
-        BR: BlockReferredDef<B>,
-        P: PayloadDef<O, Inner>,
-        Inner: PayloadInnerDef<O>,
-    > PacketBufReaderDef<'a, O, R, B, BR, P, Inner>
+    'a,
+    R: std::io::Read,
+    B: BlockDef,
+    BR: BlockReferredDef<B>,
+    P: PayloadDef<Inner>,
+    Inner: PayloadInnerDef,
+> PacketBufReaderDef<'a, R, B, BR, P, Inner>
 {
     /// Parses a packet header from the provided buffer.
     ///
@@ -139,8 +137,8 @@ impl<
     fn drop_and_consume(
         &mut self,
         consume: Option<usize>,
-        result: Result<NextPacket<O, B, P, Inner>, Error>,
-    ) -> Result<NextPacket<O, B, P, Inner>, Error> {
+        result: Result<NextPacket<B, P, Inner>, Error>,
+    ) -> Result<NextPacket<B, P, Inner>, Error> {
         self.buffered.clear();
         if let Some(s) = consume {
             self.inner.consume(s)
@@ -156,7 +154,7 @@ impl<
     fn resolve_header_ready(
         &mut self,
         header: PacketHeader,
-    ) -> Result<ResolveHeaderReady<O, B, P, Inner>, Error> {
+    ) -> Result<ResolveHeaderReady<B, P, Inner>, Error> {
         let buffer = self.inner.fill_buf()?;
         // Check do we have enough data to load packet
         let packet_size = header.size as usize;
@@ -189,7 +187,7 @@ impl<
         &mut self,
         mut buffer: Vec<u8>,
         needed: usize,
-    ) -> Result<NextPacket<O, B, P, Inner>, Error> {
+    ) -> Result<NextPacket<B, P, Inner>, Error> {
         let extracted = self.inner.fill_buf()?;
         if extracted.is_empty() {
             self.rules.ignore(&buffer)?;
@@ -205,7 +203,7 @@ impl<
         let buffered = buffer.len();
         // First make attempt to read header without possible litter
         buffer.extend_from_slice(&extracted[..needed]);
-        match PacketBufReaderDef::<'a, O, R, B, BR, P, Inner>::read_header(&buffer)? {
+        match PacketBufReaderDef::<'a, R, B, BR, P, Inner>::read_header(&buffer)? {
             PacketHeaderState::Found(header, sgmt) => {
                 if sgmt.start() > &0 {
                     self.rules.ignore(&buffer[..*sgmt.start()])?;
@@ -221,7 +219,7 @@ impl<
         // Second, if buffer has litter, header might be in next bytes. Trying all available bytes
         buffer.extend_from_slice(&extracted[needed..]);
         let header_len = PacketHeader::ssize() as usize;
-        match PacketBufReaderDef::<'a, O, R, B, BR, P, Inner>::read_header(&buffer)? {
+        match PacketBufReaderDef::<'a, R, B, BR, P, Inner>::read_header(&buffer)? {
             PacketHeaderState::Found(header, sgmt) => {
                 if sgmt.start() > &0 {
                     self.rules.ignore(&buffer[..*sgmt.start()])?;
@@ -253,7 +251,7 @@ impl<
         }
     }
 
-    /// Creates a new instance of the reader.
+    /// Creates a new instance of the reader with explicit options.
     pub fn new(inner: &'a mut R) -> Self {
         Self {
             inner: std::io::BufReader::new(inner),
@@ -264,7 +262,7 @@ impl<
     }
 
     /// Adds a processing rule. See `RuleDef` for more details.
-    pub fn add_rule(&mut self, rule: RuleDef<O, B, BR, P, Inner>) -> Result<(), Error> {
+    pub fn add_rule(&mut self, rule: RuleDef<B, BR, P, Inner>) -> Result<(), Error> {
         self.rules.add_rule(rule)
     }
 
@@ -280,7 +278,10 @@ impl<
     /// the read position.
     ///
     /// To continue reading, the user must call `read` on `PacketBufReaderDef` again to process more data.
-    pub fn read(&mut self) -> Result<NextPacket<O, B, P, Inner>, Error> {
+    pub fn read(
+        &mut self,
+        ctx: &mut <Inner as PayloadSchema>::Context<'_>,
+    ) -> Result<NextPacket<B, P, Inner>, Error> {
         let recent = std::mem::replace(&mut self.recent, HeaderReadState::Empty);
         let (packet_buffer, header, consume) = match recent {
             HeaderReadState::Ready(Some(header)) => match self.resolve_header_ready(header)? {
@@ -305,7 +306,7 @@ impl<
                     self.inner.consume(available);
                     return Ok(NextPacket::NotEnoughData(needed));
                 }
-                match PacketBufReaderDef::<'a, O, R, B, BR, P, Inner>::read_header(buffer)? {
+                match PacketBufReaderDef::<'a, R, B, BR, P, Inner>::read_header(buffer)? {
                     PacketHeaderState::NotFound => {
                         let header_len = PacketHeader::ssize() as usize;
                         if available > header_len {
@@ -406,6 +407,7 @@ impl<
                     match <P as TryExtractPayloadFromBuffered<Inner>>::try_read(
                         &mut payload_buffer,
                         &header,
+                        ctx,
                     )? {
                         ReadStatus::Success(payload) => PacketDef::new(
                             blocks.into_iter().map(|blk| blk.into()).collect::<Vec<B>>(),

@@ -80,17 +80,29 @@ pub struct TestPayload {
     field: u8,
 }
 
+impl PayloadSchema for TestPayload {
+    type Context<'a> = DefaultPayloadContext;
+}
+
 impl WriteVectoredMutTo for TestPayload {
-    fn slices(&mut self) -> std::io::Result<IoSlices<'_>> {
+    fn slices(&mut self, _: &mut Self::Context<'_>) -> std::io::Result<IoSlices<'_>> {
         Err(std::io::Error::other("test"))
     }
 }
 
 impl WriteMutTo for TestPayload {
-    fn write<T: std::io::Write>(&mut self, _: &mut T) -> std::io::Result<usize> {
+    fn write<T: std::io::Write>(
+        &mut self,
+        _: &mut T,
+        _: &mut Self::Context<'_>,
+    ) -> std::io::Result<usize> {
         Err(std::io::Error::other("test"))
     }
-    fn write_all<T: std::io::Write>(&mut self, _: &mut T) -> std::io::Result<()> {
+    fn write_all<T: std::io::Write>(
+        &mut self,
+        _: &mut T,
+        _: &mut Self::Context<'_>,
+    ) -> std::io::Result<()> {
         Err(std::io::Error::other("test"))
     }
 }
@@ -102,7 +114,7 @@ impl PayloadSignature for TestPayload {
 }
 
 impl PayloadEncodeReferred for TestPayload {
-    fn encode_with(&self, _opt: &()) -> std::io::Result<Option<&[u8]>> {
+    fn encode(&self, _ctx: &mut Self::Context<'_>) -> std::io::Result<Option<&[u8]>> {
         Err(std::io::Error::other("test"))
     }
 }
@@ -117,13 +129,13 @@ impl PayloadHooks for TestPayload {
 }
 
 impl PayloadEncode for TestPayload {
-    fn encode_with(&self, _opt: &()) -> std::io::Result<Vec<u8>> {
+    fn encode(&self, _ctx: &mut Self::Context<'_>) -> std::io::Result<Vec<u8>> {
         Err(std::io::Error::other("test"))
     }
 }
 
 impl PayloadCrc for TestPayload {
-    fn crc(&self) -> std::io::Result<ByteBlock> {
+    fn crc(&self, _: &mut Self::Context<'_>) -> std::io::Result<ByteBlock> {
         Err(std::io::Error::other("test"))
     }
     fn crc_size() -> usize {
@@ -132,7 +144,7 @@ impl PayloadCrc for TestPayload {
 }
 
 impl PayloadSize for TestPayload {
-    fn size(&self) -> std::io::Result<u64> {
+    fn size(&self, _: &mut Self::Context<'_>) -> std::io::Result<u64> {
         Err(std::io::Error::other("test"))
     }
 }
@@ -142,6 +154,7 @@ impl TryExtractPayloadFromBuffered<TestPayload> for TestPayload {
     fn try_read<B: std::io::BufRead>(
         _: &mut B,
         _: &PayloadHeader,
+        _: &mut <TestPayload as PayloadSchema>::Context<'_>,
     ) -> Result<ReadStatus<TestPayload>, Error> {
         Err(Error::Test)
     }
@@ -151,15 +164,20 @@ impl TryExtractPayloadFrom<TestPayload> for TestPayload {
     fn try_read<B: std::io::Read + std::io::Seek>(
         _: &mut B,
         _: &PayloadHeader,
+        _: &mut <TestPayload as PayloadSchema>::Context<'_>,
     ) -> Result<ReadStatus<TestPayload>, Error> {
         Err(Error::Test)
     }
 }
 
 impl ExtractPayloadFrom<TestPayload> for TestPayload {
-    fn read<B: std::io::Read>(_: &mut B, _: &PayloadHeader) -> Result<TestPayload, Error> {
+    fn read<B: std::io::Read>(
+        _: &mut B,
+        _: &PayloadHeader,
+        _: &mut <TestPayload as PayloadSchema>::Context<'_>,
+    ) -> Result<TestPayload, Error> {
         Err(Error::Test)
     }
 }
 
-impl PayloadDef<(), TestPayload> for TestPayload {}
+impl PayloadDef<TestPayload> for TestPayload {}

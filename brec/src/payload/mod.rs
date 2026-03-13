@@ -3,10 +3,24 @@ mod header;
 
 pub use header::*;
 
+/// Default payload context used by payloads that require no runtime state.
+pub type DefaultPayloadContext = ();
+
+/// Returns the default payload context value, equivalent to `()`.
+pub const fn default_payload_context() -> DefaultPayloadContext {}
+
+/// Associates a payload type with the runtime context it expects during processing.
+pub trait PayloadSchema {
+    /// Runtime context passed into payload encode, decode, and size operations.
+    type Context<'a>;
+}
+
 /// Represents an encoded payload body, either borrowed from the original value
 /// or materialized into an owned buffer.
 pub enum EncodedPayload<'a> {
+    /// Bytes borrowed from an existing encoded representation.
     Borrowed(&'a [u8]),
+    /// Bytes materialized into an owned buffer.
     Owned(Vec<u8>),
 }
 
@@ -59,19 +73,9 @@ pub trait PayloadHooks {
 /// Trait for serializing a payload into a byte buffer.
 ///
 /// Requires `PayloadHooks`, so `before_encode()` will always be invoked before encoding.
-pub trait PayloadEncode<O: Default = ()>: PayloadHooks {
-    fn encode_with(&self, opt: &O) -> std::io::Result<Vec<u8>>;
-    /// Encodes the payload and returns a `Vec<u8>` containing serialized bytes.
-    ///
-    /// # Returns
-    /// The encoded byte buffer.
-    ///
-    /// # Errors
-    /// Any I/O or serialization error encountered during encoding.
-    fn encode(&self) -> std::io::Result<Vec<u8>> {
-        let opt = O::default();
-        self.encode_with(&opt)
-    }
+pub trait PayloadEncode: PayloadHooks + PayloadSchema {
+    /// Serializes the payload body into a standalone byte buffer.
+    fn encode(&self, ctx: &mut Self::Context<'_>) -> std::io::Result<Vec<u8>>;
 }
 
 /// Provides an optional reference to an already-encoded payload.
@@ -80,18 +84,9 @@ pub trait PayloadEncode<O: Default = ()>: PayloadHooks {
 /// this trait can return a reference to the existing bytes and skip re-encoding.
 ///
 /// Useful in zero-copy or deferred encoding scenarios.
-pub trait PayloadEncodeReferred<O: Default = ()> {
-    fn encode_with(&self, opt: &O) -> std::io::Result<Option<&[u8]>>;
-
-    /// Optionally returns a reference to a pre-encoded payload.
-    ///
-    /// # Returns
-    /// - `Some(&[u8])` if the encoded buffer is available.
-    /// - `None` if the payload must be encoded with [`PayloadEncode`].
-    fn encode(&self) -> std::io::Result<Option<&[u8]>> {
-        let opt = O::default();
-        self.encode_with(&opt)
-    }
+pub trait PayloadEncodeReferred: PayloadSchema {
+    /// Returns a borrowed encoded payload body when one is already available.
+    fn encode(&self, ctx: &mut Self::Context<'_>) -> std::io::Result<Option<&[u8]>>;
 }
 
 /// Resolves the payload body into either a borrowed slice or an owned buffer.
@@ -101,11 +96,11 @@ pub trait PayloadEncodeReferred<O: Default = ()> {
 /// repeating the same encode step multiple times.
 pub trait PayloadEncoded: PayloadEncode + PayloadEncodeReferred {
     /// Returns the encoded payload body.
-    fn encoded(&self) -> std::io::Result<EncodedPayload<'_>> {
-        if let Some(bytes) = PayloadEncodeReferred::encode(self)? {
+    fn encoded(&self, ctx: &mut Self::Context<'_>) -> std::io::Result<EncodedPayload<'_>> {
+        if let Some(bytes) = PayloadEncodeReferred::encode(self, ctx)? {
             Ok(EncodedPayload::Borrowed(bytes))
         } else {
-            Ok(EncodedPayload::Owned(PayloadEncode::encode(self)?))
+            Ok(EncodedPayload::Owned(PayloadEncode::encode(self, ctx)?))
         }
     }
 }
@@ -115,21 +110,7 @@ impl<T> PayloadEncoded for T where T: PayloadEncode + PayloadEncodeReferred {}
 /// Trait for decoding a payload from a byte buffer.
 ///
 /// Requires `PayloadHooks`, so `after_decode()` will always be called after decoding.
-pub trait PayloadDecode<T, O: Default = ()>: PayloadHooks {
-    fn decode_with(buf: &[u8], opt: &O) -> std::io::Result<T>;
-
-    /// Deserializes a payload from the provided byte slice.
-    ///
-    /// # Arguments
-    /// * `buf` - The raw buffer containing the payload data.
-    ///
-    /// # Returns
-    /// The decoded payload object.
-    ///
-    /// # Errors
-    /// Any error encountered while decoding or validating the payload.
-    fn decode(buf: &[u8]) -> std::io::Result<T> {
-        let opt = O::default();
-        Self::decode_with(buf, &opt)
-    }
+pub trait PayloadDecode<T>: PayloadHooks + PayloadSchema {
+    /// Reconstructs a payload value from encoded payload bytes.
+    fn decode(buf: &[u8], ctx: &mut Self::Context<'_>) -> std::io::Result<T>;
 }

@@ -38,11 +38,13 @@ where
     ///
     /// # Returns
     /// A 4-byte `ByteBlock` containing the CRC checksum.
-    fn crc(&self) -> std::io::Result<ByteBlock> {
+    fn crc(&self, ctx: &mut Self::Context<'_>) -> std::io::Result<ByteBlock> {
         let mut hasher = crc32fast::Hasher::new();
-        hasher.update(self.encoded()?.as_slice());
+        hasher.update(self.encoded(ctx)?.as_slice());
         Ok(ByteBlock::Len4(hasher.finalize().to_le_bytes()))
     }
+
+    /// Returns the size in bytes of the CRC representation produced by this trait.
     fn crc_size() -> usize {
         4
     }
@@ -84,7 +86,7 @@ pub trait PayloadSize: PayloadEncoded {
     ///
     /// # Errors
     /// Returns an I/O error if size computation fails.
-    fn size(&self) -> std::io::Result<u64> {
-        Ok(self.encoded()?.len() as u64)
+    fn size(&self, ctx: &mut Self::Context<'_>) -> std::io::Result<u64> {
+        Ok(self.encoded(ctx)?.len() as u64)
     }
 }

@@ -87,7 +87,7 @@ impl TryFrom<Vec<u8>> for ByteBlock {
                 return Err(Error::InvalidCapacity(
                     invalid,
                     "4, 8, 16, 32, 64, 128".to_string(),
-                ))
+                ));
             }
         }
         .map_err(|_| Error::FailExtractByteBlock)

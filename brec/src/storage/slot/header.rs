@@ -29,10 +29,7 @@ impl ReadFrom for SlotHeader {
     /// # Errors
     /// - `Error::SignatureDismatch` if the signature is incorrect.
     /// - I/O errors if reading fails.
-    fn read<T: std::io::Read>(buf: &mut T) -> Result<Self, Error>
-    where
-        Self: Sized,
-    {
+    fn read<T: std::io::Read>(buf: &mut T) -> Result<Self, Error> {
         let mut sig = [0u8; 8];
         buf.read_exact(&mut sig)?;
         if sig != STORAGE_SLOT_SIG {
@@ -56,10 +53,7 @@ impl TryReadFrom for SlotHeader {
     /// # Errors
     /// - `Error::SignatureDismatch` if the signature is invalid.
     /// - I/O errors during reading or seeking.
-    fn try_read<T: std::io::Read + std::io::Seek>(buf: &mut T) -> Result<ReadStatus<Self>, Error>
-    where
-        Self: Sized,
-    {
+    fn try_read<T: std::io::Read + std::io::Seek>(buf: &mut T) -> Result<ReadStatus<Self>, Error> {
         let start_pos = buf.stream_position()?;
         let len = buf.seek(std::io::SeekFrom::End(0))? - start_pos;
         buf.seek(std::io::SeekFrom::Start(start_pos))?;

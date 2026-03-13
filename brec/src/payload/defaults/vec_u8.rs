@@ -7,7 +7,7 @@ use payload::*;
 /// CRC validation, signature identification, and efficient vectored writing.
 /// No transformation or framing is applied — the raw byte content is stored and restored as-is.
 impl PayloadSize for Vec<u8> {
-    fn size(&self) -> std::io::Result<u64> {
+    fn size(&self, _: &mut Self::Context<'_>) -> std::io::Result<u64> {
         Ok(self.len() as u64)
     }
 }
@@ -28,20 +28,24 @@ impl StaticPayloadSignature for Vec<u8> {
     }
 }
 
+impl PayloadSchema for Vec<u8> {
+    type Context<'a> = DefaultPayloadContext;
+}
+
 impl PayloadEncode for Vec<u8> {
-    fn encode_with(&self, _opt: &()) -> std::io::Result<Vec<u8>> {
+    fn encode(&self, _: &mut Self::Context<'_>) -> std::io::Result<Vec<u8>> {
         Ok(self.clone())
     }
 }
 
 impl PayloadEncodeReferred for Vec<u8> {
-    fn encode_with(&self, _opt: &()) -> std::io::Result<Option<&[u8]>> {
+    fn encode(&self, _: &mut Self::Context<'_>) -> std::io::Result<Option<&[u8]>> {
         Ok(Some(self))
     }
 }
 
 impl PayloadDecode<Vec<u8>> for Vec<u8> {
-    fn decode_with(buf: &[u8], _opt: &()) -> std::io::Result<Vec<u8>> {
+    fn decode(buf: &[u8], _: &mut Self::Context<'_>) -> std::io::Result<Vec<u8>> {
         Ok(buf.to_vec())
     }
 }

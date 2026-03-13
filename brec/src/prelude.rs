@@ -6,6 +6,8 @@ pub use crate::payload::*;
 pub use crate::storage::*;
 pub use crate::traits::*;
 
+#[cfg(feature = "crypt")]
+pub use crate::crypt::*;
 #[cfg(feature = "bincode")]
 pub use bincode;
 pub use brec_macros::*;

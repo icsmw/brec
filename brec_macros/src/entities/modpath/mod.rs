@@ -1,7 +1,7 @@
 use proc_macro2::TokenStream;
-use quote::{quote, ToTokens};
+use quote::{ToTokens, quote};
 use std::{convert::TryFrom, fmt};
-use syn::{parse_str, Expr, ExprPath, Ident, Lit, LitStr, Path};
+use syn::{Expr, ExprPath, Ident, Lit, LitStr, Path, parse_str};
 
 use crate::*;
 

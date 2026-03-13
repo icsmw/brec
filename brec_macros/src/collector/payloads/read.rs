@@ -9,7 +9,7 @@ pub fn extract_from(payloads: &[&Payload]) -> Result<TokenStream, E> {
         let fullname = payload.fullname()?;
         let fullpath = payload.fullpath()?;
         variants.push(quote! {
-            match <#fullpath as brec::ReadPayloadFrom<#fullpath>>::read(buf, header) {
+            match <#fullpath as brec::ReadPayloadFrom<#fullpath>>::read(buf, header, _ctx) {
                 Ok(pl) => return Ok(Payload::#fullname(pl)),
                 Err(err) => {
                     if !matches!(err, brec::Error::SignatureDismatch) {
@@ -24,12 +24,13 @@ pub fn extract_from(payloads: &[&Payload]) -> Result<TokenStream, E> {
             fn read<B: std::io::Read>(
                 buf: &mut B,
                 header: &brec::PayloadHeader,
+                _ctx: &mut <Payload as brec::PayloadSchema>::Context<'_>,
             ) -> Result<Payload, brec::Error>
             where
                 Self: Sized,
             {
                 #(#variants)*
-                match <Vec<u8> as brec::ReadPayloadFrom<Vec<u8>>>::read(buf, header) {
+                match <Vec<u8> as brec::ReadPayloadFrom<Vec<u8>>>::read(buf, header, &mut brec::default_payload_context()) {
                     Ok(pl) => return Ok(Payload::Bytes(pl)),
                     Err(err) => {
                         if !matches!(err, brec::Error::SignatureDismatch) {
@@ -37,7 +38,7 @@ pub fn extract_from(payloads: &[&Payload]) -> Result<TokenStream, E> {
                         }
                     }
                 }
-                match <String as brec::ReadPayloadFrom<String>>::read(buf, header) {
+                match <String as brec::ReadPayloadFrom<String>>::read(buf, header, &mut brec::default_payload_context()) {
                     Ok(pl) => return Ok(Payload::String(pl)),
                     Err(err) => {
                         if !matches!(err, brec::Error::SignatureDismatch) {
@@ -57,7 +58,7 @@ pub fn try_extract_from(payloads: &[&Payload]) -> Result<TokenStream, E> {
         let fullname = payload.fullname()?;
         let fullpath = payload.fullpath()?;
         variants.push(quote! {
-            match <#fullpath as brec::TryReadPayloadFrom<#fullpath>>::try_read(buf, header) {
+            match <#fullpath as brec::TryReadPayloadFrom<#fullpath>>::try_read(buf, header, _ctx) {
                 Ok(brec::ReadStatus::Success(pl)) => {
                     return Ok(brec::ReadStatus::Success(Payload::#fullname(pl)))
                 }
@@ -77,9 +78,10 @@ pub fn try_extract_from(payloads: &[&Payload]) -> Result<TokenStream, E> {
             fn try_read<B: std::io::Read + std::io::Seek>(
                 buf: &mut B,
                 header: &brec::PayloadHeader,
+                _ctx: &mut <Payload as brec::PayloadSchema>::Context<'_>,
             ) -> Result<brec::ReadStatus<Payload>, brec::Error> {
                 #(#variants)*
-                match <Vec<u8> as brec::TryReadPayloadFrom<Vec<u8>>>::try_read(buf, header) {
+                match <Vec<u8> as brec::TryReadPayloadFrom<Vec<u8>>>::try_read(buf, header, &mut brec::default_payload_context()) {
                     Ok(brec::ReadStatus::Success(pl)) => {
                         return Ok(brec::ReadStatus::Success(Payload::Bytes(pl)))
                     }
@@ -92,7 +94,7 @@ pub fn try_extract_from(payloads: &[&Payload]) -> Result<TokenStream, E> {
                         }
                     }
                 }
-                match <String as brec::TryReadPayloadFrom<String>>::try_read(buf, header) {
+                match <String as brec::TryReadPayloadFrom<String>>::try_read(buf, header, &mut brec::default_payload_context()) {
                     Ok(brec::ReadStatus::Success(pl)) => {
                         return Ok(brec::ReadStatus::Success(Payload::String(pl)))
                     }
@@ -117,7 +119,7 @@ pub fn try_extract_from_buffered(payloads: &[&Payload]) -> Result<TokenStream, E
         let fullname = payload.fullname()?;
         let fullpath = payload.fullpath()?;
         variants.push(quote! {
-            match <#fullpath as brec::TryReadPayloadFromBuffered<#fullpath>>::try_read(buf, header) {
+            match <#fullpath as brec::TryReadPayloadFromBuffered<#fullpath>>::try_read(buf, header, _ctx) {
                 Ok(brec::ReadStatus::Success(pl)) => {
                     return Ok(brec::ReadStatus::Success(Payload::#fullname(pl)))
                 }
@@ -137,9 +139,10 @@ pub fn try_extract_from_buffered(payloads: &[&Payload]) -> Result<TokenStream, E
             fn try_read<B: std::io::BufRead>(
                 buf: &mut B,
                 header: &brec::PayloadHeader,
+                _ctx: &mut <Payload as brec::PayloadSchema>::Context<'_>,
             ) -> Result<brec::ReadStatus<Payload>, brec::Error> {
                 #(#variants)*
-                match <Vec<u8> as brec::TryReadPayloadFromBuffered<Vec<u8>>>::try_read(buf, header) {
+                match <Vec<u8> as brec::TryReadPayloadFromBuffered<Vec<u8>>>::try_read(buf, header, &mut brec::default_payload_context()) {
                     Ok(brec::ReadStatus::Success(pl)) => {
                         return Ok(brec::ReadStatus::Success(Payload::Bytes(pl)))
                     }
@@ -152,7 +155,7 @@ pub fn try_extract_from_buffered(payloads: &[&Payload]) -> Result<TokenStream, E
                         }
                     }
                 }
-                match <String as brec::TryReadPayloadFromBuffered<String>>::try_read(buf, header) {
+                match <String as brec::TryReadPayloadFromBuffered<String>>::try_read(buf, header, &mut brec::default_payload_context()) {
                     Ok(brec::ReadStatus::Success(pl)) => {
                         return Ok(brec::ReadStatus::Success(Payload::String(pl)))
                     }

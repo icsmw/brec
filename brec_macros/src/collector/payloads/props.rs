@@ -7,15 +7,15 @@ pub fn encode(payloads: &[&Payload]) -> Result<TokenStream, E> {
     let mut variants = Vec::new();
     for payload in payloads.iter() {
         let fullname = payload.fullname()?;
-        variants.push(quote! {Payload::#fullname(pl) => brec::PayloadEncode::encode_with(pl, _opt)});
+        variants.push(quote! {Payload::#fullname(pl) => brec::PayloadEncode::encode(pl, _ctx)});
     }
     Ok(quote! {
         impl brec::PayloadEncode for Payload {
-            fn encode_with(&self, _opt: &()) -> std::io::Result<Vec<u8>> {
+            fn encode(&self, _ctx: &mut Self::Context<'_>) -> std::io::Result<Vec<u8>> {
                 match self {
                     #(#variants,)*
-                    Payload::Bytes(pl) => brec::PayloadEncode::encode_with(pl, _opt),
-                    Payload::String(pl) => brec::PayloadEncode::encode_with(pl, _opt),
+                    Payload::Bytes(pl) => brec::PayloadEncode::encode(pl, &mut brec::default_payload_context()),
+                    Payload::String(pl) => brec::PayloadEncode::encode(pl, &mut brec::default_payload_context()),
                 }
             }
         }
@@ -26,15 +26,16 @@ pub fn encode_referred(payloads: &[&Payload]) -> Result<TokenStream, E> {
     let mut variants = Vec::new();
     for payload in payloads.iter() {
         let fullname = payload.fullname()?;
-        variants.push(quote! {Payload::#fullname(pl) => brec::PayloadEncodeReferred::encode_with(pl, _opt)});
+        variants
+            .push(quote! {Payload::#fullname(pl) => brec::PayloadEncodeReferred::encode(pl, _ctx)});
     }
     Ok(quote! {
         impl brec::PayloadEncodeReferred for Payload {
-            fn encode_with(&self, _opt: &()) -> std::io::Result<Option<&[u8]>> {
+            fn encode(&self, _ctx: &mut Self::Context<'_>) -> std::io::Result<Option<&[u8]>> {
                 match self {
                     #(#variants,)*
-                    Payload::Bytes(pl) => brec::PayloadEncodeReferred::encode_with(pl, _opt),
-                    Payload::String(pl) => brec::PayloadEncodeReferred::encode_with(pl, _opt),
+                    Payload::Bytes(pl) => brec::PayloadEncodeReferred::encode(pl, &mut brec::default_payload_context()),
+                    Payload::String(pl) => brec::PayloadEncodeReferred::encode(pl, &mut brec::default_payload_context()),
                 }
             }
         }
@@ -64,15 +65,15 @@ pub fn crc(payloads: &[&Payload]) -> Result<TokenStream, E> {
     let mut variants = Vec::new();
     for payload in payloads.iter() {
         let fullname = payload.fullname()?;
-        variants.push(quote! {Payload::#fullname(pl) => pl.crc()});
+        variants.push(quote! {Payload::#fullname(pl) => pl.crc(_ctx)});
     }
     Ok(quote! {
         impl brec::PayloadCrc for Payload {
-            fn crc(&self) -> std::io::Result<brec::ByteBlock> {
+            fn crc(&self, _ctx: &mut Self::Context<'_>) -> std::io::Result<brec::ByteBlock> {
                 match self {
                     #(#variants,)*
-                    Payload::Bytes(pl) => pl.crc(),
-                    Payload::String(pl) => pl.crc(),
+                    Payload::Bytes(pl) => pl.crc(&mut brec::default_payload_context()),
+                    Payload::String(pl) => pl.crc(&mut brec::default_payload_context()),
                 }
             }
         }
@@ -83,15 +84,15 @@ pub fn size(payloads: &[&Payload]) -> Result<TokenStream, E> {
     let mut variants = Vec::new();
     for payload in payloads.iter() {
         let fullname = payload.fullname()?;
-        variants.push(quote! {Payload::#fullname(pl) => pl.size()});
+        variants.push(quote! {Payload::#fullname(pl) => pl.size(_ctx)});
     }
     Ok(quote! {
         impl brec::PayloadSize for Payload {
-            fn size(&self) -> std::io::Result<u64> {
+            fn size(&self, _ctx: &mut Self::Context<'_>) -> std::io::Result<u64> {
                 match self {
                     #(#variants,)*
-                    Payload::Bytes(pl) => pl.size(),
-                    Payload::String(pl) => pl.size(),
+                    Payload::Bytes(pl) => pl.size(&mut brec::default_payload_context()),
+                    Payload::String(pl) => pl.size(&mut brec::default_payload_context()),
                 }
             }
         }

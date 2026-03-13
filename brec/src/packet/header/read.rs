@@ -15,10 +15,7 @@ impl ReadFrom for PacketHeader {
     /// - `Error::SignatureDismatch` if the header signature is invalid.
     /// - `Error::CrcDismatch` if the CRC check fails.
     /// - I/O errors on read failure.
-    fn read<T: std::io::Read>(buf: &mut T) -> Result<Self, Error>
-    where
-        Self: Sized,
-    {
+    fn read<T: std::io::Read>(buf: &mut T) -> Result<Self, Error> {
         let mut sig = [0u8; 8];
         buf.read_exact(&mut sig)?;
         if sig != PACKET_SIG {
@@ -108,10 +105,7 @@ impl TryReadFrom for PacketHeader {
     ///
     /// # Errors
     /// Propagates I/O and header validation errors.
-    fn try_read<T: std::io::Read + std::io::Seek>(buf: &mut T) -> Result<ReadStatus<Self>, Error>
-    where
-        Self: Sized,
-    {
+    fn try_read<T: std::io::Read + std::io::Seek>(buf: &mut T) -> Result<ReadStatus<Self>, Error> {
         let start_pos = buf.stream_position()?;
         let len = buf.seek(std::io::SeekFrom::End(0))? - start_pos;
         buf.seek(std::io::SeekFrom::Start(start_pos))?;
@@ -134,10 +128,7 @@ impl TryReadFromBuffered for PacketHeader {
     ///
     /// # Errors
     /// Returns header validation or I/O errors.
-    fn try_read<T: std::io::BufRead>(reader: &mut T) -> Result<ReadStatus<Self>, Error>
-    where
-        Self: Sized,
-    {
+    fn try_read<T: std::io::BufRead>(reader: &mut T) -> Result<ReadStatus<Self>, Error> {
         let bytes = reader.fill_buf()?;
         if (bytes.len() as u64) < PacketHeader::ssize() {
             return Ok(ReadStatus::NotEnoughData(

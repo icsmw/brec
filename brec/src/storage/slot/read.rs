@@ -15,10 +15,7 @@ impl ReadFrom for Slot {
     /// - I/O errors during reading
     /// - `Error::SignatureDismatch` if header signature is invalid
     /// - `Error::CrcDismatch` if CRC check fails
-    fn read<T: std::io::Read>(buf: &mut T) -> Result<Self, Error>
-    where
-        Self: Sized,
-    {
+    fn read<T: std::io::Read>(buf: &mut T) -> Result<Self, Error> {
         let header = SlotHeader::read(buf)?;
 
         let mut lenghts = Vec::with_capacity(header.capacity as usize);
@@ -55,10 +52,7 @@ impl TryReadFrom for Slot {
     /// - `ReadStatus::Success(slot)` on success
     /// - `ReadStatus::NotEnoughData(missing)` if full data is not yet available
     /// - `Error::CrcDismatch` if CRC check fails
-    fn try_read<T: std::io::Read + std::io::Seek>(buf: &mut T) -> Result<ReadStatus<Self>, Error>
-    where
-        Self: Sized,
-    {
+    fn try_read<T: std::io::Read + std::io::Seek>(buf: &mut T) -> Result<ReadStatus<Self>, Error> {
         let start_pos = buf.stream_position()?;
         let len = buf.seek(std::io::SeekFrom::End(0))? - start_pos;
         buf.seek(std::io::SeekFrom::Start(start_pos))?;

@@ -14,10 +14,13 @@ use crate::*;
 /// - `Error::NotEnoughData` if there’s insufficient data in the inner block stream.
 /// - `Error::MaxBlocksCount` if the block count exceeds the allowed maximum.
 /// - Any decoding or payload-related error from underlying implementations.
-impl<O: Default, B: BlockDef, P: PayloadDef<O, Inner>, Inner: PayloadInnerDef<O>> ReadFrom
-    for PacketDef<O, B, P, Inner>
+impl<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> ReadPacketFrom
+    for PacketDef<B, P, Inner>
 {
-    fn read<T: std::io::Read>(buf: &mut T) -> Result<Self, Error>
+    fn read<T: std::io::Read>(
+        buf: &mut T,
+        ctx: &mut <Self as PayloadSchema>::Context<'_>,
+    ) -> Result<Self, Error>
     where
         Self: Sized,
     {
@@ -50,7 +53,7 @@ impl<O: Default, B: BlockDef, P: PayloadDef<O, Inner>, Inner: PayloadInnerDef<O>
         }
         if header.payload {
             let header = <PayloadHeader as ReadFrom>::read(buf)?;
-            let payload = <P as ExtractPayloadFrom<Inner>>::read(buf, &header)?;
+            let payload = <P as ExtractPayloadFrom<Inner>>::read(buf, &header, ctx)?;
             pkg.payload = Some(payload);
         }
         Ok(pkg)
@@ -74,10 +77,13 @@ impl<O: Default, B: BlockDef, P: PayloadDef<O, Inner>, Inner: PayloadInnerDef<O>
 ///
 /// # Stream behavior
 /// Seeks forward to read the packet, and seeks back on early return or error.
-impl<O: Default, B: BlockDef, P: PayloadDef<O, Inner>, Inner: PayloadInnerDef<O>> TryReadFrom
-    for PacketDef<O, B, P, Inner>
+impl<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> TryReadPacketFrom
+    for PacketDef<B, P, Inner>
 {
-    fn try_read<T: std::io::Read + std::io::Seek>(buf: &mut T) -> Result<ReadStatus<Self>, Error>
+    fn try_read<T: std::io::Read + std::io::Seek>(
+        buf: &mut T,
+        ctx: &mut <Self as PayloadSchema>::Context<'_>,
+    ) -> Result<ReadStatus<Self>, Error>
     where
         Self: Sized,
     {
@@ -123,7 +129,7 @@ impl<O: Default, B: BlockDef, P: PayloadDef<O, Inner>, Inner: PayloadInnerDef<O>
         if header.payload {
             match <PayloadHeader as TryReadFrom>::try_read(buf)? {
                 ReadStatus::Success(header) => {
-                    match <P as TryExtractPayloadFrom<Inner>>::try_read(buf, &header) {
+                    match <P as TryExtractPayloadFrom<Inner>>::try_read(buf, &header, ctx) {
                         Ok(ReadStatus::Success(payload)) => {
                             pkg.payload = Some(payload);
                         }
@@ -164,10 +170,13 @@ impl<O: Default, B: BlockDef, P: PayloadDef<O, Inner>, Inner: PayloadInnerDef<O>
 ///
 /// # Notes
 /// The header and block stream are parsed directly from the internal buffer. Payload data may be buffered or streamed depending on implementation.
-impl<O: Default, B: BlockDef, P: PayloadDef<O, Inner>, Inner: PayloadInnerDef<O>>
-    TryReadFromBuffered for PacketDef<O, B, P, Inner>
+impl<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> TryReadPacketFromBuffered
+    for PacketDef<B, P, Inner>
 {
-    fn try_read<T: std::io::BufRead>(reader: &mut T) -> Result<ReadStatus<Self>, Error>
+    fn try_read<T: std::io::BufRead>(
+        reader: &mut T,
+        ctx: &mut <Self as PayloadSchema>::Context<'_>,
+    ) -> Result<ReadStatus<Self>, Error>
     where
         Self: Sized,
     {
@@ -195,7 +204,7 @@ impl<O: Default, B: BlockDef, P: PayloadDef<O, Inner>, Inner: PayloadInnerDef<O>
                         }
                     }
                     ReadStatus::NotEnoughData(needed) => {
-                        return Ok(ReadStatus::NotEnoughData(needed))
+                        return Ok(ReadStatus::NotEnoughData(needed));
                     }
                 }
                 iterations += 1;
@@ -208,17 +217,19 @@ impl<O: Default, B: BlockDef, P: PayloadDef<O, Inner>, Inner: PayloadInnerDef<O>
             match <PayloadHeader as TryReadFromBuffered>::try_read(reader)? {
                 ReadStatus::Success(header) => {
                     reader.consume(header.size());
-                    match <P as TryExtractPayloadFromBuffered<Inner>>::try_read(reader, &header)? {
+                    match <P as TryExtractPayloadFromBuffered<Inner>>::try_read(
+                        reader, &header, ctx,
+                    )? {
                         ReadStatus::Success(payload) => {
                             pkg.payload = Some(payload);
                         }
                         ReadStatus::NotEnoughData(needed) => {
-                            return Ok(ReadStatus::NotEnoughData(needed))
+                            return Ok(ReadStatus::NotEnoughData(needed));
                         }
                     }
                 }
                 ReadStatus::NotEnoughData(needed) => {
-                    return Err(Error::NotEnoughData(needed as usize))
+                    return Err(Error::NotEnoughData(needed as usize));
                 }
             }
         }

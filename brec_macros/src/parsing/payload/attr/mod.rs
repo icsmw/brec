@@ -2,9 +2,9 @@ use std::convert::TryFrom;
 
 use crate::*;
 use syn::{
+    Expr, Token,
     parse::{self, Parse, ParseStream},
     punctuated::Punctuated,
-    Expr, Token,
 };
 
 impl Parse for PayloadAttrs {
@@ -33,7 +33,9 @@ impl Parse for PayloadAttrs {
                 Expr::Path(expr) => {
                     if let Some(ident) = expr.path.clone().get_ident() {
                         let as_str = ident.to_string();
-                        if as_str == PayloadAttrId::NoDefaultSig.to_string() {
+                        if as_str == PayloadAttrId::Ctx.to_string() {
+                            attrs.push(PayloadAttr::Ctx)
+                        } else if as_str == PayloadAttrId::NoDefaultSig.to_string() {
                             attrs.push(PayloadAttr::NoDefaultSig)
                         } else if as_str == PayloadAttrId::Bincode.to_string() {
                             attrs.push(PayloadAttr::Bincode)
@@ -43,6 +45,8 @@ impl Parse for PayloadAttrs {
                             attrs.push(PayloadAttr::NoAutoCrc)
                         } else if as_str == PayloadAttrId::NoCrc.to_string() {
                             attrs.push(PayloadAttr::NoCrc)
+                        } else if as_str == PayloadAttrId::Crypt.to_string() {
+                            attrs.push(PayloadAttr::Crypt);
                         }
                     } else {
                         attrs.push(PayloadAttr::Path(ModulePath::from(&expr)));

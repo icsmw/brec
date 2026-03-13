@@ -69,7 +69,6 @@ impl Base for Block {
                 }
 
             }
-
         })
     }
 }

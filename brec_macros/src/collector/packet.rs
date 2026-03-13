@@ -7,7 +7,7 @@ pub fn generate() -> Result<TokenStream, E> {
     let locked_storage = if cfg!(feature = "locked_storage") {
         quote! {
             #[allow(dead_code, type_alias_bounds)]
-            pub type FileStorage<O: Default = ()> = brec::FileWriterDef<O, Block, Payload, Payload>;
+            pub type FileStorage = brec::FileWriterDef<Block, Payload, Payload, ()>;
         }
     } else {
         quote! {}
@@ -43,7 +43,7 @@ pub fn generate() -> Result<TokenStream, E> {
             #[allow(dead_code)]
             struct SubscriptionWrapper<S>(S);
 
-            impl<S> brec::SubscriptionDef<(), Block, BlockReferred<'static>, Payload, Payload>
+            impl<S> brec::SubscriptionDef<Block, BlockReferred<'static>, Payload, Payload, ()>
                 for SubscriptionWrapper<S>
             where
                 S: Subscription,
@@ -75,12 +75,12 @@ pub fn generate() -> Result<TokenStream, E> {
                 S: Subscription,
             {
                 inner: brec::FileObserverOptions<
-                    (),
                     Block,
                     BlockReferred<'static>,
                     Payload,
                     Payload,
                     SubscriptionWrapper<S>,
+                    (),
                 >,
             }
 
@@ -102,7 +102,7 @@ pub fn generate() -> Result<TokenStream, E> {
 
             #[allow(dead_code)]
             pub struct FileObserver(
-                brec::FileObserverDef<(), Block, BlockReferred<'static>, Payload, Payload>,
+                brec::FileObserverDef<Block, BlockReferred<'static>, Payload, Payload, ()>,
             );
 
             impl FileObserver {
@@ -120,21 +120,21 @@ pub fn generate() -> Result<TokenStream, E> {
 
             #[allow(dead_code, type_alias_bounds)]
             pub type FileObserverStream =
-                brec::FileObserverStreamDef<(), Block, BlockReferred<'static>, Payload, Payload>;
+                brec::FileObserverStreamDef<Block, BlockReferred<'static>, Payload, Payload, ()>;
         }
     } else {
         quote! {}
     };
     Ok(quote! {
         #[allow(dead_code, type_alias_bounds)]
-        pub type Packet<O: Default = ()> = brec::PacketDef<O, Block, Payload, Payload>;
+        pub type Packet = brec::PacketDef<Block, Payload, Payload>;
 
         #[allow(dead_code, type_alias_bounds)]
-        pub type BorrowedPacketBufReader<'a, R, O: Default = ()> =
-            brec::PacketBufReaderDef<'a, O, R, Block, BlockReferred<'a>, Payload, Payload>;
+        pub type BorrowedPacketBufReader<'a, R> =
+            brec::PacketBufReaderDef<'a, R, Block, BlockReferred<'a>, Payload, Payload>;
 
         #[allow(dead_code, type_alias_bounds)]
-        pub type PacketBufReader<'a, R, O: Default = ()> = BorrowedPacketBufReader<'a, R, O>;
+        pub type PacketBufReader<'a, R> = BorrowedPacketBufReader<'a, R>;
 
         #[allow(dead_code)]
         pub type PeekedBlocks<'a> = brec::PeekedBlocksDef<'a, BlockReferred<'a>>;
@@ -143,31 +143,31 @@ pub fn generate() -> Result<TokenStream, E> {
         pub type PeekedBlock<'a> = brec::PeekedBlockDef<'a, BlockReferred<'a>>;
 
         #[allow(dead_code, type_alias_bounds)]
-        pub type BorrowedRules<'a, O: Default = ()> =
-            brec::RulesDef<O, Block, BlockReferred<'a>, Payload, Payload>;
+        pub type BorrowedRules<'a> =
+            brec::RulesDef<Block, BlockReferred<'a>, Payload, Payload>;
 
         #[allow(dead_code, type_alias_bounds)]
-        pub type Rules<'a, O: Default = ()> = brec::RulesDef<O, Block, BlockReferred<'a>, Payload, Payload>;
+        pub type Rules<'a> = brec::RulesDef<Block, BlockReferred<'a>, Payload, Payload>;
 
         #[allow(dead_code, type_alias_bounds)]
-        pub type BorrowedRule<'a, O: Default = ()> = brec::RuleDef<O, Block, BlockReferred<'a>, Payload, Payload>;
+        pub type BorrowedRule<'a> = brec::RuleDef<Block, BlockReferred<'a>, Payload, Payload>;
 
         #[allow(dead_code, type_alias_bounds)]
-        pub type Rule<'a, O: Default = ()> = brec::RuleDef<O, Block, BlockReferred<'a>, Payload, Payload>;
+        pub type Rule<'a> = brec::RuleDef<Block, BlockReferred<'a>, Payload, Payload>;
 
         #[allow(dead_code)]
         pub type RuleFnDef<D, S> = brec::RuleFnDef<D, S>;
 
         #[allow(dead_code, type_alias_bounds)]
-        pub type BorrowedReader<'a, S, O: Default = ()> =
-            brec::ReaderDef<O, S, Block, BlockReferred<'a>, Payload, Payload>;
+        pub type BorrowedReader<'a, S> =
+            brec::ReaderDef<S, Block, BlockReferred<'a>, Payload, Payload>;
 
         #[allow(dead_code, type_alias_bounds)]
-        pub type Reader<S, O: Default = ()> =
-            brec::ReaderDef<O, S, Block, BlockReferred<'static>, Payload, Payload>;
+        pub type Reader<S> =
+            brec::ReaderDef<S, Block, BlockReferred<'static>, Payload, Payload>;
 
         #[allow(dead_code, type_alias_bounds)]
-        pub type Writer<S, O: Default = ()> = brec::WriterDef<O, S, Block, Payload, Payload>;
+        pub type Writer<S> = brec::WriterDef<S, Block, Payload, Payload>;
 
         #observer
 

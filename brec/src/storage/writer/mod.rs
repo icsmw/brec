@@ -5,26 +5,26 @@ pub use locker::{FileStorageOptions, FileWriterDef};
 
 use crate::*;
 
+/// Storage writer that appends packets into slot-based `brec` storage.
 pub struct WriterDef<
-    O: Default,
     S: std::io::Read + std::io::Write + std::io::Seek,
     B: BlockDef,
-    P: PayloadDef<O, Inner>,
-    Inner: PayloadInnerDef<O>,
+    P: PayloadDef<Inner>,
+    Inner: PayloadInnerDef,
 > {
+    /// In-memory view of all discovered storage slots.
     pub slots: Vec<Slot>,
     inner: S,
     locator: FreeSlotLocator,
-    _phantom: std::marker::PhantomData<(B, P, Inner, O)>,
+    _phantom: std::marker::PhantomData<(B, P, Inner)>,
 }
 
 impl<
-        O: Default,
-        S: std::io::Read + std::io::Write + std::io::Seek,
-        B: BlockDef,
-        P: PayloadDef<O, Inner>,
-        Inner: PayloadInnerDef<O>,
-    > WriterDef<O, S, B, P, Inner>
+    S: std::io::Read + std::io::Write + std::io::Seek,
+    B: BlockDef,
+    P: PayloadDef<Inner>,
+    Inner: PayloadInnerDef,
+> WriterDef<S, B, P, Inner>
 {
     /// Creates a new storage instance with the given storage backend.
     ///
@@ -62,10 +62,10 @@ impl<
                     break;
                 }
                 Err(Error::CrcDismatch) => {
-                    return Err(Error::DamagedSlot(Box::new(Error::CrcDismatch)))
+                    return Err(Error::DamagedSlot(Box::new(Error::CrcDismatch)));
                 }
                 Err(Error::SignatureDismatch) => {
-                    return Err(Error::DamagedSlot(Box::new(Error::SignatureDismatch)))
+                    return Err(Error::DamagedSlot(Box::new(Error::SignatureDismatch)));
                 }
                 Err(err) => return Err(err),
             }
@@ -82,7 +82,11 @@ impl<
     /// # Returns
     /// * `Ok(())` — Packet successfully written
     /// * `Err(Error)` — If no space is found or write fails
-    pub fn insert(&mut self, mut packet: PacketDef<O, B, P, Inner>) -> Result<(), Error> {
+    pub fn insert(
+        &mut self,
+        mut packet: PacketDef<B, P, Inner>,
+        ctx: &mut <Inner as PayloadSchema>::Context<'_>,
+    ) -> Result<(), Error> {
         let offset = match self.locator.next(&self.slots) {
             Some(offset) => offset,
             None => {
@@ -94,7 +98,7 @@ impl<
         };
         // Convert the packet into bytes
         let mut buffer: Vec<u8> = Vec::new();
-        packet.write_all(&mut buffer)?;
+        packet.write_all(&mut buffer, ctx)?;
         // Insert length of packet
         self.locator.insert(&mut self.slots, buffer.len() as u64)?;
         // Get updated slot data

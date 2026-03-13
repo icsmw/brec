@@ -129,7 +129,10 @@ pub fn block(attr: TokenStream, input: TokenStream) -> TokenStream {
 /// Marks a user-defined type as a `Payload` for use in `brec`-compatible binary streams.
 ///
 /// This macro enables participation of a struct or enum in the `Payload` system and code generation.
-/// It automatically implements most required traits for payload integration, **except** the following:
+/// It also supports payload runtime context declarations via `#[payload(ctx)]`.
+///
+/// For regular payloads, the macro automatically implements most required traits for payload integration,
+/// **except** the following:
 ///
 /// ## Required Manual Trait Implementations
 ///
@@ -179,6 +182,61 @@ pub fn block(attr: TokenStream, input: TokenStream) -> TokenStream {
 /// pub enum MyPayloadEnum { ... }
 /// ```
 ///
+/// The generated payload schema uses the crate-local `PayloadContext<'a>` type that is later emitted
+/// by `brec::generate!()`.
+///
+/// ## Using `#[payload(ctx)]`
+///
+/// `#[payload(ctx)]` marks a type as payload runtime context instead of a regular payload.
+///
+/// Such a type:
+///
+/// - is **not** added to the generated `Payload` enum
+/// - is used to build the generated crate-local `PayloadContext<'a>` enum
+/// - is passed by mutable reference into payload encode/decode/size operations
+///
+/// Example:
+///
+/// ```ignore
+/// #[payload(ctx)]
+/// pub struct MyOptions {
+///     pub prefix: String,
+/// }
+///
+/// brec::generate!();
+///
+/// pub enum PayloadContext<'a> {
+///     None,
+///     MyOptions(&'a mut MyOptions),
+/// }
+/// ```
+///
+/// If there are no custom context types and no encrypted payloads, `brec::generate!()` emits:
+///
+/// ```ignore
+/// pub type PayloadContext<'a> = ();
+/// ```
+///
+/// ## Using `#[payload(bincode, crypt)]`
+///
+/// With both the `bincode` and `crypt` features enabled, `#[payload(bincode, crypt)]` generates
+/// transparent payload encryption/decryption on top of `bincode` serialization.
+///
+/// The generated code expects the operation context to be one of the crypto variants created by
+/// `brec::generate!()`:
+///
+/// ```ignore
+/// let mut encrypt = PayloadContext::Encrypt(&mut encrypt_options);
+/// let mut decrypt = PayloadContext::Decrypt(&mut decrypt_options);
+/// ```
+///
+/// In other words:
+///
+/// - writing encrypted payloads uses `EncryptOptions`
+/// - reading encrypted payloads uses `DecryptOptions`
+/// - blocks remain unencrypted
+/// - mixed protocols are supported: encrypted and non-encrypted payloads may coexist
+///
 /// ## Optional Parameters
 ///
 /// The macro accepts several optional directives:
@@ -197,6 +255,13 @@ pub fn block(attr: TokenStream, input: TokenStream) -> TokenStream {
 /// - `bincode` - available only when the bincode feature is enabled. It allows using any structure as a payload as
 ///   long as it meets the requirements of the bincode crate, i.e., it implements serde serialization and deserialization.
 ///   Please note that bincode has a number of limitations, which you can review in its official documentation.
+///
+/// - `ctx` - marks this type as payload runtime context instead of a regular payload.  
+///   `brec::generate!()` collects such types into the generated `PayloadContext<'a>` enum.
+///
+/// - `crypt` - available only when the `crypt` feature is enabled and intended to be used together with `bincode`
+///   as `#[payload(bincode, crypt)]`. It generates internal crypto-wrapper-based payload encode/decode
+///   implementations using `brec::prelude::EncryptOptions` and `brec::prelude::DecryptOptions`.
 ///
 /// ## CRC Verification Caveats
 ///
@@ -244,41 +309,56 @@ pub fn payload(attr: TokenStream, input: TokenStream) -> TokenStream {
 /// - Implementing required `brec` traits for all user-defined `Payload` types
 /// - Generating unified enums for blocks: `enum Block { ... }`
 /// - Generating unified enums for payloads: `enum Payload { ... }`
+/// - Generating the crate-local payload runtime context type: `type PayloadContext<'a> = ()`
+///   or `enum PayloadContext<'a> { ... }`
 /// - Exporting several convenience type aliases to simplify usage
 ///
 /// ### Generated Aliases
 /// The macro defines the following aliases to reduce verbosity when using `brec` types:
 ///
-/// | Alias                   | Expanded to                                                                                |
-/// |-------------------------|--------------------------------------------------------------------------------------------|
-/// | `Packet<O = ()>`             | `PacketDef<O, Block, Payload, Payload>`                                                   |
-/// | `BorrowedPacketBufReader<'a, R, O = ()>` | `PacketBufReaderDef<'a, O, R, Block, BlockReferred<'a>, Payload, Payload>` |
-/// | `PacketBufReader<'a, R, O = ()>` | same as `BorrowedPacketBufReader<'a, R, O>`                                         |
-/// | `PeekedBlocks<'a>`           | `PeekedBlocksDef<'a, BlockReferred<'a>>`                                                 |
-/// | `PeekedBlock<'a>`            | `PeekedBlockDef<'a, BlockReferred<'a>>`                                                  |
-/// | `BorrowedRules<'a, O = ()>`  | `RulesDef<O, Block, BlockReferred<'a>, Payload, Payload>`                                |
-/// | `Rules<'a, O = ()>`          | same as `BorrowedRules<'a, O>`                                                           |
-/// | `BorrowedRule<'a, O = ()>`   | `RuleDef<O, Block, BlockReferred<'a>, Payload, Payload>`                                 |
-/// | `Rule<'a, O = ()>`           | same as `BorrowedRule<'a, O>`                                                            |
-/// | `RuleFnDef<D, S>`            | `RuleFnDef<D, S>`                                                                        |
-/// | `BorrowedReader<'a, S, O = ()>` | `ReaderDef<O, S, Block, BlockReferred<'a>, Payload, Payload>`                        |
-/// | `Reader<S, O = ()>`          | `ReaderDef<O, S, Block, BlockReferred<'static>, Payload, Payload>`                       |
-/// | `Writer<S, O = ()>`          | `WriterDef<O, S, Block, Payload, Payload>`                                               |
+/// | Alias                            | Expanded to                                                                                |
+/// |----------------------------------|--------------------------------------------------------------------------------------------|
+/// | `Packet`                         | `PacketDef<Block, Payload, Payload>`                                                       |
+/// | `BorrowedPacketBufReader<'a, R>` | `PacketBufReaderDef<'a, R, Block, BlockReferred<'a>, Payload, Payload>`             |
+/// | `PacketBufReader<'a, R>`         | same as `BorrowedPacketBufReader<'a, R>`                                                   |
+/// | `PeekedBlocks<'a>`               | `PeekedBlocksDef<'a, BlockReferred<'a>>`                                                 |
+/// | `PeekedBlock<'a>`                | `PeekedBlockDef<'a, BlockReferred<'a>>`                                                  |
+/// | `BorrowedRules<'a>`              | `RulesDef<Block, BlockReferred<'a>, Payload, Payload>`                                    |
+/// | `Rules<'a>`                      | same as `BorrowedRules<'a>`                                                               |
+/// | `BorrowedRule<'a>`               | `RuleDef<Block, BlockReferred<'a>, Payload, Payload>`                                     |
+/// | `Rule<'a>`                       | same as `BorrowedRule<'a>`                                                                |
+/// | `RuleFnDef<D, S>`                | `RuleFnDef<D, S>`                                                                        |
+/// | `BorrowedReader<'a, S>`          | `ReaderDef<S, Block, BlockReferred<'a>, Payload, Payload>`                               |
+/// | `Reader<S>`                      | `ReaderDef<S, Block, BlockReferred<'static>, Payload, Payload>`                          |
+/// | `Writer<S>`                      | `WriterDef<S, Block, Payload, Payload>`                                                  |
 ///
 /// These aliases make it easier to work with generated structures and remove the need to repeat generic parameters.
+///
+/// `PayloadContext<'a>` is also generated alongside these aliases:
+///
+/// - `pub type PayloadContext<'a> = ()` when no custom `#[payload(ctx)]` types and no encrypted payloads exist
+/// - `pub enum PayloadContext<'a> { None, ... }` when at least one context entry exists
+/// - `PayloadContext::Encrypt(...)` / `PayloadContext::Decrypt(...)` are added automatically if at least one payload
+///   uses `#[payload(bincode, crypt)]`
 ///
 /// When `brec` is built with the `observer` feature, the macro also generates:
 ///
 /// | Alias                    | Expanded to                                                                                 |
-/// |-------------------------|---------------------------------------------------------------------------------------------|
+/// |--------------------------|---------------------------------------------------------------------------------------------|
 /// | `SubscriptionUpdate`     | `brec::SubscriptionUpdate`                                                                  |
 /// | `SubscriptionErrorAction`| `brec::SubscriptionErrorAction`                                                             |
-/// | `Subscription`          | Local trait facade over `SubscriptionDef<(), Block, BlockReferred<'static>, Payload, Payload>` |
-/// | `FileObserverOptions<S>`| Local wrapper over `brec::FileObserverOptions<..., SubscriptionWrapper<S>>`                 |
-/// | `FileObserver`          | Local wrapper over `FileObserverDef<(), Block, BlockReferred<'static>, Payload, Payload>`   |
-/// | `FileObserverStream`    | `brec::FileObserverStreamDef<(), Block, BlockReferred<'static>, Payload, Payload>`          |
+/// | `Subscription`           | Local trait facade over `SubscriptionDef<Block, BlockReferred<'static>, Payload, Payload, ()>` |
+/// | `FileObserverOptions<S>` | Local wrapper over `brec::FileObserverOptions<..., SubscriptionWrapper<S>>`                 |
+/// | `FileObserver`           | Local wrapper over `FileObserverDef<Block, BlockReferred<'static>, Payload, Payload, ()>`  |
+/// | `FileObserverStream`     | `brec::FileObserverStreamDef<Block, BlockReferred<'static>, Payload, Payload, ()>`         |
 ///
 /// `Subscription` uses `on_*` callbacks: `on_update`, `on_packet`, `on_error`, `on_stopped`, `on_aborted`.
+///
+/// When `brec` is built with the `locked_storage` feature, the macro also generates:
+///
+/// | Alias         | Expanded to                                      |
+/// |---------------|--------------------------------------------------|
+/// | `FileStorage` | `brec::FileWriterDef<Block, Payload, Payload, ()>` |
 ///
 /// ---
 ///

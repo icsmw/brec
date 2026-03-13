@@ -56,16 +56,24 @@ impl PayloadAttrs {
             .iter()
             .any(|attr| matches!(attr, PayloadAttr::Bincode))
     }
+    pub fn is_crypt(&self) -> bool {
+        self.0.iter().any(|attr| matches!(attr, PayloadAttr::Crypt))
+    }
+    pub fn is_ctx(&self) -> bool {
+        self.0.iter().any(|attr| matches!(attr, PayloadAttr::Ctx))
+    }
 }
 #[enum_ids::enum_ids(display_variant_snake)]
 #[derive(Debug, Clone)]
 pub enum PayloadAttr {
     Path(ModulePath),
+    Ctx,
     NoDefaultSig,
     Hooks,
     NoAutoCrc,
     NoCrc,
     Bincode,
+    Crypt,
 }
 
 impl fmt::Display for PayloadAttr {
@@ -75,11 +83,13 @@ impl fmt::Display for PayloadAttr {
             "{}",
             match self {
                 Self::Path(path) => format!("{}({path})", self.id()),
+                Self::Ctx => PayloadAttrId::Ctx.to_string(),
                 Self::NoDefaultSig => PayloadAttrId::NoDefaultSig.to_string(),
                 Self::Hooks => PayloadAttrId::Hooks.to_string(),
                 Self::NoAutoCrc => PayloadAttrId::NoAutoCrc.to_string(),
                 Self::NoCrc => PayloadAttrId::NoCrc.to_string(),
                 Self::Bincode => PayloadAttrId::Bincode.to_string(),
+                Self::Crypt => PayloadAttrId::Crypt.to_string(),
             }
         )
     }

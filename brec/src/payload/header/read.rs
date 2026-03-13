@@ -18,10 +18,7 @@ impl ReadFrom for PayloadHeader {
     /// - `Error::InvalidCapacity` if signature or CRC length is invalid
     /// - `std::io::Error` if reading fails
     /// - Any conversion error from `ByteBlock::try_into()`
-    fn read<T: std::io::Read>(buf: &mut T) -> Result<Self, Error>
-    where
-        Self: Sized,
-    {
+    fn read<T: std::io::Read>(buf: &mut T) -> Result<Self, Error> {
         let mut sig_len = [0u8; 1];
         buf.read_exact(&mut sig_len)?;
         let sig_len = sig_len[0];
@@ -54,10 +51,7 @@ impl TryReadFrom for PayloadHeader {
     /// - `ReadStatus::NotEnoughData(n)` if more bytes are required
     /// - `Error::FailToReadPayloadHeader` if structure is invalid or inconsistent
     /// - `Error::InvalidCapacity` for unsupported signature or CRC lengths
-    fn try_read<T: std::io::Read + std::io::Seek>(buf: &mut T) -> Result<ReadStatus<Self>, Error>
-    where
-        Self: Sized,
-    {
+    fn try_read<T: std::io::Read + std::io::Seek>(buf: &mut T) -> Result<ReadStatus<Self>, Error> {
         let mut reader = SafeHeaderReader::new(buf)?;
         let sig_len = match reader.next_u8()? {
             NextChunk::NotEnoughData(n) => return Ok(ReadStatus::NotEnoughData(n)),
@@ -107,10 +101,7 @@ impl TryReadFromBuffered for PayloadHeader {
     /// - `ReadStatus::Success(header)` — fully parsed header
     /// - `ReadStatus::NotEnoughData(bytes)` — indicates how many more bytes are needed
     /// - `Error::InvalidCapacity` if signature or CRC size is unsupported
-    fn try_read<T: std::io::BufRead>(reader: &mut T) -> Result<ReadStatus<Self>, Error>
-    where
-        Self: Sized,
-    {
+    fn try_read<T: std::io::BufRead>(reader: &mut T) -> Result<ReadStatus<Self>, Error> {
         /// Helper function used in `try_read` to early-return if not enough bytes are in buffer.
         ///
         /// It calculates the required number of bytes and returns `ReadStatus::NotEnoughData` if needed.

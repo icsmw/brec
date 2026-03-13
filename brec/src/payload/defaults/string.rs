@@ -7,7 +7,7 @@ use payload::*;
 /// CRC validation, and vectored writing. The string is treated as UTF-8 encoded data
 /// and is serialized as-is without any additional framing or length prefix.
 impl PayloadSize for String {
-    fn size(&self) -> std::io::Result<u64> {
+    fn size(&self, _: &mut Self::Context<'_>) -> std::io::Result<u64> {
         Ok(self.len() as u64)
     }
 }
@@ -28,20 +28,24 @@ impl StaticPayloadSignature for String {
     }
 }
 
+impl PayloadSchema for String {
+    type Context<'a> = DefaultPayloadContext;
+}
+
 impl PayloadEncode for String {
-    fn encode_with(&self, _opt: &()) -> std::io::Result<Vec<u8>> {
+    fn encode(&self, _: &mut Self::Context<'_>) -> std::io::Result<Vec<u8>> {
         Ok(self.as_bytes().to_vec())
     }
 }
 
 impl PayloadEncodeReferred for String {
-    fn encode_with(&self, _opt: &()) -> std::io::Result<Option<&[u8]>> {
+    fn encode(&self, _: &mut Self::Context<'_>) -> std::io::Result<Option<&[u8]>> {
         Ok(Some(self.as_bytes()))
     }
 }
 
 impl PayloadDecode<String> for String {
-    fn decode_with(buf: &[u8], _opt: &()) -> std::io::Result<String> {
+    fn decode(buf: &[u8], _: &mut Self::Context<'_>) -> std::io::Result<String> {
         Ok(String::from_utf8_lossy(buf).to_string())
     }
 }

@@ -32,27 +32,28 @@ impl Base for Payload {
                 impl brec::PayloadHooks for #payload_name { }
             }
         };
-        Ok(if self.attrs.is_bincode() {
+        let schema_impl = quote! {
+            impl brec::PayloadSchema for #payload_name {
+                type Context<'a> = crate::PayloadContext<'a>;
+            }
+        };
+        let bincode_impl = if self.attrs.is_bincode() && !self.attrs.is_crypt() {
             quote! {
-                #sig_impl
-
-                #hooks_impl
-
                 impl brec::PayloadEncode for #payload_name {
-                    fn encode_with(&self, _opt: &()) -> std::io::Result<Vec<u8>> {
+                    fn encode(&self, _ctx: &mut Self::Context<'_>) -> std::io::Result<Vec<u8>> {
                         brec::bincode::serde::encode_to_vec(self, brec::bincode::config::standard())
                             .map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidData, e.to_string()))
                     }
                 }
 
                 impl brec::PayloadEncodeReferred for #payload_name {
-                    fn encode_with(&self, _opt: &()) -> std::io::Result<Option<&[u8]>> {
+                    fn encode(&self, _ctx: &mut Self::Context<'_>) -> std::io::Result<Option<&[u8]>> {
                         Ok(None)
                     }
                 }
 
                 impl brec::PayloadDecode<#payload_name> for #payload_name {
-                    fn decode_with(buf: &[u8], _opt: &()) -> std::io::Result<#payload_name> {
+                    fn decode(buf: &[u8], _ctx: &mut Self::Context<'_>) -> std::io::Result<#payload_name> {
                         brec::bincode::serde::decode_from_slice(buf, brec::bincode::config::standard())
                             .map(|(value, _)| value)
                             .map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidData, e.to_string()))
@@ -60,11 +61,67 @@ impl Base for Payload {
                 }
             }
         } else {
+            quote! {}
+        };
+        let crypt_and_bincode_impl = if self.attrs.is_crypt() && self.attrs.is_bincode() {
             quote! {
-                #sig_impl
-                #hooks_impl
+                impl brec::PayloadEncode for #payload_name {
+                    fn encode(&self, ctx: &mut Self::Context<'_>) -> std::io::Result<Vec<u8>> {
+                        let payload_body = brec::bincode::serde::encode_to_vec(self, brec::bincode::config::standard())
+                            .map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidData, e.to_string()))?;
+                        let encrypt_options = match ctx {
+                            crate::PayloadContext::Encrypt(opt) => opt,
+                            _ => {
+                                return Err(std::io::Error::new(
+                                    std::io::ErrorKind::InvalidInput,
+                                    format!(
+                                        "payload {} with #[payload(crypt, bincode)] expects PayloadContext::Encrypt",
+                                        stringify!(#payload_name),
+                                    ),
+                                ));
+                            }
+                        };
+                        brec::BricCryptCodec::encrypt(&payload_body, encrypt_options).map_err(std::io::Error::from)
+                    }
+                }
 
+                impl brec::PayloadEncodeReferred for #payload_name {
+                    fn encode(&self, _ctx: &mut Self::Context<'_>) -> std::io::Result<Option<&[u8]>> {
+                        Ok(None)
+                    }
+                }
+
+                impl brec::PayloadDecode<#payload_name> for #payload_name {
+                    fn decode(buf: &[u8], ctx: &mut Self::Context<'_>) -> std::io::Result<#payload_name> {
+                        let decrypt_options = match ctx {
+                            crate::PayloadContext::Decrypt(opt) => opt,
+                            _ => {
+                                return Err(std::io::Error::new(
+                                    std::io::ErrorKind::InvalidInput,
+                                    format!(
+                                        "payload {} with #[payload(crypt, bincode)] expects PayloadContext::Decrypt",
+                                        stringify!(#payload_name),
+                                    ),
+                                ));
+                            }
+                        };
+                        let payload_body = brec::BricCryptCodec::decrypt(buf, decrypt_options)
+                            .map_err(std::io::Error::from)?;
+                        brec::bincode::serde::decode_from_slice(&payload_body, brec::bincode::config::standard())
+                            .map(|(value, _)| value)
+                            .map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidData, e.to_string()))
+                    }
+                }
             }
+        } else {
+            quote! {}
+        };
+        Ok(quote! {
+            #sig_impl
+            #hooks_impl
+            #schema_impl
+            #bincode_impl
+            #crypt_and_bincode_impl
         })
     }
 }

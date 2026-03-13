@@ -98,7 +98,7 @@ impl FileStorageOptions {
 
     /// Opens the target storage file using the configured lock options.
     ///
-    /// This method consumes the builder and delegates to [`FileWriterDef::new`], passing
+    /// This method consumes the builder and delegates to [`FileWriterDef::with_opt`], passing
     /// in the specified filename, timeout, and retry interval.
     ///
     /// # Type Parameters
@@ -111,15 +111,20 @@ impl FileStorageOptions {
     /// # Returns
     ///
     /// A new `FileWriterDef` instance on success, or an appropriate [`Error`] on failure.
-    pub fn open<
-        O: Default,
-        B: BlockDef,
-        PL: PayloadDef<O, Inner>,
-        Inner: PayloadInnerDef<O>,
-    >(
+    pub fn open<B: BlockDef, PL: PayloadDef<Inner>, Inner, O>(
         self,
-    ) -> Result<FileWriterDef<O, B, PL, Inner>, Error> {
-        FileWriterDef::new(self.filename, self.timeout, Some(self.interval))
+        opt: O,
+    ) -> Result<FileWriterDef<B, PL, Inner, O>, Error>
+    where
+        Inner: PayloadInnerDef,
+        for<'a> Inner: PayloadSchema<Context<'a> = O>,
+    {
+        FileWriterDef::<B, PL, Inner, O>::with_opt(
+            self.filename,
+            self.timeout,
+            Some(self.interval),
+            opt,
+        )
     }
 }
 
@@ -137,18 +142,15 @@ impl FileStorageOptions {
 ///
 /// `FileWriterDef` also supports an optional timeout while waiting for the lock, enabling
 /// coordinated access patterns in multi-process environments.
-pub struct FileWriterDef<
-    O: Default,
-    B: BlockDef,
-    PL: PayloadDef<O, Inner>,
-    Inner: PayloadInnerDef<O>,
-> {
+pub struct FileWriterDef<B: BlockDef, PL: PayloadDef<Inner>, Inner: PayloadInnerDef, O> {
     _filelock: File,
-    inner: WriterDef<O, File, B, PL, Inner>,
+    inner: WriterDef<File, B, PL, Inner>,
+    opt: O,
 }
 
-impl<O: Default, B: BlockDef, PL: PayloadDef<O, Inner>, Inner: PayloadInnerDef<O>>
-    FileWriterDef<O, B, PL, Inner>
+impl<B: BlockDef, PL: PayloadDef<Inner>, Inner: PayloadInnerDef, O> FileWriterDef<B, PL, Inner, O>
+where
+    for<'a> Inner: PayloadSchema<Context<'a> = O>,
 {
     /// Creates a new instance of `FileWriterDef`, opening the specified storage file and
     /// acquiring an exclusive advisory lock via a `.lock` companion file.
@@ -187,10 +189,11 @@ impl<O: Default, B: BlockDef, PL: PayloadDef<O, Inner>, Inner: PayloadInnerDef<O
     ///
     /// A new `FileWriterDef` instance with exclusive access to the specified file, guarded
     /// by a live advisory lock. The lock is automatically released when the instance is dropped.
-    pub fn new<P: AsRef<Path>>(
+    pub fn with_opt<P: AsRef<Path>>(
         filename: P,
         timeout: Option<Duration>,
         interval: Option<Duration>,
+        opt: O,
     ) -> Result<Self, Error> {
         let filename = filename.as_ref().to_path_buf();
         let filename_str = filename.to_string_lossy().to_string();
@@ -244,9 +247,20 @@ impl<O: Default, B: BlockDef, PL: PayloadDef<O, Inner>, Inner: PayloadInnerDef<O
         Ok(Self {
             _filelock: filelock,
             inner: WriterDef::new(storage_file)?,
+            opt,
         })
     }
 
+    pub fn new<P: AsRef<Path>>(
+        filename: P,
+        timeout: Option<Duration>,
+        interval: Option<Duration>,
+    ) -> Result<Self, Error>
+    where
+        O: Default,
+    {
+        Self::with_opt(filename, timeout, interval, O::default())
+    }
 
     /// Inserts a new packet into storage at the next available slot.
     ///
@@ -256,11 +270,9 @@ impl<O: Default, B: BlockDef, PL: PayloadDef<O, Inner>, Inner: PayloadInnerDef<O
     /// # Returns
     /// * `Ok(())` — Packet successfully written
     /// * `Err(Error)` — If no space is found or write fails
-    pub fn insert(&mut self, packet: PacketDef<O, B, PL, Inner>) -> Result<(), Error> {
-        self.inner.insert(packet)
+    pub fn insert(&mut self, packet: PacketDef<B, PL, Inner>) -> Result<(), Error> {
+        self.inner.insert(packet, &mut self.opt)
     }
-
-
 }
 
 #[cfg(test)]
@@ -270,7 +282,7 @@ mod tests {
     use std::{
         env::temp_dir,
         fs,
-        sync::mpsc::{channel, Receiver, Sender},
+        sync::mpsc::{Receiver, Sender, channel},
         thread::{sleep, spawn},
         time::Duration,
     };
@@ -284,8 +296,11 @@ mod tests {
         let filename_a = filename.clone();
         let (tx, rx): (Sender<()>, Receiver<()>) = channel();
         let a = spawn(move || {
-            let a = FileWriterDef::<(), TestBlock, TestPayload, TestPayload>::new(
-                filename_a, None, None,
+            let a = FileWriterDef::<TestBlock, TestPayload, TestPayload, DefaultPayloadContext>::with_opt(
+                filename_a,
+                None,
+                None,
+                (),
             )
             .expect("Storage A has been created");
             tx.send(()).expect("Signal has been send");
@@ -296,10 +311,11 @@ mod tests {
         let b = spawn(move || {
             rx.recv().expect("Signal  has been gotten");
 
-            FileWriterDef::<(), TestBlock, TestPayload, TestPayload>::new(
+            FileWriterDef::<TestBlock, TestPayload, TestPayload, DefaultPayloadContext>::with_opt(
                 &filename,
                 Some(Duration::from_millis(300)),
                 None,
+                (),
             )
             .is_ok()
         });
@@ -318,7 +334,7 @@ mod tests {
         let (tx, rx): (Sender<()>, Receiver<()>) = channel();
         let a = spawn(move || {
             let a = FileStorageOptions::new(filename_a)
-                .open::<(), TestBlock, TestPayload, TestPayload>()
+                .open::<TestBlock, TestPayload, TestPayload, DefaultPayloadContext>(())
                 .expect("Storage A has been created");
             tx.send(()).expect("Signal has been send");
             sleep(Duration::from_millis(100));
@@ -329,7 +345,7 @@ mod tests {
             rx.recv().expect("Signal  has been gotten");
             FileStorageOptions::new(filename)
                 .timeout(Duration::from_millis(300))
-                .open::<(), TestBlock, TestPayload, TestPayload>()
+                .open::<TestBlock, TestPayload, TestPayload, DefaultPayloadContext>(())
                 .is_ok()
         });
         let a = a.join().expect("Storage A has been created");
@@ -346,8 +362,11 @@ mod tests {
         let filename_a = filename.clone();
         let (tx, rx): (Sender<()>, Receiver<()>) = channel();
         let a = spawn(move || {
-            let a = FileWriterDef::<(), TestBlock, TestPayload, TestPayload>::new(
-                filename_a, None, None,
+            let a = FileWriterDef::<TestBlock, TestPayload, TestPayload, DefaultPayloadContext>::with_opt(
+                filename_a,
+                None,
+                None,
+                (),
             )
             .expect("Storage A has been created");
             tx.send(()).expect("Signal has been send");
@@ -357,10 +376,11 @@ mod tests {
         });
         let b = spawn(move || {
             rx.recv().expect("Signal  has been gotten");
-            FileWriterDef::<(), TestBlock, TestPayload, TestPayload>::new(
+            FileWriterDef::<TestBlock, TestPayload, TestPayload, DefaultPayloadContext>::with_opt(
                 &filename,
                 Some(Duration::from_millis(100)),
                 None,
+                (),
             )
             .is_ok()
         });
@@ -379,8 +399,11 @@ mod tests {
         let filename_a = filename.clone();
         let (tx, rx): (Sender<()>, Receiver<()>) = channel();
         let a = spawn(move || {
-            let a = FileWriterDef::<(), TestBlock, TestPayload, TestPayload>::new(
-                filename_a, None, None,
+            let a = FileWriterDef::<TestBlock, TestPayload, TestPayload, DefaultPayloadContext>::with_opt(
+                filename_a,
+                None,
+                None,
+                (),
             )
             .expect("Storage A has been created");
             tx.send(()).expect("Signal has been send");
@@ -390,8 +413,11 @@ mod tests {
         });
         let b = spawn(move || {
             rx.recv().expect("Signal  has been gotten");
-            FileWriterDef::<(), TestBlock, TestPayload, TestPayload>::new(
-                &filename, None, None,
+            FileWriterDef::<TestBlock, TestPayload, TestPayload, DefaultPayloadContext>::with_opt(
+                &filename,
+                None,
+                None,
+                (),
             )
             .is_ok()
         });

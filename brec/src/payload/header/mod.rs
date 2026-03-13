@@ -43,8 +43,11 @@ impl PayloadHeader {
     ///
     /// # Errors
     /// Returns an I/O error if the payload size exceeds `u32::MAX`.
-    pub fn new<T: PayloadSignature + PayloadSize + PayloadCrc>(src: &T) -> std::io::Result<Self> {
-        let len = src.size()?;
+    pub fn new<T: PayloadSignature + PayloadSize + PayloadCrc>(
+        src: &T,
+        ctx: &mut T::Context<'_>,
+    ) -> std::io::Result<Self> {
+        let len = src.size(ctx)?;
         if len > u32::MAX as u64 {
             return Err(std::io::Error::new(
                 std::io::ErrorKind::InvalidData,
@@ -53,7 +56,7 @@ impl PayloadHeader {
         }
         Ok(Self {
             sig: src.sig(),
-            crc: src.crc()?,
+            crc: src.crc(ctx)?,
             len: len as u32,
         })
     }

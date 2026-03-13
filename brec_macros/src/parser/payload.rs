@@ -9,6 +9,9 @@ pub fn parse(attrs: PayloadAttrs, mut input: DeriveInput) -> TokenStream {
         Ok(p) => p,
         Err(err) => return err.to_compile_error(),
     };
+    if payload.attrs.is_ctx() {
+        return quote! { #input };
+    }
     let reflected = match codegen::Gen::generate(&payload) {
         Ok(p) => p,
         Err(err) => {

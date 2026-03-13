@@ -65,7 +65,11 @@ pub trait ReadPayloadFrom<
     /// # Errors
     /// Returns `SignatureDismatch` if the signature does not match,
     /// `CrcDismatch` if the checksum fails, or I/O/decoding errors.
-    fn read<B: std::io::Read>(buf: &mut B, header: &PayloadHeader) -> Result<T, Error>
+    fn read<B: std::io::Read>(
+        buf: &mut B,
+        header: &PayloadHeader,
+        ctx: &mut T::Context<'_>,
+    ) -> Result<T, Error>
     where
         Self: Sized + PayloadDecode<Self> + PayloadHooks + StaticPayloadSignature,
     {
@@ -74,13 +78,26 @@ pub trait ReadPayloadFrom<
         }
         let mut bytes = vec![0u8; header.payload_len()];
         buf.read_exact(&mut bytes)?;
-        let value = T::decode(&bytes)?;
-        let crc = value.crc()?;
+        let mut hasher = crc32fast::Hasher::new();
+        hasher.update(&bytes);
+        let crc = ByteBlock::Len4(hasher.finalize().to_le_bytes());
         if header.crc != crc {
             return Err(Error::CrcDismatch);
         }
+        let value = T::decode(&bytes, ctx)?;
         Ok(value)
     }
+}
+
+/// Trait for reading a full packet from a stream with payload context.
+pub trait ReadPacketFrom: PayloadSchema {
+    /// Reads and constructs the packet from a binary reader using the provided payload context.
+    fn read<T: std::io::Read>(
+        buf: &mut T,
+        ctx: &mut <Self as PayloadSchema>::Context<'_>,
+    ) -> Result<Self, Error>
+    where
+        Self: Sized;
 }
 
 /// Trait for extracting a payload of known type from a stream using a header.
@@ -88,7 +105,13 @@ pub trait ReadPayloadFrom<
 /// Does not assume validation logic. Caller is responsible for it.
 pub trait ExtractPayloadFrom<T: Sized> {
     /// Reads the payload of type `T` from the stream based on the given header.
-    fn read<B: std::io::Read>(buf: &mut B, header: &PayloadHeader) -> Result<T, Error>;
+    fn read<B: std::io::Read>(
+        buf: &mut B,
+        header: &PayloadHeader,
+        ctx: &mut T::Context<'_>,
+    ) -> Result<T, Error>
+    where
+        T: PayloadSchema;
 }
 
 /// Trait for attempting to read a payload if enough data is available in the stream.
@@ -111,6 +134,7 @@ pub trait TryReadPayloadFrom<
     fn try_read<B: std::io::Read + std::io::Seek>(
         buf: &mut B,
         header: &PayloadHeader,
+        ctx: &mut T::Context<'_>,
     ) -> Result<ReadStatus<T>, Error> {
         let start_pos = buf.stream_position()?;
         let len = buf.seek(std::io::SeekFrom::End(0))? - start_pos;
@@ -118,7 +142,7 @@ pub trait TryReadPayloadFrom<
         if len < header.payload_len() as u64 {
             return Ok(ReadStatus::NotEnoughData(header.payload_len() as u64 - len));
         }
-        <T as ReadPayloadFrom<T>>::read(buf, header).map(ReadStatus::Success)
+        <T as ReadPayloadFrom<T>>::read(buf, header, ctx).map(ReadStatus::Success)
     }
 }
 
@@ -130,7 +154,21 @@ pub trait TryExtractPayloadFrom<T: Sized> {
     fn try_read<B: std::io::Read + std::io::Seek>(
         buf: &mut B,
         header: &PayloadHeader,
-    ) -> Result<ReadStatus<T>, Error>;
+        ctx: &mut T::Context<'_>,
+    ) -> Result<ReadStatus<T>, Error>
+    where
+        T: PayloadSchema;
+}
+
+/// Trait for attempting to read a packet from a seekable stream with payload context.
+pub trait TryReadPacketFrom: PayloadSchema {
+    /// Tries to read the full packet from a seekable stream.
+    fn try_read<T: std::io::Read + std::io::Seek>(
+        buf: &mut T,
+        ctx: &mut <Self as PayloadSchema>::Context<'_>,
+    ) -> Result<ReadStatus<Self>, Error>
+    where
+        Self: Sized;
 }
 
 /// Variant of `TryReadPayloadFrom` that works on buffered streams (`BufRead`).
@@ -153,8 +191,9 @@ pub trait TryReadPayloadFromBuffered<
     fn try_read<B: std::io::BufRead>(
         buf: &mut B,
         header: &PayloadHeader,
+        ctx: &mut T::Context<'_>,
     ) -> Result<ReadStatus<T>, Error> {
-        <T as ReadPayloadFrom<T>>::read(buf, header).map(ReadStatus::Success)
+        <T as ReadPayloadFrom<T>>::read(buf, header, ctx).map(ReadStatus::Success)
     }
 }
 
@@ -164,7 +203,21 @@ pub trait TryExtractPayloadFromBuffered<T: Sized> {
     fn try_read<B: std::io::BufRead>(
         buf: &mut B,
         header: &PayloadHeader,
-    ) -> Result<ReadStatus<T>, Error>;
+        ctx: &mut T::Context<'_>,
+    ) -> Result<ReadStatus<T>, Error>
+    where
+        T: PayloadSchema;
+}
+
+/// Variant of `TryReadPacketFrom` for buffered, non-seekable streams.
+pub trait TryReadPacketFromBuffered: PayloadSchema {
+    /// Tries to read the full packet from a buffered stream using the provided payload context.
+    fn try_read<T: std::io::BufRead>(
+        buf: &mut T,
+        ctx: &mut <Self as PayloadSchema>::Context<'_>,
+    ) -> Result<ReadStatus<Self>, Error>
+    where
+        Self: Sized;
 }
 
 /// Generic trait for attempting to read a value from a stream with read status.

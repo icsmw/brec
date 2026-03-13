@@ -25,11 +25,11 @@ pub enum SubscriptionErrorAction {
 /// A subscription receives successfully parsed packets, is notified about
 /// observer errors, and can react to terminal lifecycle events.
 pub trait SubscriptionDef<
-    O: Default + Send + 'static,
     B: BlockDef + Send + 'static,
     BR: BlockReferredDef<B> + 'static,
-    P: PayloadDef<O, Inner> + Send + 'static,
-    Inner: PayloadInnerDef<O> + Send + 'static,
+    P: PayloadDef<Inner> + Send + 'static,
+    Inner: PayloadInnerDef + Send + 'static,
+    O: Send + Sync + 'static,
 >: Send
 {
     /// Called when the observer detects updated storage state.
@@ -49,7 +49,7 @@ pub trait SubscriptionDef<
     /// This method is always preceded by a call to `on_update()`.
     /// It is not called if `on_update()` returns [`SubscriptionUpdate::Skip`].
     #[allow(unused)]
-    fn on_packet(&mut self, packet: PacketDef<O, B, P, Inner>) {
+    fn on_packet(&mut self, packet: PacketDef<B, P, Inner>) {
         // default implementation
         let _ = packet;
     }

@@ -22,10 +22,9 @@ use self::channel::ObserverStreamState;
 /// because the underlying observer has meaningful lifecycle transitions that
 /// callers often need to react to.
 pub enum FileObserverEvent<
-    O: Default + Send + 'static,
     B: BlockDef + Send + 'static,
-    P: PayloadDef<O, Inner> + Send + 'static,
-    Inner: PayloadInnerDef<O> + Send + 'static,
+    P: PayloadDef<Inner> + Send + 'static,
+    Inner: PayloadInnerDef + Send + 'static,
 > {
     /// Storage metadata changed.
     ///
@@ -34,7 +33,7 @@ pub enum FileObserverEvent<
     Update { total: usize, added: usize },
 
     /// A packet was successfully read and parsed.
-    Packet(PacketDef<O, B, P, Inner>),
+    Packet(PacketDef<B, P, Inner>),
 
     /// A non-terminal observer error.
     ///
@@ -77,41 +76,52 @@ pub enum FileObserverEvent<
 /// mainly about coordination and integration with Tokio-based applications, not
 /// about turning regular file I/O into true non-blocking disk access.
 pub struct FileObserverStreamDef<
-    O: Default + Send + 'static,
     B: BlockDef + Send + 'static,
     BR: BlockReferredDef<B> + 'static,
-    P: PayloadDef<O, Inner> + Send + 'static,
-    Inner: PayloadInnerDef<O> + Send + 'static,
+    P: PayloadDef<Inner> + Send + 'static,
+    Inner: PayloadInnerDef + Send + 'static,
+    O: Send + Sync + 'static,
 > {
-    inner: ObserverStreamState<O, B, BR, P, Inner>,
+    inner: ObserverStreamState<B, BR, P, Inner, O>,
 }
 
 impl<
-    O: Default + Send + 'static,
     B: BlockDef + Send + 'static,
     BR: BlockReferredDef<B> + 'static,
-    P: PayloadDef<O, Inner> + Send + 'static,
-    Inner: PayloadInnerDef<O> + Send + 'static,
-> Unpin for FileObserverStreamDef<O, B, BR, P, Inner>
+    P: PayloadDef<Inner> + Send + 'static,
+    Inner: PayloadInnerDef + Send + 'static,
+    O: Send + Sync + 'static,
+> Unpin for FileObserverStreamDef<B, BR, P, Inner, O>
+where
+    for<'a> Inner: PayloadSchema<Context<'a> = O>,
 {
 }
 
 impl<
-    O: Default + Send + 'static,
     B: BlockDef + Send + 'static,
     BR: BlockReferredDef<B> + 'static,
-    P: PayloadDef<O, Inner> + Send + 'static,
-    Inner: PayloadInnerDef<O> + Send + 'static,
-> FileObserverStreamDef<O, B, BR, P, Inner>
+    P: PayloadDef<Inner> + Send + 'static,
+    Inner: PayloadInnerDef + Send + 'static,
+    O: Send + Sync + 'static,
+> FileObserverStreamDef<B, BR, P, Inner, O>
+where
+    for<'a> Inner: PayloadSchema<Context<'a> = O>,
 {
     /// Creates a new observer stream for the target storage file.
     ///
     /// The observer starts immediately and begins emitting lifecycle events as
     /// soon as storage changes are detected.
-    pub fn new(path: impl AsRef<std::path::Path>) -> Result<Self, Error> {
+    pub fn with_opt(path: impl AsRef<std::path::Path>, opt: O) -> Result<Self, Error> {
         Ok(Self {
-            inner: ObserverStreamState::new(path)?,
+            inner: ObserverStreamState::new(path, opt)?,
         })
+    }
+
+    pub fn new(path: impl AsRef<std::path::Path>) -> Result<Self, Error>
+    where
+        O: Default,
+    {
+        Self::with_opt(path, O::default())
     }
 
     /// Stops the underlying observer task and waits for it to finish.
@@ -123,14 +133,16 @@ impl<
 }
 
 impl<
-    O: Default + Send + 'static,
     B: BlockDef + Send + 'static,
     BR: BlockReferredDef<B> + 'static,
-    P: PayloadDef<O, Inner> + Send + 'static,
-    Inner: PayloadInnerDef<O> + Send + 'static,
-> tokio_stream::Stream for FileObserverStreamDef<O, B, BR, P, Inner>
+    P: PayloadDef<Inner> + Send + 'static,
+    Inner: PayloadInnerDef + Send + 'static,
+    O: Send + Sync + 'static,
+> tokio_stream::Stream for FileObserverStreamDef<B, BR, P, Inner, O>
+where
+    for<'a> Inner: PayloadSchema<Context<'a> = O>,
 {
-    type Item = FileObserverEvent<O, B, P, Inner>;
+    type Item = FileObserverEvent<B, P, Inner>;
 
     /// Polls the next observer event from the internal Tokio channel.
     fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
