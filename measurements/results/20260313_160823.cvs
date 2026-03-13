@@ -1,0 +1,72 @@
+payload,platform,case,bytes,rows,time_ms,avg_us_per_row,rate_mbit_s,cpu_ms,rss_kb,peak_rss_kb,iterations
+"Small record with a few fields and a text message","Plain text","Writing",87084500,100000,100,1.00,6948.80,100,182,114,2
+"Small record with a few fields and a text message","Plain text","Reading",87084500,100000,33,0.33,21250.86,30,2,2,2
+"Small record with a few fields and a text message","Plain text","Filtering",87084500,12500,32,2.60,21472.24,35,0,0,2
+"Small record with a few fields and a text message","JSON","Writing",91684500,100000,159,1.59,4622.71,155,82,80,2
+"Small record with a few fields and a text message","JSON","Reading",91684500,100000,64,0.64,11519.14,65,0,0,2
+"Small record with a few fields and a text message","JSON","Filtering",91684500,12500,64,5.12,11465.40,65,0,0,2
+"Small record with a few fields and a text message","Protobuf","Writing",86300000,100000,159,1.59,4336.22,155,142,134,2
+"Small record with a few fields and a text message","Protobuf","Reading",86300000,100000,80,0.80,8658.11,80,4,4,2
+"Small record with a few fields and a text message","Protobuf","Filtering",86300000,12500,82,6.54,8445.95,75,0,0,2
+"Small record with a few fields and a text message","FlatBuffers","Writing",91216000,100000,200,2.00,3655.72,195,0,0,2
+"Small record with a few fields and a text message","FlatBuffers","Reading",91216000,100000,69,0.69,10578.07,70,0,0,2
+"Small record with a few fields and a text message","FlatBuffers","Filtering",91216000,12500,69,5.49,10639.56,60,0,0,2
+"Small record with a few fields and a text message","FlatBuffers Owned","Writing",91216000,100000,204,2.04,3582.51,200,0,0,2
+"Small record with a few fields and a text message","FlatBuffers Owned","Reading",91216000,100000,74,0.74,9834.28,75,0,0,2
+"Small record with a few fields and a text message","FlatBuffers Owned","Filtering",91216000,12500,74,5.93,9846.06,70,0,0,2
+"Small record with a few fields and a text message","Brec Storage","Writing",91523000,100000,319,3.19,2297.54,320,520,508,2
+"Small record with a few fields and a text message","Brec Storage","Reading",91523000,100000,103,1.03,7116.12,105,1172,1172,2
+"Small record with a few fields and a text message","Brec Storage","Filtering",91523000,12500,61,4.87,12031.87,65,1032,1032,2
+"Small record with a few fields and a text message","Brec Stream","Writing",90719000,100000,268,2.68,2705.15,265,0,0,2
+"Small record with a few fields and a text message","Brec Stream","Reading",90719000,100000,82,0.82,8834.54,80,4,4,2
+"Small record with a few fields and a text message","Brec Stream","Filtering",90719000,12500,40,3.22,18031.34,40,4,4,2
+"Large record with many fields and a key/value collection","Plain text","Writing",204409000,100000,143,1.43,11451.43,140,0,0,2
+"Large record with many fields and a key/value collection","Plain text","Reading",204409000,100000,476,4.76,3436.76,480,0,0,2
+"Large record with many fields and a key/value collection","Plain text","Filtering",204409000,16000,485,30.30,3373.31,480,0,0,2
+"Large record with many fields and a key/value collection","JSON","Writing",214025500,100000,542,5.42,3160.83,540,0,0,2
+"Large record with many fields and a key/value collection","JSON","Reading",214025500,100000,1189,11.89,1440.41,1195,0,0,2
+"Large record with many fields and a key/value collection","JSON","Filtering",214025500,16000,1192,74.47,1436.90,1210,0,0,2
+"Large record with many fields and a key/value collection","Protobuf","Writing",139329000,100000,271,2.71,4117.17,270,0,0,2
+"Large record with many fields and a key/value collection","Protobuf","Reading",139329000,100000,570,5.70,1953.80,570,0,0,2
+"Large record with many fields and a key/value collection","Protobuf","Filtering",139329000,16000,570,35.65,1954.34,570,0,0,2
+"Large record with many fields and a key/value collection","FlatBuffers","Writing",158788000,100000,279,2.79,4558.44,280,0,0,2
+"Large record with many fields and a key/value collection","FlatBuffers","Reading",158788000,100000,90,0.90,14179.64,80,0,0,2
+"Large record with many fields and a key/value collection","FlatBuffers","Filtering",158788000,16000,79,4.95,16054.74,75,0,0,2
+"Large record with many fields and a key/value collection","FlatBuffers Owned","Writing",158788000,100000,283,2.83,4482.50,280,0,0,2
+"Large record with many fields and a key/value collection","FlatBuffers Owned","Reading",158788000,100000,131,1.31,9677.28,130,0,0,2
+"Large record with many fields and a key/value collection","FlatBuffers Owned","Filtering",158788000,16000,126,7.87,10092.04,130,0,0,2
+"Large record with many fields and a key/value collection","Brec Storage","Writing",142179500,100000,436,4.36,2608.31,445,162,154,2
+"Large record with many fields and a key/value collection","Brec Storage","Reading",142179500,100000,550,5.50,2067.20,545,588,1272,2
+"Large record with many fields and a key/value collection","Brec Storage","Filtering",142179500,16000,175,10.94,6496.65,180,0,684,2
+"Large record with many fields and a key/value collection","Brec Stream","Writing",141375500,100000,387,3.87,2920.64,395,0,0,2
+"Large record with many fields and a key/value collection","Brec Stream","Reading",141375500,100000,529,5.29,2137.80,525,4,4,2
+"Large record with many fields and a key/value collection","Brec Stream","Filtering",141375500,16000,154,9.62,7345.32,160,4,4,2
+"Large record with many fields and a key/value collection with encryption","Crypt Plain text","Writing",217413000,100000,708,7.08,2455.91,715,0,0,2
+"Large record with many fields and a key/value collection with encryption","Crypt Plain text","Reading",217413000,100000,1065,10.65,1632.53,1075,0,0,2
+"Large record with many fields and a key/value collection with encryption","Crypt Plain text","Filtering",217413000,9500,1069,112.51,1627.25,1070,0,0,2
+"Large record with many fields and a key/value collection with encryption","Crypt JSON","Writing",227026500,100000,1122,11.22,1618.05,1135,0,0,2
+"Large record with many fields and a key/value collection with encryption","Crypt JSON","Reading",227026500,100000,1808,18.08,1004.32,1815,0,0,2
+"Large record with many fields and a key/value collection with encryption","Crypt JSON","Filtering",227026500,9500,1804,189.92,1006.66,1820,0,0,2
+"Large record with many fields and a key/value collection with encryption","Protobuf","Writing",152849000,100000,722,7.22,1694.25,735,0,0,2
+"Large record with many fields and a key/value collection with encryption","Protobuf","Reading",152849000,100000,1080,10.80,1132.41,1090,0,0,2
+"Large record with many fields and a key/value collection with encryption","Protobuf","Filtering",152849000,9500,1092,114.92,1120.07,1100,0,0,2
+"Large record with many fields and a key/value collection with encryption","FlatBuffers","Writing",173140000,100000,808,8.08,1713.79,810,0,0,2
+"Large record with many fields and a key/value collection with encryption","FlatBuffers","Reading",173140000,100000,598,5.98,2314.75,605,0,0,2
+"Large record with many fields and a key/value collection with encryption","FlatBuffers","Filtering",173140000,9500,236,24.81,5877.49,235,0,0,2
+"Large record with many fields and a key/value collection with encryption","FlatBuffers Owned","Writing",173140000,100000,813,8.13,1703.48,810,0,0,2
+"Large record with many fields and a key/value collection with encryption","FlatBuffers Owned","Reading",173140000,100000,659,6.59,2101.64,665,0,0,2
+"Large record with many fields and a key/value collection with encryption","FlatBuffers Owned","Filtering",173140000,9500,649,68.36,2132.92,655,0,0,2
+"Large record with many fields and a key/value collection with encryption","Brec Storage","Writing",155773500,100000,890,8.90,1400.78,900,680,672,2
+"Large record with many fields and a key/value collection with encryption","Brec Storage","Reading",155773500,100000,1006,10.06,1238.51,1015,1500,1500,2
+"Large record with many fields and a key/value collection with encryption","Brec Storage","Filtering",155773500,9500,280,29.44,4456.44,290,714,714,2
+"Large record with many fields and a key/value collection with encryption","Brec Stream","Writing",154969500,100000,838,8.38,1478.81,840,0,0,2
+"Large record with many fields and a key/value collection with encryption","Brec Stream","Reading",154969500,100000,975,9.75,1272.08,970,4,4,2
+"Large record with many fields and a key/value collection with encryption","Brec Stream","Filtering",154969500,9500,256,26.93,4845.14,260,4,4,2
+"Borrowed blocks only (referred path benchmark)","Protobuf","Writing",47119500,100000,186,1.86,2022.01,190,0,0,2
+"Borrowed blocks only (referred path benchmark)","Protobuf","Reading",47119500,100000,95,0.95,3949.46,95,0,0,2
+"Borrowed blocks only (referred path benchmark)","FlatBuffers","Writing",53860000,100000,205,2.05,2103.75,210,0,0,2
+"Borrowed blocks only (referred path benchmark)","FlatBuffers","Reading",53860000,100000,74,0.74,5799.40,65,0,0,2
+"Borrowed blocks only (referred path benchmark)","Brec Storage","Writing",47504000,100000,324,3.24,1174.05,330,0,0,2
+"Borrowed blocks only (referred path benchmark)","Brec Storage","Reading",47504000,100000,74,0.74,5111.18,70,170,170,2
+"Borrowed blocks only (referred path benchmark)","Brec Stream","Writing",46700000,100000,171,1.71,2191.17,175,0,0,2
+"Borrowed blocks only (referred path benchmark)","Brec Stream","Reading",46700000,100000,48,0.48,7792.52,40,4,4,2

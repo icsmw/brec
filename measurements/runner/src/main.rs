@@ -1,0 +1,23 @@
+#[cfg(test)]
+mod content;
+#[cfg(test)]
+mod protocol;
+
+#[cfg(test)]
+pub(crate) use content::*;
+#[cfg(test)]
+pub(crate) use protocol::*;
+
+#[cfg(test)]
+mod report;
+#[cfg(test)]
+mod metrics;
+#[cfg(test)]
+mod test;
+#[cfg(test)]
+mod tests;
+
+#[cfg(test)]
+pub(crate) use test::*;
+
+fn main() {}
