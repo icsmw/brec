@@ -1,9 +1,9 @@
 [workspace]
 resolver = "2"
 members = [
-    "measurements",
     "stress_blocks",
     "stress_payloads",
+    "stress_payloads_crypt",
     "stress_packets",
     "locked_storage",
     "observer",

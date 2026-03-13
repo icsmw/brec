@@ -110,7 +110,7 @@ fn update_reader_by_steps() -> std::io::Result<()> {
             assert_eq!(added, 0);
             assert_eq!(reader.count(), idx);
             // Try to seek to the last packet, which should be valid
-            match reader.seek(last) {
+            match reader.seek(last, &mut ()) {
                 Err(Error::EmptySource) => {}
                 Err(err) => panic!("Unexpected error on seek to {last} from {idx}: {err}"),
                 Ok(mut iterator) => {
@@ -151,7 +151,7 @@ fn update_reader_by_steps() -> std::io::Result<()> {
             last = idx;
         }
         writer
-            .insert(packet.into())
+            .insert(packet.into(), &mut ())
             .map_err(|err| std::io::Error::new(std::io::ErrorKind::InvalidData, err.to_string()))?;
     }
     // Last package is not expected to be read since it is added after the last checkpoint
@@ -239,7 +239,7 @@ fn update_reader_by_checkpoints() -> std::io::Result<()> {
             assert_eq!(added, 0);
             assert_eq!(reader.count(), idx);
             // Try to seek to the last packet, which should be valid
-            match reader.seek(last) {
+            match reader.seek(last, &mut ()) {
                 Err(Error::EmptySource) => {}
                 Err(err) => panic!("Unexpected error on seek to {last} from {idx}: {err}"),
                 Ok(mut iterator) => {
@@ -282,7 +282,7 @@ fn update_reader_by_checkpoints() -> std::io::Result<()> {
             last = idx;
         }
         writer
-            .insert(packet.into())
+            .insert(packet.into(), &mut ())
             .map_err(|err| std::io::Error::new(std::io::ErrorKind::InvalidData, err.to_string()))?;
     }
     // Last package is not expected to be read since it is added after the last checkpoint
@@ -319,7 +319,7 @@ impl Subscription for MySubscription {
         }
         SubscriptionUpdate::Skip
     }
-    fn on_packet(&mut self, _packet: PacketDef<(), Block, Payload, Payload>) {
+    fn on_packet(&mut self, _packet: Packet) {
         self.count += 1;
     }
 }
@@ -355,7 +355,7 @@ impl Subscription for VerifyingSubscription {
         SubscriptionUpdate::Read
     }
 
-    fn on_packet(&mut self, packet: PacketDef<(), Block, Payload, Payload>) {
+    fn on_packet(&mut self, packet: Packet) {
         let wrapped: WrappedPacket = packet.into();
         let mut state = self.state.lock().unwrap();
         if state.failure.is_some() {
@@ -448,7 +448,7 @@ async fn observer() -> std::io::Result<()> {
             if idx % 30 == 0 {
                 tokio::time::sleep(tokio::time::Duration::from_millis(50)).await;
             }
-            if let Err(err) = writer.insert(packet.into()) {
+            if let Err(err) = writer.insert(packet.into(), &mut ()) {
                 eprintln!("Error during writing: {err}");
                 return Err(err);
             }
@@ -506,7 +506,7 @@ async fn observer_reads_packets_one_by_one() -> std::io::Result<()> {
         let mut writer = Writer::new(&mut wfile)
             .map_err(|err| std::io::Error::new(std::io::ErrorKind::InvalidData, err.to_string()))?;
         for packet in &packets {
-            writer.insert(packet.into())?;
+            writer.insert(packet.into(), &mut ())?;
             tokio::time::sleep(tokio::time::Duration::from_millis(3)).await;
         }
         Ok(())
@@ -571,7 +571,7 @@ async fn observer_stream_reads_packets_while_writing() -> std::io::Result<()> {
             .map_err(|err| std::io::Error::new(std::io::ErrorKind::InvalidData, err.to_string()))?;
         println!("Start writing...");
         for (idx, packet) in packets.iter().enumerate() {
-            writer.insert(packet.into())?;
+            writer.insert(packet.into(), &mut ())?;
             if idx == 0 {
                 tokio::time::sleep(tokio::time::Duration::from_millis(150)).await;
             } else if idx % 50 == 0 {

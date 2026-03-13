@@ -9,6 +9,10 @@ cd ./stress_payloads
 cargo test  --release -- --nocapture
 cd ..
 
+cd ./stress_payloads_crypt
+cargo test  --release -- --nocapture
+cd ..
+
 cd ./stress_packets
 cargo test  --release -- --nocapture
 cd ..
@@ -20,3 +24,4 @@ cd ..
 cd ./observer
 cargo test  --release -- --nocapture
 cd ..
+

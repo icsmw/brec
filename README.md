@@ -22,6 +22,8 @@
 - **Non-packet data is preserved** - When reading mixed streams, unrecognized data is not lost. You can capture and process it separately using rules and callbacks.
 - **Persistent storage layer** - `brec` provides a high-performance storage engine for persisting packets. Its slot-based layout enables fast indexed access, filtering, and direct access by packet index.
 - **Optional file observer** - Enable the `observer` feature to watch storage files and consume newly appended packets asynchronously.
+- **Payload runtime context** - Payloads may use explicit runtime state during encode/decode, which makes features like custom context-aware payload logic and crypto integration possible.
+- **Optional payload encryption** - With the `crypt` feature, selected payloads can be encrypted while other payloads in the same protocol remain open.
 - **High performance** - Parsing performance is on par with the most optimized binary parsers (see the Performance section in [documentation](https://icsmw.github.io/brec/)).
 - **Simple to use** - Just annotate your structs with #[block] or #[payload], and brec takes care of the rest — your protocol is ready to go.
 
@@ -59,6 +61,13 @@ See more details in the [documentation](https://icsmw.github.io/brec/) about how
 ## Documentation
 
 The main documentation for this crate lives in [documentation](https://icsmw.github.io/brec/).
+
+Useful entry points:
+
+- [Getting Started](https://icsmw.github.io/brec/getting_started/)
+- [Payloads](https://icsmw.github.io/brec/parts/payloads/)
+- [Payload Context](https://icsmw.github.io/brec/parts/context/)
+- [Crypt](https://icsmw.github.io/brec/parts/crypt/)
 
 ## Contributing
 

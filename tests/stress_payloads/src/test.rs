@@ -23,7 +23,7 @@ impl Arbitrary for Payload {
 
 fn write_to_buf<W: std::io::Write>(buf: &mut W, payloads: &mut [Payload]) -> std::io::Result<()> {
     for payload in payloads.iter_mut() {
-        payload.write_all(buf)?;
+        payload.write_all(buf, &mut ())?;
     }
     Ok(())
 }
@@ -34,7 +34,7 @@ fn read_payloads(buffer: &[u8]) -> std::io::Result<Vec<Payload>> {
     let mut reader = BufReader::new(Cursor::new(buffer));
     let mut payloads = Vec::new();
     while let Ok(header) = brec::PayloadHeader::read(&mut reader) {
-        payloads.push(Payload::read(&mut reader, &header).map_err(|err| {
+        payloads.push(Payload::read(&mut reader, &header, &mut ()).map_err(|err| {
             std::io::Error::new(std::io::ErrorKind::InvalidData, err.to_string())
         })?);
     }
@@ -49,8 +49,12 @@ fn read_payloads_from_buffered(buffer: &[u8]) -> std::io::Result<(Vec<Payload>, 
     let mut reader = BufferedReader::new(&mut inner);
     let mut payloads = Vec::new();
     while let Ok(header) = brec::PayloadHeader::read(&mut reader) {
-        match <Payload as TryExtractPayloadFromBuffered<Payload>>::try_read(&mut reader, &header)
-            .map_err(|err| std::io::Error::new(std::io::ErrorKind::InvalidData, err.to_string()))?
+        match <Payload as TryExtractPayloadFromBuffered<Payload>>::try_read(
+            &mut reader,
+            &header,
+            &mut (),
+        )
+        .map_err(|err| std::io::Error::new(std::io::ErrorKind::InvalidData, err.to_string()))?
         {
             ReadStatus::Success(payload) => {
                 payloads.push(payload);
@@ -123,8 +127,8 @@ proptest! {
         let mut bytes = 0;
         for payload in payloads.iter_mut() {
             let mut buffer = Vec::new();
-            payload.write_all(&mut buffer)?;
-            let expected_size = PacketHeader::payload_size(payload)?;
+            payload.write_all(&mut buffer, &mut ())?;
+            let expected_size = PacketHeader::payload_size(payload, &mut ())?;
             assert_eq!(buffer.len(), expected_size as usize);
             bytes += buffer.len();
         }
@@ -163,11 +167,11 @@ proptest! {
         let mut bytes = 0;
         for payload in payloads.iter_mut() {
             let mut buf: Vec<u8> = Vec::new();
-            payload.write_all(&mut buf)?;
+            payload.write_all(&mut buf, &mut ())?;
             bytes += buf.len();
             let mut cursor = Cursor::new(buf);
             let header = brec::PayloadHeader::read(&mut cursor)?;
-            match <Payload as TryExtractPayloadFrom<Payload>>::try_read(&mut cursor, &header)?
+            match <Payload as TryExtractPayloadFrom<Payload>>::try_read(&mut cursor, &header, &mut ())?
             {
                 ReadStatus::Success(restored) => {
                     assert_eq!(payload, &restored);
@@ -186,11 +190,11 @@ proptest! {
         let mut bytes = 0;
         for payload in payloads.iter_mut() {
             let mut buf: Vec<u8> = Vec::new();
-            payload.write_all(&mut buf)?;
+            payload.write_all(&mut buf, &mut ())?;
             bytes += buf.len();
             let mut cursor = Cursor::new(buf);
             let header = brec::PayloadHeader::read(&mut cursor)?;
-            match <Payload as TryExtractPayloadFromBuffered<Payload>>::try_read(&mut cursor, &header)?
+            match <Payload as TryExtractPayloadFromBuffered<Payload>>::try_read(&mut cursor, &header, &mut ())?
             {
                 ReadStatus::Success(restored) => {
                     assert_eq!(payload, &restored);

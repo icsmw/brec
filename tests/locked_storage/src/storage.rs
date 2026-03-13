@@ -29,7 +29,7 @@ pub fn read_file(filename: &str) -> std::io::Result<()> {
     let mut reader = Reader::new(&file)
         .map_err(|err| std::io::Error::new(std::io::ErrorKind::InvalidData, err.to_string()))?;
     let mut count = 0;
-    for packet in reader.iter() {
+    for packet in reader.iter(&mut ()) {
         match packet {
             Ok(_packet) => {
                 count += 1;

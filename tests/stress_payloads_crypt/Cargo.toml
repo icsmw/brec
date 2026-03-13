@@ -1,5 +1,5 @@
 [package]
-name        = "measurements"
+name        = "stress_payloads_crypt"
 version     = "0.1.0"
 edition     = "2024"
 authors     = ["d.astafyev@outlook.com"]
@@ -7,14 +7,13 @@ description = "This crate is intended for testing brec"
 license     = "Apache-2.0"
 
 [dependencies]
-brec  = { workspace = true, features = ["bincode"] }
+brec  = { workspace = true, features = ["bincode", "crypt"] }
 serde = { workspace = true, features = ["derive"] }
 
 [dev-dependencies]
 proptest.workspace   = true
 num-format.workspace = true
-serde_json.workspace = true
-sysinfo.workspace    = true
+rsa                  = { version = "0.9", features = ["pem", "sha2"] }
 
 [build-dependencies]
 brec = { workspace = true, features = ["build"] }
