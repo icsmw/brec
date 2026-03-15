@@ -64,8 +64,8 @@ impl<
                 Err(Error::CrcDismatch) => {
                     return Err(Error::DamagedSlot(Box::new(Error::CrcDismatch)));
                 }
-                Err(Error::SignatureDismatch) => {
-                    return Err(Error::DamagedSlot(Box::new(Error::SignatureDismatch)));
+                Err(Error::SignatureDismatch(data)) => {
+                    return Err(Error::DamagedSlot(Box::new(Error::SignatureDismatch(data))));
                 }
                 Err(err) => return Err(err),
             }
