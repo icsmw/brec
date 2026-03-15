@@ -1,4 +1,5 @@
 use crate::*;
+use brec_common::*;
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
 
@@ -44,6 +45,24 @@ impl Write for Block {
         }
         let const_sig = self.const_sig_name();
         let size = self.size();
+        let write_len = if cfg!(feature = "resilient") {
+            let len = self
+                .fields
+                .iter()
+                .filter(|f| !f.injected)
+                .map(|f| f.size())
+                .sum::<usize>() as u32;
+            quote! {
+                #[cfg(feature = "resilient")]
+                {
+                    buffer[offset..offset + #BLOCK_SIZE_FIELD_LEN]
+                        .copy_from_slice(&#len.to_le_bytes());
+                    offset += #BLOCK_SIZE_FIELD_LEN;
+                }
+            }
+        } else {
+            quote! {}
+        };
         Ok(quote! {
 
             impl brec::WriteTo for #block_name {
@@ -55,6 +74,7 @@ impl Write for Block {
                     let crc = self.crc();
                     buffer[offset..offset + #BLOCK_SIG_LEN].copy_from_slice(&#const_sig);
                     offset += #BLOCK_SIG_LEN;
+                    #write_len
                     #(#buf_fillers)*
                     unsafe {
                         let dst = buffer.as_mut_ptr().add(offset);
@@ -71,6 +91,7 @@ impl Write for Block {
                     let crc = self.crc();
                     buffer[offset..offset + #BLOCK_SIG_LEN].copy_from_slice(&#const_sig);
                     offset += #BLOCK_SIG_LEN;
+                    #write_len
                     #(#buf_fillers)*
                     unsafe {
                         let dst = buffer.as_mut_ptr().add(offset);
@@ -181,6 +202,23 @@ impl WriteVectored for Block {
         }
 
         let const_sig = self.const_sig_name();
+
+        let write_len = if cfg!(feature = "resilient") {
+            let len = self
+                .fields
+                .iter()
+                .filter(|f| !f.injected)
+                .map(|f| f.size())
+                .sum::<usize>() as u32;
+            quote! {
+                #[cfg(feature = "resilient")]
+                {
+                    slices.add_buffered(#len.to_le_bytes().to_vec());
+                }
+            }
+        } else {
+            quote! {}
+        };
         Ok(quote! {
 
             impl brec::WriteVectoredTo for #block_name {
@@ -189,6 +227,7 @@ impl WriteVectored for Block {
                     use brec::prelude::*;
                     let mut slices = brec::IoSlices::default();
                     slices.add_buffered(#const_sig.to_vec());
+                    #write_len;
                     #(#fragments)*
                     slices.add_buffered(self.crc().to_vec());
                     Ok(slices)

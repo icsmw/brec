@@ -27,6 +27,7 @@ proc-macro = true
 generate_macro_test = []
 locked_storage      = []
 observer            = []
+resilient           = []
 
 [dependencies]
 thiserror.workspace   = true
@@ -36,6 +37,7 @@ proc-macro2.workspace = true
 enum_ids.workspace    = true
 crc32fast.workspace   = true
 lazy_static.workspace = true
+brec_common.workspace = true
 
 [dev-dependencies]
 proptest.workspace    = true

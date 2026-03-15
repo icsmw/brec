@@ -1,3 +1,4 @@
+use brec_common::*;
 use thiserror::Error;
 
 #[cfg(feature = "crypt")]
@@ -42,6 +43,73 @@ impl Unrecognized {
             ..Self::default()
         }
     }
+
+    pub fn block_from<T: std::io::Read>(buf: &mut T) -> Result<Self, Error> {
+        let mut sig = [0u8; BLOCK_SIG_LEN];
+        let read_sig = read_exact_partial(buf, &mut sig)?;
+        if read_sig < BLOCK_SIG_LEN {
+            return Err(Error::NotEnoughtSignatureData(read_sig, BLOCK_SIG_LEN));
+        }
+        #[cfg(not(feature = "resilient"))]
+        {
+            Ok(Self::block(sig))
+        }
+        #[cfg(feature = "resilient")]
+        {
+            let mut unrecognized = Self::block(sig);
+            let mut blk_len = [0u8; BLOCK_SIZE_FIELD_LEN];
+            let read_len = read_exact_partial(buf, &mut blk_len)?;
+            if read_len < BLOCK_SIZE_FIELD_LEN {
+                return Err(Error::NotEnoughData(BLOCK_SIZE_FIELD_LEN - read_len));
+            }
+            unrecognized.len = Some(u32::from_le_bytes(blk_len) as u64);
+            Ok(unrecognized)
+        }
+    }
+
+    pub fn block_from_slice(buf: &[u8]) -> Result<Self, Error> {
+        if buf.len() < BLOCK_SIG_LEN {
+            return Err(Error::NotEnoughtSignatureData(buf.len(), BLOCK_SIG_LEN));
+        }
+        let sig = <[u8; BLOCK_SIG_LEN]>::try_from(&buf[..BLOCK_SIG_LEN])?;
+        #[cfg(not(feature = "resilient"))]
+        {
+            Ok(Self::block(sig))
+        }
+        #[cfg(feature = "resilient")]
+        {
+            let from = BLOCK_SIG_LEN;
+            let to = BLOCK_SIG_LEN + BLOCK_SIZE_FIELD_LEN;
+            if buf.len() < to {
+                return Err(Error::NotEnoughData(to - buf.len()));
+            }
+            let blk_len = <[u8; BLOCK_SIZE_FIELD_LEN]>::try_from(&buf[from..to])?;
+            let mut unrecognized = Self::block(sig);
+            unrecognized.len = Some(u32::from_le_bytes(blk_len) as u64);
+            Ok(unrecognized)
+        }
+    }
+
+    pub fn block_from_buffer<T: std::io::BufRead>(buf: &mut T) -> Result<Self, Error> {
+        let bytes = buf.fill_buf()?;
+        Self::block_from_slice(bytes)
+    }
+}
+
+fn read_exact_partial<T: std::io::Read>(
+    buf: &mut T,
+    dst: &mut [u8],
+) -> Result<usize, std::io::Error> {
+    let mut total = 0usize;
+    while total < dst.len() {
+        match buf.read(&mut dst[total..]) {
+            Ok(0) => break,
+            Ok(n) => total += n,
+            Err(err) if err.kind() == std::io::ErrorKind::Interrupted => continue,
+            Err(err) => return Err(err),
+        }
+    }
+    Ok(total)
 }
 
 /// Unified error type used by `brec` APIs.
@@ -161,6 +229,18 @@ pub enum Error {
     /// Sentinel error variant used in tests.
     #[error("Test error has been fired")]
     Test,
+}
+
+impl Error {
+    pub fn into_read_status<T>(self) -> Result<crate::ReadStatus<T>, Self> {
+        match self {
+            Self::NotEnoughtSignatureData(len, required) => {
+                Ok(crate::ReadStatus::NotEnoughData((required - len) as u64))
+            }
+            Self::NotEnoughData(needed) => Ok(crate::ReadStatus::NotEnoughData(needed as u64)),
+            err => Err(err),
+        }
+    }
 }
 
 impl From<Error> for std::io::Error {

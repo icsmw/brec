@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members  = ["brec_macros", "brec"]
+members  = ["brec_common", "brec_macros", "brec"]
 exclude  = ["gen_tests/*", "measurements/*", "examples/*", "tests/*"]
 
 [workspace.dependencies]
@@ -18,6 +18,7 @@ lazy_static      = "1.5"
 serde            = { version = "1.0", features = ["derive"] }
 bincode          = { version = "2.0", features = ["serde"] }
 brec_macros      = { version = "0.2", path = "./brec_macros" }
+brec_common      = { version = "0.1", path = "./brec_common" }
 fs4              = { version = "0.13", features = ["sync"] }
 tracing          = "0.1"
 tempfile         = "3.25"

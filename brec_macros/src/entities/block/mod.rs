@@ -3,13 +3,11 @@ mod attr;
 pub(crate) use attr::*;
 
 use crate::*;
+use brec_common::*;
 use crc32fast::Hasher;
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
 use syn::{Ident, LitInt};
-
-pub(crate) const BLOCK_SIG_LEN: usize = 4;
-pub(crate) const BLOCK_CRC_LEN: usize = 4;
 
 #[derive(Debug, Clone)]
 pub struct Block {
@@ -57,12 +55,18 @@ impl Block {
         quote! { #len_lit }
     }
     pub fn size(&self) -> usize {
-        self.fields
+        let size = self
+            .fields
             .iter()
             .map(|f| f.size())
             .collect::<Vec<usize>>()
             .iter()
-            .sum::<usize>()
+            .sum::<usize>();
+        if cfg!(feature = "resilient") {
+            size + BLOCK_SIZE_FIELD_LEN
+        } else {
+            size
+        }
     }
     pub fn const_sig_name(&self) -> Ident {
         format_ident!("{}", self.name.to_ascii_uppercase())

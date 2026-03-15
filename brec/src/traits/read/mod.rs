@@ -31,6 +31,7 @@ pub trait ReadBlockFromSlice {
     /// # Arguments
     /// * `buf` - The source byte slice.
     /// * `skip_sig` - Whether to skip reading and verifying the signature.
+    ///   When `true`, caller must ensure the signature bytes were already consumed.
     ///
     /// # Returns
     /// The deserialized block or an error if validation or decoding fails.
@@ -48,6 +49,7 @@ pub trait ReadBlockFrom {
     /// # Arguments
     /// * `buf` - A stream implementing `std::io::Read`.
     /// * `skip_sig` - Whether to skip reading and verifying the signature.
+    ///   When `true`, caller must ensure the signature bytes were already consumed.
     fn read<T: std::io::Read>(buf: &mut T, skip_sig: bool) -> Result<Self, Error>
     where
         Self: Sized;

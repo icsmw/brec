@@ -216,7 +216,7 @@ fn read_packets_one_by_one(bytes: &[Vec<u8>]) -> Result<Vec<WrappedPacket>, brec
                 return Err(err);
             }
         };
-        if let (ReadStatus::Success(b), ReadStatus::Success(c)) = (b, c) {
+        if let (PacketReadStatus::Success(b), PacketReadStatus::Success(c)) = (b, c) {
             let a = Into::<WrappedPacket>::into(a);
             assert_eq!(a, Into::<WrappedPacket>::into(b));
             assert_eq!(a, Into::<WrappedPacket>::into(c));
@@ -247,8 +247,8 @@ fn read_packets_with_try_read_from(inner: &[u8]) -> Result<Vec<WrappedPacket>, b
     let mut cursor = std::io::Cursor::new(inner);
     loop {
         let pkg = match <Packet as TryReadPacketFrom>::try_read(&mut cursor, &mut ()) {
-            Ok(ReadStatus::Success(pkg)) => Into::<WrappedPacket>::into(pkg),
-            Ok(ReadStatus::NotEnoughData(_needed)) => {
+            Ok(PacketReadStatus::Success(pkg)) => Into::<WrappedPacket>::into(pkg),
+            Ok(PacketReadStatus::NotEnoughData(_needed)) => {
                 break;
             }
             Err(err) => {
@@ -268,8 +268,8 @@ fn read_packets_with_try_read_from_buffered(
     let mut cursor = std::io::Cursor::new(inner);
     loop {
         let pkg = match <Packet as TryReadPacketFromBuffered>::try_read(&mut cursor, &mut ()) {
-            Ok(ReadStatus::Success(pkg)) => Into::<WrappedPacket>::into(pkg),
-            Ok(ReadStatus::NotEnoughData(_needed)) => {
+            Ok(PacketReadStatus::Success(pkg)) => Into::<WrappedPacket>::into(pkg),
+            Ok(PacketReadStatus::NotEnoughData(_needed)) => {
                 break;
             }
             Err(err) => {

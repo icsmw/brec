@@ -1,10 +1,10 @@
 use crate::*;
 
+use brec_common::*;
 use proc_macro2::TokenStream;
 use quote::quote;
 
 pub fn read_from(blocks: &[&Block]) -> Result<TokenStream, E> {
-    let sig_len = BLOCK_SIG_LEN;
     let mut variants = Vec::new();
     for blk in blocks.iter() {
         let fullname = blk.fullname()?;
@@ -24,16 +24,15 @@ pub fn read_from(blocks: &[&Block]) -> Result<TokenStream, E> {
         impl brec::ReadFrom for Block {
             fn read<T: std::io::Read>(buf: &mut T) -> Result<Self, brec::Error> {
                 #(#variants)*
-                let mut sig = [0u8; #sig_len];
-                buf.read_exact(&mut sig)?;
-                Err(brec::Error::SignatureDismatch(brec::Unrecognized::block(sig)))
+                Err(brec::Error::SignatureDismatch(
+                    brec::Unrecognized::block_from(buf)?
+                ))
             }
         }
     })
 }
 
 pub fn read_block_from(blocks: &[&Block]) -> Result<TokenStream, E> {
-    let sig_len = BLOCK_SIG_LEN;
     let mut variants = Vec::new();
     for blk in blocks.iter() {
         let fullname = blk.fullname()?;
@@ -54,9 +53,9 @@ pub fn read_block_from(blocks: &[&Block]) -> Result<TokenStream, E> {
             if skip_sig {
                 return Err(brec::Error::SignatureDismatch(brec::Unrecognized::default()));
             }
-            let mut sig = [0u8; #sig_len];
-            buf.read_exact(&mut sig)?;
-            Err(brec::Error::SignatureDismatch(brec::Unrecognized::block(sig)))
+            Err(brec::Error::SignatureDismatch(
+                brec::Unrecognized::block_from(buf)?
+            ))
         }
     } else {
         quote! {
@@ -66,9 +65,9 @@ pub fn read_block_from(blocks: &[&Block]) -> Result<TokenStream, E> {
                 // expected control flow for block dispatch.
                 unreachable!("block dispatch cannot fail with skip_sig = true")
             }
-            let mut sig = [0u8; #sig_len];
-            buf.read_exact(&mut sig)?;
-            Err(brec::Error::SignatureDismatch(brec::Unrecognized::block(sig)))
+            Err(brec::Error::SignatureDismatch(
+                brec::Unrecognized::block_from(buf)?
+            ))
         }
     };
     Ok(quote! {
@@ -85,7 +84,6 @@ pub fn read_block_from(blocks: &[&Block]) -> Result<TokenStream, E> {
 }
 
 pub fn try_read_from(blocks: &[&Block]) -> Result<TokenStream, E> {
-    let sig_len = BLOCK_SIG_LEN;
     let mut variants = Vec::new();
     for blk in blocks.iter() {
         let fullname = blk.fullname()?;
@@ -107,24 +105,33 @@ pub fn try_read_from(blocks: &[&Block]) -> Result<TokenStream, E> {
         });
     }
     let tail = if blocks.is_empty() {
+        let required_sig = if cfg!(feature = "resilient") {
+            BLOCK_SIG_LEN + BLOCK_SIZE_FIELD_LEN
+        } else {
+            BLOCK_SIG_LEN
+        };
         quote! {
             let start_pos = buf.stream_position()?;
             let len = buf.seek(std::io::SeekFrom::End(0))? - start_pos;
             buf.seek(std::io::SeekFrom::Start(start_pos))?;
-            if len < #sig_len {
-                return Ok(brec::ReadStatus::NotEnoughData(#sig_len - len));
+            if len < #required_sig {
+                return Ok(brec::ReadStatus::NotEnoughData(#required_sig - len));
             }
-            let mut sig = [0u8; #sig_len];
-            buf.read_exact(&mut sig)?;
+            let unrecognized = brec::Unrecognized::block_from(buf)?;
             buf.seek(std::io::SeekFrom::Start(start_pos))?;
-            Err(brec::Error::SignatureDismatch(brec::Unrecognized::block(sig)))
+            Err(brec::Error::SignatureDismatch(unrecognized))
         }
     } else {
         quote! {
-            let mut sig = [0u8; #sig_len];
-            buf.read_exact(&mut sig)?;
-            buf.seek(std::io::SeekFrom::Current(-( #sig_len as i64 )))?;
-            Err(brec::Error::SignatureDismatch(brec::Unrecognized::block(sig)))
+            let start_pos = buf.stream_position()?;
+            let result = brec::Unrecognized::block_from(buf);
+            buf.seek(std::io::SeekFrom::Start(start_pos))?;
+            result
+                .map(|unrecognized| brec::Error::SignatureDismatch(unrecognized))
+                .map_or_else(
+                    |err| err.into_read_status::<Self>(),
+                    Err
+                )
         }
     };
     Ok(quote! {
@@ -138,7 +145,6 @@ pub fn try_read_from(blocks: &[&Block]) -> Result<TokenStream, E> {
 }
 
 pub fn try_read_from_buffered(blocks: &[&Block]) -> Result<TokenStream, E> {
-    let sig_len = BLOCK_SIG_LEN;
     let mut variants = Vec::new();
     for blk in blocks.iter() {
         let fullname = blk.fullname()?;
@@ -159,34 +165,22 @@ pub fn try_read_from_buffered(blocks: &[&Block]) -> Result<TokenStream, E> {
             }
         });
     }
-    let tail = if blocks.is_empty() {
-        quote! {
-            let bytes = buf.fill_buf()?;
-            if bytes.len() < #sig_len {
-                return Ok(brec::ReadStatus::NotEnoughData((#sig_len - bytes.len()) as u64));
-            }
-            let sig = <[u8; #sig_len]>::try_from(&bytes[..#sig_len])?;
-            Err(brec::Error::SignatureDismatch(brec::Unrecognized::block(sig)))
-        }
-    } else {
-        quote! {
-            let bytes = buf.fill_buf()?;
-            let sig = <[u8; #sig_len]>::try_from(&bytes[..#sig_len])?;
-            Err(brec::Error::SignatureDismatch(brec::Unrecognized::block(sig)))
-        }
-    };
+
     Ok(quote! {
         impl brec::TryReadFromBuffered for Block {
             fn try_read<T: std::io::BufRead>(buf: &mut T) -> Result<brec::ReadStatus<Self>, brec::Error> {
                 #(#variants)*
-                #tail
+
+                brec::Unrecognized::block_from_buffer(buf).map_or_else(
+                    |err| err.into_read_status::<Self>(),
+                    |unrecognized| Err(brec::Error::SignatureDismatch(unrecognized))
+                )
             }
         }
     })
 }
 
 pub fn read_from_slice(blocks: &[&Block]) -> Result<TokenStream, E> {
-    let sig_len = BLOCK_SIG_LEN;
     let mut variants = Vec::new();
     for blk in blocks.iter() {
         let referred_name = blk.referred_name();
@@ -207,11 +201,9 @@ pub fn read_from_slice(blocks: &[&Block]) -> Result<TokenStream, E> {
             if skip_sig {
                 return Err(brec::Error::SignatureDismatch(brec::Unrecognized::default()));
             }
-            if buf.len() < #sig_len {
-                return Err(brec::Error::NotEnoughtSignatureData(buf.len(), #sig_len));
-            }
-            let sig = <[u8; #sig_len]>::try_from(&buf[..#sig_len])?;
-            Err(brec::Error::SignatureDismatch(brec::Unrecognized::block(sig)))
+            Err(brec::Error::SignatureDismatch(
+                brec::Unrecognized::block_from_slice(buf)?
+            ))
         }
     } else {
         quote! {
@@ -221,8 +213,9 @@ pub fn read_from_slice(blocks: &[&Block]) -> Result<TokenStream, E> {
                 // expected control flow for block dispatch.
                 unreachable!("block dispatch cannot fail with skip_sig = true")
             }
-            let sig = <[u8; #sig_len]>::try_from(&buf[..#sig_len])?;
-            Err(brec::Error::SignatureDismatch(brec::Unrecognized::block(sig)))
+            Err(brec::Error::SignatureDismatch(
+                brec::Unrecognized::block_from_slice(buf)?
+            ))
         }
     };
     Ok(quote! {
