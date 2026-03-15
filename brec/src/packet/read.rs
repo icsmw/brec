@@ -100,10 +100,9 @@ impl<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> TryReadPacketFro
             }
             ReadStatus::Success(header) => header,
         };
-        if packet_header.size > available {
-            return Ok(PacketReadStatus::NotEnoughData(
-                packet_header.size - available,
-            ));
+        let packet_size = PacketHeader::ssize() + packet_header.size;
+        if packet_size > available {
+            return Ok(PacketReadStatus::NotEnoughData(packet_size - available));
         }
         let mut pkg = PacketDef::default();
         let mut read = 0;
@@ -129,6 +128,10 @@ impl<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> TryReadPacketFro
                                 buf.seek(std::io::SeekFrom::Start(start_pos))?;
                                 return Err(Error::ZeroLengthBlock);
                             };
+                            if body_len == 0 {
+                                buf.seek(std::io::SeekFrom::Start(start_pos))?;
+                                return Err(Error::InvalidLength);
+                            }
                             let block_len = BLOCK_SIG_LEN as u64
                                 + BLOCK_SIZE_FIELD_LEN as u64
                                 + body_len
@@ -166,6 +169,13 @@ impl<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> TryReadPacketFro
         if packet_header.payload {
             match <PayloadHeader as TryReadFrom>::try_read(buf)? {
                 ReadStatus::Success(payload_header) => {
+                    let payload_total =
+                        payload_header.size() as u64 + payload_header.payload_len() as u64;
+                    let packet_payload_left = packet_header.size - packet_header.blocks_len;
+                    if payload_total > packet_payload_left {
+                        buf.seek(std::io::SeekFrom::Start(start_pos))?;
+                        return Err(Error::InvalidLength);
+                    }
                     match <P as TryExtractPayloadFrom<Inner>>::try_read(buf, &payload_header, ctx) {
                         Ok(ReadStatus::Success(payload)) => {
                             pkg.payload = Some(payload);
@@ -254,10 +264,9 @@ impl<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> TryReadPacketFro
             ));
         }
         let packet_header = PacketHeader::read_from_slice(bytes, false)?;
-        if packet_header.size > available {
-            return Ok(PacketReadStatus::NotEnoughData(
-                packet_header.size - available,
-            ));
+        let packet_size = PacketHeader::ssize() + packet_header.size;
+        if packet_size > available {
+            return Ok(PacketReadStatus::NotEnoughData(packet_size - available));
         }
         reader.consume(PacketHeader::ssize() as usize);
         #[cfg(feature = "resilient")]
@@ -284,6 +293,9 @@ impl<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> TryReadPacketFro
                             let Some(body_len) = entry.len else {
                                 return Err(Error::ZeroLengthBlock);
                             };
+                            if body_len == 0 {
+                                return Err(Error::InvalidLength);
+                            }
                             let block_len = BLOCK_SIG_LEN as u64
                                 + BLOCK_SIZE_FIELD_LEN as u64
                                 + body_len
@@ -317,6 +329,12 @@ impl<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> TryReadPacketFro
         if packet_header.payload {
             match <PayloadHeader as TryReadFromBuffered>::try_read(reader)? {
                 ReadStatus::Success(payload_header) => {
+                    let payload_total =
+                        payload_header.size() as u64 + payload_header.payload_len() as u64;
+                    let packet_payload_left = packet_header.size - packet_header.blocks_len;
+                    if payload_total > packet_payload_left {
+                        return Err(Error::InvalidLength);
+                    }
                     reader.consume(payload_header.size());
                     match <P as TryExtractPayloadFromBuffered<Inner>>::try_read(
                         reader,
