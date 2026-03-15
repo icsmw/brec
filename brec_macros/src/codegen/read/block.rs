@@ -1,4 +1,5 @@
 use crate::*;
+use brec_common::*;
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
 
@@ -27,6 +28,11 @@ impl Read for Block {
                             if sig != #const_sig {
                                 return Err(brec::Error::SignatureDismatch(brec::Unrecognized::block(sig)))
                             }
+                        }
+                        #[cfg(feature = "resilient")]
+                        {
+                            let mut blk_len = [0u8; #BLOCK_SIZE_FIELD_LEN];
+                            #src.read_exact(&mut blk_len)?;
                         }
 
                         #(#fields)*
@@ -60,7 +66,7 @@ impl ReadFromSlice for Block {
         let mut offset = 0usize;
         let src: syn::Ident = format_ident!("buf");
         for field in self.fields.iter() {
-            if &field.name == "__sig" {
+            if field.name == FIELD_SIG {
                 let name = format_ident!("{}", FIELD_SIG);
                 fields.push(quote! {
                     let #name = if skip_sig {
@@ -69,6 +75,10 @@ impl ReadFromSlice for Block {
                         <&[u8; #BLOCK_SIG_LEN]>::try_from(&#src[0usize..#BLOCK_SIG_LEN])?
                     };
                 });
+                #[cfg(feature = "resilient")]
+                {
+                    offset += BLOCK_SIZE_FIELD_LEN;
+                }
             } else if field.name == FIELD_CRC {
                 let name = format_ident!("{}", FIELD_CRC);
                 fields.push(quote! {
@@ -101,13 +111,20 @@ impl ReadFromSlice for Block {
                             ));
                         }
                     }
+                    #[cfg(feature = "resilient")]
+                    {
+                        let required = if skip_sig { 0usize } else { #sig_len } + #BLOCK_SIZE_FIELD_LEN;
+                        if #src.len() < required {
+                            return Err(brec::Error::NotEnoughData(required - #src.len()));
+                        }
+                    }
                     let required = if skip_sig {
                         #block_name::ssize() - #sig_len
                     } else {
                         #block_name::ssize()
                     } as usize;
                     if #src.len() < required {
-                        return Err(brec::Error::NotEnoughData(required));
+                        return Err(brec::Error::NotEnoughData(required - #src.len()));
                     }
 
                     #(#fields)*
@@ -154,6 +171,7 @@ impl TryRead for Block {
                         return Err(brec::Error::SignatureDismatch(brec::Unrecognized::block(sig_buf)));
                     }
                     if len < #block_name::ssize() {
+                        buf.seek(std::io::SeekFrom::Start(start_pos))?;
                         return Ok(brec::ReadStatus::NotEnoughData(#block_name::ssize() - len));
                     }
                     Ok(brec::ReadStatus::Success(#block_name::read(buf, true)?))

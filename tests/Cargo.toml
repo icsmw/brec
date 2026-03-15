@@ -5,6 +5,7 @@ members = [
     "stress_payloads",
     "stress_payloads_crypt",
     "stress_packets",
+    # "stress_resilient",
     "locked_storage",
     "observer",
 ]

@@ -42,6 +42,7 @@ crypt = [
     "dep:x509-parser",
     "dep:pem",
 ]
+resilient = ["brec_macros/resilient"]
 
 
 [dependencies]
@@ -49,6 +50,7 @@ thiserror.workspace = true
 crc32fast.workspace = true
 enum_ids.workspace  = true
 brec_macros         = { workspace = true, features = [], optional = false }
+brec_common.workspace = true
 bincode             = { workspace = true, optional = true }
 serde               = { workspace = true, optional = true }
 notify              = { workspace = true, optional = true }

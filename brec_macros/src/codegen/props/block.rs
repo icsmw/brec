@@ -1,4 +1,5 @@
 use crate::*;
+use brec_common::*;
 use proc_macro2::TokenStream;
 use quote::quote;
 
@@ -71,6 +72,9 @@ impl Size for Block {
         let mut size = 0u64;
         for field in self.fields.iter() {
             size += field.size() as u64;
+        }
+        if cfg!(feature = "resilient") {
+            size += BLOCK_SIZE_FIELD_LEN as u64;
         }
         quote! {
 
