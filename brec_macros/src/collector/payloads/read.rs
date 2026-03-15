@@ -12,7 +12,7 @@ pub fn extract_from(payloads: &[&Payload]) -> Result<TokenStream, E> {
             match <#fullpath as brec::ReadPayloadFrom<#fullpath>>::read(buf, header, _ctx) {
                 Ok(pl) => return Ok(Payload::#fullname(pl)),
                 Err(err) => {
-                    if !matches!(err, brec::Error::SignatureDismatch) {
+                    if !matches!(err, brec::Error::SignatureDismatch(_)) {
                         return Err(err);
                     }
                 }
@@ -33,7 +33,7 @@ pub fn extract_from(payloads: &[&Payload]) -> Result<TokenStream, E> {
                 match <Vec<u8> as brec::ReadPayloadFrom<Vec<u8>>>::read(buf, header, &mut brec::default_payload_context()) {
                     Ok(pl) => return Ok(Payload::Bytes(pl)),
                     Err(err) => {
-                        if !matches!(err, brec::Error::SignatureDismatch) {
+                        if !matches!(err, brec::Error::SignatureDismatch(_)) {
                             return Err(err);
                         }
                     }
@@ -41,12 +41,14 @@ pub fn extract_from(payloads: &[&Payload]) -> Result<TokenStream, E> {
                 match <String as brec::ReadPayloadFrom<String>>::read(buf, header, &mut brec::default_payload_context()) {
                     Ok(pl) => return Ok(Payload::String(pl)),
                     Err(err) => {
-                        if !matches!(err, brec::Error::SignatureDismatch) {
+                        if !matches!(err, brec::Error::SignatureDismatch(_)) {
                             return Err(err);
                         }
                     }
                 }
-                Err(brec::Error::SignatureDismatch)
+                let mut unrecognized = brec::Unrecognized::payload(header.sig.as_slice().to_vec());
+                unrecognized.len = Some(header.len as u64);
+                Err(brec::Error::SignatureDismatch(unrecognized))
             }
         }
     })
@@ -66,7 +68,7 @@ pub fn try_extract_from(payloads: &[&Payload]) -> Result<TokenStream, E> {
                     return Ok(brec::ReadStatus::NotEnoughData(needed))
                 }
                 Err(err) => {
-                    if !matches!(err, brec::Error::SignatureDismatch) {
+                    if !matches!(err, brec::Error::SignatureDismatch(_)) {
                         return Err(err);
                     }
                 }
@@ -89,7 +91,7 @@ pub fn try_extract_from(payloads: &[&Payload]) -> Result<TokenStream, E> {
                         return Ok(brec::ReadStatus::NotEnoughData(needed))
                     }
                     Err(err) => {
-                        if !matches!(err, brec::Error::SignatureDismatch) {
+                        if !matches!(err, brec::Error::SignatureDismatch(_)) {
                             return Err(err);
                         }
                     }
@@ -102,12 +104,14 @@ pub fn try_extract_from(payloads: &[&Payload]) -> Result<TokenStream, E> {
                         return Ok(brec::ReadStatus::NotEnoughData(needed))
                     }
                     Err(err) => {
-                        if !matches!(err, brec::Error::SignatureDismatch) {
+                        if !matches!(err, brec::Error::SignatureDismatch(_)) {
                             return Err(err);
                         }
                     }
                 }
-                Err(brec::Error::SignatureDismatch)
+                let mut unrecognized = brec::Unrecognized::payload(header.sig.as_slice().to_vec());
+                unrecognized.len = Some(header.len as u64);
+                Err(brec::Error::SignatureDismatch(unrecognized))
             }
         }
     })
@@ -127,7 +131,7 @@ pub fn try_extract_from_buffered(payloads: &[&Payload]) -> Result<TokenStream, E
                     return Ok(brec::ReadStatus::NotEnoughData(needed))
                 }
                 Err(err) => {
-                    if !matches!(err, brec::Error::SignatureDismatch) {
+                    if !matches!(err, brec::Error::SignatureDismatch(_)) {
                         return Err(err);
                     }
                 }
@@ -150,7 +154,7 @@ pub fn try_extract_from_buffered(payloads: &[&Payload]) -> Result<TokenStream, E
                         return Ok(brec::ReadStatus::NotEnoughData(needed))
                     }
                     Err(err) => {
-                        if !matches!(err, brec::Error::SignatureDismatch) {
+                        if !matches!(err, brec::Error::SignatureDismatch(_)) {
                             return Err(err);
                         }
                     }
@@ -163,12 +167,14 @@ pub fn try_extract_from_buffered(payloads: &[&Payload]) -> Result<TokenStream, E
                         return Ok(brec::ReadStatus::NotEnoughData(needed))
                     }
                     Err(err) => {
-                        if !matches!(err, brec::Error::SignatureDismatch) {
+                        if !matches!(err, brec::Error::SignatureDismatch(_)) {
                             return Err(err);
                         }
                     }
                 }
-                Err(brec::Error::SignatureDismatch)
+                let mut unrecognized = brec::Unrecognized::payload(header.sig.as_slice().to_vec());
+                unrecognized.len = Some(header.len as u64);
+                Err(brec::Error::SignatureDismatch(unrecognized))
             }
         }
     })

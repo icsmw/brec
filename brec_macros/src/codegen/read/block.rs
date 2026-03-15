@@ -25,7 +25,7 @@ impl Read for Block {
                             let mut sig = [0u8; #sig_len];
                             #src.read_exact(&mut sig)?;
                             if sig != #const_sig {
-                                return Err(brec::Error::SignatureDismatch)
+                                return Err(brec::Error::SignatureDismatch(brec::Unrecognized::block(sig)))
                             }
                         }
 
@@ -96,7 +96,9 @@ impl ReadFromSlice for Block {
                         }
 
                         if #src[..#sig_len] != #const_sig {
-                            return Err(brec::Error::SignatureDismatch);
+                            return Err(brec::Error::SignatureDismatch(
+                                brec::Unrecognized::block(<[u8; #sig_len]>::try_from(&#src[..#sig_len])?),
+                            ));
                         }
                     }
                     let required = if skip_sig {
@@ -149,7 +151,7 @@ impl TryRead for Block {
                     buf.read_exact(&mut sig_buf)?;
                     if sig_buf != #const_sig {
                         buf.seek(std::io::SeekFrom::Start(start_pos))?;
-                        return Err(brec::Error::SignatureDismatch);
+                        return Err(brec::Error::SignatureDismatch(brec::Unrecognized::block(sig_buf)));
                     }
                     if len < #block_name::ssize() {
                         return Ok(brec::ReadStatus::NotEnoughData(#block_name::ssize() - len));
@@ -183,7 +185,9 @@ impl TryReadBuffered for Block {
                     }
 
                     if !bytes.starts_with(&#const_sig) {
-                        return Err(brec::Error::SignatureDismatch);
+                        return Err(brec::Error::SignatureDismatch(brec::Unrecognized::block(
+                            <[u8; #sig_len]>::try_from(&bytes[..#sig_len])?,
+                        )));
                     }
 
                     reader.consume(#sig_len);
