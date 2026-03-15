@@ -19,5 +19,6 @@ nav:
       - Storage: tools/storage.md
   - Specification: specification.md  
   - Stability & Performance:
+      - Resilient Compatibility: stability/resilient.md
       - Tests: stability/tests.md
       - Performance: stability/performance.md

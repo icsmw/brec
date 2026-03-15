@@ -25,6 +25,13 @@
 - **High performance** - Parsing performance is on par with the most optimized binary parsers (see the Performance section in [performance](stability/performance.md)).
 - **Simple to use** - Just annotate your structs with #[block] or #[payload], and brec takes care of the rest - your protocol is ready to go.
 
+## Core Architectural Capabilities
+
+- A `brec` packet is a set of blocks (from 0 to 255) plus an optional payload. This effectively gives packets a built-in indexing layer at the architecture level. The restricted type set for blocks is a deliberate trade-off: it limits what can be placed into blocks, but enables low-allocation (and often allocation-free) reads and efficient pre-filtering before payload parsing (see [performance](https://icsmw.github.io/brec/stability/performance/)).
+- `brec` is schema-free in packet composition, while still strongly typed in its components. The developer defines all supported block and payload types, and packets are assembled from these building elements. This allows protocol evolution not only by adding new payload shapes, but also by extending the indexing layer in packets without breaking compatibility. In practice, this compatibility story is implemented by the [`resilient` feature](https://icsmw.github.io/brec/stability/resilient/): an older parser may skip unknown blocks or payloads and still read the packet when the protocol is designed for forward-compatible evolution.
+
+In other words, `brec` combines the flexibility of schema-free protocols with the strictness of binary formats.
+
 ## Recent Performance Test Results
 
 |     Platform      |   Case    |  Bytes   |   Rows    | Time, ms | Avg, us/row | Rate, Mbit/s | CPU, ms | RSS, Kb  | PeakRSS, Kb  | Iterations |
