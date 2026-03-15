@@ -13,7 +13,10 @@ impl Crc for Payload {
             } else if self.attrs.is_bincode() && self.attrs.is_no_crc() {
                 quote! {
                     impl brec::PayloadCrc for #payload_name {
-                        fn crc<O>(&self, _opt: &O) -> std::io::Result<brec::ByteBlock> {
+                        fn crc(
+                            &self,
+                            _ctx: &mut Self::Context<'_>,
+                        ) -> std::io::Result<brec::ByteBlock> {
                             Ok(brec::ByteBlock::Len4([0,0,0,0]))
                         }
                         fn crc_size() -> usize {
