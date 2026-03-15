@@ -33,3 +33,30 @@ impl<T> ReadStatus<T> {
         }
     }
 }
+
+/// Result type representing the outcome of a packet read attempt.
+///
+/// At this stage it is intentionally equivalent to `ReadStatus` and is used to
+/// separate packet-level API evolution from block/payload-level read statuses.
+pub enum PacketReadStatus<T> {
+    /// The packet read operation succeeded and produced a value of type `T`.
+    Success(T),
+
+    /// The packet read operation failed due to insufficient data.
+    ///
+    /// Contains the number of additional bytes required to complete the read.
+    NotEnoughData(u64),
+}
+
+impl<T> PacketReadStatus<T> {
+    /// Maps the inner `Success` value using the provided function.
+    pub fn map<K, F>(self, mapper: F) -> PacketReadStatus<K>
+    where
+        F: FnOnce(T) -> K,
+    {
+        match self {
+            PacketReadStatus::Success(value) => PacketReadStatus::Success(mapper(value)),
+            PacketReadStatus::NotEnoughData(n) => PacketReadStatus::NotEnoughData(n),
+        }
+    }
+}
