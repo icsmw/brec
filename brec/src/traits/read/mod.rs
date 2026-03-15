@@ -168,7 +168,7 @@ pub trait TryReadPacketFrom: PayloadSchema {
     fn try_read<T: std::io::Read + std::io::Seek>(
         buf: &mut T,
         ctx: &mut <Self as PayloadSchema>::Context<'_>,
-    ) -> Result<ReadStatus<Self>, Error>
+    ) -> Result<PacketReadStatus<Self>, Error>
     where
         Self: Sized;
 }
@@ -217,7 +217,7 @@ pub trait TryReadPacketFromBuffered: PayloadSchema {
     fn try_read<T: std::io::BufRead>(
         buf: &mut T,
         ctx: &mut <Self as PayloadSchema>::Context<'_>,
-    ) -> Result<ReadStatus<Self>, Error>
+    ) -> Result<PacketReadStatus<Self>, Error>
     where
         Self: Sized;
 }

@@ -71,8 +71,8 @@ impl<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> ReadPacketFrom
 /// - If block count exceeds `MAX_BLOCKS_COUNT`, returns `Error::MaxBlocksCount`.
 ///
 /// # Returns
-/// - `ReadStatus::Success(packet)` - full packet successfully read.
-/// - `ReadStatus::NotEnoughData(bytes)` - more data needed to complete the packet.
+/// - `PacketReadStatus::Success(packet)` - full packet successfully read.
+/// - `PacketReadStatus::NotEnoughData(bytes)` - more data needed to complete the packet.
 /// - `Error` - on decoding, CRC, signature, or logic errors.
 ///
 /// # Stream behavior
@@ -83,7 +83,7 @@ impl<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> TryReadPacketFro
     fn try_read<T: std::io::Read + std::io::Seek>(
         buf: &mut T,
         ctx: &mut <Self as PayloadSchema>::Context<'_>,
-    ) -> Result<ReadStatus<Self>, Error>
+    ) -> Result<PacketReadStatus<Self>, Error>
     where
         Self: Sized,
     {
@@ -91,11 +91,13 @@ impl<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> TryReadPacketFro
         let available = buf.seek(std::io::SeekFrom::End(0))? - start_pos;
         buf.seek(std::io::SeekFrom::Start(start_pos))?;
         let header = match <PacketHeader as TryReadFrom>::try_read(buf)? {
-            ReadStatus::NotEnoughData(needed) => return Ok(ReadStatus::NotEnoughData(needed)),
+            ReadStatus::NotEnoughData(needed) => {
+                return Ok(PacketReadStatus::NotEnoughData(needed));
+            }
             ReadStatus::Success(header) => header,
         };
         if header.size > available {
-            return Ok(ReadStatus::NotEnoughData(header.size - available));
+            return Ok(PacketReadStatus::NotEnoughData(header.size - available));
         }
         let mut pkg = PacketDef::default();
         let mut read = 0;
@@ -112,7 +114,7 @@ impl<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> TryReadPacketFro
                     }
                     Ok(ReadStatus::NotEnoughData(needed)) => {
                         buf.seek(std::io::SeekFrom::Start(start_pos))?;
-                        return Ok(ReadStatus::NotEnoughData(needed));
+                        return Ok(PacketReadStatus::NotEnoughData(needed));
                     }
                     Err(err) => {
                         buf.seek(std::io::SeekFrom::Start(start_pos))?;
@@ -135,7 +137,7 @@ impl<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> TryReadPacketFro
                         }
                         Ok(ReadStatus::NotEnoughData(needed)) => {
                             buf.seek(std::io::SeekFrom::Start(start_pos))?;
-                            return Ok(ReadStatus::NotEnoughData(needed));
+                            return Ok(PacketReadStatus::NotEnoughData(needed));
                         }
                         Err(err) => {
                             buf.seek(std::io::SeekFrom::Start(start_pos))?;
@@ -149,7 +151,7 @@ impl<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> TryReadPacketFro
                 }
             }
         }
-        Ok(ReadStatus::Success(pkg))
+        Ok(PacketReadStatus::Success(pkg))
     }
 }
 
@@ -163,8 +165,8 @@ impl<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> TryReadPacketFro
 /// - Supports partial reads using `ReadStatus::NotEnoughData(...)`.
 ///
 /// # Returns
-/// - `ReadStatus::Success(packet)` - if all required data was read and validated.
-/// - `ReadStatus::NotEnoughData(bytes)` - if more bytes are needed.
+/// - `PacketReadStatus::Success(packet)` - if all required data was read and validated.
+/// - `PacketReadStatus::NotEnoughData(bytes)` - if more bytes are needed.
 /// - `Error::MaxBlocksCount` - if the block limit is exceeded.
 /// - Any decoding or CRC/signature errors.
 ///
@@ -176,18 +178,20 @@ impl<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> TryReadPacketFro
     fn try_read<T: std::io::BufRead>(
         reader: &mut T,
         ctx: &mut <Self as PayloadSchema>::Context<'_>,
-    ) -> Result<ReadStatus<Self>, Error>
+    ) -> Result<PacketReadStatus<Self>, Error>
     where
         Self: Sized,
     {
         let bytes = reader.fill_buf()?;
         let available = bytes.len() as u64;
         if available < PacketHeader::ssize() {
-            return Ok(ReadStatus::NotEnoughData(PacketHeader::ssize() - available));
+            return Ok(PacketReadStatus::NotEnoughData(
+                PacketHeader::ssize() - available,
+            ));
         }
         let header = PacketHeader::read_from_slice(bytes, false)?;
         if header.size > available {
-            return Ok(ReadStatus::NotEnoughData(header.size - available));
+            return Ok(PacketReadStatus::NotEnoughData(header.size - available));
         }
         reader.consume(PacketHeader::ssize() as usize);
         let mut pkg = PacketDef::default();
@@ -204,7 +208,7 @@ impl<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> TryReadPacketFro
                         }
                     }
                     ReadStatus::NotEnoughData(needed) => {
-                        return Ok(ReadStatus::NotEnoughData(needed));
+                        return Ok(PacketReadStatus::NotEnoughData(needed));
                     }
                 }
                 iterations += 1;
@@ -224,7 +228,7 @@ impl<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> TryReadPacketFro
                             pkg.payload = Some(payload);
                         }
                         ReadStatus::NotEnoughData(needed) => {
-                            return Ok(ReadStatus::NotEnoughData(needed));
+                            return Ok(PacketReadStatus::NotEnoughData(needed));
                         }
                     }
                 }
@@ -233,6 +237,6 @@ impl<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> TryReadPacketFro
                 }
             }
         }
-        Ok(ReadStatus::Success(pkg))
+        Ok(PacketReadStatus::Success(pkg))
     }
 }
