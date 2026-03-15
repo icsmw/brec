@@ -17,6 +17,10 @@ cd ./stress_packets
 cargo test  --release -- --nocapture
 cd ..
 
+cd ./stress_resilient
+cargo test  --release -- --nocapture
+cd ..
+
 cd ./locked_storage
 cargo test  --release -- --nocapture
 cd ..
