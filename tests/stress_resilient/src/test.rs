@@ -728,6 +728,36 @@ fn block_total_len(bytes: &[u8], offset: usize) -> usize {
 }
 
 #[cfg(feature = "resilient")]
+fn payload_offsets(bytes: &[u8]) -> (usize, usize, usize, usize, usize, u32) {
+    let payload_off = blocks_offset() + packet_blocks_len(bytes) as usize;
+    let sig_len = bytes[payload_off] as usize;
+    let crc_len_pos = payload_off + 1 + sig_len;
+    let crc_len = bytes[crc_len_pos] as usize;
+    let payload_len_pos = crc_len_pos + 1 + crc_len;
+    let payload_body_off = payload_len_pos + 4;
+    let payload_len =
+        u32::from_le_bytes(bytes[payload_len_pos..payload_len_pos + 4].try_into().unwrap());
+    (
+        payload_off,
+        sig_len,
+        crc_len_pos,
+        payload_len_pos,
+        payload_body_off,
+        payload_len,
+    )
+}
+
+#[cfg(feature = "resilient")]
+fn unwrap_packet_success(
+    status: PacketReadStatus<Packet>,
+) -> (Packet, Vec<brec::Unrecognized>) {
+    match status {
+        PacketReadStatus::Success((packet, skipped)) => (packet, skipped),
+        PacketReadStatus::NotEnoughData(n) => panic!("unexpected NotEnoughData: {n}"),
+    }
+}
+
+#[cfg(feature = "resilient")]
 fn unknown_block_signature(block_bytes: &[u8]) -> [u8; 4] {
     let current_sig: [u8; 4] = block_bytes[..4].try_into().unwrap();
     for i in 1u8..=u8::MAX {
@@ -767,10 +797,7 @@ fn resilient_unknown_block_in_middle() {
 
     let status = <Packet as TryReadPacketFrom>::try_read(&mut std::io::Cursor::new(&bytes), &mut ())
         .expect("read should succeed");
-    let (packet, skipped) = match status {
-        PacketReadStatus::Success((packet, skipped)) => (packet, skipped),
-        PacketReadStatus::NotEnoughData(n) => panic!("unexpected NotEnoughData: {n}"),
-    };
+    let (packet, skipped) = unwrap_packet_success(status);
     assert_eq!(packet.blocks, vec![b1, b3]);
     assert_eq!(packet.payload, None);
     assert_eq!(skipped.len(), 1);
@@ -815,10 +842,7 @@ fn resilient_multiple_unknown_blocks() {
         &mut (),
     )
     .expect("buffered read should succeed");
-    let (packet, skipped) = match status {
-        PacketReadStatus::Success((packet, skipped)) => (packet, skipped),
-        PacketReadStatus::NotEnoughData(n) => panic!("unexpected NotEnoughData: {n}"),
-    };
+    let (packet, skipped) = unwrap_packet_success(status);
     assert_eq!(packet.blocks, vec![b3]);
     assert_eq!(skipped.len(), 2);
     assert!(matches!(
@@ -831,6 +855,14 @@ fn resilient_multiple_unknown_blocks() {
     ));
     assert_eq!(skipped[0].pos, Some(off0 as u64));
     assert_eq!(skipped[1].pos, Some(off1 as u64));
+    assert_eq!(
+        skipped[0].len,
+        Some(u32::from_le_bytes(bytes[off0 + 4..off0 + 8].try_into().unwrap()) as u64)
+    );
+    assert_eq!(
+        skipped[1].len,
+        Some(u32::from_le_bytes(bytes[off1 + 4..off1 + 8].try_into().unwrap()) as u64)
+    );
 }
 
 #[cfg(feature = "resilient")]
@@ -842,22 +874,13 @@ fn resilient_unknown_payload_is_skipped() {
     });
     let payload = Payload::PayloadD(PayloadD::U32(42));
     let mut bytes = packet_bytes_with(vec![block.clone()], Some(payload));
-    let payload_off = blocks_offset() + packet_blocks_len(&bytes) as usize;
-    let sig_len = bytes[payload_off] as usize;
-    let crc_len_pos = payload_off + 1 + sig_len;
-    let crc_len = bytes[crc_len_pos] as usize;
-    let payload_len_pos = crc_len_pos + 1 + crc_len;
-    let payload_len =
-        u32::from_le_bytes(bytes[payload_len_pos..payload_len_pos + 4].try_into().unwrap());
+    let (payload_off, sig_len, _, _, _, payload_len) = payload_offsets(&bytes);
     let unknown_sig = vec![0xAB; sig_len];
     bytes[payload_off + 1..payload_off + 1 + sig_len].copy_from_slice(&unknown_sig);
 
     let status = <Packet as TryReadPacketFrom>::try_read(&mut std::io::Cursor::new(&bytes), &mut ())
         .expect("read should succeed");
-    let (packet, skipped) = match status {
-        PacketReadStatus::Success((packet, skipped)) => (packet, skipped),
-        PacketReadStatus::NotEnoughData(n) => panic!("unexpected NotEnoughData: {n}"),
-    };
+    let (packet, skipped) = unwrap_packet_success(status);
     assert_eq!(packet.blocks, vec![block]);
     assert_eq!(packet.payload, None);
     assert_eq!(skipped.len(), 1);
@@ -867,6 +890,434 @@ fn resilient_unknown_payload_is_skipped() {
     ));
     assert_eq!(skipped[0].pos, Some((payload_off + 1) as u64));
     assert_eq!(skipped[0].len, Some(payload_len as u64));
+}
+
+#[cfg(feature = "resilient")]
+#[test]
+fn resilient_unknown_block_first() {
+    let b1 = Block::BlockEnums(BlockEnums {
+        level: Level::Err,
+        kind: Kind::File,
+    });
+    let b2 = Block::BlockEnums(BlockEnums {
+        level: Level::Warn,
+        kind: Kind::Stream,
+    });
+    let mut bytes = packet_bytes_with(vec![b1.clone(), b2.clone()], None);
+    let first_off = blocks_offset();
+    let first_len = block_total_len(&bytes, first_off);
+    let unknown_sig = unknown_block_signature(&bytes[first_off..first_off + first_len]);
+    bytes[first_off..first_off + 4].copy_from_slice(&unknown_sig);
+
+    let status = <Packet as TryReadPacketFrom>::try_read(&mut std::io::Cursor::new(&bytes), &mut ())
+        .expect("read should succeed");
+    let (packet, skipped) = unwrap_packet_success(status);
+    assert_eq!(packet.blocks, vec![b2]);
+    assert_eq!(skipped.len(), 1);
+    assert!(matches!(
+        skipped[0].sig,
+        brec::UnrecognizedSignature::Block(sig) if sig == unknown_sig
+    ));
+    assert_eq!(skipped[0].pos, Some(first_off as u64));
+}
+
+#[cfg(feature = "resilient")]
+#[test]
+fn resilient_unknown_block_last() {
+    let b1 = Block::BlockEnums(BlockEnums {
+        level: Level::Err,
+        kind: Kind::File,
+    });
+    let b2 = Block::BlockEnums(BlockEnums {
+        level: Level::Warn,
+        kind: Kind::Stream,
+    });
+    let mut bytes = packet_bytes_with(vec![b1.clone(), b2.clone()], None);
+    let first_off = blocks_offset();
+    let last_off = first_off + block_total_len(&bytes, first_off);
+    let last_len = block_total_len(&bytes, last_off);
+    let unknown_sig = unknown_block_signature(&bytes[last_off..last_off + last_len]);
+    bytes[last_off..last_off + 4].copy_from_slice(&unknown_sig);
+
+    let status = <Packet as TryReadPacketFromBuffered>::try_read(
+        &mut std::io::Cursor::new(&bytes),
+        &mut (),
+    )
+    .expect("buffered read should succeed");
+    let (packet, skipped) = unwrap_packet_success(status);
+    assert_eq!(packet.blocks, vec![b1]);
+    assert_eq!(skipped.len(), 1);
+    assert!(matches!(
+        skipped[0].sig,
+        brec::UnrecognizedSignature::Block(sig) if sig == unknown_sig
+    ));
+    assert_eq!(skipped[0].pos, Some(last_off as u64));
+}
+
+#[cfg(feature = "resilient")]
+#[test]
+fn resilient_unknown_payload_without_blocks_is_skipped() {
+    let payload = Payload::PayloadD(PayloadD::U32(7));
+    let mut bytes = packet_bytes_with(vec![], Some(payload));
+    let (payload_off, sig_len, _, _, _, payload_len) = payload_offsets(&bytes);
+    let unknown_sig = vec![0xCD; sig_len];
+    bytes[payload_off + 1..payload_off + 1 + sig_len].copy_from_slice(&unknown_sig);
+
+    let status = <Packet as TryReadPacketFrom>::try_read(&mut std::io::Cursor::new(&bytes), &mut ())
+        .expect("read should succeed");
+    let (packet, skipped) = unwrap_packet_success(status);
+    assert!(packet.blocks.is_empty());
+    assert_eq!(packet.payload, None);
+    assert_eq!(skipped.len(), 1);
+    assert!(matches!(
+        &skipped[0].sig,
+        brec::UnrecognizedSignature::Payload(sig) if sig == &unknown_sig
+    ));
+    assert_eq!(skipped[0].pos, Some((payload_off + 1) as u64));
+    assert_eq!(skipped[0].len, Some(payload_len as u64));
+}
+
+#[cfg(feature = "resilient")]
+#[test]
+fn resilient_multiple_unknown_blocks_with_known_payload() {
+    let b1 = Block::BlockEnums(BlockEnums {
+        level: Level::Err,
+        kind: Kind::File,
+    });
+    let b2 = Block::BlockEnums(BlockEnums {
+        level: Level::Warn,
+        kind: Kind::Stream,
+    });
+    let b3 = Block::BlockEnums(BlockEnums {
+        level: Level::Info,
+        kind: Kind::Socket,
+    });
+    let payload = Payload::PayloadD(PayloadD::U32(42));
+    let mut bytes = packet_bytes_with(vec![b1, b2, b3.clone()], Some(payload.clone()));
+    let off0 = blocks_offset();
+    let off1 = off0 + block_total_len(&bytes, off0);
+    let len0 = block_total_len(&bytes, off0);
+    let len1 = block_total_len(&bytes, off1);
+    let sig0 = unknown_block_signature(&bytes[off0..off0 + len0]);
+    let sig1 = unknown_block_signature(&bytes[off1..off1 + len1]);
+    bytes[off0..off0 + 4].copy_from_slice(&sig0);
+    bytes[off1..off1 + 4].copy_from_slice(&sig1);
+
+    let status = <Packet as TryReadPacketFrom>::try_read(&mut std::io::Cursor::new(&bytes), &mut ())
+        .expect("read should succeed");
+    let (packet, skipped) = unwrap_packet_success(status);
+    assert_eq!(packet.blocks, vec![b3]);
+    assert_eq!(packet.payload, Some(payload));
+    assert_eq!(skipped.len(), 2);
+}
+
+#[cfg(feature = "resilient")]
+#[test]
+fn resilient_unknown_block_and_unknown_payload_are_both_skipped() {
+    let b1 = Block::BlockEnums(BlockEnums {
+        level: Level::Err,
+        kind: Kind::File,
+    });
+    let b2 = Block::BlockEnums(BlockEnums {
+        level: Level::Warn,
+        kind: Kind::Stream,
+    });
+    let payload = Payload::PayloadD(PayloadD::U32(42));
+    let mut bytes = packet_bytes_with(vec![b1.clone(), b2.clone()], Some(payload));
+    let block_off = blocks_offset();
+    let block_len = block_total_len(&bytes, block_off);
+    let block_sig = unknown_block_signature(&bytes[block_off..block_off + block_len]);
+    bytes[block_off..block_off + 4].copy_from_slice(&block_sig);
+    let (payload_off, sig_len, _, _, _, payload_len) = payload_offsets(&bytes);
+    let payload_sig = vec![0xEF; sig_len];
+    bytes[payload_off + 1..payload_off + 1 + sig_len].copy_from_slice(&payload_sig);
+
+    let status = <Packet as TryReadPacketFrom>::try_read(&mut std::io::Cursor::new(&bytes), &mut ())
+        .expect("read should succeed");
+    let (packet, skipped) = unwrap_packet_success(status);
+    assert_eq!(packet.blocks, vec![b2]);
+    assert_eq!(packet.payload, None);
+    assert_eq!(skipped.len(), 2);
+    assert!(matches!(
+        skipped[0].sig,
+        brec::UnrecognizedSignature::Block(sig) if sig == block_sig
+    ));
+    assert!(matches!(
+        &skipped[1].sig,
+        brec::UnrecognizedSignature::Payload(sig) if sig == &payload_sig
+    ));
+    assert_eq!(skipped[0].pos, Some(block_off as u64));
+    assert_eq!(skipped[1].pos, Some((payload_off + 1) as u64));
+    assert_eq!(skipped[1].len, Some(payload_len as u64));
+}
+
+#[cfg(feature = "resilient")]
+#[test]
+fn resilient_known_block_crc_error_is_hard_error() {
+    let block = Block::BlockEnums(BlockEnums {
+        level: Level::Err,
+        kind: Kind::File,
+    });
+    let mut bytes = packet_bytes_with(vec![block], None);
+    let off = blocks_offset();
+    let crc_off = off + block_total_len(&bytes, off) - 4;
+    bytes[crc_off] ^= 0xFF;
+
+    let err = match <Packet as TryReadPacketFrom>::try_read(&mut std::io::Cursor::new(&bytes), &mut ())
+    {
+        Ok(_) => panic!("must fail on corrupted known block crc"),
+        Err(err) => err,
+    };
+    assert!(matches!(err, brec::Error::CrcDismatch));
+}
+
+#[cfg(feature = "resilient")]
+#[test]
+fn resilient_known_payload_crc_error_is_hard_error() {
+    let payload = Payload::PayloadD(PayloadD::U32(42));
+    let mut bytes = packet_bytes_with(vec![], Some(payload));
+    let (_, _, _, _, payload_body_off, _) = payload_offsets(&bytes);
+    bytes[payload_body_off] ^= 0xFF;
+
+    let err = match <Packet as TryReadPacketFrom>::try_read(&mut std::io::Cursor::new(&bytes), &mut ())
+    {
+        Ok(_) => panic!("must fail on corrupted known payload body"),
+        Err(err) => err,
+    };
+    assert!(matches!(err, brec::Error::CrcDismatch));
+}
+
+#[cfg(feature = "resilient")]
+#[test]
+fn resilient_unknown_block_zero_len_returns_invalid_length() {
+    let block = Block::BlockEnums(BlockEnums {
+        level: Level::Warn,
+        kind: Kind::Stream,
+    });
+    let mut bytes = packet_bytes_with(vec![block], None);
+    let off = blocks_offset();
+    let len = block_total_len(&bytes, off);
+    let sig = unknown_block_signature(&bytes[off..off + len]);
+    bytes[off..off + 4].copy_from_slice(&sig);
+    bytes[off + 4..off + 8].copy_from_slice(&0u32.to_le_bytes());
+
+    let err = match <Packet as TryReadPacketFrom>::try_read(&mut std::io::Cursor::new(&bytes), &mut ())
+    {
+        Ok(_) => panic!("must fail on zero unknown block len"),
+        Err(err) => err,
+    };
+    assert!(matches!(err, brec::Error::InvalidLength));
+}
+
+#[cfg(feature = "resilient")]
+#[test]
+fn resilient_unknown_payload_len_overflow_returns_invalid_length() {
+    let payload = Payload::PayloadD(PayloadD::U32(42));
+    let mut bytes = packet_bytes_with(vec![], Some(payload));
+    let (payload_off, sig_len, _, payload_len_pos, _, _) = payload_offsets(&bytes);
+    let unknown_sig = vec![0xAA; sig_len];
+    bytes[payload_off + 1..payload_off + 1 + sig_len].copy_from_slice(&unknown_sig);
+    bytes[payload_len_pos..payload_len_pos + 4].copy_from_slice(&u32::MAX.to_le_bytes());
+
+    let err = match <Packet as TryReadPacketFrom>::try_read(&mut std::io::Cursor::new(&bytes), &mut ())
+    {
+        Ok(_) => panic!("must fail on unknown payload len overflow"),
+        Err(err) => err,
+    };
+    assert!(matches!(err, brec::Error::InvalidLength));
+}
+
+#[cfg(feature = "resilient")]
+#[test]
+fn resilient_partial_unknown_block_header_returns_not_enough_data() {
+    let block = Block::BlockEnums(BlockEnums {
+        level: Level::Err,
+        kind: Kind::File,
+    });
+    let mut bytes = packet_bytes_with(vec![block], None);
+    let off = blocks_offset();
+    let len = block_total_len(&bytes, off);
+    let sig = unknown_block_signature(&bytes[off..off + len]);
+    bytes[off..off + 4].copy_from_slice(&sig);
+    let truncated = bytes[..off + 4 + 2].to_vec();
+
+    let status =
+        <Packet as TryReadPacketFrom>::try_read(&mut std::io::Cursor::new(&truncated), &mut ())
+            .expect("partial packet must not hard fail");
+    assert!(matches!(status, PacketReadStatus::NotEnoughData(_)));
+}
+
+#[cfg(feature = "resilient")]
+#[test]
+fn resilient_partial_unknown_block_header_buffered_returns_not_enough_data() {
+    let block = Block::BlockEnums(BlockEnums {
+        level: Level::Err,
+        kind: Kind::File,
+    });
+    let mut bytes = packet_bytes_with(vec![block], None);
+    let off = blocks_offset();
+    let len = block_total_len(&bytes, off);
+    let sig = unknown_block_signature(&bytes[off..off + len]);
+    bytes[off..off + 4].copy_from_slice(&sig);
+    let truncated = bytes[..off + 4 + 2].to_vec();
+
+    let status = <Packet as TryReadPacketFromBuffered>::try_read(
+        &mut std::io::Cursor::new(&truncated),
+        &mut (),
+    )
+    .expect("partial packet must not hard fail");
+    assert!(matches!(status, PacketReadStatus::NotEnoughData(_)));
+}
+
+#[cfg(feature = "resilient")]
+#[test]
+fn resilient_partial_unknown_payload_header_returns_not_enough_data() {
+    let payload = Payload::PayloadD(PayloadD::U32(42));
+    let mut bytes = packet_bytes_with(vec![], Some(payload));
+    let (payload_off, sig_len, _, _, _, _) = payload_offsets(&bytes);
+    let unknown_sig = vec![0xAA; sig_len];
+    bytes[payload_off + 1..payload_off + 1 + sig_len].copy_from_slice(&unknown_sig);
+    let truncated = bytes[..payload_off + 1 + sig_len + 1].to_vec();
+
+    let status =
+        <Packet as TryReadPacketFrom>::try_read(&mut std::io::Cursor::new(&truncated), &mut ())
+            .expect("partial packet must not hard fail");
+    assert!(matches!(status, PacketReadStatus::NotEnoughData(_)));
+}
+
+#[cfg(feature = "resilient")]
+#[test]
+fn resilient_partial_unknown_payload_body_returns_not_enough_data() {
+    let payload = Payload::PayloadD(PayloadD::U32(42));
+    let mut bytes = packet_bytes_with(vec![], Some(payload));
+    let (payload_off, sig_len, _, _, payload_body_off, payload_len) = payload_offsets(&bytes);
+    let unknown_sig = vec![0xAB; sig_len];
+    bytes[payload_off + 1..payload_off + 1 + sig_len].copy_from_slice(&unknown_sig);
+    let truncated = bytes[..payload_body_off + payload_len as usize - 1].to_vec();
+
+    let status =
+        <Packet as TryReadPacketFrom>::try_read(&mut std::io::Cursor::new(&truncated), &mut ())
+            .expect("partial packet must not hard fail");
+    assert!(matches!(status, PacketReadStatus::NotEnoughData(_)));
+}
+
+#[cfg(feature = "resilient")]
+#[test]
+fn resilient_partial_unknown_payload_body_buffered_returns_not_enough_data() {
+    let payload = Payload::PayloadD(PayloadD::U32(42));
+    let mut bytes = packet_bytes_with(vec![], Some(payload));
+    let (payload_off, sig_len, _, _, payload_body_off, payload_len) = payload_offsets(&bytes);
+    let unknown_sig = vec![0xAC; sig_len];
+    bytes[payload_off + 1..payload_off + 1 + sig_len].copy_from_slice(&unknown_sig);
+    let truncated = bytes[..payload_body_off + payload_len as usize - 1].to_vec();
+
+    let status = <Packet as TryReadPacketFromBuffered>::try_read(
+        &mut std::io::Cursor::new(&truncated),
+        &mut (),
+    )
+    .expect("partial packet must not hard fail");
+    assert!(matches!(status, PacketReadStatus::NotEnoughData(_)));
+}
+
+#[cfg(feature = "resilient")]
+#[test]
+fn resilient_unknown_block_len_is_body_len() {
+    let block = Block::BlockEnums(BlockEnums {
+        level: Level::Err,
+        kind: Kind::File,
+    });
+    let mut bytes = packet_bytes_with(vec![block], None);
+    let off = blocks_offset();
+    let total_len = block_total_len(&bytes, off);
+    let body_len = u32::from_le_bytes(bytes[off + 4..off + 8].try_into().unwrap()) as u64;
+    let sig = unknown_block_signature(&bytes[off..off + total_len]);
+    bytes[off..off + 4].copy_from_slice(&sig);
+
+    let status = <Packet as TryReadPacketFrom>::try_read(&mut std::io::Cursor::new(&bytes), &mut ())
+        .expect("read should succeed");
+    let (_, skipped) = unwrap_packet_success(status);
+    assert_eq!(skipped.len(), 1);
+    assert_eq!(skipped[0].len, Some(body_len));
+    assert_eq!(body_len as usize, total_len - 4 - 4 - 4);
+}
+
+#[cfg(feature = "resilient")]
+#[test]
+fn resilient_all_blocks_unknown_returns_empty_packet_blocks() {
+    let b1 = Block::BlockEnums(BlockEnums {
+        level: Level::Err,
+        kind: Kind::File,
+    });
+    let b2 = Block::BlockEnums(BlockEnums {
+        level: Level::Warn,
+        kind: Kind::Stream,
+    });
+    let mut bytes = packet_bytes_with(vec![b1, b2], None);
+    let off0 = blocks_offset();
+    let off1 = off0 + block_total_len(&bytes, off0);
+    let len0 = block_total_len(&bytes, off0);
+    let len1 = block_total_len(&bytes, off1);
+    let sig0 = unknown_block_signature(&bytes[off0..off0 + len0]);
+    let sig1 = unknown_block_signature(&bytes[off1..off1 + len1]);
+    bytes[off0..off0 + 4].copy_from_slice(&sig0);
+    bytes[off1..off1 + 4].copy_from_slice(&sig1);
+
+    let status = <Packet as TryReadPacketFrom>::try_read(&mut std::io::Cursor::new(&bytes), &mut ())
+        .expect("read should succeed");
+    let (packet, skipped) = unwrap_packet_success(status);
+    assert!(packet.blocks.is_empty());
+    assert_eq!(packet.payload, None);
+    assert_eq!(skipped.len(), 2);
+}
+
+#[cfg(feature = "resilient")]
+#[test]
+fn resilient_storage_reader_nth_skips_unknown_block() {
+    let tmp = std::env::temp_dir().join("stress_resilient_storage_reader_nth.bin");
+    let mut file = std::fs::OpenOptions::new()
+        .read(true)
+        .write(true)
+        .create(true)
+        .truncate(true)
+        .open(&tmp)
+        .unwrap();
+    let wrapped = WrappedPacket {
+        blocks: vec![
+            Block::BlockEnums(BlockEnums {
+                level: Level::Err,
+                kind: Kind::File,
+            }),
+            Block::BlockEnums(BlockEnums {
+                level: Level::Warn,
+                kind: Kind::Stream,
+            }),
+        ],
+        payload: None,
+    };
+    let mut writer = Writer::new(&mut file).unwrap();
+    writer.insert((&wrapped).into(), &mut ()).unwrap();
+    drop(writer);
+    file.sync_all().unwrap();
+
+    let mut bytes = std::fs::read(&tmp).unwrap();
+    let packet_off = PacketHeader::get_pos(&bytes).expect("packet must exist");
+    let block_off = packet_off + blocks_offset();
+    let block_len = block_total_len(&bytes[packet_off..], blocks_offset());
+    let sig = unknown_block_signature(&bytes[block_off..block_off + block_len]);
+    bytes[block_off..block_off + 4].copy_from_slice(&sig);
+    std::fs::write(&tmp, &bytes).unwrap();
+
+    let file = std::fs::OpenOptions::new().read(true).write(true).open(&tmp).unwrap();
+    let mut reader = Reader::new(&file).unwrap();
+    let packet = reader.nth(0, &mut ()).unwrap().expect("packet must exist");
+    assert_eq!(
+        packet.blocks,
+        vec![Block::BlockEnums(BlockEnums {
+            level: Level::Warn,
+            kind: Kind::Stream,
+        })]
+    );
+    assert_eq!(packet.payload, None);
 }
 
 #[cfg(feature = "resilient")]
