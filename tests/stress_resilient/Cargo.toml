@@ -1,0 +1,22 @@
+[package]
+name        = "stress_resilient"
+version     = "0.1.0"
+edition     = "2024"
+authors     = ["d.astafyev@outlook.com"]
+description = "This crate is intended for testing brec"
+license     = "Apache-2.0"
+
+[features]
+default   = ["resilient"]
+resilient = ["brec/resilient"]
+
+[dependencies]
+brec  = { workspace = true, features = ["bincode"] }
+serde = { workspace = true, features = ["derive"] }
+
+[dev-dependencies]
+proptest.workspace   = true
+num-format.workspace = true
+
+[build-dependencies]
+brec = { workspace = true, features = ["build"] }

@@ -36,11 +36,17 @@ impl<T> ReadStatus<T> {
 
 /// Result type representing the outcome of a packet read attempt.
 ///
-/// At this stage it is intentionally equivalent to `ReadStatus` and is used to
-/// separate packet-level API evolution from block/payload-level read statuses.
+/// This type intentionally evolves separately from `ReadStatus` because packet-level
+/// reading may need to carry additional metadata that is not relevant for block or
+/// payload readers.
 pub enum PacketReadStatus<T> {
     /// The packet read operation succeeded and produced a value of type `T`.
+    #[cfg(not(feature = "resilient"))]
     Success(T),
+
+    /// The packet was read successfully together with skipped unknown entities.
+    #[cfg(feature = "resilient")]
+    Success((T, Vec<crate::Unrecognized>)),
 
     /// The packet read operation failed due to insufficient data.
     ///
@@ -49,14 +55,13 @@ pub enum PacketReadStatus<T> {
 }
 
 impl<T> PacketReadStatus<T> {
-    /// Maps the inner `Success` value using the provided function.
-    pub fn map<K, F>(self, mapper: F) -> PacketReadStatus<K>
-    where
-        F: FnOnce(T) -> K,
-    {
-        match self {
-            PacketReadStatus::Success(value) => PacketReadStatus::Success(mapper(value)),
-            PacketReadStatus::NotEnoughData(n) => PacketReadStatus::NotEnoughData(n),
-        }
+    #[cfg(feature = "resilient")]
+    pub fn success(value: T, unrecognized: Vec<crate::Unrecognized>) -> Self {
+        Self::Success((value, unrecognized))
+    }
+
+    #[cfg(not(feature = "resilient"))]
+    pub fn success(value: T) -> Self {
+        Self::Success(value)
     }
 }

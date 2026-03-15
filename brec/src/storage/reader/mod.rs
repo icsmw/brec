@@ -282,6 +282,9 @@ impl<
             .sum::<u64>();
         self.inner.seek(std::io::SeekFrom::Start(offset))?;
         match <PacketDef<B, P, Inner> as TryReadPacketFrom>::try_read(&mut self.inner, ctx)? {
+            #[cfg(feature = "resilient")]
+            PacketReadStatus::Success((pkg, _unrecognized)) => Ok(Some(pkg)),
+            #[cfg(not(feature = "resilient"))]
             PacketReadStatus::Success(pkg) => Ok(Some(pkg)),
             PacketReadStatus::NotEnoughData(needed) => Err(Error::NotEnoughData(needed as usize)),
         }
