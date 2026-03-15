@@ -5,6 +5,45 @@ use crate::crypt::CryptError;
 #[cfg(feature = "observer")]
 use crate::storage::SensorError;
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum UnrecognizedSignature {
+    Block([u8; 4]),
+    Payload(Vec<u8>),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Unrecognized {
+    pub sig: UnrecognizedSignature,
+    pub pos: Option<u64>,
+    pub len: Option<u64>,
+}
+
+impl Default for Unrecognized {
+    fn default() -> Self {
+        Self {
+            sig: UnrecognizedSignature::Block([0; 4]),
+            pos: None,
+            len: None,
+        }
+    }
+}
+
+impl Unrecognized {
+    pub fn block(sig: [u8; 4]) -> Self {
+        Self {
+            sig: UnrecognizedSignature::Block(sig),
+            ..Self::default()
+        }
+    }
+
+    pub fn payload(sig: Vec<u8>) -> Self {
+        Self {
+            sig: UnrecognizedSignature::Payload(sig),
+            ..Self::default()
+        }
+    }
+}
+
 /// Unified error type used by `brec` APIs.
 #[derive(Error, Debug)]
 pub enum Error {
@@ -25,7 +64,7 @@ pub enum Error {
     TryFromSliceError(#[from] std::array::TryFromSliceError),
     /// The parsed signature does not match the expected entity type.
     #[error("Signature doesn't match to target entity")]
-    SignatureDismatch,
+    SignatureDismatch(Unrecognized),
     /// The parsed CRC does not match the computed CRC.
     #[error("Crc doesn't match to target entity")]
     CrcDismatch,

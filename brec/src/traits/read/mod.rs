@@ -74,7 +74,9 @@ pub trait ReadPayloadFrom<
         Self: Sized + PayloadDecode<Self> + PayloadHooks + StaticPayloadSignature,
     {
         if header.sig != T::ssig() {
-            return Err(Error::SignatureDismatch);
+            return Err(Error::SignatureDismatch(Unrecognized::payload(
+                header.sig.as_slice().to_vec(),
+            )));
         }
         let mut bytes = vec![0u8; header.payload_len()];
         buf.read_exact(&mut bytes)?;

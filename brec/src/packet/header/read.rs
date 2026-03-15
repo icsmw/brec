@@ -19,7 +19,9 @@ impl ReadFrom for PacketHeader {
         let mut sig = [0u8; 8];
         buf.read_exact(&mut sig)?;
         if sig != PACKET_SIG {
-            return Err(Error::SignatureDismatch);
+            return Err(Error::SignatureDismatch(Unrecognized::payload(
+                sig.to_vec(),
+            )));
         }
         let mut size = [0u8; 8usize];
         buf.read_exact(&mut size)?;
@@ -70,7 +72,9 @@ impl ReadBlockFromSlice for PacketHeader {
             return Err(Error::NotEnoughData(PacketHeader::ssize() as usize));
         }
         if !buf.starts_with(&PACKET_SIG) {
-            return Err(Error::SignatureDismatch);
+            return Err(Error::SignatureDismatch(Unrecognized::payload(
+                buf[..PACKET_SIG.len()].to_vec(),
+            )));
         }
 
         let mut offset = 8;
