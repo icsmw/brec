@@ -11,6 +11,24 @@ impl Read for Block {
         let mut fnames = Vec::new();
         let sig_len = self.sig_len();
         let src: syn::Ident = format_ident!("buf");
+        let read_len = if cfg!(feature = "resilient") {
+            quote! {
+                let mut blk_len = [0u8; #BLOCK_SIZE_FIELD_LEN];
+                #src.read_exact(&mut blk_len)?;
+                let blk_len = u32::from_le_bytes(blk_len);
+                let expected_len = #block_name::ssize()
+                    .checked_sub(#sig_len)
+                    .and_then(|len| len.checked_sub(#BLOCK_SIZE_FIELD_LEN as u64))
+                    .and_then(|len| len.checked_sub(#BLOCK_CRC_LEN as u64))
+                    .and_then(|len| u32::try_from(len).ok())
+                    .ok_or(brec::Error::InvalidLength)?;
+                if blk_len != expected_len {
+                    return Err(brec::Error::InvalidLength);
+                }
+            }
+        } else {
+            quote! {}
+        };
         for field in self.fields.iter().filter(|f| !f.injected) {
             fields.push(field.read_exact(&src)?);
             fnames.push(format_ident!("{}", field.name));
@@ -29,11 +47,7 @@ impl Read for Block {
                                 return Err(brec::Error::SignatureDismatch(brec::Unrecognized::block(sig)))
                             }
                         }
-                        #[cfg(feature = "resilient")]
-                        {
-                            let mut blk_len = [0u8; #BLOCK_SIZE_FIELD_LEN];
-                            #src.read_exact(&mut blk_len)?;
-                        }
+                        #read_len
 
                         #(#fields)*
 
@@ -65,6 +79,29 @@ impl ReadFromSlice for Block {
         let mut fnames = Vec::new();
         let mut offset = 0usize;
         let src: syn::Ident = format_ident!("buf");
+        let read_len = if cfg!(feature = "resilient") {
+            quote! {
+                let required = if skip_sig { 0usize } else { #sig_len } + #BLOCK_SIZE_FIELD_LEN;
+                if #src.len() < required {
+                    return Err(brec::Error::NotEnoughData(required - #src.len()));
+                }
+                let len_from = if skip_sig { 0usize } else { #sig_len };
+                let len_to = len_from + #BLOCK_SIZE_FIELD_LEN;
+                let blk_len =
+                    u32::from_le_bytes(<[u8; #BLOCK_SIZE_FIELD_LEN]>::try_from(&#src[len_from..len_to])?);
+                let expected_len = #block_name::ssize()
+                    .checked_sub(#sig_len)
+                    .and_then(|len| len.checked_sub(#BLOCK_SIZE_FIELD_LEN as u64))
+                    .and_then(|len| len.checked_sub(#BLOCK_CRC_LEN as u64))
+                    .and_then(|len| u32::try_from(len).ok())
+                    .ok_or(brec::Error::InvalidLength)?;
+                if blk_len != expected_len {
+                    return Err(brec::Error::InvalidLength);
+                }
+            }
+        } else {
+            quote! {}
+        };
         for field in self.fields.iter() {
             if field.name == FIELD_SIG {
                 let name = format_ident!("{}", FIELD_SIG);
@@ -111,13 +148,7 @@ impl ReadFromSlice for Block {
                             ));
                         }
                     }
-                    #[cfg(feature = "resilient")]
-                    {
-                        let required = if skip_sig { 0usize } else { #sig_len } + #BLOCK_SIZE_FIELD_LEN;
-                        if #src.len() < required {
-                            return Err(brec::Error::NotEnoughData(required - #src.len()));
-                        }
-                    }
+                    #read_len
                     let required = if skip_sig {
                         #block_name::ssize() - #sig_len
                     } else {

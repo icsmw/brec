@@ -1329,6 +1329,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "stress_resilient"
+version = "0.1.0"
+dependencies = [
+ "brec",
+ "num-format",
+ "proptest",
+ "serde",
+]
+
+[[package]]
 name = "subtle"
 version = "2.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"

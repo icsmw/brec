@@ -142,6 +142,9 @@ pub enum Error {
     /// A block with zero encoded length was encountered.
     #[error("Block has zero length")]
     ZeroLengthBlock,
+    /// An encoded length field does not match the expected or allowed size.
+    #[error("Invalid encoded length")]
+    InvalidLength,
     /// The packet contains more blocks than `brec` allows.
     #[error("Attempt to read more blocks than allowed")]
     MaxBlocksCount,

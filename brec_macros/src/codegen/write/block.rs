@@ -53,12 +53,9 @@ impl Write for Block {
                 .map(|f| f.size())
                 .sum::<usize>() as u32;
             quote! {
-                #[cfg(feature = "resilient")]
-                {
-                    buffer[offset..offset + #BLOCK_SIZE_FIELD_LEN]
-                        .copy_from_slice(&#len.to_le_bytes());
-                    offset += #BLOCK_SIZE_FIELD_LEN;
-                }
+                buffer[offset..offset + #BLOCK_SIZE_FIELD_LEN]
+                    .copy_from_slice(&#len.to_le_bytes());
+                offset += #BLOCK_SIZE_FIELD_LEN;
             }
         } else {
             quote! {}
@@ -211,10 +208,7 @@ impl WriteVectored for Block {
                 .map(|f| f.size())
                 .sum::<usize>() as u32;
             quote! {
-                #[cfg(feature = "resilient")]
-                {
-                    slices.add_buffered(#len.to_le_bytes().to_vec());
-                }
+                slices.add_buffered(#len.to_le_bytes().to_vec());
             }
         } else {
             quote! {}

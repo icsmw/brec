@@ -1,4 +1,6 @@
 use crate::*;
+#[cfg(feature = "resilient")]
+use brec_common::{BLOCK_CRC_LEN, BLOCK_SIG_LEN, BLOCK_SIZE_FIELD_LEN};
 
 /// Reads a complete `PacketDef` from a stream, including header, blocks, and optional payload.
 ///
@@ -90,25 +92,29 @@ impl<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> TryReadPacketFro
         let start_pos = buf.stream_position()?;
         let available = buf.seek(std::io::SeekFrom::End(0))? - start_pos;
         buf.seek(std::io::SeekFrom::Start(start_pos))?;
-        let header = match <PacketHeader as TryReadFrom>::try_read(buf)? {
+        #[cfg(feature = "resilient")]
+        let mut unrecognized = Vec::new();
+        let packet_header = match <PacketHeader as TryReadFrom>::try_read(buf)? {
             ReadStatus::NotEnoughData(needed) => {
                 return Ok(PacketReadStatus::NotEnoughData(needed));
             }
             ReadStatus::Success(header) => header,
         };
-        if header.size > available {
-            return Ok(PacketReadStatus::NotEnoughData(header.size - available));
+        if packet_header.size > available {
+            return Ok(PacketReadStatus::NotEnoughData(
+                packet_header.size - available,
+            ));
         }
         let mut pkg = PacketDef::default();
         let mut read = 0;
-        if header.blocks_len > 0 {
+        if packet_header.blocks_len > 0 {
             let mut iterations = 0;
             loop {
                 match <B as TryReadFrom>::try_read(buf) {
                     Ok(ReadStatus::Success(blk)) => {
                         read += blk.size();
                         pkg.blocks.push(blk);
-                        if read == header.blocks_len {
+                        if read == packet_header.blocks_len {
                             break;
                         }
                     }
@@ -117,6 +123,35 @@ impl<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> TryReadPacketFro
                         return Ok(PacketReadStatus::NotEnoughData(needed));
                     }
                     Err(err) => {
+                        #[cfg(feature = "resilient")]
+                        if let Error::SignatureDismatch(mut entry) = err {
+                            let Some(body_len) = entry.len else {
+                                buf.seek(std::io::SeekFrom::Start(start_pos))?;
+                                return Err(Error::ZeroLengthBlock);
+                            };
+                            let block_len = BLOCK_SIG_LEN as u64
+                                + BLOCK_SIZE_FIELD_LEN as u64
+                                + body_len
+                                + BLOCK_CRC_LEN as u64;
+                            let blocks_left = packet_header.blocks_len.saturating_sub(read);
+                            if block_len > blocks_left {
+                                buf.seek(std::io::SeekFrom::Start(start_pos))?;
+                                return Err(Error::InvalidLength);
+                            }
+                            entry.pos = Some(PacketHeader::ssize() + read);
+                            buf.seek(std::io::SeekFrom::Current(block_len as i64))?;
+                            read += block_len;
+                            unrecognized.push(entry);
+                            if read == packet_header.blocks_len {
+                                break;
+                            }
+                            iterations += 1;
+                            if iterations > MAX_BLOCKS_COUNT as usize {
+                                buf.seek(std::io::SeekFrom::Start(start_pos))?;
+                                return Err(Error::MaxBlocksCount);
+                            }
+                            continue;
+                        }
                         buf.seek(std::io::SeekFrom::Start(start_pos))?;
                         return Err(err);
                     }
@@ -128,10 +163,10 @@ impl<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> TryReadPacketFro
                 }
             }
         }
-        if header.payload {
+        if packet_header.payload {
             match <PayloadHeader as TryReadFrom>::try_read(buf)? {
-                ReadStatus::Success(header) => {
-                    match <P as TryExtractPayloadFrom<Inner>>::try_read(buf, &header, ctx) {
+                ReadStatus::Success(payload_header) => {
+                    match <P as TryExtractPayloadFrom<Inner>>::try_read(buf, &payload_header, ctx) {
                         Ok(ReadStatus::Success(payload)) => {
                             pkg.payload = Some(payload);
                         }
@@ -140,8 +175,30 @@ impl<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> TryReadPacketFro
                             return Ok(PacketReadStatus::NotEnoughData(needed));
                         }
                         Err(err) => {
-                            buf.seek(std::io::SeekFrom::Start(start_pos))?;
-                            return Err(err);
+                            #[cfg(feature = "resilient")]
+                            if let Error::SignatureDismatch(mut entry) = err {
+                                let payload_len = payload_header.payload_len() as u64;
+                                let payload_total = payload_len + payload_header.size() as u64;
+                                let packet_payload_left =
+                                    packet_header.size - packet_header.blocks_len;
+                                if payload_total > packet_payload_left {
+                                    buf.seek(std::io::SeekFrom::Start(start_pos))?;
+                                    return Err(Error::InvalidLength);
+                                }
+                                entry.pos =
+                                    Some(PacketHeader::ssize() + packet_header.blocks_len + 1);
+                                entry.len = Some(payload_len);
+                                buf.seek(std::io::SeekFrom::Current(payload_len as i64))?;
+                                unrecognized.push(entry);
+                            } else {
+                                buf.seek(std::io::SeekFrom::Start(start_pos))?;
+                                return Err(err);
+                            }
+                            #[cfg(not(feature = "resilient"))]
+                            {
+                                buf.seek(std::io::SeekFrom::Start(start_pos))?;
+                                return Err(err);
+                            }
                         }
                     }
                 }
@@ -151,7 +208,14 @@ impl<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> TryReadPacketFro
                 }
             }
         }
-        Ok(PacketReadStatus::Success(pkg))
+        #[cfg(feature = "resilient")]
+        {
+            Ok(PacketReadStatus::success(pkg, unrecognized))
+        }
+        #[cfg(not(feature = "resilient"))]
+        {
+            Ok(PacketReadStatus::success(pkg))
+        }
     }
 }
 
@@ -189,26 +253,59 @@ impl<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> TryReadPacketFro
                 PacketHeader::ssize() - available,
             ));
         }
-        let header = PacketHeader::read_from_slice(bytes, false)?;
-        if header.size > available {
-            return Ok(PacketReadStatus::NotEnoughData(header.size - available));
+        let packet_header = PacketHeader::read_from_slice(bytes, false)?;
+        if packet_header.size > available {
+            return Ok(PacketReadStatus::NotEnoughData(
+                packet_header.size - available,
+            ));
         }
         reader.consume(PacketHeader::ssize() as usize);
+        #[cfg(feature = "resilient")]
+        let mut unrecognized = Vec::new();
         let mut pkg = PacketDef::default();
         let mut read = 0;
-        if header.blocks_len > 0 {
+        if packet_header.blocks_len > 0 {
             let mut iterations = 0;
             loop {
-                match <B as TryReadFromBuffered>::try_read(reader)? {
-                    ReadStatus::Success(blk) => {
+                match <B as TryReadFromBuffered>::try_read(reader) {
+                    Ok(ReadStatus::Success(blk)) => {
                         read += blk.size();
                         pkg.blocks.push(blk);
-                        if read == header.blocks_len {
+                        if read == packet_header.blocks_len {
                             break;
                         }
                     }
-                    ReadStatus::NotEnoughData(needed) => {
+                    Ok(ReadStatus::NotEnoughData(needed)) => {
                         return Ok(PacketReadStatus::NotEnoughData(needed));
+                    }
+                    Err(err) => {
+                        #[cfg(feature = "resilient")]
+                        if let Error::SignatureDismatch(mut entry) = err {
+                            let Some(body_len) = entry.len else {
+                                return Err(Error::ZeroLengthBlock);
+                            };
+                            let block_len = BLOCK_SIG_LEN as u64
+                                + BLOCK_SIZE_FIELD_LEN as u64
+                                + body_len
+                                + BLOCK_CRC_LEN as u64;
+                            let blocks_left = packet_header.blocks_len.saturating_sub(read);
+                            if block_len > blocks_left {
+                                return Err(Error::InvalidLength);
+                            }
+                            entry.pos = Some(PacketHeader::ssize() + read);
+                            reader.consume(block_len as usize);
+                            read += block_len;
+                            unrecognized.push(entry);
+                            if read == packet_header.blocks_len {
+                                break;
+                            }
+                            iterations += 1;
+                            if iterations > MAX_BLOCKS_COUNT as usize {
+                                return Err(Error::MaxBlocksCount);
+                            }
+                            continue;
+                        }
+                        return Err(err);
                     }
                 }
                 iterations += 1;
@@ -217,18 +314,41 @@ impl<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> TryReadPacketFro
                 }
             }
         }
-        if header.payload {
+        if packet_header.payload {
             match <PayloadHeader as TryReadFromBuffered>::try_read(reader)? {
-                ReadStatus::Success(header) => {
-                    reader.consume(header.size());
+                ReadStatus::Success(payload_header) => {
+                    reader.consume(payload_header.size());
                     match <P as TryExtractPayloadFromBuffered<Inner>>::try_read(
-                        reader, &header, ctx,
-                    )? {
-                        ReadStatus::Success(payload) => {
+                        reader,
+                        &payload_header,
+                        ctx,
+                    ) {
+                        Ok(ReadStatus::Success(payload)) => {
                             pkg.payload = Some(payload);
                         }
-                        ReadStatus::NotEnoughData(needed) => {
+                        Ok(ReadStatus::NotEnoughData(needed)) => {
                             return Ok(PacketReadStatus::NotEnoughData(needed));
+                        }
+                        Err(err) => {
+                            #[cfg(feature = "resilient")]
+                            if let Error::SignatureDismatch(mut entry) = err {
+                                let payload_len = payload_header.payload_len() as u64;
+                                let payload_total = payload_len + payload_header.size() as u64;
+                                let packet_payload_left =
+                                    packet_header.size - packet_header.blocks_len;
+                                if payload_total > packet_payload_left {
+                                    return Err(Error::InvalidLength);
+                                }
+                                entry.pos =
+                                    Some(PacketHeader::ssize() + packet_header.blocks_len + 1);
+                                entry.len = Some(payload_len);
+                                reader.consume(payload_len as usize);
+                                unrecognized.push(entry);
+                            } else {
+                                return Err(err);
+                            }
+                            #[cfg(not(feature = "resilient"))]
+                            return Err(err);
                         }
                     }
                 }
@@ -237,6 +357,13 @@ impl<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> TryReadPacketFro
                 }
             }
         }
-        Ok(PacketReadStatus::Success(pkg))
+        #[cfg(feature = "resilient")]
+        {
+            Ok(PacketReadStatus::success(pkg, unrecognized))
+        }
+        #[cfg(not(feature = "resilient"))]
+        {
+            Ok(PacketReadStatus::success(pkg))
+        }
     }
 }
