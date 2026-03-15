@@ -78,16 +78,17 @@ impl TCrate {
                 ];
 
                 let mut buffer: Vec<u8> = Vec::new();
+                let mut ctx = ();
 
                 for packet in packets.iter_mut() {
-                    packet.write_all(&mut buffer).expect("Data is written");
+                    packet.write_all(&mut buffer, &mut ctx).expect("Data is written");
                 }
 
                 let mut restored: Vec<Packet> = Vec::new();
                 let mut inner = std::io::Cursor::new(buffer);
                 let mut reader: PacketBufReader<std::io::Cursor<Vec<u8>>> = PacketBufReader::new(&mut inner);
                 loop {
-                    match reader.read() {
+                    match reader.read(&mut ctx) {
                         Ok(next) => match next {
                             NextPacket::Found(packet) => restored.push(packet),
                             NextPacket::NotFound => {
