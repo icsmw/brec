@@ -13,10 +13,10 @@ members = [
 [workspace.dependencies]
 brec        = { path = "../brec" }
 serde       = "1.0"
-serde_json  = "1.0.140"
+serde_json  = "1.0"
 proptest    = "1.4"
 num-format  = "0.4"
-serial_test = "3.2.0"
-tokio       = "1.49"
+serial_test = "3.2"
+tokio       = "1.50"
 tokio-util  = "0.7"
-sysinfo     = { version = "0.37", default-features = false, features = ["system"] }
+sysinfo     = { version = "0.38", default-features = false, features = ["system"] }

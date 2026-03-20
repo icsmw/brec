@@ -133,7 +133,7 @@ dependencies = [
 
 [[package]]
 name = "brec"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "bincode",
  "brec_common",
@@ -157,7 +157,7 @@ version = "0.1.0"
 
 [[package]]
 name = "brec_macros"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "brec_common",
  "crc32fast",
