@@ -14,17 +14,21 @@ use tracing::error;
 
 pub use error::SensorError;
 
+/// Notification emitted by a file sensor when source length grows.
 #[derive(Clone, Copy, Debug)]
 pub struct Wake {
+    /// Current observed file size in bytes.
     pub size: u64,
 }
 
 impl Wake {
+    /// Creates a wake event with the provided file size.
     pub fn new(size: u64) -> Self {
         Self { size }
     }
 }
 
+/// File watcher that emits wake signals when new data appears.
 pub struct Sensor {
     target: PathBuf,
     locked: Arc<AtomicBool>,
@@ -34,6 +38,7 @@ pub struct Sensor {
 }
 
 impl Sensor {
+    /// Starts observing a file and returns the sensor plus wake receiver channel.
     pub fn new(target: impl AsRef<Path>) -> Result<(Self, Receiver<Wake>), SensorError> {
         let target = target.as_ref().to_path_buf();
         if !target.is_file() {

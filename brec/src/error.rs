@@ -6,16 +6,23 @@ use crate::crypt::CryptError;
 #[cfg(feature = "observer")]
 use crate::storage::SensorError;
 
+/// Signature bytes that were read but did not match known block/payload signatures.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum UnrecognizedSignature {
+    /// Unknown block signature (fixed 4 bytes).
     Block([u8; 4]),
+    /// Unknown payload signature (variable length bytes).
     Payload(Vec<u8>),
 }
 
+/// Metadata captured when an unrecognized block/payload signature is encountered.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Unrecognized {
+    /// Unknown signature bytes and entity kind.
     pub sig: UnrecognizedSignature,
+    /// Byte offset inside the current packet where signature was read (if known).
     pub pos: Option<u64>,
+    /// Parsed entity length for resilient reads (if available).
     pub len: Option<u64>,
 }
 
@@ -30,6 +37,7 @@ impl Default for Unrecognized {
 }
 
 impl Unrecognized {
+    /// Creates an unrecognized block signature descriptor.
     pub fn block(sig: [u8; 4]) -> Self {
         Self {
             sig: UnrecognizedSignature::Block(sig),
@@ -37,6 +45,7 @@ impl Unrecognized {
         }
     }
 
+    /// Creates an unrecognized payload signature descriptor.
     pub fn payload(sig: Vec<u8>) -> Self {
         Self {
             sig: UnrecognizedSignature::Payload(sig),
@@ -44,6 +53,7 @@ impl Unrecognized {
         }
     }
 
+    /// Reads block signature information from a stream and returns unrecognized metadata.
     pub fn block_from<T: std::io::Read>(buf: &mut T) -> Result<Self, Error> {
         let mut sig = [0u8; BLOCK_SIG_LEN];
         let read_sig = read_exact_partial(buf, &mut sig)?;
@@ -67,6 +77,7 @@ impl Unrecognized {
         }
     }
 
+    /// Parses block signature information from a byte slice.
     pub fn block_from_slice(buf: &[u8]) -> Result<Self, Error> {
         if buf.len() < BLOCK_SIG_LEN {
             return Err(Error::NotEnoughtSignatureData(buf.len(), BLOCK_SIG_LEN));
@@ -90,6 +101,7 @@ impl Unrecognized {
         }
     }
 
+    /// Peeks and parses block signature information from a buffered reader.
     pub fn block_from_buffer<T: std::io::BufRead>(buf: &mut T) -> Result<Self, Error> {
         let bytes = buf.fill_buf()?;
         Self::block_from_slice(bytes)
@@ -235,6 +247,9 @@ pub enum Error {
 }
 
 impl Error {
+    /// Converts partial-read errors into [`ReadStatus::NeedMoreData`](crate::ReadStatus::NeedMoreData).
+    ///
+    /// Returns `Err(self)` for all non-recoverable errors.
     pub fn into_read_status<T>(self) -> Result<crate::ReadStatus<T>, Self> {
         match self {
             Self::NotEnoughtSignatureData(len, required) => {

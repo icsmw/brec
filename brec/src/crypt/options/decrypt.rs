@@ -73,6 +73,7 @@ impl DecryptOptions {
         &self.private_key
     }
 
+    /// Returns active runtime crypto policy.
     pub fn policy(&self) -> CryptPolicy {
         self.policy
     }

@@ -15,6 +15,7 @@ pub use options::*;
 pub use sensor::*;
 pub use stream::*;
 
+/// Asynchronous observer that tails a storage file and forwards packets to a subscription.
 pub struct FileObserverDef<
     B: BlockDef + Send + 'static,
     BR: BlockReferredDef<B> + 'static,
@@ -37,6 +38,7 @@ impl<
 where
     for<'a> Inner: PayloadSchema<Context<'a> = O>,
 {
+    /// Creates observer with explicit payload context options.
     pub fn with_opt<S>(
         mut options: FileObserverOptions<B, BR, P, Inner, S, O>,
         opt: O,
@@ -163,6 +165,7 @@ where
         })
     }
 
+    /// Creates observer using default payload context options.
     pub fn new<S>(options: FileObserverOptions<B, BR, P, Inner, S, O>) -> Result<Self, Error>
     where
         S: SubscriptionDef<B, BR, P, Inner, O> + 'static,
@@ -171,6 +174,7 @@ where
         Self::with_opt(options, O::default())
     }
 
+    /// Requests graceful shutdown and waits for observer task completion.
     pub async fn shutdown(&mut self) {
         let Some(handler) = self.handler.take() else {
             return;

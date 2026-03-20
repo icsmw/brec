@@ -1,3 +1,30 @@
+## 0.3.0 (20.03.2026)
+
+### Added
+
+- Rust feature flag `observer`: observer module, including stream-based observing support.
+- Rust feature flag `crypt`: encryption/decryption support in read/write pipeline with related options and policies.
+- Rust feature flag `resilient`: resilient reading path with dedicated stress/integration coverage.
+- Functionality: seek support for iterating and reading from the N-th packet.
+- Functionality: support of custom options across core APIs.
+- New examples for context, packets, crypt, bincode and reorganized wasm example layout.
+
+### Changes
+
+- Storage internals were split into dedicated reader/writer modules.
+- Updated observe, filters, and `BlockReferred` APIs.
+- Added packet-level `PacketReadStatus`.
+- Extended `SignatureDismatch` diagnostics in core and macros.
+- Reading path optimization to avoid unnecessary payload reads.
+- Project updated to Rust 2024 edition.
+- Expanded documentation and performance/measurement reports (including CPU/RSS metrics and heavy dataset scenarios).
+
+### Fixes
+
+- Corrected length-check logic in packet processing.
+- Fixed macro test generator behavior for stress scenarios.
+- Various test/workflow/documentation consistency fixes across workspace crates.
+
 ## 0.2.0 (28.06.2025)
 
 ### Added

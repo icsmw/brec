@@ -77,6 +77,7 @@ impl EncryptOptions {
         &self.public_key
     }
 
+    /// Returns active runtime crypto policy.
     pub fn policy(&self) -> CryptPolicy {
         self.policy
     }

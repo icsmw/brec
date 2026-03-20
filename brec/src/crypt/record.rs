@@ -9,16 +9,24 @@ use crate::crypt::{
 /// In-memory representation of encrypted payload wrapper bytes.
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct CryptEnvelopeRecord {
+    /// Envelope format version.
     pub version: u8,
+    /// Encryption algorithm used for this envelope.
     pub algorithm: CryptAlgorithm,
+    /// Session identifier used to correlate wrapped keys.
     pub session_id: u64,
+    /// Wrapped symmetric session key bytes.
     pub wrapped_key: Vec<u8>,
+    /// AEAD nonce used for payload encryption.
     pub nonce: [u8; consts::ENVELOPE_NONCE_LEN],
+    /// Encrypted payload bytes (ciphertext + tag).
     pub payload: Vec<u8>,
+    /// Optional key identifier carried with the envelope.
     pub key_id: Option<Vec<u8>>,
 }
 
 impl CryptEnvelopeRecord {
+    /// Creates a new envelope record with crate defaults for version and algorithm.
     pub fn new(
         session_id: u64,
         wrapped_key: Vec<u8>,
