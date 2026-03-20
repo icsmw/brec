@@ -17,8 +17,8 @@ crc32fast        = "1.4"
 lazy_static      = "1.5"
 serde            = { version = "1.0", features = ["derive"] }
 bincode          = { version = "2.0", features = ["serde"] }
-brec_macros      = { path = "./brec_macros" }
-brec_common      = { path = "./brec_common" }
+brec_macros      = { version = "0.3.0", path = "./brec_macros" }
+brec_common      = { version = "0.3.0", path = "./brec_common" }
 fs4              = { version = "0.13", features = ["sync"] }
 tracing          = "0.1"
 tempfile         = "3.27"
