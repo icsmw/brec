@@ -1,0 +1,17 @@
+# Rust build artifacts
+/target
+**/target
+
+# Node artifacts
+client/node_modules
+client/test-results
+client/playwright-report
+
+# Temp/runtime logs
+.server_e2e.log
+
+# VCS/editor files
+.git
+**/.DS_Store
+**/.idea
+**/.vscode

@@ -1,0 +1,19 @@
+{
+  "name": "wasm-browser-client",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1 --port 4173",
+    "build": "vite build",
+    "preview": "vite preview --host 127.0.0.1 --port 4173",
+    "test:e2e": "playwright test"
+  },
+  "dependencies": {
+    "wasmjs": "file:../bindings/pkg"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.55.0",
+    "vite": "^6.4.0"
+  }
+}

@@ -1,0 +1,4 @@
+**/pkg
+**/target
+**/*.log
+**/test-results

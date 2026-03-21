@@ -1,0 +1,19 @@
+[package]
+name        = "bindings"
+version     = "0.1.0"
+edition     = "2024"
+authors     = ["d.astafyev@outlook.com"]
+description = "This crate is intended for testing brec"
+license     = "Apache-2.0"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+serde    = { workspace = true, features = ["derive"] }
+protocol = { path = "../protocol" }
+brec = { workspace = true, features = ["bincode"] }
+
+wasm-bindgen       = { workspace = true }
+serde-wasm-bindgen = { workspace = true }
+thiserror          = { workspace = true }
