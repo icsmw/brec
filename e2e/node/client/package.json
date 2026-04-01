@@ -1,0 +1,12 @@
+{
+  "name": "node-e2e-client",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Node websocket echo client for brec e2e",
+  "scripts": {
+    "test:e2e": "node src/main.js"
+  },
+  "dependencies": {
+    "ws": "^8.18.3"
+  }
+}

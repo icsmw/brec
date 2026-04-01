@@ -84,6 +84,10 @@ impl Gen for Block {
         let size = Size::generate(self);
         let write = Write::generate(self)?;
         let write_vec = WriteVectored::generate(self)?;
+        #[cfg(feature = "napi")]
+        let napi = self.generate_napi()?;
+        #[cfg(not(feature = "napi"))]
+        let napi = quote! {};
         Ok(quote! {
             #base
             #crc
@@ -94,6 +98,7 @@ impl Gen for Block {
             #try_read_buffered
             #write
             #write_vec
+            #napi
         })
     }
 }

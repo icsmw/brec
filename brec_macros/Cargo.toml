@@ -28,6 +28,7 @@ generate_macro_test = []
 locked_storage      = []
 observer            = []
 resilient           = []
+napi                = []
 
 [dependencies]
 thiserror.workspace   = true

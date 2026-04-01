@@ -1,4 +1,6 @@
 mod block;
+#[cfg(feature = "napi")]
+mod napi;
 mod payload;
 
 use crate::*;

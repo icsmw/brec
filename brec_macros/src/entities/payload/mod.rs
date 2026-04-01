@@ -17,11 +17,7 @@ pub struct Payload {
 
 impl Payload {
     pub fn new(name: String, attrs: PayloadAttrs, derives: Derives) -> Self {
-        Self {
-            name,
-            attrs,
-            derives,
-        }
+        Self { name, attrs, derives }
     }
     pub fn sig(&self) -> Result<TokenStream, E> {
         let mut hasher = Hasher::new();

@@ -1,0 +1,22 @@
+[package]
+name        = "bindings"
+version     = "0.1.0"
+edition     = "2024"
+authors     = ["d.astafyev@outlook.com"]
+description = "This crate is intended for testing brec"
+license     = "Apache-2.0"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+serde       = { workspace = true, features = ["derive"] }
+serde_json  = { workspace = true }
+protocol    = { path = "../protocol" }
+brec        = { workspace = true, features = ["bincode"] }
+napi        = { workspace = true, features = ["serde-json"] }
+thiserror   = { workspace = true }
+napi-derive = { workspace = true }
+
+[build-dependencies]
+napi-build = { workspace = true }

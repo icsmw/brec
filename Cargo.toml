@@ -6,8 +6,8 @@ exclude  = ["gen_tests/*", "measurements/*", "examples/*", "tests/*"]
 [workspace.dependencies]
 notify           = "8.2"
 thiserror        = "2.0"
-uuid             = "1.22"
-proptest         = "1.4"
+uuid             = "1.23"
+proptest         = "1.11"
 paste            = "1.0"
 syn              = { version = "2.0", features = ["full"] }
 quote            = "1.0"
@@ -32,3 +32,4 @@ secrecy          = "0.10"
 zeroize          = "1.8"
 x509-parser      = "0.18"
 pem              = "3.0"
+napi             = "3.8"
