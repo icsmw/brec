@@ -1,0 +1,6 @@
+**/pkg
+**/target
+**/*.log
+**/test-results
+**/node_modules
+client/native/*.node

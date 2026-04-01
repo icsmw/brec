@@ -19,6 +19,10 @@ pub fn generate(
     } else {
         quote! {#[derive(#(#derives,)*)]}
     };
+    #[cfg(feature = "napi")]
+    let napi_impl = super::napi::generate_napi_impl(blocks)?;
+    #[cfg(not(feature = "napi"))]
+    let napi_impl = quote! {};
     Ok(quote! {
         #derives
         #[allow(non_snake_case)]
@@ -27,6 +31,7 @@ pub fn generate(
         }
 
         impl brec::BlockDef for Block {}
+        #napi_impl
     })
 }
 

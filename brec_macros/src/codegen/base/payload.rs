@@ -116,12 +116,17 @@ impl Base for Payload {
         } else {
             quote! {}
         };
+        #[cfg(feature = "napi")]
+        let napi_impl = self.generate_napi()?;
+        #[cfg(not(feature = "napi"))]
+        let napi_impl = quote! {};
         Ok(quote! {
             #sig_impl
             #hooks_impl
             #schema_impl
             #bincode_impl
             #crypt_and_bincode_impl
+            #napi_impl
         })
     }
 }

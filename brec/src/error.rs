@@ -3,6 +3,8 @@ use thiserror::Error;
 
 #[cfg(feature = "crypt")]
 use crate::crypt::CryptError;
+#[cfg(feature = "napi")]
+use crate::napi_feature::NapiError;
 #[cfg(feature = "observer")]
 use crate::storage::SensorError;
 
@@ -241,6 +243,10 @@ pub enum Error {
     /// Observer setup was attempted without a subscription.
     #[error("No subscription")]
     NoSubscription,
+    #[cfg(feature = "napi")]
+    /// Wrapper over `NapiError` when the `napi` feature is enabled.
+    #[error("Napi: {0}")]
+    Napi(#[from] NapiError),
     /// Sentinel error variant used in tests.
     #[error("Test error has been fired")]
     Test,

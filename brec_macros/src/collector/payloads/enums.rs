@@ -48,6 +48,10 @@ pub fn generate(
             String(String),
         }
     };
+    #[cfg(feature = "napi")]
+    let napi_impl = super::napi::generate_napi_impl(&payloads, cfg)?;
+    #[cfg(not(feature = "napi"))]
+    let napi_impl = quote! {};
     Ok(quote! {
         #context_def
 
@@ -67,6 +71,7 @@ pub fn generate(
         impl brec::PayloadInnerDef for Payload {}
 
         impl brec::PayloadDef<Payload> for Payload {}
+        #napi_impl
 
     })
 }

@@ -5,6 +5,9 @@
 pub mod build;
 #[cfg(feature = "crypt")]
 pub mod crypt;
+#[cfg(feature = "napi")]
+#[path = "napi/mod.rs"]
+pub mod napi_feature;
 #[cfg(feature = "bincode")]
 pub use bincode;
 #[cfg(feature = "build")]
@@ -43,5 +46,7 @@ pub use payload::{
 pub use storage::*;
 
 pub use crate::error::*;
+#[cfg(feature = "napi")]
+pub use crate::napi_feature::*;
 pub use crate::packet::*;
 pub use crate::traits::*;
