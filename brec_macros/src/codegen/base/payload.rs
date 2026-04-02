@@ -116,10 +116,11 @@ impl Base for Payload {
         } else {
             quote! {}
         };
-        #[cfg(feature = "napi")]
-        let napi_impl = self.generate_napi()?;
-        #[cfg(not(feature = "napi"))]
-        let napi_impl = quote! {};
+        let napi_impl = if cfg!(feature = "napi") {
+            self.generate_napi()?
+        } else {
+            quote! {}
+        };
         Ok(quote! {
             #sig_impl
             #hooks_impl

@@ -48,10 +48,11 @@ pub fn generate(
             String(String),
         }
     };
-    #[cfg(feature = "napi")]
-    let napi_impl = super::napi::generate_napi_impl(&payloads, cfg)?;
-    #[cfg(not(feature = "napi"))]
-    let napi_impl = quote! {};
+    let napi_impl = if cfg!(feature = "napi") {
+        super::napi::generate_napi_impl(&payloads, cfg)?
+    } else {
+        quote! {}
+    };
     Ok(quote! {
         #context_def
 

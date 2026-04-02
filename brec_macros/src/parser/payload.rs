@@ -5,9 +5,7 @@ use crate::*;
 use std::convert::TryFrom;
 
 pub fn parse(attrs: PayloadAttrs, mut input: DeriveInput) -> TokenStream {
-    #[cfg(feature = "napi")]
     let payload_data = input.data.clone();
-    #[cfg(feature = "napi")]
     let payload_name = input.ident.clone();
     let payload = match Payload::try_from((attrs.clone(), &mut input)) {
         Ok(p) => p,
@@ -25,15 +23,16 @@ pub fn parse(attrs: PayloadAttrs, mut input: DeriveInput) -> TokenStream {
     if let Err(err) = modificators::attrs::inject_repr_c(&mut input) {
         return syn::Error::new_spanned(&input, err).to_compile_error();
     }
-    #[cfg(feature = "napi")]
-    let napi_convert_impl = match codegen::generate_napi_impl(&payload_name, &payload_data) {
-        Ok(tokens) => tokens,
-        Err(err) => {
-            return syn::Error::new_spanned(&input, err).to_compile_error();
+    let napi_convert_impl = if cfg!(feature = "napi") {
+        match codegen::generate_napi_impl(&payload_name, &payload_data) {
+            Ok(tokens) => tokens,
+            Err(err) => {
+                return syn::Error::new_spanned(&input, err).to_compile_error();
+            }
         }
+    } else {
+        quote! {}
     };
-    #[cfg(not(feature = "napi"))]
-    let napi_convert_impl = quote! {};
     quote! {
         #input
 

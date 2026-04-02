@@ -19,10 +19,11 @@ pub fn generate(
     } else {
         quote! {#[derive(#(#derives,)*)]}
     };
-    #[cfg(feature = "napi")]
-    let napi_impl = super::napi::generate_napi_impl(blocks)?;
-    #[cfg(not(feature = "napi"))]
-    let napi_impl = quote! {};
+    let napi_impl = if cfg!(feature = "napi") {
+        super::napi::generate_napi_impl(blocks)?
+    } else {
+        quote! {}
+    };
     Ok(quote! {
         #derives
         #[allow(non_snake_case)]
