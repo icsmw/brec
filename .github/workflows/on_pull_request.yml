@@ -75,4 +75,4 @@ jobs:
       - name: Make scripts executable
         run: chmod +x ./e2e.sh
       - name: Tests
-        run: sh ./e2e.sh
+        run: bash ./e2e.sh
