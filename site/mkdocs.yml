@@ -12,6 +12,7 @@ nav:
       - Payloads: parts/payloads.md
       - Payload Context: parts/context.md
       - Crypt: parts/crypt.md
+      - NAPI (Rust <-> JS): parts/napi.md
       - Packets: parts/packets.md
   - Code Generation: code_generation.md
   - Protocol Tools:
