@@ -2,5 +2,5 @@
 set -e
 
 cd ./e2e
-sh ./test.sh
+bash ./test.sh
 cd ..

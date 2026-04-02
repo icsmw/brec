@@ -2,9 +2,9 @@
 set -e
 
 cd ./wasm_browser
-sh ./test.sh
+bash ./test.sh
 cd ..
 
 cd ./node
-sh ./test.sh
+bash ./test.sh
 cd ..
