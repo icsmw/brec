@@ -24,6 +24,7 @@
 - **Optional file observer** - Enable the `observer` feature to watch storage files and consume newly appended packets asynchronously.
 - **Payload runtime context** - Payloads may use explicit runtime state during encode/decode, which makes features like custom context-aware payload logic and crypto integration possible.
 - **Optional payload encryption** - With the `crypt` feature, selected payloads can be encrypted while other payloads in the same protocol remain open.
+- **Optional Node.js bridge (N-API)** - With the `napi` feature, protocol objects can be converted directly between Rust and JavaScript without JSON conversion as an intermediate transport.
 - **High performance** - Parsing performance is on par with the most optimized binary parsers (see the Performance section in [documentation](https://icsmw.github.io/brec/)).
 - **Simple to use** - Just annotate your structs with #[block] or #[payload], and brec takes care of the rest - your protocol is ready to go.
 
@@ -86,6 +87,7 @@ Useful entry points:
 - [Payloads](https://icsmw.github.io/brec/parts/payloads/)
 - [Payload Context](https://icsmw.github.io/brec/parts/context/)
 - [Crypt](https://icsmw.github.io/brec/parts/crypt/)
+- [NAPI (Rust <-> JS)](https://icsmw.github.io/brec/parts/napi/)
 
 ## Contributing
 
