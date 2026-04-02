@@ -3,7 +3,7 @@ use proc_macro2::TokenStream;
 use quote::quote;
 use syn::{Data, Fields, Ident, Variant};
 
-fn get_named_field_ident<'a>(field: &'a syn::Field) -> Result<&'a Ident, E> {
+fn get_named_field_ident(field: &syn::Field) -> Result<&Ident, E> {
     field
         .ident
         .as_ref()

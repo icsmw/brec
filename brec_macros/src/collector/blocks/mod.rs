@@ -4,7 +4,6 @@ use quote::quote;
 use crate::*;
 
 mod enums;
-#[cfg(feature = "napi")]
 mod napi;
 mod props;
 mod read;

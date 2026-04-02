@@ -84,10 +84,11 @@ impl Gen for Block {
         let size = Size::generate(self);
         let write = Write::generate(self)?;
         let write_vec = WriteVectored::generate(self)?;
-        #[cfg(feature = "napi")]
-        let napi = self.generate_napi()?;
-        #[cfg(not(feature = "napi"))]
-        let napi = quote! {};
+        let napi = if cfg!(feature = "napi") {
+            self.generate_napi()?
+        } else {
+            quote! {}
+        };
         Ok(quote! {
             #base
             #crc
