@@ -1,0 +1,1324 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+        <link rel="canonical" href="https://icsmw.github.io/brec/stability/resilient/">
+      
+      
+        <link rel="prev" href="../../specification/">
+      
+      
+        <link rel="next" href="../tests/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>Resilient Compatibility - BRec (Binary Record)</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    <body dir="ltr">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#resilient-compatibility" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="BRec (Binary Record)" class="md-header__button md-logo" aria-label="BRec (Binary Record)" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            BRec (Binary Record)
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Resilient Compatibility
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="BRec (Binary Record)" class="md-nav__button md-logo" aria-label="BRec (Binary Record)" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    BRec (Binary Record)
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../overview/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting_started/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Protocol Parts
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Protocol Parts
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../parts/blocks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Blocks
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../parts/payloads/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Payloads
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../parts/context/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Payload Context
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../parts/crypt/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Crypt
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../parts/napi/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    NAPI (Rust <-> JS)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../parts/packets/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Packets
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../code_generation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Code Generation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Protocol Tools
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Protocol Tools
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tools/buffer/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Buffer
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tools/storage/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Storage
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../specification/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Specification
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_8" id="__nav_8_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Stability & Performance
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_8">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Stability & Performance
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Resilient Compatibility
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Resilient Compatibility
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#resilient-compatibility" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Resilient Compatibility
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#what-the-feature-changes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What The Feature Changes
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="What The Feature Changes">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#cost-of-the-feature" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Cost Of The Feature
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#typical-use-case" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Typical Use Case
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#why-this-matters-in-brec" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Why This Matters In brec
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#what-is-still-a-hard-error" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What Is Still A Hard Error
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#what-pos-and-len-mean" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What pos And len Mean
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#when-you-should-use-it" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        When You Should Use It
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#when-you-should-not-use-it" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        When You Should Not Use It
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#practical-guidance" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Practical Guidance
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tests/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tests
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../performance/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Performance
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#resilient-compatibility" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Resilient Compatibility
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#what-the-feature-changes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What The Feature Changes
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="What The Feature Changes">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#cost-of-the-feature" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Cost Of The Feature
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#typical-use-case" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Typical Use Case
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#why-this-matters-in-brec" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Why This Matters In brec
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#what-is-still-a-hard-error" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What Is Still A Hard Error
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#what-pos-and-len-mean" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What pos And len Mean
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#when-you-should-use-it" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        When You Should Use It
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#when-you-should-not-use-it" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        When You Should Not Use It
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#practical-guidance" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Practical Guidance
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+
+  <h1>Resilient Compatibility</h1>
+
+<h2 id="resilient-compatibility">Resilient Compatibility</h2>
+<p>The <code>resilient</code> feature is a protocol-compatibility mode for <code>brec</code>.</p>
+<p>Its purpose is simple:</p>
+<ul>
+<li>a newer writer may emit packets that contain blocks unknown to an older reader;</li>
+<li>an older reader should still be able to read the packet;</li>
+<li>unknown parts should be skipped deterministically instead of turning the whole packet into a hard failure.</li>
+</ul>
+<p>In other words, <code>resilient</code> is the feature that makes forward-compatible packet evolution practical in <code>brec</code>.</p>
+<h2 id="what-the-feature-changes">What The Feature Changes</h2>
+<p>When <code>resilient</code> is enabled:</p>
+<ul>
+<li>each block stores its body length right after the block signature;</li>
+<li>packet readers may skip unknown blocks by using that encoded length;</li>
+<li>unknown payloads may also be skipped, because payload headers already contain payload length;</li>
+<li>packet-level reads return both recognized data and metadata about skipped entities.</li>
+</ul>
+<h3 id="cost-of-the-feature">Cost Of The Feature</h3>
+<p><code>resilient</code> is not free, and it is better to say that directly.</p>
+<p>The cost is small, but real:</p>
+<ul>
+<li>each block becomes larger by <code>4</code> bytes, because block body length is stored as <code>u32</code> right after the signature;</li>
+<li>block and packet readers perform additional validation checks around encoded lengths and packet boundaries;</li>
+<li>when an unknown entity is reported, its signature is copied into <code>Unrecognized</code>:</li>
+<li>for blocks this is a fixed <code>[u8; 4]</code> copy;</li>
+<li>for payloads this may involve copying the payload signature bytes into <code>Vec&lt;u8&gt;</code>.</li>
+</ul>
+<p>In practice, this cost is not performance-critical.</p>
+<p>For <code>brec</code>, the overhead here is on the scale of nanoseconds, and often fractions of a nanosecond per operation rather than anything operationally significant.</p>
+<p>Still, it is important to understand the trade-off:</p>
+<ul>
+<li>you pay a few extra bytes per block;</li>
+<li>you pay a few extra checks on read;</li>
+<li>in return, you get forward-compatible packet evolution and deterministic skipping of unknown protocol parts.</li>
+</ul>
+<p>The metadata is represented as:</p>
+<pre><code class="language-rust">enum UnrecognizedSignature {
+    Block([u8; 4]),
+    Payload(Vec&lt;u8&gt;),
+}
+
+struct Unrecognized {
+    sig: UnrecognizedSignature,
+    pos: Option&lt;u64&gt;,
+    len: Option&lt;u64&gt;,
+}
+</code></pre>
+<p>At packet level, successful reads become:</p>
+<pre><code class="language-rust">PacketReadStatus::Success((packet, skipped))
+</code></pre>
+<p>Where:</p>
+<ul>
+<li><code>packet</code> contains all recognized blocks and the recognized payload, if any;</li>
+<li><code>skipped</code> contains unknown blocks and/or payloads that were safely ignored.</li>
+</ul>
+<h2 id="typical-use-case">Typical Use Case</h2>
+<p>The main use case is rolling protocol evolution.</p>
+<p>Example:</p>
+<ol>
+<li>version 1 of a service knows blocks <code>A</code> and <code>B</code>;</li>
+<li>version 2 adds a new block <code>C</code>;</li>
+<li>version 2 writes packets containing <code>A + C + payload</code>;</li>
+<li>version 1 reads the same packet;</li>
+<li>version 1 does not know <code>C</code>, but still reads <code>A</code> and the payload successfully.</li>
+</ol>
+<p>Without <code>resilient</code>, this packet would fail with <code>SignatureDismatch</code>.</p>
+<p>With <code>resilient</code>, the unknown block is skipped and reported through <code>Vec&lt;Unrecognized&gt;</code>.</p>
+<p>This is especially useful for:</p>
+<ul>
+<li>long-lived protocols that evolve gradually;</li>
+<li>mixed-version deployments during rolling upgrades;</li>
+<li>agents/clients that must tolerate newer indexing blocks;</li>
+<li>storage or stream processing pipelines where partial understanding is still valuable.</li>
+</ul>
+<h2 id="why-this-matters-in-brec">Why This Matters In <code>brec</code></h2>
+<p><code>brec</code> packets are intentionally assembled from:</p>
+<ul>
+<li>a block set that acts as an indexing/filtering layer;</li>
+<li>an optional payload that carries the heavier data.</li>
+</ul>
+<p>That architecture makes protocol evolution more flexible than in systems with a fixed packet catalog.</p>
+<p>The <code>resilient</code> feature extends that idea:</p>
+<ul>
+<li>you can add new blocks without forcing every old reader to fail;</li>
+<li>old readers may continue using the blocks they know;</li>
+<li>payload handling may remain intact if the payload itself is still known.</li>
+</ul>
+<p>This is why the "schema-free" claim in <code>brec</code> is not only about packet composition freedom, but also about practical compatibility during protocol growth.</p>
+<h2 id="what-is-still-a-hard-error">What Is Still A Hard Error</h2>
+<p><code>resilient</code> is not a "best effort ignore everything" mode.</p>
+<p>It only skips entities that are unknown by signature.</p>
+<p>The following cases still fail hard:</p>
+<ul>
+<li>known block signature + invalid block parsing;</li>
+<li>known block signature + invalid block CRC;</li>
+<li>known payload signature + invalid payload parsing;</li>
+<li>known payload signature + invalid payload CRC;</li>
+<li>malformed encoded lengths;</li>
+<li>encoded lengths that exceed packet boundaries.</li>
+</ul>
+<p>This is deliberate.</p>
+<p>If a reader recognizes an entity, it is expected to validate it strictly.</p>
+<h2 id="what-pos-and-len-mean">What <code>pos</code> And <code>len</code> Mean</h2>
+<p>For skipped entities:</p>
+<ul>
+<li><code>pos</code> is the offset of the entity signature relative to the start of the packet;</li>
+<li><code>len</code> is always the body length;</li>
+<li>for blocks, <code>len</code> does not include the block signature, the encoded <code>u32</code> length, or CRC;</li>
+<li>for payloads, <code>len</code> does not include the payload header.</li>
+</ul>
+<p>This makes <code>Unrecognized</code> suitable for:</p>
+<ul>
+<li>logging;</li>
+<li>telemetry;</li>
+<li>compatibility diagnostics;</li>
+<li>protocol migration analysis.</li>
+</ul>
+<h2 id="when-you-should-use-it">When You Should Use It</h2>
+<p>Use <code>resilient</code> when:</p>
+<ul>
+<li>you expect mixed protocol revisions in production;</li>
+<li>older consumers should survive newer indexing blocks;</li>
+<li>graceful forward compatibility is more important than strict binary lockstep;</li>
+<li>you want observability of skipped protocol parts instead of immediate failure.</li>
+</ul>
+<h2 id="when-you-should-not-use-it">When You Should Not Use It</h2>
+<p>Do not enable <code>resilient</code> when:</p>
+<ul>
+<li>every reader and writer must use exactly the same protocol revision;</li>
+<li>strict format equality is part of your contract;</li>
+<li>any unknown protocol part must be treated as a fatal incompatibility;</li>
+<li>you want the smallest possible binary block layout and do not need forward-compatible block skipping.</li>
+</ul>
+<p>Also note:</p>
+<ul>
+<li>protocols built with and without <code>resilient</code> are intentionally incompatible;</li>
+<li><code>resilient</code> is a protocol choice, not a transparent runtime toggle.</li>
+</ul>
+<p>If one side writes resilient blocks and the other side expects non-resilient blocks, parsing will fail.</p>
+<h2 id="practical-guidance">Practical Guidance</h2>
+<p>Use <code>resilient</code> primarily for protocol evolution at the block layer.</p>
+<p>A good pattern is:</p>
+<ol>
+<li>keep stable blocks for old readers;</li>
+<li>add new optional blocks for newer readers;</li>
+<li>let old readers skip what they do not understand;</li>
+<li>monitor <code>Vec&lt;Unrecognized&gt;</code> during rollout.</li>
+</ol>
+<p>This gives you a compatibility envelope without weakening validation of known data.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": [], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>
