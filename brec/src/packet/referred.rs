@@ -49,3 +49,29 @@ impl<B: BlockDef, BR: BlockReferredDef<B>> PacketReferred<'_, B, BR> {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn packet_referred_new_initializes_fields() {
+        let header = PacketHeader {
+            size: 123,
+            blocks_len: 45,
+            payload: true,
+            crc: 7,
+        };
+        let packet = PacketReferred::<crate::tests::TestBlock, crate::tests::TestBlock>::new(
+            Vec::new(),
+            header,
+        );
+
+        assert!(packet.blocks.is_empty());
+        assert!(packet.payload.is_none());
+        assert_eq!(packet.header.size, 123);
+        assert_eq!(packet.header.blocks_len, 45);
+        assert!(packet.header.payload);
+        assert_eq!(packet.header.crc, 7);
+    }
+}
