@@ -226,16 +226,65 @@ impl<R: std::io::BufRead> std::io::BufRead for BufferedReader<'_, R> {
 
         amt -= buf_len;
         self.buffer.clear();
+        self.consumed += buf_len;
 
         if amt <= self.inner_len {
             self.inner.consume(amt);
             self.inner_len -= amt;
             self.consumed += amt;
         } else {
-            let leftover = amt - self.inner_len;
+            let consumed_from_inner = self.inner_len;
             self.inner_len = 0;
-            self.inner.consume(leftover);
-            self.consumed += leftover;
+            self.inner.consume(consumed_from_inner);
+            self.consumed += consumed_from_inner;
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::BufferedReader;
+    use std::io::{BufRead, Read};
+
+    #[test]
+    fn buffered_reader_refill_read_and_consume() {
+        let inner = std::io::Cursor::new(vec![1_u8, 2, 3, 4, 5]);
+        let mut inner = std::io::BufReader::with_capacity(3, inner);
+        let mut reader = BufferedReader::new(&mut inner);
+
+        assert!(!reader.is_empty().expect("is_empty must work"));
+        assert_eq!(reader.buffer_len().expect("buffer_len must work"), 3);
+
+        reader.refill().expect("refill must work");
+        assert_eq!(reader.buffer_len().expect("inner should be consumed"), 2);
+        assert_eq!(reader.len().expect("len must work"), 5);
+        assert_eq!(reader.fill_buf().expect("fill_buf must work"), &[1, 2, 3, 4, 5]);
+
+        reader.consume(4);
+        assert_eq!(reader.fill_buf().expect("fill_buf must work"), &[5]);
+
+        let mut out = [0_u8; 1];
+        let read = reader.read(&mut out).expect("read must work");
+        assert_eq!(read, 1);
+        assert_eq!(out, [5]);
+        assert_eq!(reader.consumed(), 5);
+        assert!(reader.is_empty().expect("is_empty must work"));
+    }
+
+    #[test]
+    fn buffered_reader_read_empty_and_overconsume() {
+        let inner = std::io::Cursor::new(vec![9_u8, 8, 7, 6, 5, 4]);
+        let mut inner = std::io::BufReader::with_capacity(3, inner);
+        let mut reader = BufferedReader::new(&mut inner);
+        reader.refill().expect("refill must work");
+
+        let _ = reader.fill_buf().expect("fill_buf must work");
+        reader.consume(7);
+        assert_eq!(reader.consumed(), 6);
+        assert!(reader.is_empty().expect("is_empty must work"));
+
+        let mut out = [];
+        let read = reader.read(&mut out).expect("read with empty buffer must work");
+        assert_eq!(read, 0);
     }
 }

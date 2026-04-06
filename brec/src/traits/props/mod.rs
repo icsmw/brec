@@ -90,3 +90,43 @@ pub trait PayloadSize: PayloadEncoded {
         Ok(self.encoded(ctx)?.len() as u64)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::{PayloadEncode, PayloadEncodeReferred, PayloadSchema};
+
+    struct DemoPayload(Vec<u8>);
+
+    impl PayloadSchema for DemoPayload {
+        type Context<'a> = ();
+    }
+
+    impl PayloadHooks for DemoPayload {}
+
+    impl PayloadEncode for DemoPayload {
+        fn encode(&self, _: &mut Self::Context<'_>) -> std::io::Result<Vec<u8>> {
+            Ok(self.0.clone())
+        }
+    }
+
+    impl PayloadEncodeReferred for DemoPayload {
+        fn encode(&self, _: &mut Self::Context<'_>) -> std::io::Result<Option<&[u8]>> {
+            Ok(Some(self.0.as_slice()))
+        }
+    }
+
+    impl PayloadCrc for DemoPayload {}
+    impl PayloadSize for DemoPayload {}
+
+    #[test]
+    fn default_payload_crc_and_size_work() {
+        let mut ctx = ();
+        let payload = DemoPayload(vec![1, 2, 3, 4]);
+        let crc = payload.crc(&mut ctx).expect("crc must work");
+
+        assert_eq!(crc.size(), 4);
+        assert_eq!(DemoPayload::crc_size(), 4);
+        assert_eq!(payload.size(&mut ctx).expect("size must work"), 4);
+    }
+}

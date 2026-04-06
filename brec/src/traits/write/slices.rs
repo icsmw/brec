@@ -114,3 +114,93 @@ impl<'a> IoSlices<'a> {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::io::Write;
+
+    struct PartialWriter {
+        buf: Vec<u8>,
+        limit: usize,
+    }
+
+    impl Write for PartialWriter {
+        fn write(&mut self, src: &[u8]) -> std::io::Result<usize> {
+            let take = src.len().min(self.limit.max(1));
+            self.buf.extend_from_slice(&src[..take]);
+            Ok(take)
+        }
+
+        fn flush(&mut self) -> std::io::Result<()> {
+            Ok(())
+        }
+
+        fn write_vectored(&mut self, bufs: &[std::io::IoSlice<'_>]) -> std::io::Result<usize> {
+            let mut left = self.limit.max(1);
+            let mut written = 0;
+            for s in bufs {
+                if left == 0 {
+                    break;
+                }
+                let take = s.len().min(left);
+                self.buf.extend_from_slice(&s[..take]);
+                written += take;
+                left -= take;
+            }
+            Ok(written)
+        }
+    }
+
+    struct ZeroWriter;
+
+    impl Write for ZeroWriter {
+        fn write(&mut self, _: &[u8]) -> std::io::Result<usize> {
+            Ok(0)
+        }
+
+        fn flush(&mut self) -> std::io::Result<()> {
+            Ok(())
+        }
+
+        fn write_vectored(&mut self, _: &[std::io::IoSlice<'_>]) -> std::io::Result<usize> {
+            Ok(0)
+        }
+    }
+
+    #[test]
+    fn io_slices_append_get_and_write_all() {
+        let head = [1_u8, 2, 3];
+        let tail = [9_u8];
+        let mut a = IoSlices::default();
+        a.add_slice(&head);
+        a.add_buffered(vec![4, 5, 6]);
+
+        let mut b = IoSlices::default();
+        b.add_slice(&tail);
+        a.append(b);
+
+        let io = a.get();
+        assert_eq!(io.len(), 3);
+
+        let mut writer = PartialWriter {
+            buf: Vec::new(),
+            limit: 2,
+        };
+        a.write_vectored_all(&mut writer)
+            .expect("vectored write must complete");
+        assert_eq!(writer.buf, vec![1, 2, 3, 4, 5, 6, 9]);
+    }
+
+    #[test]
+    fn io_slices_write_all_returns_write_zero() {
+        let data = [1_u8, 2, 3];
+        let mut slices = IoSlices::default();
+        slices.add_slice(&data);
+
+        let err = slices
+            .write_vectored_all(&mut ZeroWriter)
+            .expect_err("must fail on write zero");
+        assert_eq!(err.kind(), std::io::ErrorKind::WriteZero);
+    }
+}
