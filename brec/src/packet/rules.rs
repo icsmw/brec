@@ -359,3 +359,311 @@ impl<B: BlockDef, BR: BlockReferredDef<B>, P: PayloadDef<Inner>, Inner: PayloadI
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::{
+        BlockReferredDef, ByteBlock, DefaultPayloadContext, Error, PacketDef, PayloadDef,
+        PayloadHeader, PayloadInnerDef, PayloadSchema, ReadBlockFrom, ReadBlockFromSlice, ReadFrom,
+        ReadStatus, RuleDef, RuleDefId, RuleFnDef, RulesDef, TryExtractPayloadFrom,
+        TryExtractPayloadFromBuffered, TryReadFrom, TryReadFromBuffered, WriteMutTo, WriteTo,
+        WriteVectoredMutTo, WriteVectoredTo, packet::rules::PeekAs,
+    };
+    use std::sync::{
+        Arc,
+        atomic::{AtomicUsize, Ordering},
+    };
+
+    #[derive(Clone)]
+    struct LocalPayload(Vec<u8>);
+
+    impl PayloadSchema for LocalPayload {
+        type Context<'a> = DefaultPayloadContext;
+    }
+    impl crate::PayloadHooks for LocalPayload {}
+    impl crate::PayloadEncode for LocalPayload {
+        fn encode(&self, _: &mut Self::Context<'_>) -> std::io::Result<Vec<u8>> {
+            Ok(self.0.clone())
+        }
+    }
+    impl crate::PayloadEncodeReferred for LocalPayload {
+        fn encode(&self, _: &mut Self::Context<'_>) -> std::io::Result<Option<&[u8]>> {
+            Ok(Some(self.0.as_slice()))
+        }
+    }
+    impl crate::PayloadSignature for LocalPayload {
+        fn sig(&self) -> ByteBlock {
+            ByteBlock::Len4(*b"LPAY")
+        }
+    }
+    impl crate::PayloadSize for LocalPayload {}
+    impl crate::PayloadCrc for LocalPayload {}
+    impl WriteMutTo for LocalPayload {
+        fn write<T: std::io::Write>(
+            &mut self,
+            buf: &mut T,
+            _: &mut Self::Context<'_>,
+        ) -> std::io::Result<usize> {
+            buf.write(self.0.as_slice())
+        }
+        fn write_all<T: std::io::Write>(
+            &mut self,
+            buf: &mut T,
+            _: &mut Self::Context<'_>,
+        ) -> std::io::Result<()> {
+            buf.write_all(self.0.as_slice())
+        }
+    }
+    impl WriteVectoredMutTo for LocalPayload {
+        fn slices(&mut self, _: &mut Self::Context<'_>) -> std::io::Result<crate::IoSlices<'_>> {
+            let mut slices = crate::IoSlices::default();
+            slices.add_slice(self.0.as_slice());
+            Ok(slices)
+        }
+    }
+    impl PayloadInnerDef for LocalPayload {}
+    impl TryExtractPayloadFromBuffered<LocalPayload> for LocalPayload {
+        fn try_read<B: std::io::BufRead>(
+            _: &mut B,
+            _: &PayloadHeader,
+            _: &mut <LocalPayload as PayloadSchema>::Context<'_>,
+        ) -> Result<ReadStatus<LocalPayload>, Error> {
+            Err(Error::Test)
+        }
+    }
+    impl TryExtractPayloadFrom<LocalPayload> for LocalPayload {
+        fn try_read<B: std::io::Read + std::io::Seek>(
+            _: &mut B,
+            _: &PayloadHeader,
+            _: &mut <LocalPayload as PayloadSchema>::Context<'_>,
+        ) -> Result<ReadStatus<LocalPayload>, Error> {
+            Err(Error::Test)
+        }
+    }
+    impl crate::ExtractPayloadFrom<LocalPayload> for LocalPayload {
+        fn read<B: std::io::Read>(
+            _: &mut B,
+            _: &PayloadHeader,
+            _: &mut <LocalPayload as PayloadSchema>::Context<'_>,
+        ) -> Result<LocalPayload, Error> {
+            Err(Error::Test)
+        }
+    }
+    impl PayloadDef<LocalPayload> for LocalPayload {}
+
+    struct BrA;
+    struct BrB;
+    struct LocalBlock;
+
+    impl crate::Size for LocalBlock {
+        fn size(&self) -> u64 {
+            1
+        }
+    }
+    impl WriteTo for LocalBlock {
+        fn write<T: std::io::Write>(&self, buf: &mut T) -> std::io::Result<usize> {
+            buf.write(&[0_u8])
+        }
+        fn write_all<T: std::io::Write>(&self, buf: &mut T) -> std::io::Result<()> {
+            buf.write_all(&[0_u8])
+        }
+    }
+    impl WriteVectoredTo for LocalBlock {
+        fn slices(&self) -> std::io::Result<crate::IoSlices<'_>> {
+            let mut slices = crate::IoSlices::default();
+            slices.add_slice(&[0_u8]);
+            Ok(slices)
+        }
+    }
+    impl TryReadFromBuffered for LocalBlock {
+        fn try_read<T: std::io::BufRead>(_: &mut T) -> Result<ReadStatus<Self>, Error> {
+            Err(Error::Test)
+        }
+    }
+    impl TryReadFrom for LocalBlock {
+        fn try_read<T: std::io::Read + std::io::Seek>(_: &mut T) -> Result<ReadStatus<Self>, Error> {
+            Err(Error::Test)
+        }
+    }
+    impl ReadFrom for LocalBlock {
+        fn read<T: std::io::Read>(_: &mut T) -> Result<Self, Error> {
+            Err(Error::Test)
+        }
+    }
+    impl ReadBlockFrom for LocalBlock {
+        fn read<T: std::io::Read>(_: &mut T, _: bool) -> Result<Self, Error> {
+            Err(Error::Test)
+        }
+    }
+    impl ReadBlockFromSlice for LocalBlock {
+        fn read_from_slice<'a>(_: &'a [u8], _: bool) -> Result<Self, Error>
+        where
+            Self: 'a + Sized,
+        {
+            Err(Error::Test)
+        }
+    }
+    impl crate::BlockDef for LocalBlock {}
+
+    impl crate::Size for BrA {
+        fn size(&self) -> u64 {
+            1
+        }
+    }
+    impl crate::Size for BrB {
+        fn size(&self) -> u64 {
+            1
+        }
+    }
+
+    impl ReadBlockFromSlice for BrA {
+        fn read_from_slice<'a>(_: &'a [u8], _: bool) -> Result<Self, Error>
+        where
+            Self: 'a + Sized,
+        {
+            Err(Error::Test)
+        }
+    }
+    impl ReadBlockFromSlice for BrB {
+        fn read_from_slice<'a>(_: &'a [u8], _: bool) -> Result<Self, Error>
+        where
+            Self: 'a + Sized,
+        {
+            Err(Error::Test)
+        }
+    }
+
+    impl Into<LocalBlock> for BrA {
+        fn into(self) -> LocalBlock {
+            LocalBlock
+        }
+    }
+    impl Into<LocalBlock> for BrB {
+        fn into(self) -> LocalBlock {
+            LocalBlock
+        }
+    }
+
+    impl BlockReferredDef<LocalBlock> for BrA {}
+    impl BlockReferredDef<LocalBlock> for BrB {}
+    impl PeekAs<'_, BrA> for BrA {
+        type Peeked = BrA;
+        fn peek_as(&self) -> Option<&Self::Peeked> {
+            Some(self)
+        }
+    }
+
+    enum Referred {
+        A(BrA),
+        B(BrB),
+    }
+
+    impl PeekAs<'_, BrA> for Referred {
+        type Peeked = BrA;
+        fn peek_as(&self) -> Option<&Self::Peeked> {
+            match self {
+                Referred::A(v) => Some(v),
+                Referred::B(_) => None,
+            }
+        }
+    }
+    impl PeekAs<'_, BrB> for Referred {
+        type Peeked = BrB;
+        fn peek_as(&self) -> Option<&Self::Peeked> {
+            match self {
+                Referred::A(_) => None,
+                Referred::B(v) => Some(v),
+            }
+        }
+    }
+
+    #[test]
+    fn peeked_blocks_helpers_work() {
+        let arr = vec![Referred::A(BrA), Referred::B(BrB)];
+        let peeked = crate::PeekedBlocksDef::new(&arr);
+
+        assert_eq!(peeked.len(), 2);
+        assert!(!peeked.is_empty());
+        assert!(peeked.has::<BrA>());
+        assert!(peeked.has::<BrB>());
+        assert!(peeked.get::<BrA>().is_some());
+        assert!(peeked.get::<BrB>().is_some());
+        assert!(peeked.find::<BrB, _>(|_| true).is_some());
+        assert_eq!(peeked.iter_as::<BrA>().count(), 1);
+        assert_eq!(peeked.iter_as::<BrB>().count(), 1);
+        assert_eq!(peeked.iter().count(), 2);
+        assert_eq!(peeked.as_slice().len(), 2);
+
+        let first = peeked.first().expect("first");
+        assert!(first.as_type::<BrA>().is_some());
+        assert!(first.as_type::<BrB>().is_none());
+    }
+
+    #[test]
+    fn rules_add_duplicate_and_remove_behaviour() {
+        let mut rules = RulesDef::<LocalBlock, BrA, LocalPayload, LocalPayload>::default();
+
+        rules
+            .add_rule(RuleDef::Ignored(RuleFnDef::Static(|_| {})))
+            .expect("first ignored");
+        assert!(matches!(
+            rules.add_rule(RuleDef::Ignored(RuleFnDef::Static(|_| {}))),
+            Err(Error::RuleDuplicate)
+        ));
+
+        rules
+            .add_rule(RuleDef::Prefilter(RuleFnDef::Static(|_| true)))
+            .expect("first prefilter");
+        assert!(matches!(
+            rules.add_rule(RuleDef::Prefilter(RuleFnDef::Static(|_| true))),
+            Err(Error::RuleDuplicate)
+        ));
+
+        rules.remove_rule(RuleDefId::Ignored);
+        rules
+            .add_rule(RuleDef::Ignored(RuleFnDef::Static(|_| {})))
+            .expect("ignored can be added again after remove");
+    }
+
+    #[test]
+    fn rules_callbacks_filter_and_ignore_paths() {
+        let mut rules = RulesDef::<LocalBlock, BrA, LocalPayload, LocalPayload>::default();
+
+        let ignored_calls = Arc::new(AtomicUsize::new(0));
+        let ignored_calls_c = ignored_calls.clone();
+        rules
+            .add_rule(RuleDef::Ignored(RuleFnDef::Dynamic(Box::new(move |_| {
+                ignored_calls_c.fetch_add(1, Ordering::SeqCst);
+            }))))
+            .expect("ignored rule");
+
+        rules
+            .add_rule(RuleDef::Prefilter(RuleFnDef::Static(|blocks| blocks.has::<BrA>())))
+            .expect("prefilter rule");
+        rules
+            .add_rule(RuleDef::FilterPayload(RuleFnDef::Static(|payload| payload == [1, 2, 3])))
+            .expect("payload rule");
+        rules
+            .add_rule(RuleDef::FilterPacket(RuleFnDef::Static(|packet| packet.payload.is_none())))
+            .expect("packet rule");
+
+        rules.ignore(&[9, 9]).expect("ignore callback");
+        assert_eq!(ignored_calls.load(Ordering::SeqCst), 1);
+
+        let blocks_a = vec![BrA];
+        assert!(rules.prefilter(&blocks_a));
+
+        assert!(rules.has_payload_filter());
+        assert!(rules.filter_payload(&[1, 2, 3]));
+        assert!(!rules.filter_payload(&[7, 8]));
+
+        let packet_no_payload = PacketDef::<LocalBlock, LocalPayload, LocalPayload>::default();
+        let packet_with_payload =
+            PacketDef::<LocalBlock, LocalPayload, LocalPayload>::new(
+                vec![],
+                Some(LocalPayload(vec![1])),
+            );
+        assert!(rules.filter_packet(&packet_no_payload));
+        assert!(!rules.filter_packet(&packet_with_payload));
+    }
+}

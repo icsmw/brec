@@ -385,3 +385,143 @@ impl<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> TryReadPacketFro
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::{
+        ByteBlock, DefaultPayloadContext, Error, PacketDef, PacketHeader, PacketReadStatus,
+        PayloadHeader, ReadPacketFrom, TryReadPacketFrom, TryReadPacketFromBuffered, WriteTo,
+        tests::{TestBlock, TestPayload},
+    };
+    use std::io::{BufReader, Cursor, Seek};
+
+    fn empty_packet_bytes() -> Vec<u8> {
+        let header = PacketHeader::from_lengths(0, 0, false);
+        let mut out = Vec::new();
+        header.write_all(&mut out).expect("packet header write");
+        out
+    }
+
+    #[test]
+    fn packet_read_and_try_read_and_buffered_succeed_for_empty_packet() {
+        let bytes = empty_packet_bytes();
+
+        let mut cursor = Cursor::new(bytes.clone());
+        let packet = <PacketDef<TestBlock, TestPayload, TestPayload> as ReadPacketFrom>::read(
+            &mut cursor,
+            &mut DefaultPayloadContext::default(),
+        )
+        .expect("read empty packet");
+        assert!(packet.blocks.is_empty());
+        assert!(packet.payload.is_none());
+
+        let mut cursor = Cursor::new(bytes.clone());
+        match <PacketDef<TestBlock, TestPayload, TestPayload> as TryReadPacketFrom>::try_read(
+            &mut cursor,
+            &mut DefaultPayloadContext::default(),
+        )
+        .expect("try_read empty packet")
+        {
+            PacketReadStatus::Success(packet) => {
+                #[cfg(feature = "resilient")]
+                let packet = &packet.0;
+                #[cfg(not(feature = "resilient"))]
+                let packet = &packet;
+
+                assert!(packet.blocks.is_empty());
+                assert!(packet.payload.is_none());
+            }
+            PacketReadStatus::NotEnoughData(_) => panic!("expected Success"),
+        }
+        assert_eq!(
+            cursor.stream_position().expect("stream_position"),
+            PacketHeader::SIZE
+        );
+
+        let mut reader = BufReader::new(Cursor::new(bytes));
+        match <PacketDef<TestBlock, TestPayload, TestPayload> as TryReadPacketFromBuffered>::try_read(
+            &mut reader,
+            &mut DefaultPayloadContext::default(),
+        )
+        .expect("buffered try_read empty packet")
+        {
+            PacketReadStatus::Success(packet) => {
+                #[cfg(feature = "resilient")]
+                let packet = &packet.0;
+                #[cfg(not(feature = "resilient"))]
+                let packet = &packet;
+
+                assert!(packet.blocks.is_empty());
+                assert!(packet.payload.is_none());
+            }
+            PacketReadStatus::NotEnoughData(_) => panic!("expected Success"),
+        }
+    }
+
+    #[test]
+    fn packet_try_read_and_buffered_report_not_enough_for_short_header() {
+        let short = vec![1_u8, 2, 3];
+
+        let mut cursor = Cursor::new(short.clone());
+        match <PacketDef<TestBlock, TestPayload, TestPayload> as TryReadPacketFrom>::try_read(
+            &mut cursor,
+            &mut DefaultPayloadContext::default(),
+        )
+        .expect("try_read short must not fail")
+        {
+            PacketReadStatus::NotEnoughData(needed) => assert!(needed > 0),
+            PacketReadStatus::Success(_) => panic!("expected NotEnoughData"),
+        }
+        assert_eq!(cursor.stream_position().expect("stream_position"), 0);
+
+        let mut reader = BufReader::new(Cursor::new(short));
+        match <PacketDef<TestBlock, TestPayload, TestPayload> as TryReadPacketFromBuffered>::try_read(
+            &mut reader,
+            &mut DefaultPayloadContext::default(),
+        )
+        .expect("buffered try_read short must not fail")
+        {
+            PacketReadStatus::NotEnoughData(needed) => assert!(needed > 0),
+            PacketReadStatus::Success(_) => panic!("expected NotEnoughData"),
+        }
+    }
+
+    #[test]
+    fn packet_try_read_and_buffered_detect_invalid_payload_length_mismatch() {
+        let packet_header = PacketHeader::from_lengths(0, 0, true);
+        let payload_header = PayloadHeader {
+            sig: ByteBlock::Len4(*b"ABCD"),
+            crc: ByteBlock::Len4([1, 2, 3, 4]),
+            len: 1,
+        };
+
+        let mut bytes = Vec::new();
+        packet_header
+            .write_all(&mut bytes)
+            .expect("packet header write");
+        bytes.extend_from_slice(&payload_header.as_vec());
+
+        let mut cursor = Cursor::new(bytes.clone());
+        assert!(matches!(
+            <PacketDef<TestBlock, TestPayload, TestPayload> as TryReadPacketFrom>::try_read(
+                &mut cursor,
+                &mut DefaultPayloadContext::default(),
+            ),
+            Err(Error::InvalidLength)
+        ));
+        assert_eq!(
+            cursor.stream_position().expect("stream_position"),
+            0,
+            "seekable try_read should reset position on error"
+        );
+
+        let mut reader = BufReader::new(Cursor::new(bytes));
+        assert!(matches!(
+            <PacketDef<TestBlock, TestPayload, TestPayload> as TryReadPacketFromBuffered>::try_read(
+                &mut reader,
+                &mut DefaultPayloadContext::default(),
+            ),
+            Err(Error::InvalidLength)
+        ));
+    }
+}

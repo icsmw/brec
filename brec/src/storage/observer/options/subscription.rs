@@ -93,3 +93,43 @@ pub trait SubscriptionDef<
         // default implementation
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::{SubscriptionDef, SubscriptionErrorAction, SubscriptionUpdate};
+    use crate::{
+        DefaultPayloadContext, Error, PacketDef,
+        tests::{TestBlock, TestPayload},
+    };
+
+    struct TestSubscription {
+        updates: usize,
+    }
+
+    impl SubscriptionDef<TestBlock, TestBlock, TestPayload, TestPayload, DefaultPayloadContext>
+        for TestSubscription
+    {
+        fn on_update(&mut self, _total: usize, _added: usize) -> SubscriptionUpdate {
+            self.updates += 1;
+            SubscriptionUpdate::Read
+        }
+    }
+
+    #[test]
+    fn default_subscription_methods_are_safe_and_continue_on_error() {
+        let mut sub = TestSubscription { updates: 0 };
+
+        assert!(matches!(sub.on_update(10, 2), SubscriptionUpdate::Read));
+        assert_eq!(sub.updates, 1);
+
+        let packet = PacketDef::<TestBlock, TestPayload, TestPayload>::default();
+        sub.on_packet(packet);
+
+        let action = sub.on_error(&Error::Test);
+        assert_eq!(action, SubscriptionErrorAction::Continue);
+
+        sub.on_stopped(None);
+        sub.on_stopped(Some(Error::Test));
+        sub.on_aborted();
+    }
+}

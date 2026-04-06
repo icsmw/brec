@@ -279,3 +279,89 @@ impl From<SensorError> for Error {
         Error::Sensor(value)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::io::{BufReader, Cursor};
+
+    #[test]
+    fn unrecognized_constructors_set_expected_fields() {
+        let blk = Unrecognized::block(*b"ABCD");
+        assert_eq!(blk.sig, UnrecognizedSignature::Block(*b"ABCD"));
+        assert_eq!(blk.pos, None);
+        #[cfg(not(feature = "resilient"))]
+        assert_eq!(blk.len, None);
+
+        let payload = Unrecognized::payload(vec![1, 2, 3]);
+        assert_eq!(payload.sig, UnrecognizedSignature::Payload(vec![1, 2, 3]));
+        assert_eq!(payload.pos, None);
+        assert_eq!(payload.len, None);
+    }
+
+    #[test]
+    fn block_from_slice_and_buffer_parse_signature() {
+        #[cfg(feature = "resilient")]
+        let bytes = {
+            let mut bytes = b"ABCD".to_vec();
+            bytes.extend_from_slice(&7_u32.to_le_bytes());
+            bytes
+        };
+        #[cfg(not(feature = "resilient"))]
+        let bytes = b"ABCD".to_vec();
+
+        let from_slice = Unrecognized::block_from_slice(&bytes).expect("block_from_slice");
+        assert_eq!(from_slice.sig, UnrecognizedSignature::Block(*b"ABCD"));
+        #[cfg(feature = "resilient")]
+        assert_eq!(from_slice.len, Some(7));
+        #[cfg(not(feature = "resilient"))]
+        assert_eq!(from_slice.len, None);
+
+        let mut reader = BufReader::new(Cursor::new(bytes));
+        let from_buffer = Unrecognized::block_from_buffer(&mut reader).expect("block_from_buffer");
+        assert_eq!(from_buffer.sig, UnrecognizedSignature::Block(*b"ABCD"));
+    }
+
+    #[test]
+    fn block_from_slice_and_stream_validate_input_size() {
+        let err = Unrecognized::block_from_slice(&[1, 2, 3]).expect_err("must fail");
+        assert!(matches!(
+            err,
+            Error::NotEnoughtSignatureData(got, needed) if got == 3 && needed == BLOCK_SIG_LEN
+        ));
+
+        let mut stream = Cursor::new(vec![1, 2, 3]);
+        let err = Unrecognized::block_from(&mut stream).expect_err("must fail");
+        assert!(matches!(
+            err,
+            Error::NotEnoughtSignatureData(got, needed) if got == 3 && needed == BLOCK_SIG_LEN
+        ));
+    }
+
+    #[test]
+    fn into_read_status_maps_only_partial_data_errors() {
+        match Error::NotEnoughData(5).into_read_status::<u8>() {
+            Ok(crate::ReadStatus::NotEnoughData(needed)) => assert_eq!(needed, 5),
+            Ok(crate::ReadStatus::Success(_)) => panic!("expected NotEnoughData"),
+            Err(_) => panic!("expected Ok(NotEnoughData)"),
+        }
+
+        match Error::NotEnoughtSignatureData(2, 8).into_read_status::<u8>() {
+            Ok(crate::ReadStatus::NotEnoughData(needed)) => assert_eq!(needed, 6),
+            Ok(crate::ReadStatus::Success(_)) => panic!("expected NotEnoughData"),
+            Err(_) => panic!("expected Ok(NotEnoughData)"),
+        }
+
+        assert!(matches!(
+            Error::RuleDuplicate.into_read_status::<u8>(),
+            Err(Error::RuleDuplicate)
+        ));
+    }
+
+    #[test]
+    fn error_converts_to_io_error_with_display_message() {
+        let io: std::io::Error = Error::CannotFindFreeSlot.into();
+        assert_eq!(io.kind(), std::io::ErrorKind::Other);
+        assert!(io.to_string().contains("Fail to find free slot"));
+    }
+}

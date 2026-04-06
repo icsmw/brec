@@ -88,3 +88,68 @@ impl TryReadFrom for Slot {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::{CrcU32, Error, ReadFrom, ReadStatus, Slot, TryReadFrom, WriteTo};
+    use std::io::{Cursor, Seek};
+
+    fn sample_slot() -> Slot {
+        let mut slot = Slot::new(vec![12, 34, 0], 3, [0; 4]);
+        slot.overwrite_crc();
+        slot
+    }
+
+    fn encoded_slot() -> Vec<u8> {
+        let slot = sample_slot();
+        let mut out = Vec::new();
+        slot.write_all(&mut out).expect("slot serialization");
+        out
+    }
+
+    #[test]
+    fn slot_read_and_try_read_roundtrip() {
+        let bytes = encoded_slot();
+
+        let mut cursor = Cursor::new(bytes.clone());
+        let read = Slot::read(&mut cursor).expect("slot read");
+        assert_eq!(read.capacity, 3);
+        assert_eq!(read.lenghts, vec![12, 34, 0]);
+        assert_eq!(read.crc, read.crc());
+
+        let mut cursor = Cursor::new(bytes);
+        match Slot::try_read(&mut cursor).expect("slot try_read") {
+            ReadStatus::Success(read) => {
+                assert_eq!(read.capacity, 3);
+                assert_eq!(read.lenghts, vec![12, 34, 0]);
+            }
+            ReadStatus::NotEnoughData(_) => panic!("expected Success"),
+        }
+    }
+
+    #[test]
+    fn slot_read_and_try_read_detect_crc_error() {
+        let mut bytes = encoded_slot();
+        let last = bytes.len() - 1;
+        bytes[last] ^= 0xFF;
+
+        let mut cursor = Cursor::new(bytes.clone());
+        assert!(matches!(Slot::read(&mut cursor), Err(Error::CrcDismatch)));
+
+        let mut cursor = Cursor::new(bytes);
+        assert!(matches!(Slot::try_read(&mut cursor), Err(Error::CrcDismatch)));
+    }
+
+    #[test]
+    fn slot_try_read_not_enough_keeps_position() {
+        let bytes = encoded_slot();
+        let short = bytes[..8].to_vec();
+        let mut cursor = Cursor::new(short);
+
+        match Slot::try_read(&mut cursor).expect("not enough data should not fail") {
+            ReadStatus::NotEnoughData(_) => {}
+            ReadStatus::Success(_) => panic!("expected NotEnoughData"),
+        }
+        assert_eq!(cursor.stream_position().expect("pos"), 0);
+    }
+}

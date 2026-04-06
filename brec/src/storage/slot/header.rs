@@ -75,3 +75,55 @@ impl TryReadFrom for SlotHeader {
         Ok(ReadStatus::Success(SlotHeader { capacity }))
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::{Error, ReadFrom, ReadStatus, SlotHeader, StaticSize, TryReadFrom, WriteTo};
+    use std::io::{Cursor, Seek, SeekFrom};
+
+    fn encoded_header(capacity: u64) -> Vec<u8> {
+        let slot = crate::Slot::new(vec![0; capacity as usize], capacity, [0; 4]);
+        let mut out = Vec::new();
+        slot.write_all(&mut out).expect("slot serialization");
+        out[..SlotHeader::ssize() as usize].to_vec()
+    }
+
+    #[test]
+    fn slot_header_read_and_try_read_success() {
+        let bytes = encoded_header(7);
+
+        let mut cursor = Cursor::new(bytes.clone());
+        let header = SlotHeader::read(&mut cursor).expect("read slot header");
+        assert_eq!(header.capacity, 7);
+
+        let mut cursor = Cursor::new(bytes);
+        match SlotHeader::try_read(&mut cursor).expect("try_read slot header") {
+            ReadStatus::Success(h) => assert_eq!(h.capacity, 7),
+            ReadStatus::NotEnoughData(_) => panic!("expected Success"),
+        }
+    }
+
+    #[test]
+    fn slot_header_try_read_not_enough_and_bad_signature() {
+        let short = vec![1_u8, 2, 3];
+        let mut cursor = Cursor::new(short);
+        match SlotHeader::try_read(&mut cursor).expect("short input should not fail") {
+            ReadStatus::NotEnoughData(need) => assert_eq!(need, SlotHeader::ssize()),
+            ReadStatus::Success(_) => panic!("expected NotEnoughData"),
+        }
+        assert_eq!(cursor.stream_position().expect("pos"), 0);
+
+        let mut bad = encoded_header(3);
+        bad[0] ^= 0xFF;
+        let mut cursor = Cursor::new(bad);
+        assert!(matches!(
+            SlotHeader::try_read(&mut cursor),
+            Err(Error::SignatureDismatch(_))
+        ));
+        assert_eq!(
+            cursor.seek(SeekFrom::Current(0)).expect("pos"),
+            0,
+            "position should be restored on signature mismatch"
+        );
+    }
+}

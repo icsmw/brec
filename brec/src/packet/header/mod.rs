@@ -176,3 +176,50 @@ impl CrcU32 for PacketHeader {
         hasher.finalize().to_le_bytes()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::{PACKET_SIG, PacketHeader};
+    use crate::{CrcU32, StaticSize, default_payload_context, tests::*};
+
+    #[test]
+    fn packet_header_size_matches_static_size() {
+        assert_eq!(PacketHeader::SIZE, PacketHeader::ssize());
+    }
+
+    #[test]
+    fn packet_header_new_without_payload_builds_expected_values() {
+        let mut ctx = default_payload_context();
+        let header = PacketHeader::new(
+            &[] as &[TestBlock],
+            None::<&TestPayload>,
+            &mut ctx,
+        )
+        .expect("header without payload must be created");
+
+        assert_eq!(header.size, 0);
+        assert_eq!(header.blocks_len, 0);
+        assert!(!header.payload);
+        assert_eq!(header.crc.to_le_bytes(), header.crc());
+    }
+
+    #[test]
+    fn packet_header_get_pos_and_missing_bytes_work() {
+        let mut buf = vec![11_u8, 22, 33, 44];
+        let sig_pos = buf.len();
+        buf.extend_from_slice(&PACKET_SIG);
+        buf.extend_from_slice(&[0_u8; 5]);
+
+        assert_eq!(PacketHeader::get_pos(&buf), Some(sig_pos));
+        assert_eq!(PacketHeader::get_pos(&[1_u8, 2, 3]), None);
+        assert!(PacketHeader::is_not_enought(&buf).is_some());
+        assert_eq!(
+            PacketHeader::is_not_enought(&vec![0_u8; PacketHeader::SIZE as usize]),
+            None
+        );
+        assert_eq!(
+            PacketHeader::is_not_enought(&[0_u8; 3]),
+            Some(PacketHeader::SIZE as usize - 3)
+        );
+    }
+}

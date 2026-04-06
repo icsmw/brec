@@ -449,3 +449,118 @@ impl<
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::{RuleDef, RuleFnDef, tests::*};
+    use std::io::Cursor;
+
+    type ReaderUnderTest<'a> =
+        PacketBufReaderDef<'a, Cursor<Vec<u8>>, TestBlock, TestBlock, TestPayload, TestPayload>;
+
+    fn empty_packet_bytes() -> Vec<u8> {
+        let header = PacketHeader::from_lengths(0, 0, false);
+        let mut out = Vec::new();
+        header.write_all(&mut out).expect("packet header write");
+        out
+    }
+
+    #[test]
+    fn read_header_handles_not_found_not_enough_and_found() {
+        assert!(matches!(
+            ReaderUnderTest::read_header(&[1, 2, 3, 4]).expect("read_header"),
+            PacketHeaderState::NotFound
+        ));
+
+        let mut partial = empty_packet_bytes();
+        partial.truncate((PacketHeader::ssize() as usize).saturating_sub(1));
+        assert!(matches!(
+            ReaderUnderTest::read_header(&partial).expect("read_header"),
+            PacketHeaderState::NotEnoughData(_, _)
+        ));
+
+        let mut with_prefix = vec![9, 9, 9];
+        with_prefix.extend_from_slice(&empty_packet_bytes());
+        match ReaderUnderTest::read_header(&with_prefix).expect("read_header found") {
+            PacketHeaderState::Found(_, range) => assert_eq!(*range.start(), 3),
+            PacketHeaderState::NotFound | PacketHeaderState::NotEnoughData(_, _) => {
+                panic!("expected found header")
+            }
+        }
+    }
+
+    #[test]
+    fn read_emits_found_for_empty_packet_then_no_data() {
+        let mut input = Cursor::new(empty_packet_bytes());
+        let mut reader = ReaderUnderTest::new(&mut input);
+
+        match reader.read(&mut ()).expect("first read") {
+            NextPacket::Found(packet) => {
+                assert!(packet.blocks.is_empty());
+                assert!(packet.payload.is_none());
+            }
+            NextPacket::NotEnoughData(_)
+            | NextPacket::NoData
+            | NextPacket::NotFound
+            | NextPacket::Skipped => panic!("expected Found"),
+        }
+
+        assert!(matches!(
+            reader.read(&mut ()).expect("second read"),
+            NextPacket::NoData
+        ));
+    }
+
+    #[test]
+    fn read_short_header_then_end_returns_not_enough_then_no_data() {
+        let short_len = PacketHeader::ssize() as usize - 2;
+        let mut input = Cursor::new(vec![0xAB; short_len]);
+        let mut reader = ReaderUnderTest::new(&mut input);
+
+        match reader.read(&mut ()).expect("first read") {
+            NextPacket::NotEnoughData(needed) => assert_eq!(needed, 2),
+            NextPacket::NoData | NextPacket::NotFound | NextPacket::Skipped | NextPacket::Found(_) => {
+                panic!("expected NotEnoughData")
+            }
+        }
+
+        assert!(matches!(
+            reader.read(&mut ()).expect("second read"),
+            NextPacket::NoData
+        ));
+    }
+
+    #[test]
+    fn read_can_skip_packet_with_prefilter_rule() {
+        let mut input = Cursor::new(empty_packet_bytes());
+        let mut reader = ReaderUnderTest::new(&mut input);
+        reader
+            .add_rule(RuleDef::Prefilter(RuleFnDef::Static(|_| false)))
+            .expect("prefilter rule");
+
+        assert!(matches!(
+            reader.read(&mut ()).expect("read with prefilter"),
+            NextPacket::Skipped
+        ));
+    }
+
+    #[test]
+    fn add_rule_duplicate_then_remove_allows_readd() {
+        let mut input = Cursor::new(Vec::<u8>::new());
+        let mut reader = ReaderUnderTest::new(&mut input);
+
+        reader
+            .add_rule(RuleDef::Prefilter(RuleFnDef::Static(|_| true)))
+            .expect("first prefilter add");
+        assert!(matches!(
+            reader.add_rule(RuleDef::Prefilter(RuleFnDef::Static(|_| true))),
+            Err(Error::RuleDuplicate)
+        ));
+
+        reader.remove_rule(RuleDefId::Prefilter);
+        reader
+            .add_rule(RuleDef::Prefilter(RuleFnDef::Static(|_| true)))
+            .expect("prefilter re-add after remove");
+    }
+}

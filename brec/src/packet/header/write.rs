@@ -53,3 +53,35 @@ impl WriteTo for PacketHeader {
         buf.write_all(&buffer)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::{CrcU32, PACKET_SIG, PacketHeader, WriteTo};
+
+    fn sample_header() -> PacketHeader {
+        let mut header = PacketHeader {
+            size: 500,
+            blocks_len: 123,
+            payload: false,
+            crc: 0,
+        };
+        header.crc = u32::from_le_bytes(header.crc());
+        header
+    }
+
+    #[test]
+    fn write_and_write_all_emit_header_with_signature_and_expected_size() {
+        let header = sample_header();
+
+        let mut out = Vec::new();
+        let written = header.write(&mut out).expect("write must work");
+        assert_eq!(written, PacketHeader::SIZE as usize);
+        assert_eq!(out.len(), PacketHeader::SIZE as usize);
+        assert_eq!(&out[..PACKET_SIG.len()], &PACKET_SIG);
+
+        let mut out_all = Vec::new();
+        header.write_all(&mut out_all).expect("write_all must work");
+        assert_eq!(out_all.len(), PacketHeader::SIZE as usize);
+        assert_eq!(out, out_all, "write and write_all must emit identical bytes");
+    }
+}

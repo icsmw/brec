@@ -111,3 +111,63 @@ impl PayloadHeader {
         buffer
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::{ByteBlock, PayloadCrc, PayloadEncode, PayloadEncodeReferred, PayloadHeader, PayloadHooks, PayloadSchema, PayloadSignature, PayloadSize};
+
+    struct DemoPayload(Vec<u8>);
+
+    impl PayloadSchema for DemoPayload {
+        type Context<'a> = ();
+    }
+
+    impl PayloadHooks for DemoPayload {}
+
+    impl PayloadEncode for DemoPayload {
+        fn encode(&self, _: &mut Self::Context<'_>) -> std::io::Result<Vec<u8>> {
+            Ok(self.0.clone())
+        }
+    }
+
+    impl PayloadEncodeReferred for DemoPayload {
+        fn encode(&self, _: &mut Self::Context<'_>) -> std::io::Result<Option<&[u8]>> {
+            Ok(Some(self.0.as_slice()))
+        }
+    }
+
+    impl PayloadSignature for DemoPayload {
+        fn sig(&self) -> ByteBlock {
+            ByteBlock::Len4(*b"DEMO")
+        }
+    }
+
+    impl PayloadCrc for DemoPayload {}
+    impl PayloadSize for DemoPayload {}
+
+    #[test]
+    fn payload_header_new_size_ssize_and_as_vec() {
+        let payload = DemoPayload(vec![1, 2, 3, 4, 5]);
+        let mut ctx = ();
+        let header = PayloadHeader::new(&payload, &mut ctx).expect("header must be built");
+
+        assert_eq!(header.payload_len(), 5);
+        assert_eq!(header.sig.size(), 4);
+        assert_eq!(header.crc.size(), 4);
+        assert_eq!(
+            header.size(),
+            1 + header.sig.size() + 1 + header.crc.size() + std::mem::size_of::<u32>()
+        );
+        assert_eq!(
+            PayloadHeader::ssize(&payload).expect("ssize"),
+            1 + payload.sig().size() + 1 + DemoPayload::crc_size() + std::mem::size_of::<u32>()
+        );
+
+        let vec = header.as_vec();
+        assert_eq!(vec.len(), header.size());
+        assert_eq!(vec[0], 4); // sig len
+        assert_eq!(&vec[1..5], b"DEMO");
+        assert_eq!(vec[5], 4); // crc len
+        assert_eq!(&vec[vec.len() - 4..], &5_u32.to_le_bytes());
+    }
+}

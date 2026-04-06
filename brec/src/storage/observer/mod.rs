@@ -185,3 +185,128 @@ where
         let _ = handler.await;
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::{
+        DefaultPayloadContext, Error, FileObserverDef, FileObserverOptions, PacketDef,
+        SubscriptionDef, SubscriptionErrorAction, SubscriptionUpdate,
+        tests::{TestBlock, TestPayload},
+    };
+    use std::sync::{
+        Arc,
+        atomic::{AtomicUsize, Ordering},
+    };
+    use tempfile::NamedTempFile;
+
+    struct CountingSubscription {
+        updates: Arc<AtomicUsize>,
+        stopped: Arc<AtomicUsize>,
+        aborted: Arc<AtomicUsize>,
+    }
+
+    impl SubscriptionDef<TestBlock, TestBlock, TestPayload, TestPayload, DefaultPayloadContext>
+        for CountingSubscription
+    {
+        fn on_update(&mut self, _total: usize, _added: usize) -> SubscriptionUpdate {
+            self.updates.fetch_add(1, Ordering::SeqCst);
+            SubscriptionUpdate::Skip
+        }
+
+        fn on_packet(&mut self, _packet: PacketDef<TestBlock, TestPayload, TestPayload>) {}
+
+        fn on_error(&mut self, _err: &Error) -> SubscriptionErrorAction {
+            SubscriptionErrorAction::Continue
+        }
+
+        fn on_stopped(&mut self, _reason: Option<Error>) {
+            self.stopped.fetch_add(1, Ordering::SeqCst);
+        }
+
+        fn on_aborted(&mut self) {
+            self.aborted.fetch_add(1, Ordering::SeqCst);
+        }
+    }
+
+    #[test]
+    fn observer_with_opt_returns_no_subscription_error() {
+        let file = NamedTempFile::new().expect("temp file");
+        let options = FileObserverOptions::<
+            TestBlock,
+            TestBlock,
+            TestPayload,
+            TestPayload,
+            CountingSubscription,
+            DefaultPayloadContext,
+        >::new(file.path());
+
+        let result = FileObserverDef::with_opt(options, DefaultPayloadContext::default());
+        assert!(matches!(result, Err(Error::NoSubscription)));
+    }
+
+    #[test]
+    fn observer_with_opt_returns_io_error_for_missing_file() {
+        let updates = Arc::new(AtomicUsize::new(0));
+        let stopped = Arc::new(AtomicUsize::new(0));
+        let aborted = Arc::new(AtomicUsize::new(0));
+
+        let subscription = CountingSubscription {
+            updates,
+            stopped,
+            aborted,
+        };
+
+        let missing = "/tmp/brec-observer-missing-file-for-tests.bin";
+        let options = FileObserverOptions::<
+            TestBlock,
+            TestBlock,
+            TestPayload,
+            TestPayload,
+            CountingSubscription,
+            DefaultPayloadContext,
+        >::new(missing)
+        .subscribe(subscription);
+
+        let result = FileObserverDef::with_opt(options, DefaultPayloadContext::default());
+        assert!(matches!(result, Err(Error::Io(_))));
+    }
+
+    #[tokio::test]
+    async fn observer_new_shutdown_is_idempotent_and_emits_lifecycle_callbacks() {
+        let file = NamedTempFile::new().expect("temp file");
+        let updates = Arc::new(AtomicUsize::new(0));
+        let stopped = Arc::new(AtomicUsize::new(0));
+        let aborted = Arc::new(AtomicUsize::new(0));
+
+        let subscription = CountingSubscription {
+            updates: updates.clone(),
+            stopped: stopped.clone(),
+            aborted: aborted.clone(),
+        };
+
+        let options = FileObserverOptions::<
+            TestBlock,
+            TestBlock,
+            TestPayload,
+            TestPayload,
+            CountingSubscription,
+            DefaultPayloadContext,
+        >::new(file.path())
+        .subscribe(subscription);
+
+        let mut observer =
+            FileObserverDef::new(options).expect("observer must be created for existing file");
+
+        observer.shutdown().await;
+        observer.shutdown().await;
+
+        assert!(
+            updates.load(Ordering::SeqCst) >= 1,
+            "at least one on_update call is expected"
+        );
+        assert!(
+            stopped.load(Ordering::SeqCst) + aborted.load(Ordering::SeqCst) >= 1,
+            "observer should report terminal lifecycle callback"
+        );
+    }
+}
