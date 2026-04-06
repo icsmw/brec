@@ -1,8 +1,6 @@
 #![deny(unused_crate_dependencies)]
 #![doc = include_str!("../README.md")]
 
-#[cfg(feature = "build")]
-pub mod build;
 #[cfg(feature = "crypt")]
 pub mod crypt;
 #[cfg(feature = "napi")]
@@ -10,8 +8,6 @@ pub mod crypt;
 pub mod napi_feature;
 #[cfg(feature = "bincode")]
 pub use bincode;
-#[cfg(feature = "build")]
-pub use build::*;
 #[cfg(test)]
 pub mod tests;
 #[cfg(test)]

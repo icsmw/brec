@@ -14,6 +14,7 @@ use std::{
 use crate::*;
 
 use lazy_static::lazy_static;
+use proc_macro2::TokenStream;
 use quote::quote;
 
 lazy_static! {
@@ -52,7 +53,7 @@ impl Collector {
     pub fn is_payloads_empty(&mut self) -> bool {
         self.payloads.entry(get_pkg_name()).or_default().is_empty()
     }
-    pub fn write(&mut self, cfg: &Config) -> Result<(), E> {
+    pub fn render(&mut self, cfg: &Config) -> Result<TokenStream, E> {
         let pkg_name = get_pkg_name();
         let block = if self.is_blocks_empty() {
             quote! {}
@@ -90,6 +91,11 @@ impl Collector {
             #payload
             #packet
         };
+        Ok(output)
+    }
+    #[allow(dead_code)]
+    pub fn write(&mut self, cfg: &Config) -> Result<(), E> {
+        let output = self.render(cfg)?;
         let out_dir = env::var("OUT_DIR")?;
         let path = PathBuf::from(out_dir).join("brec.rs");
         let mut file = File::create(&path)?;

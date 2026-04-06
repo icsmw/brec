@@ -71,14 +71,6 @@ checksum = "2af50177e190e07a26ab74f8b1efbfe2ef87da2116221318cb1c2e82baf7de06"
 
 [[package]]
 name = "bincode"
-version = "0.1.0"
-dependencies = [
- "brec",
- "serde",
-]
-
-[[package]]
-name = "bincode"
 version = "2.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "36eaf5d7b090263e8150820482d5d93cd964a81e4019913c972f4edcc6edb740"
@@ -98,6 +90,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "bincode_feat"
+version = "0.1.0"
+dependencies = [
+ "brec",
+ "serde",
+]
+
+[[package]]
 name = "block-buffer"
 version = "0.10.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -110,7 +110,7 @@ dependencies = [
 name = "brec"
 version = "0.3.0"
 dependencies = [
- "bincode 2.0.1",
+ "bincode",
  "brec_common",
  "brec_macros",
  "chacha20poly1305",
@@ -232,7 +232,7 @@ dependencies = [
 name = "ctx"
 version = "0.1.0"
 dependencies = [
- "bincode 2.0.1",
+ "bincode",
  "brec",
  "serde",
 ]

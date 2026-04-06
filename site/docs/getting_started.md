@@ -70,14 +70,6 @@ use payloads::*; // Make your payloads visible
 brec::generate!();
 ```
 
-### Final Step
-
-Add a simple `build.rs` script.
-
-```rust
-    brec::build_setup();
-```
-
 ### Done
 
 Your protocol is ready to be used and you can create your first packet

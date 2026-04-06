@@ -15,6 +15,3 @@ proptest.workspace = true
 tokio              = { workspace = true, features = ["full"] }
 tokio-util         = { workspace = true }
 tokio-stream       = "0.1"
-
-[build-dependencies]
-brec = { workspace = true, features = ["build"] }
