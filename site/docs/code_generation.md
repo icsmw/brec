@@ -61,14 +61,6 @@ When `brec` is built with the `observer` feature, the macro also generates:
 
 `Subscription` uses `on_*` callbacks: `on_update`, `on_packet`, `on_error`, `on_stopped`, `on_aborted`.
 
-### Required Build Script
-
-To enable this macro, you **must** include a `build.rs` file with the following content:
-```rust
-    brec::build_setup();
-```
-This step ensures the code generator runs during build and provides all required metadata.
-
 ### Usage Constraints
 
 - The macro **must only be called once** per crate. Calling it more than once will result in compilation errors due to duplicate types and impls.

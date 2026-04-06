@@ -19,7 +19,4 @@ sysinfo     = { version = "0.37", default-features = false, features = ["system"
 prost       = "0.14"
 flatbuffers = "25.9"
 
-[build-dependencies]
-brec = { path = "../../brec", features = ["build"] }
-
 [workspace]

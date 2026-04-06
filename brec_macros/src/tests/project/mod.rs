@@ -30,8 +30,6 @@ impl GeneratedProject {
         fs::create_dir(&src)?;
         let mut file = File::create(proj.join("Cargo.toml"))?;
         file.write_all(self.cargo_toml().as_bytes())?;
-        let mut file = File::create(proj.join("build.rs"))?;
-        file.write_all(self.build_rs().as_bytes())?;
         let mut file = File::create(src.join("main.rs"))?;
         file.write_all(self.main_rs().as_bytes())?;
         Ok(())
@@ -75,15 +73,7 @@ edition = "2024"
 
 [dependencies]
 brec = { path = "../../brec"}
-
-[build-dependencies]
-brec = { path = "../../brec", features=["build"]}"#
-            .to_string()
-    }
-    pub fn build_rs(&self) -> String {
-        r#"fn main() {
-    brec::build_setup();
-}"#
+"#
         .to_string()
     }
 }

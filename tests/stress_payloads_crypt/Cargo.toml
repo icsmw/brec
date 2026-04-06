@@ -14,6 +14,3 @@ serde = { workspace = true, features = ["derive"] }
 proptest.workspace   = true
 num-format.workspace = true
 rsa                  = { version = "0.9", features = ["pem", "sha2"] }
-
-[build-dependencies]
-brec = { workspace = true, features = ["build"] }

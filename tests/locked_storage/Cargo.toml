@@ -15,6 +15,3 @@ proptest.workspace    = true
 num-format.workspace  = true
 serde_json.workspace  = true
 serial_test.workspace = true
-
-[build-dependencies]
-brec = { workspace = true, features = ["build"] }

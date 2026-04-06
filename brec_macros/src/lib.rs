@@ -378,16 +378,6 @@ pub fn derive_napi(input: TokenStream) -> TokenStream {
 ///
 /// ---
 ///
-/// ### Required Build Script
-///
-/// To enable this macro, you **must** include a `build.rs` file with the following content:
-/// ```ignore
-///     brec::build_setup();
-/// ```
-/// This step ensures the code generator runs during build and provides all required metadata.
-///
-/// ---
-///
 /// ### Usage Constraints
 ///
 /// - The macro **must only be called once** per crate. Calling it more than once will result in compilation errors due to duplicate types and impls.

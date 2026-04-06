@@ -1,5 +1,5 @@
 [package]
-name        = "bincode"
+name        = "bincode_feat"
 version     = "0.1.0"
 edition     = "2024"
 authors     = ["d.astafyev@outlook.com"]
@@ -9,6 +9,3 @@ license     = "Apache-2.0"
 [dependencies]
 brec  = { path = "../../brec", features = ["bincode"] }
 serde = { version = "1.0", features = ["derive"] }
-
-[build-dependencies]
-brec = { path = "../../brec", features = ["build"] }

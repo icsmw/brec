@@ -20,7 +20,6 @@ categories = [
 ]
 
 [features]
-build = []
 bincode = ["dep:bincode"]
 napi = ["dep:napi", "brec_macros/napi"]
 locked_storage = ["fs4", "brec_macros/locked_storage"]

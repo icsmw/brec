@@ -10,7 +10,7 @@ license     = "Apache-2.0"
 crate-type = ["cdylib", "rlib"]
 
 [features]
-default = []
+default    = []
 test-utils = ["dep:proptest"]
 
 [dependencies]
@@ -21,6 +21,3 @@ proptest  = { version = "1.10", optional = true }
 
 [dev-dependencies]
 proptest = "1.10"
-
-[build-dependencies]
-brec = { workspace = true, features = ["build"] }

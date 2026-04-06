@@ -38,8 +38,6 @@ impl TCrate {
         fs::create_dir_all(&src_path)?;
         let mut file = File::create(crate_path.join("Cargo.toml"))?;
         file.write_all(include_str!("./cargo.toml.test").as_bytes())?;
-        let mut file = File::create(crate_path.join("build.rs"))?;
-        file.write_all(include_str!("./build.rs.test").as_bytes())?;
         let mut file = File::create(src_path.join("main.rs"))?;
         file.write_all(self.generate().to_string().as_bytes())?;
         Ok(())
