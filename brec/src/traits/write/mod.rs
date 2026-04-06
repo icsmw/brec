@@ -199,3 +199,190 @@ where
         self.slices(ctx)?.write_vectored_all(buf)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::{PayloadEncode, PayloadEncodeReferred, PayloadHooks, PayloadSchema};
+    use std::io::Cursor;
+
+    struct DemoVectored<'a> {
+        head: &'a [u8],
+        tail: Vec<u8>,
+    }
+
+    impl WriteVectoredTo for DemoVectored<'_> {
+        fn slices(&self) -> std::io::Result<IoSlices<'_>> {
+            let mut slices = IoSlices::default();
+            slices.add_slice(self.head);
+            slices.add_buffered(self.tail.clone());
+            Ok(slices)
+        }
+    }
+
+    struct DemoVectoredMut<'a> {
+        head: &'a [u8],
+        tail: Vec<u8>,
+    }
+
+    impl PayloadSchema for DemoVectoredMut<'_> {
+        type Context<'a> = ();
+    }
+
+    impl WriteVectoredMutTo for DemoVectoredMut<'_> {
+        fn slices(
+            &mut self,
+            _: &mut <Self as PayloadSchema>::Context<'_>,
+        ) -> std::io::Result<IoSlices<'_>> {
+            let mut slices = IoSlices::default();
+            slices.add_slice(self.head);
+            slices.add_buffered(self.tail.clone());
+            Ok(slices)
+        }
+    }
+
+    struct BorrowedPayload {
+        sig: [u8; 4],
+        bytes: Vec<u8>,
+    }
+
+    impl PayloadSchema for BorrowedPayload {
+        type Context<'a> = ();
+    }
+
+    impl PayloadHooks for BorrowedPayload {}
+
+    impl PayloadEncode for BorrowedPayload {
+        fn encode(&self, _: &mut Self::Context<'_>) -> std::io::Result<Vec<u8>> {
+            Ok(self.bytes.clone())
+        }
+    }
+
+    impl PayloadEncodeReferred for BorrowedPayload {
+        fn encode(&self, _: &mut Self::Context<'_>) -> std::io::Result<Option<&[u8]>> {
+            Ok(Some(self.bytes.as_slice()))
+        }
+    }
+
+    impl PayloadSignature for BorrowedPayload {
+        fn sig(&self) -> ByteBlock {
+            ByteBlock::Len4(self.sig)
+        }
+    }
+
+    impl PayloadCrc for BorrowedPayload {}
+    impl PayloadSize for BorrowedPayload {}
+    impl WritePayloadWithHeaderTo for BorrowedPayload {}
+    impl WriteVectoredPayloadWithHeaderTo for BorrowedPayload {}
+
+    struct OwnedPayload {
+        sig: [u8; 4],
+        bytes: Vec<u8>,
+    }
+
+    impl PayloadSchema for OwnedPayload {
+        type Context<'a> = ();
+    }
+
+    impl PayloadHooks for OwnedPayload {}
+
+    impl PayloadEncode for OwnedPayload {
+        fn encode(&self, _: &mut Self::Context<'_>) -> std::io::Result<Vec<u8>> {
+            Ok(self.bytes.clone())
+        }
+    }
+
+    impl PayloadEncodeReferred for OwnedPayload {
+        fn encode(&self, _: &mut Self::Context<'_>) -> std::io::Result<Option<&[u8]>> {
+            Ok(None)
+        }
+    }
+
+    impl PayloadSignature for OwnedPayload {
+        fn sig(&self) -> ByteBlock {
+            ByteBlock::Len4(self.sig)
+        }
+    }
+
+    impl PayloadCrc for OwnedPayload {}
+    impl PayloadSize for OwnedPayload {}
+    impl WritePayloadWithHeaderTo for OwnedPayload {}
+    impl WriteVectoredPayloadWithHeaderTo for OwnedPayload {}
+
+    #[test]
+    fn prepare_payload_and_payload_write_methods_work() {
+        let mut payload = BorrowedPayload {
+            sig: *b"TEST",
+            bytes: vec![1, 2, 3, 4],
+        };
+        let mut ctx = ();
+
+        let (header, body) = prepare_payload(&payload, &mut ctx).expect("prepare_payload");
+        assert_eq!(header.len, 4);
+        assert_eq!(header.sig.as_slice(), b"TEST");
+        assert_eq!(body.as_slice(), &[1, 2, 3, 4]);
+
+        let mut out = Cursor::new(Vec::new());
+        let n = WritePayloadWithHeaderTo::write(&mut payload, &mut out, &mut ctx).expect("write");
+        let bytes = out.into_inner();
+        assert_eq!(n, bytes.len());
+        assert_eq!(&bytes[..header.size()], header.as_vec().as_slice());
+        assert_eq!(&bytes[header.size()..], &[1, 2, 3, 4]);
+
+        let mut out = Cursor::new(Vec::new());
+        WritePayloadWithHeaderTo::write_all(&mut payload, &mut out, &mut ctx).expect("write_all");
+        assert_eq!(out.into_inner(), bytes);
+    }
+
+    #[test]
+    fn vectored_payload_and_vectored_traits_write_all_data() {
+        let mut borrowed = BorrowedPayload {
+            sig: *b"BROW",
+            bytes: vec![10, 11, 12],
+        };
+        let mut owned = OwnedPayload {
+            sig: *b"OWND",
+            bytes: vec![21, 22],
+        };
+        let mut ctx = ();
+
+        let borrowed_slices = borrowed.slices(&mut ctx).expect("borrowed slices");
+        assert_eq!(borrowed_slices.slots.len(), 2);
+        assert!(matches!(borrowed_slices.slots[1], SliceSlot::Slice(_)));
+
+        let owned_slices = owned.slices(&mut ctx).expect("owned slices");
+        assert_eq!(owned_slices.slots.len(), 2);
+        assert!(matches!(owned_slices.slots[1], SliceSlot::Buf(_)));
+
+        let mut out = Cursor::new(Vec::new());
+        let written = borrowed
+            .write_vectored(&mut out, &mut ctx)
+            .expect("borrowed write_vectored");
+        assert_eq!(written, out.get_ref().len());
+
+        let mut out_all = Cursor::new(Vec::new());
+        owned
+            .write_vectored_all(&mut out_all, &mut ctx)
+            .expect("owned write_vectored_all");
+        assert!(!out_all.into_inner().is_empty());
+
+        let mut out_plain = Cursor::new(Vec::new());
+        let item = DemoVectored {
+            head: &[1, 2],
+            tail: vec![3, 4],
+        };
+        let n = item.write_vectored(&mut out_plain).expect("write_vectored");
+        assert_eq!(n, 4);
+        assert_eq!(out_plain.into_inner(), vec![1, 2, 3, 4]);
+
+        let mut out_mut = Cursor::new(Vec::new());
+        let mut item_mut = DemoVectoredMut {
+            head: &[5, 6],
+            tail: vec![7, 8],
+        };
+        item_mut
+            .write_vectored_all(&mut out_mut, &mut ())
+            .expect("write_vectored_all");
+        assert_eq!(out_mut.into_inner(), vec![5, 6, 7, 8]);
+    }
+}

@@ -147,3 +147,86 @@ impl TryReadFromBuffered for PayloadHeader {
         Ok(ReadStatus::Success(header))
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::{ByteBlock, Error, PayloadHeader, ReadFrom, ReadStatus, TryReadFrom, TryReadFromBuffered};
+    use std::io::{BufReader, Cursor, Seek};
+
+    fn sample_header_bytes() -> Vec<u8> {
+        PayloadHeader {
+            sig: ByteBlock::Len4(*b"ABCD"),
+            crc: ByteBlock::Len4([9, 8, 7, 6]),
+            len: 1234,
+        }
+        .as_vec()
+    }
+
+    #[test]
+    fn read_and_try_read_success() {
+        let bytes = sample_header_bytes();
+
+        let mut cursor = Cursor::new(bytes.clone());
+        let header = PayloadHeader::read(&mut cursor).expect("read header");
+        assert_eq!(header.payload_len(), 1234);
+        assert_eq!(header.sig.as_slice(), b"ABCD");
+        assert_eq!(header.crc.as_slice(), &[9, 8, 7, 6]);
+
+        let mut cursor = Cursor::new(bytes);
+        match <PayloadHeader as TryReadFrom>::try_read(&mut cursor).expect("try_read") {
+            ReadStatus::Success(header) => {
+                assert_eq!(header.payload_len(), 1234);
+                assert_eq!(header.sig.as_slice(), b"ABCD");
+            }
+            ReadStatus::NotEnoughData(_) => panic!("expected Success"),
+        }
+    }
+
+    #[test]
+    fn read_and_try_read_detect_invalid_capacity() {
+        let bad_sig_len = vec![3, 1, 2, 3, 4, 0, 0, 0, 0];
+        let mut cursor = Cursor::new(bad_sig_len.clone());
+        assert!(matches!(
+            PayloadHeader::read(&mut cursor),
+            Err(Error::InvalidCapacity(_, _))
+        ));
+
+        let mut cursor = Cursor::new(bad_sig_len);
+        assert!(matches!(
+            <PayloadHeader as TryReadFrom>::try_read(&mut cursor),
+            Err(Error::InvalidCapacity(_, _))
+        ));
+    }
+
+    #[test]
+    fn try_read_and_buffered_try_read_not_enough_keep_stream_position() {
+        let bytes = sample_header_bytes();
+        let short = bytes[..2].to_vec();
+
+        let mut cursor = Cursor::new(short.clone());
+        match <PayloadHeader as TryReadFrom>::try_read(&mut cursor).expect("try_read short") {
+            ReadStatus::NotEnoughData(need) => assert!(need > 0),
+            ReadStatus::Success(_) => panic!("expected NotEnoughData"),
+        }
+        assert_eq!(cursor.stream_position().expect("pos"), 0);
+
+        let mut reader = BufReader::new(Cursor::new(short));
+        match <PayloadHeader as TryReadFromBuffered>::try_read(&mut reader)
+            .expect("buffered try_read short")
+        {
+            ReadStatus::NotEnoughData(need) => assert!(need > 0),
+            ReadStatus::Success(_) => panic!("expected NotEnoughData"),
+        }
+
+        let mut reader = BufReader::new(Cursor::new(bytes));
+        match <PayloadHeader as TryReadFromBuffered>::try_read(&mut reader)
+            .expect("buffered try_read full")
+        {
+            ReadStatus::Success(header) => {
+                assert_eq!(header.payload_len(), 1234);
+                assert_eq!(header.sig.as_slice(), b"ABCD");
+            }
+            ReadStatus::NotEnoughData(_) => panic!("expected Success"),
+        }
+    }
+}

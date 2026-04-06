@@ -63,3 +63,32 @@ impl CrcU32 for AnchoredSlot {
         self.inner.crc()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::{AnchoredSlot, CrcU32, Size, Slot};
+
+    #[test]
+    fn anchored_slot_delegates_to_inner_slot() {
+        let mut inner = Slot::new(vec![0, 0], 2, [0; 4]);
+        inner.overwrite_crc();
+        let mut anchored = AnchoredSlot::new(inner, 42);
+
+        assert_eq!(anchored.offset, 42);
+        assert_eq!(anchored.size(), anchored.inner.size());
+        assert_eq!(anchored.crc(), anchored.inner.crc());
+        assert_eq!(anchored.get_free_slot_index(), Some(0));
+        assert_eq!(anchored.get_free_slot_offset(), Some(anchored.inner.size()));
+
+        anchored.insert(11).expect("insert first");
+        assert_eq!(anchored.get_free_slot_index(), Some(1));
+        assert_eq!(anchored.get_slot_offset(1), Some(anchored.inner.size() + 11));
+        assert_eq!(anchored.width(), 11);
+        assert!(matches!(anchored.is_empty(0), Ok(false)));
+
+        let ranges: Vec<_> = anchored.iter().collect();
+        assert_eq!(ranges.len(), 1);
+        assert_eq!(*ranges[0].start(), anchored.inner.size());
+        assert_eq!(*ranges[0].end(), anchored.inner.size() + 11);
+    }
+}

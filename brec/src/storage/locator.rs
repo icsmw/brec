@@ -62,6 +62,7 @@ impl FreeSlotLocator {
 
     pub fn setup<'a, I: Iterator<Item = &'a Slot>>(&mut self, slots: I) {
         self.next = 0;
+        self.slot_offset = 0;
         for slot in slots {
             if slot.get_free_slot_offset().is_some() {
                 break;
@@ -69,5 +70,78 @@ impl FreeSlotLocator {
             self.slot_offset += slot.size() + slot.width();
             self.next += 1;
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::FreeSlotLocator;
+    use crate::{Error, Size, Slot};
+
+    #[test]
+    fn locator_next_current_and_insert_on_first_slot() {
+        let mut slots = vec![Slot::new(vec![0, 0], 2, [0; 4])];
+        slots[0].overwrite_crc();
+        let mut locator = FreeSlotLocator::default();
+
+        let next = locator.next(&slots).expect("free offset expected");
+        assert_eq!(next, slots[0].size());
+        assert_eq!(locator.current(), (0, 0));
+
+        locator.insert(&mut slots, 15).expect("insert into first slot");
+        assert_eq!(slots[0].lenghts[0], 15);
+    }
+
+    #[test]
+    fn locator_next_skips_full_slots() {
+        let mut first = Slot::new(vec![5, 7], 2, [0; 4]);
+        first.overwrite_crc();
+
+        let mut second = Slot::new(vec![0, 0], 2, [0; 4]);
+        second.overwrite_crc();
+
+        let slots = vec![first, second];
+        let mut locator = FreeSlotLocator::default();
+
+        let next = locator.next(&slots).expect("must find free offset in second slot");
+        let expected_slot_offset = slots[0].size() + slots[0].width();
+        let expected_next = expected_slot_offset + slots[1].size();
+
+        assert_eq!(next, expected_next);
+        assert_eq!(locator.current(), (1, expected_slot_offset));
+    }
+
+    #[test]
+    fn locator_next_and_insert_fail_when_out_of_bounds_or_full() {
+        let mut full = Slot::new(vec![1], 1, [0; 4]);
+        full.overwrite_crc();
+        let slots = vec![full];
+
+        let mut locator = FreeSlotLocator::default();
+        assert_eq!(locator.next(&slots), None);
+        assert!(matches!(
+            locator.insert(&mut [] as &mut [Slot], 1),
+            Err(Error::CannotInsertIntoSlot)
+        ));
+    }
+
+    #[test]
+    fn locator_setup_positions_on_first_non_full_slot() {
+        let mut s0 = Slot::new(vec![10], 1, [0; 4]);
+        s0.overwrite_crc();
+        let mut s1 = Slot::new(vec![20], 1, [0; 4]);
+        s1.overwrite_crc();
+        let mut s2 = Slot::new(vec![0, 0], 2, [0; 4]);
+        s2.overwrite_crc();
+        let slots = vec![s0, s1, s2];
+
+        let mut locator = FreeSlotLocator::default();
+        locator.setup(slots.iter());
+
+        let expected_offset = slots[0].size() + slots[0].width() + slots[1].size() + slots[1].width();
+        assert_eq!(locator.current(), (2, expected_offset));
+
+        let next = locator.next(&slots).expect("next free offset in third slot");
+        assert_eq!(next, expected_offset + slots[2].size());
     }
 }

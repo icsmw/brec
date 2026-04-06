@@ -111,3 +111,43 @@ impl<'a, T: std::io::Read + std::io::Seek> SafeHeaderReader<'a, T> {
         Ok(NextChunk::Bytes(dest))
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::{NextChunk, SafeHeaderReader};
+    use std::io::{Cursor, Seek};
+
+    #[test]
+    fn safe_header_reader_reads_chunks_in_order() {
+        let bytes = vec![7_u8, 1, 2, 3, 4, 10, 11, 12, 13];
+        let mut cursor = Cursor::new(bytes);
+        let mut reader = SafeHeaderReader::new(&mut cursor).expect("new");
+
+        match reader.next_u8().expect("u8") {
+            NextChunk::U8(v) => assert_eq!(v, 7),
+            _ => panic!("expected U8"),
+        }
+        match reader.next_bytes(4).expect("bytes") {
+            NextChunk::Bytes(v) => assert_eq!(v, vec![1, 2, 3, 4]),
+            _ => panic!("expected Bytes"),
+        }
+        match reader.next_u32().expect("u32") {
+            NextChunk::U32(v) => assert_eq!(v, u32::from_le_bytes([10, 11, 12, 13])),
+            _ => panic!("expected U32"),
+        }
+    }
+
+    #[test]
+    fn safe_header_reader_not_enough_resets_stream_position() {
+        let bytes = vec![1_u8, 2, 3];
+        let mut cursor = Cursor::new(bytes);
+        let start = cursor.stream_position().expect("start pos");
+        let mut reader = SafeHeaderReader::new(&mut cursor).expect("new");
+
+        match reader.next_bytes(8).expect("next bytes") {
+            NextChunk::NotEnoughData(need) => assert_eq!(need, 5),
+            _ => panic!("expected NotEnoughData"),
+        }
+        assert_eq!(cursor.stream_position().expect("pos"), start);
+    }
+}

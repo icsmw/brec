@@ -145,3 +145,122 @@ impl TryReadFromBuffered for PacketHeader {
         Ok(header)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::{CrcU32, Error, PacketHeader, ReadBlockFromSlice, ReadFrom, ReadStatus, TryReadFrom, TryReadFromBuffered, WriteTo};
+    use std::io::{BufReader, Cursor, Seek, SeekFrom};
+
+    fn sample_header() -> PacketHeader {
+        let mut header = PacketHeader {
+            size: 123,
+            blocks_len: 77,
+            payload: true,
+            crc: 0,
+        };
+        header.crc = u32::from_le_bytes(header.crc());
+        header
+    }
+
+    fn encoded_header() -> Vec<u8> {
+        let header = sample_header();
+        let mut out = Vec::new();
+        header.write_all(&mut out).expect("header must serialize");
+        out
+    }
+
+    #[test]
+    fn read_and_read_from_slice_decode_valid_header() {
+        let bytes = encoded_header();
+
+        let mut cursor = Cursor::new(bytes.clone());
+        let read = PacketHeader::read(&mut cursor).expect("read from io must work");
+        assert_eq!(read.size, 123);
+        assert_eq!(read.blocks_len, 77);
+        assert!(read.payload);
+
+        let from_slice =
+            PacketHeader::read_from_slice(&bytes, false).expect("read from slice must work");
+        assert_eq!(from_slice.size, 123);
+        assert_eq!(from_slice.blocks_len, 77);
+        assert!(from_slice.payload);
+    }
+
+    #[test]
+    fn read_detects_signature_and_crc_errors() {
+        let mut bad_sig = encoded_header();
+        bad_sig[0] ^= 0xFF;
+        let mut cursor = Cursor::new(bad_sig);
+        assert!(matches!(
+            PacketHeader::read(&mut cursor),
+            Err(Error::SignatureDismatch(_))
+        ));
+
+        let mut bad_crc = encoded_header();
+        let last = bad_crc.len() - 1;
+        bad_crc[last] ^= 0xFF;
+        let mut cursor = Cursor::new(bad_crc);
+        assert!(matches!(PacketHeader::read(&mut cursor), Err(Error::CrcDismatch)));
+    }
+
+    #[test]
+    fn try_read_reports_not_enough_and_success_without_moving_on_not_enough() {
+        let full = encoded_header();
+        let short = full[..8].to_vec();
+        let mut cursor = Cursor::new(short);
+
+        match <PacketHeader as TryReadFrom>::try_read(&mut cursor)
+            .expect("try_read must not fail on short input")
+        {
+            ReadStatus::NotEnoughData(need) => assert!(need > 0),
+            ReadStatus::Success(_) => panic!("expected NotEnoughData"),
+        }
+        assert_eq!(
+            cursor.stream_position().expect("stream position"),
+            0,
+            "cursor position must remain unchanged on NotEnoughData"
+        );
+
+        let mut cursor = Cursor::new(full);
+        match <PacketHeader as TryReadFrom>::try_read(&mut cursor)
+            .expect("try_read must decode full header")
+        {
+            ReadStatus::Success(header) => {
+                assert_eq!(header.size, 123);
+                assert_eq!(header.blocks_len, 77);
+                assert!(header.payload);
+            }
+            ReadStatus::NotEnoughData(_) => panic!("expected Success"),
+        }
+        assert_eq!(
+            cursor.seek(SeekFrom::Current(0)).expect("seek current"),
+            PacketHeader::SIZE
+        );
+    }
+
+    #[test]
+    fn try_read_buffered_reports_not_enough_and_success() {
+        let full = encoded_header();
+        let short = full[..5].to_vec();
+
+        let mut reader = BufReader::new(Cursor::new(short));
+        match <PacketHeader as TryReadFromBuffered>::try_read(&mut reader)
+            .expect("buffered short read must not fail")
+        {
+            ReadStatus::NotEnoughData(need) => assert!(need > 0),
+            ReadStatus::Success(_) => panic!("expected NotEnoughData"),
+        }
+
+        let mut reader = BufReader::new(Cursor::new(full));
+        match <PacketHeader as TryReadFromBuffered>::try_read(&mut reader)
+            .expect("buffered full read must succeed")
+        {
+            ReadStatus::Success(header) => {
+                assert_eq!(header.size, 123);
+                assert_eq!(header.blocks_len, 77);
+                assert!(header.payload);
+            }
+            ReadStatus::NotEnoughData(_) => panic!("expected Success"),
+        }
+    }
+}

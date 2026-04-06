@@ -62,3 +62,66 @@ impl<
         write!(f, "FileObserverOptions: {}", self.path.display())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::FileObserverOptions;
+    use crate::{
+        DefaultPayloadContext,
+        storage::observer::{SubscriptionDef, SubscriptionUpdate},
+        tests::{TestBlock, TestPayload},
+    };
+
+    struct DummySubscription;
+
+    impl SubscriptionDef<TestBlock, TestBlock, TestPayload, TestPayload, DefaultPayloadContext>
+        for DummySubscription
+    {
+        fn on_update(&mut self, _total: usize, _added: usize) -> SubscriptionUpdate {
+            SubscriptionUpdate::Skip
+        }
+    }
+
+    #[test]
+    fn file_observer_options_new_sets_path_and_empty_subscription() {
+        let opts = FileObserverOptions::<
+            TestBlock,
+            TestBlock,
+            TestPayload,
+            TestPayload,
+            DummySubscription,
+            DefaultPayloadContext,
+        >::new("abc/storage.bin");
+        assert!(opts.path.ends_with("abc/storage.bin"));
+        assert!(opts.subscription.is_none());
+    }
+
+    #[test]
+    fn file_observer_options_subscribe_sets_subscription() {
+        let opts = FileObserverOptions::<
+            TestBlock,
+            TestBlock,
+            TestPayload,
+            TestPayload,
+            DummySubscription,
+            DefaultPayloadContext,
+        >::new("x.bin")
+        .subscribe(DummySubscription);
+        assert!(opts.subscription.is_some());
+    }
+
+    #[test]
+    fn file_observer_options_debug_contains_path() {
+        let opts = FileObserverOptions::<
+            TestBlock,
+            TestBlock,
+            TestPayload,
+            TestPayload,
+            DummySubscription,
+            DefaultPayloadContext,
+        >::new("dbg/path.bin");
+        let dbg = format!("{opts:?}");
+        assert!(dbg.contains("FileObserverOptions:"));
+        assert!(dbg.contains("dbg/path.bin"));
+    }
+}

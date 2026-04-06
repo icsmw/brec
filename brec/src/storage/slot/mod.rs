@@ -252,3 +252,78 @@ impl Iterator for SlotIterator<'_> {
         Some(range)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::Slot;
+    use crate::{CrcU32, Error, Size, StaticSize, STORAGE_SLOT_SIG};
+
+    #[test]
+    fn slot_default_shape_and_crc_are_valid() {
+        let slot = Slot::default();
+        assert_eq!(slot.lenghts.len(), crate::DEFAULT_SLOT_CAPACITY);
+        assert_eq!(slot.capacity as usize, crate::DEFAULT_SLOT_CAPACITY);
+        assert_eq!(slot.count(), 0);
+        assert!(!slot.is_full());
+        assert_eq!(slot.crc, slot.crc());
+        assert_eq!(
+            slot.size(),
+            crate::storage::slot::SlotHeader::ssize()
+                + slot.capacity * std::mem::size_of::<u64>() as u64
+                + std::mem::size_of::<u32>() as u64
+        );
+        let _ = STORAGE_SLOT_SIG; // ensure symbol is referenced in slot tests
+    }
+
+    #[test]
+    fn slot_insert_offsets_iter_expand_and_helpers() {
+        let mut slot = Slot::new(vec![0, 0, 0], 3, [0; 4]);
+        slot.overwrite_crc();
+
+        assert_eq!(slot.get_free_slot_index(), Some(0));
+        assert_eq!(slot.get_free_slot_offset(), Some(slot.size()));
+        assert_eq!(slot.get_slot_offset(0), Some(slot.size()));
+        assert_eq!(slot.offset_of(0), Some(0));
+        assert!(!slot.is_used(0));
+        assert_eq!(slot.width(), 0);
+
+        slot.insert(10).expect("insert first chunk");
+        slot.insert(20).expect("insert second chunk");
+
+        assert_eq!(slot.count(), 2);
+        assert!(slot.is_used(0));
+        assert!(slot.is_used(1));
+        assert!(!slot.is_used(2));
+        assert_eq!(slot.offset_of(1), Some(10));
+        assert_eq!(slot.get_slot_offset(1), Some(slot.size() + 10));
+        assert_eq!(slot.width(), 30);
+
+        let ranges: Vec<_> = slot.iter().collect();
+        assert_eq!(ranges.len(), 2);
+        assert_eq!(*ranges[0].start(), slot.size());
+        assert_eq!(*ranges[0].end(), slot.size() + 10);
+        assert_eq!(*ranges[1].start(), slot.size() + 10);
+        assert_eq!(*ranges[1].end(), slot.size() + 30);
+
+        let (free_off, free_idx, crc) = slot.expand();
+        assert_eq!(free_idx, Some(2));
+        assert_eq!(free_off, Some(slot.size() + 30));
+        assert_eq!(crc, slot.crc);
+
+        slot.insert(5).expect("insert third chunk");
+        assert!(slot.is_full());
+        assert_eq!(slot.get_free_slot_index(), None);
+        assert_eq!(slot.get_free_slot_offset(), None);
+        assert!(matches!(slot.insert(1), Err(Error::CannotInsertIntoSlot)));
+    }
+
+    #[test]
+    fn slot_empty_and_bounds_checks() {
+        let slot = Slot::new(vec![11, 0], 2, [0; 4]);
+        assert!(matches!(slot.is_empty(0), Ok(false)));
+        assert!(matches!(slot.is_empty(1), Ok(true)));
+        assert!(matches!(slot.is_empty(2), Err(Error::OutOfBounds(2, 2))));
+        assert_eq!(slot.get_slot_offset(2), None);
+        assert_eq!(slot.offset_of(2), None);
+    }
+}

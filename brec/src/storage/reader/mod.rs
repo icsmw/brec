@@ -365,3 +365,52 @@ impl<
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::{RuleDef, RuleFnDef, tests::*};
+    use std::io::Cursor;
+
+    type ReaderUnderTest = ReaderDef<Cursor<Vec<u8>>, TestBlock, TestBlock, TestPayload, TestPayload>;
+
+    fn empty_reader() -> ReaderUnderTest {
+        ReaderDef::new(Cursor::new(Vec::new())).expect("reader must initialize on empty source")
+    }
+
+    #[test]
+    fn reader_empty_source_basics_and_iterators() {
+        let mut reader = empty_reader();
+        assert!(reader.slots.is_empty());
+        assert_eq!(reader.count(), 0);
+        assert_eq!(reader.get_offset(), 0);
+
+        assert_eq!(reader.reload().expect("reload on empty"), 0);
+        assert!(reader.nth(0, &mut ()).expect("nth").is_none());
+        assert!(reader.nth_filtered(0, &mut ()).expect("nth_filtered").is_none());
+
+        assert!(matches!(reader.seek(0, &mut ()), Err(Error::EmptySource)));
+        assert!(reader.iter(&mut ()).next().is_none());
+        assert!(reader.filtered(&mut ()).next().is_none());
+        assert!(reader.range(0, 10, &mut ()).next().is_none());
+        assert!(reader.range_filtered(0, 10, &mut ()).next().is_none());
+    }
+
+    #[test]
+    fn reader_add_rule_detects_duplicates_and_remove_is_safe() {
+        let mut reader = empty_reader();
+
+        reader
+            .add_rule(RuleDef::Prefilter(RuleFnDef::Static(|_| true)))
+            .expect("first prefilter rule should be added");
+        assert!(matches!(
+            reader.add_rule(RuleDef::Prefilter(RuleFnDef::Static(|_| true))),
+            Err(Error::RuleDuplicate)
+        ));
+
+        reader.remove_rule(crate::RuleDefId::Prefilter);
+        reader
+            .add_rule(RuleDef::Prefilter(RuleFnDef::Static(|_| true)))
+            .expect("prefilter should be addable again after remove");
+    }
+}

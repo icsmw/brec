@@ -110,3 +110,234 @@ where
         self.observer.shutdown().await;
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::{ObserverStreamState, StreamSubscription};
+    use crate::{
+        DefaultPayloadContext, Error, FileObserverEvent, PacketDef, SubscriptionDef,
+        SubscriptionErrorAction, SubscriptionUpdate,
+        tests::{TestBlock, TestPayload},
+    };
+    use std::marker::PhantomData;
+    use tempfile::NamedTempFile;
+    use tokio::sync::mpsc;
+
+    #[test]
+    fn stream_subscription_maps_callbacks_to_events() {
+        let (tx, mut rx) = mpsc::unbounded_channel();
+        let mut sub = StreamSubscription::<TestBlock, TestPayload, TestPayload, DefaultPayloadContext> {
+            tx,
+            _phantom: PhantomData,
+        };
+
+        let update = <StreamSubscription<
+            TestBlock,
+            TestPayload,
+            TestPayload,
+            DefaultPayloadContext,
+        > as SubscriptionDef<
+            TestBlock,
+            TestBlock,
+            TestPayload,
+            TestPayload,
+            DefaultPayloadContext,
+        >>::on_update(&mut sub, 7, 3);
+        assert_eq!(update, SubscriptionUpdate::Read);
+        assert!(
+            matches!(
+                rx.try_recv().expect("expected update event"),
+                FileObserverEvent::Update { total: 7, added: 3 }
+            ),
+            "first event must be Update(total=7, added=3)"
+        );
+
+        let packet = PacketDef::<TestBlock, TestPayload, TestPayload>::default();
+        <StreamSubscription<
+            TestBlock,
+            TestPayload,
+            TestPayload,
+            DefaultPayloadContext,
+        > as SubscriptionDef<
+            TestBlock,
+            TestBlock,
+            TestPayload,
+            TestPayload,
+            DefaultPayloadContext,
+        >>::on_packet(&mut sub, packet);
+        assert!(
+            matches!(
+                rx.try_recv().expect("expected packet event"),
+                FileObserverEvent::Packet(_)
+            ),
+            "second event must be Packet"
+        );
+
+        let action = <StreamSubscription<
+            TestBlock,
+            TestPayload,
+            TestPayload,
+            DefaultPayloadContext,
+        > as SubscriptionDef<
+            TestBlock,
+            TestBlock,
+            TestPayload,
+            TestPayload,
+            DefaultPayloadContext,
+        >>::on_error(&mut sub, &Error::Test);
+        assert_eq!(action, SubscriptionErrorAction::Continue);
+        match rx.try_recv().expect("expected error event") {
+            FileObserverEvent::Error(message) => assert!(
+                !message.is_empty(),
+                "error message forwarded to stream must not be empty"
+            ),
+            _ => panic!("third event must be Error"),
+        }
+
+        <StreamSubscription<
+            TestBlock,
+            TestPayload,
+            TestPayload,
+            DefaultPayloadContext,
+        > as SubscriptionDef<
+            TestBlock,
+            TestBlock,
+            TestPayload,
+            TestPayload,
+            DefaultPayloadContext,
+        >>::on_stopped(&mut sub, Some(Error::Test));
+        assert!(
+            matches!(
+                rx.try_recv().expect("expected stopped event"),
+                FileObserverEvent::Stopped(Some(Error::Test))
+            ),
+            "fourth event must be Stopped(Some(Error::Test))"
+        );
+
+        <StreamSubscription<
+            TestBlock,
+            TestPayload,
+            TestPayload,
+            DefaultPayloadContext,
+        > as SubscriptionDef<
+            TestBlock,
+            TestBlock,
+            TestPayload,
+            TestPayload,
+            DefaultPayloadContext,
+        >>::on_aborted(&mut sub);
+        assert!(
+            matches!(
+                rx.try_recv().expect("expected aborted event"),
+                FileObserverEvent::Aborted
+            ),
+            "fifth event must be Aborted"
+        );
+    }
+
+    #[test]
+    fn stream_subscription_swallows_send_errors() {
+        let (tx, rx) = mpsc::unbounded_channel::<FileObserverEvent<TestBlock, TestPayload, TestPayload>>();
+        drop(rx);
+
+        let mut sub = StreamSubscription::<TestBlock, TestPayload, TestPayload, DefaultPayloadContext> {
+            tx,
+            _phantom: PhantomData,
+        };
+
+        assert_eq!(
+            <StreamSubscription<
+                TestBlock,
+                TestPayload,
+                TestPayload,
+                DefaultPayloadContext,
+            > as SubscriptionDef<
+                TestBlock,
+                TestBlock,
+                TestPayload,
+                TestPayload,
+                DefaultPayloadContext,
+            >>::on_update(&mut sub, 1, 1),
+            SubscriptionUpdate::Read
+        );
+        <StreamSubscription<
+            TestBlock,
+            TestPayload,
+            TestPayload,
+            DefaultPayloadContext,
+        > as SubscriptionDef<
+            TestBlock,
+            TestBlock,
+            TestPayload,
+            TestPayload,
+            DefaultPayloadContext,
+        >>::on_packet(&mut sub, PacketDef::<TestBlock, TestPayload, TestPayload>::default());
+        assert_eq!(
+            <StreamSubscription<
+                TestBlock,
+                TestPayload,
+                TestPayload,
+                DefaultPayloadContext,
+            > as SubscriptionDef<
+                TestBlock,
+                TestBlock,
+                TestPayload,
+                TestPayload,
+                DefaultPayloadContext,
+            >>::on_error(&mut sub, &Error::Test),
+            SubscriptionErrorAction::Continue
+        );
+        <StreamSubscription<
+            TestBlock,
+            TestPayload,
+            TestPayload,
+            DefaultPayloadContext,
+        > as SubscriptionDef<
+            TestBlock,
+            TestBlock,
+            TestPayload,
+            TestPayload,
+            DefaultPayloadContext,
+        >>::on_stopped(&mut sub, None);
+        <StreamSubscription<
+            TestBlock,
+            TestPayload,
+            TestPayload,
+            DefaultPayloadContext,
+        > as SubscriptionDef<
+            TestBlock,
+            TestBlock,
+            TestPayload,
+            TestPayload,
+            DefaultPayloadContext,
+        >>::on_aborted(&mut sub);
+    }
+
+    #[tokio::test]
+    async fn observer_stream_state_new_rejects_missing_file() {
+        let missing = std::path::Path::new("/tmp/brec_missing_stream_observer_state_file.bin");
+        let state = ObserverStreamState::<
+            TestBlock,
+            TestBlock,
+            TestPayload,
+            TestPayload,
+            DefaultPayloadContext,
+        >::new(missing, DefaultPayloadContext::default());
+        assert!(state.is_err());
+    }
+
+    #[tokio::test]
+    async fn observer_stream_state_new_and_shutdown_on_existing_file() {
+        let file = NamedTempFile::new().expect("temp file must be created");
+        let mut state = ObserverStreamState::<
+            TestBlock,
+            TestBlock,
+            TestPayload,
+            TestPayload,
+            DefaultPayloadContext,
+        >::new(file.path(), DefaultPayloadContext::default())
+        .expect("state must be created for existing file");
+
+        state.shutdown().await;
+    }
+}

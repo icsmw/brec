@@ -33,3 +33,25 @@ impl WriteTo for Slot {
         buf.write_all(&get_buffer(self))
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::{STORAGE_SLOT_SIG, Size, Slot, WriteTo};
+
+    #[test]
+    fn slot_write_and_write_all_emit_identical_serialization() {
+        let mut slot = Slot::new(vec![9, 8, 7], 3, [0; 4]);
+        slot.overwrite_crc();
+
+        let mut partial = Vec::new();
+        let written = slot.write(&mut partial).expect("write");
+        assert_eq!(written, slot.size() as usize);
+        assert_eq!(partial.len(), slot.size() as usize);
+        assert_eq!(&partial[..STORAGE_SLOT_SIG.len()], &STORAGE_SLOT_SIG);
+
+        let mut full = Vec::new();
+        slot.write_all(&mut full).expect("write_all");
+        assert_eq!(full.len(), slot.size() as usize);
+        assert_eq!(partial, full);
+    }
+}
