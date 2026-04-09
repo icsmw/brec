@@ -79,7 +79,7 @@ impl TryReadFrom for SlotHeader {
 #[cfg(test)]
 mod tests {
     use crate::{Error, ReadFrom, ReadStatus, SlotHeader, StaticSize, TryReadFrom, WriteTo};
-    use std::io::{Cursor, Seek, SeekFrom};
+    use std::io::{Cursor, Seek};
 
     fn encoded_header(capacity: u64) -> Vec<u8> {
         let slot = crate::Slot::new(vec![0; capacity as usize], capacity, [0; 4]);
@@ -121,7 +121,7 @@ mod tests {
             Err(Error::SignatureDismatch(_))
         ));
         assert_eq!(
-            cursor.seek(SeekFrom::Current(0)).expect("pos"),
+            cursor.stream_position().expect("pos"),
             0,
             "position should be restored on signature mismatch"
         );

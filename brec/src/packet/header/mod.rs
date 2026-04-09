@@ -189,11 +189,10 @@ mod tests {
 
     #[test]
     fn packet_header_new_without_payload_builds_expected_values() {
-        let mut ctx = default_payload_context();
-        let header = PacketHeader::new(
+        let header: PacketHeader = PacketHeader::new(
             &[] as &[TestBlock],
             None::<&TestPayload>,
-            &mut ctx,
+            &mut default_payload_context(),
         )
         .expect("header without payload must be created");
 

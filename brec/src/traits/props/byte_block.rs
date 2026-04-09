@@ -93,3 +93,86 @@ impl TryFrom<Vec<u8>> for ByteBlock {
         .map_err(|_| Error::FailExtractByteBlock)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn as_slice_and_size_cover_all_variants() {
+        let len4 = ByteBlock::Len4([1, 2, 3, 4]);
+        assert_eq!(len4.as_slice(), &[1, 2, 3, 4]);
+        assert_eq!(len4.size(), 4);
+
+        let len8 = ByteBlock::Len8([8; 8]);
+        assert_eq!(len8.as_slice(), &[8; 8]);
+        assert_eq!(len8.size(), 8);
+
+        let len16 = ByteBlock::Len16([16; 16]);
+        assert_eq!(len16.as_slice(), &[16; 16]);
+        assert_eq!(len16.size(), 16);
+
+        let len32 = ByteBlock::Len32([32; 32]);
+        assert_eq!(len32.as_slice(), &[32; 32]);
+        assert_eq!(len32.size(), 32);
+
+        let len64 = ByteBlock::Len64([64; 64]);
+        assert_eq!(len64.as_slice(), &[64; 64]);
+        assert_eq!(len64.size(), 64);
+
+        let len128 = ByteBlock::Len128([128; 128]);
+        assert_eq!(len128.as_slice(), &[128; 128]);
+        assert_eq!(len128.size(), 128);
+    }
+
+    #[test]
+    fn try_from_vec_builds_expected_variant_for_supported_lengths() {
+        let blk4 = ByteBlock::try_from(vec![4; 4]).expect("len4 should convert");
+        assert!(matches!(blk4, ByteBlock::Len4(_)));
+        assert_eq!(blk4.as_slice(), &[4; 4]);
+
+        let blk8 = ByteBlock::try_from(vec![8; 8]).expect("len8 should convert");
+        assert!(matches!(blk8, ByteBlock::Len8(_)));
+        assert_eq!(blk8.as_slice(), &[8; 8]);
+
+        let blk16 = ByteBlock::try_from(vec![16; 16]).expect("len16 should convert");
+        assert!(matches!(blk16, ByteBlock::Len16(_)));
+        assert_eq!(blk16.as_slice(), &[16; 16]);
+
+        let blk32 = ByteBlock::try_from(vec![32; 32]).expect("len32 should convert");
+        assert!(matches!(blk32, ByteBlock::Len32(_)));
+        assert_eq!(blk32.as_slice(), &[32; 32]);
+
+        let blk64 = ByteBlock::try_from(vec![64; 64]).expect("len64 should convert");
+        assert!(matches!(blk64, ByteBlock::Len64(_)));
+        assert_eq!(blk64.as_slice(), &[64; 64]);
+
+        let blk128 = ByteBlock::try_from(vec![128; 128]).expect("len128 should convert");
+        assert!(matches!(blk128, ByteBlock::Len128(_)));
+        assert_eq!(blk128.as_slice(), &[128; 128]);
+    }
+
+    #[test]
+    fn try_from_vec_rejects_unsupported_length() {
+        let err = ByteBlock::try_from(vec![1; 3]).expect_err("len3 must be rejected");
+        assert!(matches!(
+            err,
+            Error::InvalidCapacity(cap, expected)
+                if cap == 3 && expected == "4, 8, 16, 32, 64, 128"
+        ));
+    }
+
+    #[test]
+    fn is_valid_capacity_accepts_supported_and_rejects_invalid() {
+        for cap in [4_u8, 8, 16, 32, 64, 128] {
+            assert!(ByteBlock::is_valid_capacity(cap).is_ok());
+        }
+
+        let err = ByteBlock::is_valid_capacity(7).expect_err("7 is unsupported");
+        assert!(matches!(
+            err,
+            Error::InvalidCapacity(cap, expected)
+                if cap == 7 && expected == "4, 8, 16, 32, 64, 128"
+        ));
+    }
+}

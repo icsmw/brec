@@ -97,14 +97,26 @@ mod tests {
     use crate::{PayloadEncode, PayloadEncodeReferred, PayloadSchema};
 
     struct DemoPayload(Vec<u8>);
+    struct OwnedOnlyPayload(Vec<u8>);
 
     impl PayloadSchema for DemoPayload {
         type Context<'a> = ();
     }
 
+    impl PayloadSchema for OwnedOnlyPayload {
+        type Context<'a> = ();
+    }
+
     impl PayloadHooks for DemoPayload {}
+    impl PayloadHooks for OwnedOnlyPayload {}
 
     impl PayloadEncode for DemoPayload {
+        fn encode(&self, _: &mut Self::Context<'_>) -> std::io::Result<Vec<u8>> {
+            Ok(self.0.clone())
+        }
+    }
+
+    impl PayloadEncode for OwnedOnlyPayload {
         fn encode(&self, _: &mut Self::Context<'_>) -> std::io::Result<Vec<u8>> {
             Ok(self.0.clone())
         }
@@ -116,8 +128,16 @@ mod tests {
         }
     }
 
+    impl PayloadEncodeReferred for OwnedOnlyPayload {
+        fn encode(&self, _: &mut Self::Context<'_>) -> std::io::Result<Option<&[u8]>> {
+            Ok(None)
+        }
+    }
+
     impl PayloadCrc for DemoPayload {}
     impl PayloadSize for DemoPayload {}
+    impl PayloadCrc for OwnedOnlyPayload {}
+    impl PayloadSize for OwnedOnlyPayload {}
 
     #[test]
     fn default_payload_crc_and_size_work() {
@@ -128,5 +148,19 @@ mod tests {
         assert_eq!(crc.size(), 4);
         assert_eq!(DemoPayload::crc_size(), 4);
         assert_eq!(payload.size(&mut ctx).expect("size must work"), 4);
+    }
+
+    #[test]
+    fn default_payload_crc_and_size_work_for_owned_encoded_path() {
+        let mut ctx = ();
+        let payload = OwnedOnlyPayload(vec![9, 8, 7, 6, 5]);
+        let crc = payload.crc(&mut ctx).expect("crc must work");
+
+        let mut hasher = crc32fast::Hasher::new();
+        hasher.update(&[9, 8, 7, 6, 5]);
+        let expected_crc = hasher.finalize().to_le_bytes();
+
+        assert_eq!(crc.as_slice(), expected_crc.as_slice());
+        assert_eq!(payload.size(&mut ctx).expect("size must work"), 5);
     }
 }

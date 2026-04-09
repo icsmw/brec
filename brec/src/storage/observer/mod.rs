@@ -229,6 +229,35 @@ mod tests {
     }
 
     #[test]
+    fn counting_subscription_callbacks_update_counters_and_actions() {
+        let updates = Arc::new(AtomicUsize::new(0));
+        let stopped = Arc::new(AtomicUsize::new(0));
+        let aborted = Arc::new(AtomicUsize::new(0));
+
+        let mut subscription = CountingSubscription {
+            updates: updates.clone(),
+            stopped: stopped.clone(),
+            aborted: aborted.clone(),
+        };
+
+        assert!(matches!(
+            subscription.on_update(10, 3),
+            SubscriptionUpdate::Skip
+        ));
+        assert_eq!(updates.load(Ordering::SeqCst), 1);
+
+        let action = subscription.on_error(&Error::Test);
+        assert!(matches!(action, SubscriptionErrorAction::Continue));
+
+        subscription.on_packet(PacketDef::default());
+        subscription.on_stopped(None);
+        subscription.on_aborted();
+
+        assert_eq!(stopped.load(Ordering::SeqCst), 1);
+        assert_eq!(aborted.load(Ordering::SeqCst), 1);
+    }
+
+    #[test]
     fn observer_with_opt_returns_no_subscription_error() {
         let file = NamedTempFile::new().expect("temp file");
         let options = FileObserverOptions::<
@@ -240,7 +269,7 @@ mod tests {
             DefaultPayloadContext,
         >::new(file.path());
 
-        let result = FileObserverDef::with_opt(options, DefaultPayloadContext::default());
+        let result = FileObserverDef::with_opt(options, ());
         assert!(matches!(result, Err(Error::NoSubscription)));
     }
 
@@ -267,7 +296,7 @@ mod tests {
         >::new(missing)
         .subscribe(subscription);
 
-        let result = FileObserverDef::with_opt(options, DefaultPayloadContext::default());
+        let result = FileObserverDef::with_opt(options, ());
         assert!(matches!(result, Err(Error::Io(_))));
     }
 

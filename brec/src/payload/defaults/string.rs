@@ -69,24 +69,27 @@ mod tests {
 
     #[test]
     fn string_payload_roundtrip_and_signature() {
-        let mut ctx = default_payload_context();
         let mut payload = String::from("hello");
 
-        let header = PayloadHeader::new(&payload, &mut ctx).expect("header must build");
+        let header =
+            PayloadHeader::new(&payload, &mut default_payload_context()).expect("header must build");
         assert_eq!(header.payload_len(), 5);
         assert_eq!(payload.sig(), <String as StaticPayloadSignature>::ssig());
 
         let mut encoded = Vec::new();
         payload
-            .write_all(&mut encoded, &mut ctx)
+            .write_all(&mut encoded, &mut default_payload_context())
             .expect("write_all must work");
         assert!(encoded.len() > header.payload_len());
 
         let mut cursor = Cursor::new(encoded);
         let parsed = <PayloadHeader as ReadFrom>::read(&mut cursor).expect("header must parse");
-        let restored =
-            <String as ReadPayloadFrom<String>>::read(&mut cursor, &parsed, &mut ctx)
-                .expect("payload must parse");
+        let restored = <String as ReadPayloadFrom<String>>::read(
+            &mut cursor,
+            &parsed,
+            &mut default_payload_context(),
+        )
+        .expect("payload must parse");
         assert_eq!(restored, "hello");
     }
 }

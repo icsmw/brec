@@ -5,6 +5,10 @@ cd ./brec
 sh test.sh
 cd ..
 
+cd ./brec_macros
+cargo test --all-features
+cd ..
+
 cd ./examples
 sh test.sh
 cd ..
