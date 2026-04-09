@@ -1,0 +1,10 @@
+coverage:
+  paths:
+    - coverage_results/merged.lcov
+
+summary:
+  if: true
+
+comment:
+  if: is_pull_request
+  deletePrevious: true
