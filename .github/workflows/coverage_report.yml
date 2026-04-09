@@ -1,0 +1,38 @@
+name: Coverage Report
+
+on:
+  pull_request:
+    branches:
+      - master
+  push:
+    branches:
+      - master
+
+permissions:
+  contents: read
+  pull-requests: write
+  actions: read
+
+jobs:
+  coverage:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Rust
+        run: rustup update
+
+      - name: Run coverage
+        run: bash ./coverage.sh
+
+      - name: Upload coverage artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-results
+          path: coverage_results/
+          if-no-files-found: error
+
+      - name: Octocov Report
+        uses: k1LoW/octocov-action@v1
