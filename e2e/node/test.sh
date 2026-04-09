@@ -7,6 +7,8 @@ CLIENT_LOG="${ROOT_DIR}/.client_e2e.log"
 SERVER_PID=""
 TAIL_PID=""
 IMAGE_TAG="node-e2e:local"
+BINDINGS_PROFILE="${BINDINGS_PROFILE:-release}"
+TARGET_DIR="${CARGO_TARGET_DIR:-${ROOT_DIR}/target}"
 
 if ! command -v docker >/dev/null 2>&1; then
   echo "docker is required but not found in PATH" >&2
@@ -21,6 +23,11 @@ fi
 TEST_PACKAGE_COUNT="${TEST_PACKAGE_COUNT:-1000}"
 SERVER_BIND_ADDR="${SERVER_BIND_ADDR:-0.0.0.0:19001}"
 CLIENT_WS_ADDR="${CLIENT_WS_ADDR:-host.docker.internal:19001}"
+
+if [[ "${BINDINGS_PROFILE}" != "release" && "${BINDINGS_PROFILE}" != "debug" ]]; then
+  echo "BINDINGS_PROFILE must be 'release' or 'debug' (got: ${BINDINGS_PROFILE})" >&2
+  exit 1
+fi
 
 cleanup() {
   if [[ -n "${TAIL_PID}" ]] && kill -0 "${TAIL_PID}" >/dev/null 2>&1; then
@@ -40,14 +47,18 @@ echo "Checking local rust compilation before e2e..."
   cargo check -p protocol --features test-utils
   cargo check -p bindings
   cargo test -p server --no-run
-  cargo build -p bindings --release
+  if [[ "${BINDINGS_PROFILE}" == "release" ]]; then
+    cargo build -p bindings --release
+  else
+    cargo build -p bindings
+  fi
 )
 
 BINDINGS_LIB=""
 for candidate in \
-  "${ROOT_DIR}/target/release/libbindings.so" \
-  "${ROOT_DIR}/target/release/libbindings.dylib" \
-  "${ROOT_DIR}/target/release/bindings.dll"; do
+  "${TARGET_DIR}/${BINDINGS_PROFILE}/libbindings.so" \
+  "${TARGET_DIR}/${BINDINGS_PROFILE}/libbindings.dylib" \
+  "${TARGET_DIR}/${BINDINGS_PROFILE}/bindings.dll"; do
   if [[ -f "${candidate}" ]]; then
     BINDINGS_LIB="${candidate}"
     break
@@ -55,7 +66,7 @@ for candidate in \
 done
 
 if [[ -z "${BINDINGS_LIB}" ]]; then
-  echo "Failed to find built bindings library in target/release" >&2
+  echo "Failed to find built bindings library in ${TARGET_DIR}/${BINDINGS_PROFILE}" >&2
   exit 1
 fi
 
@@ -100,11 +111,23 @@ echo "Building node client image..."
 docker build -t "${IMAGE_TAG}" -f "${ROOT_DIR}/client/Dockerfile" "${ROOT_DIR}"
 
 echo "Running node client in container..."
-docker run --rm \
-  --add-host=host.docker.internal:host-gateway \
-  -e TEST_PACKAGE_COUNT="${TEST_PACKAGE_COUNT}" \
-  -e TEST_WS_ADDR="${CLIENT_WS_ADDR}" \
-  "${IMAGE_TAG}" | tee "${CLIENT_LOG}"
+DOCKER_RUN_ARGS=(
+  --rm
+  --add-host=host.docker.internal:host-gateway
+  -e TEST_PACKAGE_COUNT="${TEST_PACKAGE_COUNT}"
+  -e TEST_WS_ADDR="${CLIENT_WS_ADDR}"
+)
+
+if [[ -n "${LLVM_PROFILE_FILE:-}" ]]; then
+  DOCKER_RUN_ARGS+=(-e "LLVM_PROFILE_FILE=${LLVM_PROFILE_FILE}")
+fi
+
+if [[ -n "${CARGO_LLVM_COV_TARGET_DIR:-}" ]]; then
+  mkdir -p "${CARGO_LLVM_COV_TARGET_DIR}"
+  DOCKER_RUN_ARGS+=(-v "${CARGO_LLVM_COV_TARGET_DIR}:${CARGO_LLVM_COV_TARGET_DIR}")
+fi
+
+docker run "${DOCKER_RUN_ARGS[@]}" "${IMAGE_TAG}" | tee "${CLIENT_LOG}"
 
 echo "Waiting local server test to finish..."
 wait "${SERVER_PID}"
