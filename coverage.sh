@@ -12,6 +12,8 @@ bash "${ROOT_DIR}/tests/coverage.sh"
 
 bash "${ROOT_DIR}/examples/coverage.sh"
 
+bash "${ROOT_DIR}/e2e/node/coverage.sh"
+
 export COVERAGE_WORKSPACE="${ROOT_DIR}"
 
 export COVERAGE_TARGET="brec"
