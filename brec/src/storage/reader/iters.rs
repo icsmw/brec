@@ -170,57 +170,6 @@ impl<
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    fn slot_with_lengths(lengths: &[u64]) -> Slot {
-        let mut slot = Slot::new(lengths.to_vec(), lengths.len() as u64, [0; 4]);
-        slot.overwrite_crc();
-        slot
-    }
-
-    #[test]
-    fn packets_locator_next_tracks_offsets_across_slots() {
-        let slot_a = slot_with_lengths(&[10, 20, 0]);
-        let slot_b = slot_with_lengths(&[7, 0]);
-        let slots = [slot_a, slot_b];
-
-        let mut it = PacketsLocatorIterator::new(slots.iter());
-
-        let first = it.next().expect("first slot range");
-        let second = it.next().expect("second slot range");
-        assert!(it.next().is_none());
-
-        let first_size = slots[0].size();
-        assert_eq!(*first.start(), first_size);
-        assert_eq!(*first.end(), first_size + slots[0].width());
-
-        let second_base = slots[0].size() + slots[0].width();
-        assert_eq!(*second.start(), second_base + slots[1].size());
-        assert_eq!(*second.end(), second_base + slots[1].size() + slots[1].width());
-    }
-
-    #[test]
-    fn packets_locator_from_handles_valid_empty_and_oob() {
-        let empty = slot_with_lengths(&[0, 0]);
-        let used = slot_with_lengths(&[5, 6, 0]);
-        let slots = [empty, used];
-        let mut it = PacketsLocatorIterator::new(slots.iter());
-
-        let range = it.from(0).expect("first packet should resolve in second slot");
-        let base = slots[0].size() + slots[0].width();
-        assert_eq!(*range.start(), base + slots[1].size());
-        assert_eq!(*range.end(), base + slots[1].size() + slots[1].width());
-
-        let mut oob_it = PacketsLocatorIterator::new(slots.iter());
-        assert!(matches!(oob_it.from(10), Err(Error::OutOfBounds(_, 10))));
-
-        let mut no_slots = PacketsLocatorIterator::new([].iter());
-        assert!(matches!(no_slots.from(0), Err(Error::EmptySource)));
-    }
-}
-
 impl<
     'a,
     I: Iterator<Item = &'a Slot>,
@@ -534,5 +483,56 @@ impl<
                 Err(err) => return Some(Err(err)),
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn slot_with_lengths(lengths: &[u64]) -> Slot {
+        let mut slot = Slot::new(lengths.to_vec(), lengths.len() as u64, [0; 4]);
+        slot.overwrite_crc();
+        slot
+    }
+
+    #[test]
+    fn packets_locator_next_tracks_offsets_across_slots() {
+        let slot_a = slot_with_lengths(&[10, 20, 0]);
+        let slot_b = slot_with_lengths(&[7, 0]);
+        let slots = [slot_a, slot_b];
+
+        let mut it = PacketsLocatorIterator::new(slots.iter());
+
+        let first = it.next().expect("first slot range");
+        let second = it.next().expect("second slot range");
+        assert!(it.next().is_none());
+
+        let first_size = slots[0].size();
+        assert_eq!(*first.start(), first_size);
+        assert_eq!(*first.end(), first_size + slots[0].width());
+
+        let second_base = slots[0].size() + slots[0].width();
+        assert_eq!(*second.start(), second_base + slots[1].size());
+        assert_eq!(*second.end(), second_base + slots[1].size() + slots[1].width());
+    }
+
+    #[test]
+    fn packets_locator_from_handles_valid_empty_and_oob() {
+        let empty = slot_with_lengths(&[0, 0]);
+        let used = slot_with_lengths(&[5, 6, 0]);
+        let slots = [empty, used];
+        let mut it = PacketsLocatorIterator::new(slots.iter());
+
+        let range = it.from(0).expect("first packet should resolve in second slot");
+        let base = slots[0].size() + slots[0].width();
+        assert_eq!(*range.start(), base + slots[1].size());
+        assert_eq!(*range.end(), base + slots[1].size() + slots[1].width());
+
+        let mut oob_it = PacketsLocatorIterator::new(slots.iter());
+        assert!(matches!(oob_it.from(10), Err(Error::OutOfBounds(_, 10))));
+
+        let mut no_slots = PacketsLocatorIterator::new([].iter());
+        assert!(matches!(no_slots.from(0), Err(Error::EmptySource)));
     }
 }

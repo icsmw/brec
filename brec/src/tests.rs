@@ -5,6 +5,12 @@ pub struct TestBlock {
     field: u8,
 }
 
+impl TestBlock {
+    pub fn new(field: u8) -> Self {
+        Self { field }
+    }
+}
+
 impl Size for TestBlock {
     fn size(&self) -> u64 {
         0
@@ -78,6 +84,12 @@ impl BlockReferredDef<TestBlock> for TestBlock {}
 pub struct TestPayload {
     #[allow(dead_code)]
     field: u8,
+}
+
+impl TestPayload {
+    pub fn new(field: u8) -> Self {
+        Self { field }
+    }
 }
 
 impl PayloadSchema for TestPayload {

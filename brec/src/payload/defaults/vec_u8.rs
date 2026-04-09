@@ -69,23 +69,27 @@ mod tests {
 
     #[test]
     fn vec_u8_payload_roundtrip_and_signature() {
-        let mut ctx = default_payload_context();
-        let mut payload = vec![1_u8, 2, 3, 4];
+        let mut payload: Vec<u8> = vec![1_u8, 2, 3, 4];
 
-        let header = PayloadHeader::new(&payload, &mut ctx).expect("header must build");
+        let header = PayloadHeader::new(&payload, &mut default_payload_context())
+            .expect("header must build");
         assert_eq!(header.payload_len(), 4);
         assert_eq!(payload.sig(), <Vec<u8> as StaticPayloadSignature>::ssig());
 
         let mut encoded = Vec::new();
         payload
-            .write_all(&mut encoded, &mut ctx)
+            .write_all(&mut encoded, &mut default_payload_context())
             .expect("write_all must work");
         assert!(encoded.len() > header.payload_len());
 
         let mut cursor = Cursor::new(encoded);
         let parsed = <PayloadHeader as ReadFrom>::read(&mut cursor).expect("header must parse");
-        let restored = <Vec<u8> as ReadPayloadFrom<Vec<u8>>>::read(&mut cursor, &parsed, &mut ctx)
-            .expect("payload must parse");
+        let restored = <Vec<u8> as ReadPayloadFrom<Vec<u8>>>::read(
+            &mut cursor,
+            &parsed,
+            &mut default_payload_context(),
+        )
+        .expect("payload must parse");
         assert_eq!(restored, vec![1, 2, 3, 4]);
     }
 }

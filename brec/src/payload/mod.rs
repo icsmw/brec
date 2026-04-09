@@ -114,3 +114,39 @@ pub trait PayloadDecode<T>: PayloadHooks + PayloadSchema {
     /// Reconstructs a payload value from encoded payload bytes.
     fn decode(buf: &[u8], ctx: &mut Self::Context<'_>) -> std::io::Result<T>;
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn encoded_payload_is_empty_for_borrowed_and_owned() {
+        let empty_borrowed = EncodedPayload::Borrowed(&[]);
+        assert!(empty_borrowed.is_empty());
+
+        let non_empty_borrowed = EncodedPayload::Borrowed(&[1]);
+        assert!(!non_empty_borrowed.is_empty());
+
+        let empty_owned = EncodedPayload::Owned(Vec::new());
+        assert!(empty_owned.is_empty());
+
+        let non_empty_owned = EncodedPayload::Owned(vec![1, 2, 3]);
+        assert!(!non_empty_owned.is_empty());
+    }
+
+    #[derive(Default)]
+    struct NoopHooksPayload;
+
+    impl PayloadSchema for NoopHooksPayload {
+        type Context<'a> = ();
+    }
+
+    impl PayloadHooks for NoopHooksPayload {}
+
+    #[test]
+    fn default_payload_hooks_are_noop_ok() {
+        let mut payload = NoopHooksPayload;
+        assert!(payload.before_encode().is_ok());
+        assert!(payload.after_decode().is_ok());
+    }
+}

@@ -322,7 +322,7 @@ mod tests {
             TestPayload,
             TestPayload,
             DefaultPayloadContext,
-        >::new(missing, DefaultPayloadContext::default());
+        >::new(missing, ());
         assert!(state.is_err());
     }
 
@@ -335,7 +335,7 @@ mod tests {
             TestPayload,
             TestPayload,
             DefaultPayloadContext,
-        >::new(file.path(), DefaultPayloadContext::default())
+        >::new(file.path(), ())
         .expect("state must be created for existing file");
 
         state.shutdown().await;

@@ -149,7 +149,7 @@ impl TryReadFromBuffered for PacketHeader {
 #[cfg(test)]
 mod tests {
     use crate::{CrcU32, Error, PacketHeader, ReadBlockFromSlice, ReadFrom, ReadStatus, TryReadFrom, TryReadFromBuffered, WriteTo};
-    use std::io::{BufReader, Cursor, Seek, SeekFrom};
+    use std::io::{BufReader, Cursor, Seek};
 
     fn sample_header() -> PacketHeader {
         let mut header = PacketHeader {
@@ -233,7 +233,7 @@ mod tests {
             ReadStatus::NotEnoughData(_) => panic!("expected Success"),
         }
         assert_eq!(
-            cursor.seek(SeekFrom::Current(0)).expect("seek current"),
+            cursor.stream_position().expect("stream position"),
             PacketHeader::SIZE
         );
     }

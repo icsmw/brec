@@ -198,6 +198,9 @@ mod tests {
         }
     }
 
+    // These read/extract methods are required by `BlockDef`/`PayloadDef` bounds for
+    // packet generics in tests. They are intentional stub implementations that return
+    // explicit errors, and we call them in a dedicated test so coverage metrics stay honest.
     impl TryReadFromBuffered for OkBlock {
         fn try_read<T: std::io::BufRead>(_: &mut T) -> Result<ReadStatus<Self>, Error> {
             Err(Error::Test)
@@ -355,6 +358,83 @@ mod tests {
     }
     impl PayloadDef<LocalPayload> for LocalPayload {}
 
+    #[derive(Clone)]
+    struct OwnedPayload(Vec<u8>);
+
+    impl PayloadSchema for OwnedPayload {
+        type Context<'a> = DefaultPayloadContext;
+    }
+    impl PayloadHooks for OwnedPayload {}
+    impl PayloadEncode for OwnedPayload {
+        fn encode(&self, _: &mut Self::Context<'_>) -> std::io::Result<Vec<u8>> {
+            Ok(self.0.clone())
+        }
+    }
+    impl PayloadEncodeReferred for OwnedPayload {
+        fn encode(&self, _: &mut Self::Context<'_>) -> std::io::Result<Option<&[u8]>> {
+            Ok(None)
+        }
+    }
+    impl PayloadSignature for OwnedPayload {
+        fn sig(&self) -> ByteBlock {
+            ByteBlock::Len4(*b"OWND")
+        }
+    }
+    impl PayloadSize for OwnedPayload {}
+    impl PayloadCrc for OwnedPayload {}
+    impl WriteMutTo for OwnedPayload {
+        fn write<T: std::io::Write>(
+            &mut self,
+            buf: &mut T,
+            _: &mut Self::Context<'_>,
+        ) -> std::io::Result<usize> {
+            buf.write(self.0.as_slice())
+        }
+        fn write_all<T: std::io::Write>(
+            &mut self,
+            buf: &mut T,
+            _: &mut Self::Context<'_>,
+        ) -> std::io::Result<()> {
+            buf.write_all(self.0.as_slice())
+        }
+    }
+    impl WriteVectoredMutTo for OwnedPayload {
+        fn slices(&mut self, _: &mut Self::Context<'_>) -> std::io::Result<IoSlices<'_>> {
+            let mut slices = IoSlices::default();
+            slices.add_slice(self.0.as_slice());
+            Ok(slices)
+        }
+    }
+    impl PayloadInnerDef for OwnedPayload {}
+    impl TryExtractPayloadFromBuffered<OwnedPayload> for OwnedPayload {
+        fn try_read<B: std::io::BufRead>(
+            _: &mut B,
+            _: &PayloadHeader,
+            _: &mut <OwnedPayload as PayloadSchema>::Context<'_>,
+        ) -> Result<ReadStatus<OwnedPayload>, Error> {
+            Err(Error::Test)
+        }
+    }
+    impl TryExtractPayloadFrom<OwnedPayload> for OwnedPayload {
+        fn try_read<B: std::io::Read + std::io::Seek>(
+            _: &mut B,
+            _: &PayloadHeader,
+            _: &mut <OwnedPayload as PayloadSchema>::Context<'_>,
+        ) -> Result<ReadStatus<OwnedPayload>, Error> {
+            Err(Error::Test)
+        }
+    }
+    impl ExtractPayloadFrom<OwnedPayload> for OwnedPayload {
+        fn read<B: std::io::Read>(
+            _: &mut B,
+            _: &PayloadHeader,
+            _: &mut <OwnedPayload as PayloadSchema>::Context<'_>,
+        ) -> Result<OwnedPayload, Error> {
+            Err(Error::Test)
+        }
+    }
+    impl PayloadDef<OwnedPayload> for OwnedPayload {}
+
     struct LimitWriter {
         max: usize,
         out: Vec<u8>,
@@ -366,6 +446,31 @@ mod tests {
             self.out.extend_from_slice(&buf[..n]);
             Ok(n)
         }
+        fn flush(&mut self) -> std::io::Result<()> {
+            Ok(())
+        }
+    }
+
+    struct ScriptedWriter {
+        limits: Vec<usize>,
+        call: usize,
+        out: Vec<u8>,
+    }
+
+    impl Write for ScriptedWriter {
+        fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
+            let limit = self
+                .limits
+                .get(self.call)
+                .copied()
+                .unwrap_or(usize::MAX)
+                .max(1);
+            self.call += 1;
+            let n = buf.len().min(limit);
+            self.out.extend_from_slice(&buf[..n]);
+            Ok(n)
+        }
+
         fn flush(&mut self) -> std::io::Result<()> {
             Ok(())
         }
@@ -401,6 +506,99 @@ mod tests {
             .expect("partial write");
         assert_eq!(written, 3);
         assert_eq!(writer.out.len(), 3);
+        writer.flush().expect("flush");
+    }
+
+    #[test]
+    fn write_with_block_and_payload_matches_write_all() {
+        let payload = LocalPayload(vec![9, 8, 7, 6]);
+        let mut packet = PacketDef::<OkBlock, LocalPayload, LocalPayload>::new(
+            vec![OkBlock(vec![1, 2, 3])],
+            Some(payload.clone()),
+        );
+        let mut out = Vec::new();
+        let written = packet
+            .write(&mut out, &mut DefaultPayloadContext::default())
+            .expect("write");
+
+        let mut out_all = Vec::new();
+        let mut packet_all = PacketDef::<OkBlock, LocalPayload, LocalPayload>::new(
+            vec![OkBlock(vec![1, 2, 3])],
+            Some(payload),
+        );
+        packet_all
+            .write_all(&mut out_all, &mut DefaultPayloadContext::default())
+            .expect("write_all");
+
+        assert_eq!(written, out.len());
+        assert_eq!(out, out_all);
+    }
+
+    #[test]
+    fn write_returns_partial_when_block_write_is_short() {
+        let mut packet = PacketDef::<OkBlock, LocalPayload, LocalPayload>::new(
+            vec![OkBlock(vec![1, 2, 3])],
+            None,
+        );
+        let mut writer = ScriptedWriter {
+            limits: vec![PacketHeader::SIZE as usize, 1],
+            call: 0,
+            out: Vec::new(),
+        };
+
+        let written = packet
+            .write(&mut writer, &mut DefaultPayloadContext::default())
+            .expect("write");
+        assert_eq!(written, PacketHeader::SIZE as usize + 1);
+    }
+
+    #[test]
+    fn write_returns_partial_when_payload_header_is_short() {
+        let payload = LocalPayload(vec![10, 20, 30, 40]);
+        let payload_header_len = PayloadHeader::new(&payload, &mut DefaultPayloadContext::default())
+            .expect("payload header")
+            .size();
+        let mut packet =
+            PacketDef::<OkBlock, LocalPayload, LocalPayload>::new(vec![], Some(payload));
+        let mut writer = ScriptedWriter {
+            limits: vec![PacketHeader::SIZE as usize, payload_header_len - 1],
+            call: 0,
+            out: Vec::new(),
+        };
+
+        let written = packet
+            .write(&mut writer, &mut DefaultPayloadContext::default())
+            .expect("write");
+        assert_eq!(written, PacketHeader::SIZE as usize + payload_header_len - 1);
+    }
+
+    #[test]
+    fn write_returns_partial_when_payload_body_is_short() {
+        let payload = LocalPayload(vec![10, 20, 30, 40]);
+        let payload_header_len = PayloadHeader::new(&payload, &mut DefaultPayloadContext::default())
+            .expect("payload header")
+            .size();
+        let mut packet = PacketDef::<OkBlock, LocalPayload, LocalPayload>::new(
+            vec![],
+            Some(payload.clone()),
+        );
+        let mut writer = ScriptedWriter {
+            limits: vec![
+                PacketHeader::SIZE as usize,
+                payload_header_len,
+                payload.0.len() - 1,
+            ],
+            call: 0,
+            out: Vec::new(),
+        };
+
+        let written = packet
+            .write(&mut writer, &mut DefaultPayloadContext::default())
+            .expect("write");
+        assert_eq!(
+            written,
+            PacketHeader::SIZE as usize + payload_header_len + payload.0.len() - 1
+        );
     }
 
     #[test]
@@ -415,6 +613,15 @@ mod tests {
             Ok(_) => panic!("block slices must fail"),
             Err(err) => err,
         };
+        assert_eq!(err.kind(), std::io::ErrorKind::Other);
+    }
+
+    #[test]
+    fn write_all_propagates_block_error() {
+        let mut packet = PacketDef::<ErrBlock, LocalPayload, LocalPayload>::new(vec![ErrBlock], None);
+        let err = packet
+            .write_all(&mut Vec::new(), &mut DefaultPayloadContext::default())
+            .expect_err("block write_all must fail");
         assert_eq!(err.kind(), std::io::ErrorKind::Other);
     }
 
@@ -461,4 +668,145 @@ mod tests {
         }
         assert_eq!(vectored, out);
     }
+
+    #[test]
+    fn slices_include_owned_payload_when_referred_is_missing() {
+        let payload = OwnedPayload(vec![11, 22, 33, 44]);
+        let mut packet = PacketDef::<OkBlock, OwnedPayload, OwnedPayload>::new(
+            vec![OkBlock(vec![1, 2])],
+            Some(payload.clone()),
+        );
+        let slices = packet
+            .slices(&mut DefaultPayloadContext::default())
+            .expect("slices");
+        let mut vectored = Vec::new();
+        for s in slices.get() {
+            vectored.extend_from_slice(&s);
+        }
+
+        let mut packet_all =
+            PacketDef::<OkBlock, OwnedPayload, OwnedPayload>::new(vec![OkBlock(vec![1, 2])], Some(payload));
+        let mut out_all = Vec::new();
+        packet_all
+            .write_all(&mut out_all, &mut DefaultPayloadContext::default())
+            .expect("write_all");
+
+        assert_eq!(vectored, out_all);
+    }
+
+    #[test]
+    fn trait_required_stub_methods_return_explicit_errors() {
+        let mut buffered = Cursor::new(Vec::<u8>::new());
+        let mut stream = Cursor::new(Vec::<u8>::new());
+        let payload_header = PayloadHeader {
+            sig: ByteBlock::Len4([0, 0, 0, 0]),
+            crc: ByteBlock::Len4([0, 0, 0, 0]),
+            len: 0,
+        };
+
+        assert!(matches!(
+            <OkBlock as TryReadFromBuffered>::try_read(&mut buffered),
+            Err(Error::Test)
+        ));
+        assert!(matches!(
+            <OkBlock as TryReadFrom>::try_read(&mut stream),
+            Err(Error::Test)
+        ));
+        assert!(matches!(
+            <OkBlock as crate::ReadFrom>::read(&mut buffered),
+            Err(Error::Test)
+        ));
+        assert!(matches!(
+            <OkBlock as crate::ReadBlockFrom>::read(&mut buffered, false),
+            Err(Error::Test)
+        ));
+        assert!(matches!(
+            <OkBlock as crate::ReadBlockFromSlice>::read_from_slice(&[], false),
+            Err(Error::Test)
+        ));
+
+        assert!(matches!(
+            <ErrBlock as TryReadFromBuffered>::try_read(&mut buffered),
+            Err(Error::Test)
+        ));
+        assert!(matches!(
+            <ErrBlock as TryReadFrom>::try_read(&mut stream),
+            Err(Error::Test)
+        ));
+        assert!(matches!(
+            <ErrBlock as crate::ReadFrom>::read(&mut buffered),
+            Err(Error::Test)
+        ));
+        assert!(matches!(
+            <ErrBlock as crate::ReadBlockFrom>::read(&mut buffered, false),
+            Err(Error::Test)
+        ));
+        assert!(matches!(
+            <ErrBlock as crate::ReadBlockFromSlice>::read_from_slice(&[], false),
+            Err(Error::Test)
+        ));
+
+        let mut local_payload = LocalPayload(vec![1, 2, 3]);
+        assert!(matches!(
+            <LocalPayload as TryExtractPayloadFromBuffered<LocalPayload>>::try_read(
+                &mut buffered,
+                &payload_header,
+                &mut ()
+            ),
+            Err(Error::Test)
+        ));
+        assert!(matches!(
+            <LocalPayload as TryExtractPayloadFrom<LocalPayload>>::try_read(
+                &mut stream,
+                &payload_header,
+                &mut ()
+            ),
+            Err(Error::Test)
+        ));
+        assert!(matches!(
+            <LocalPayload as ExtractPayloadFrom<LocalPayload>>::read(
+                &mut buffered,
+                &payload_header,
+                &mut ()
+            ),
+            Err(Error::Test)
+        ));
+        assert_eq!(
+            <LocalPayload as WriteMutTo>::write(&mut local_payload, &mut Vec::new(), &mut ())
+                .expect("local payload write"),
+            3
+        );
+
+        let mut owned_payload = OwnedPayload(vec![4, 5, 6]);
+        assert!(matches!(
+            <OwnedPayload as TryExtractPayloadFromBuffered<OwnedPayload>>::try_read(
+                &mut buffered,
+                &payload_header,
+                &mut ()
+            ),
+            Err(Error::Test)
+        ));
+        assert!(matches!(
+            <OwnedPayload as TryExtractPayloadFrom<OwnedPayload>>::try_read(
+                &mut stream,
+                &payload_header,
+                &mut ()
+            ),
+            Err(Error::Test)
+        ));
+        assert!(matches!(
+            <OwnedPayload as ExtractPayloadFrom<OwnedPayload>>::read(
+                &mut buffered,
+                &payload_header,
+                &mut ()
+            ),
+            Err(Error::Test)
+        ));
+        assert_eq!(
+            <OwnedPayload as WriteMutTo>::write(&mut owned_payload, &mut Vec::new(), &mut ())
+                .expect("owned payload write"),
+            3
+        );
+    }
+
 }
