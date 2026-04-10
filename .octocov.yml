@@ -1,6 +1,8 @@
 coverage:
   paths:
     - coverage_results/brec.lcov
+  badge:
+    path: .github/artifacts/coverage.svg
 
 summary:
   if: true
@@ -8,3 +10,7 @@ summary:
 comment:
   if: is_pull_request
   deletePrevious: true
+
+push:
+  if: is_default_branch
+  message: "Update coverage badge by octocov [skip ci]"
