@@ -1,6 +1,6 @@
 coverage:
   paths:
-    - coverage_results/merged.lcov
+    - coverage_results/brec.lcov
 
 summary:
   if: true
