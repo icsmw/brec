@@ -3,7 +3,7 @@
 
 If your payload needs runtime state during encoding or decoding, see [Payload Context](context.md).
 
-If your payload also needs transparent encryption and decryption, see [Crypt](crypt.md).
+If your payload also needs transparent encryption and decryption, see [Crypt](../features/crypt.md).
 
 ### Required Traits
 
@@ -72,7 +72,7 @@ Enabling the `bincode` feature provides the simplest and most flexible way to de
 
 If you need manual payload implementations with a custom runtime context instead, see [Payload Context](context.md).
 
-If you need `bincode` payloads with transparent encryption, see [Crypt](crypt.md).
+If you need `bincode` payloads with transparent encryption, see [Crypt](../features/crypt.md).
 
 `#[payload(bincode)]` is available only when the crate dependency enables the `bincode` feature:
 
