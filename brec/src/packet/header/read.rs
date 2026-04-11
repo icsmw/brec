@@ -148,7 +148,10 @@ impl TryReadFromBuffered for PacketHeader {
 
 #[cfg(test)]
 mod tests {
-    use crate::{CrcU32, Error, PacketHeader, ReadBlockFromSlice, ReadFrom, ReadStatus, TryReadFrom, TryReadFromBuffered, WriteTo};
+    use crate::{
+        CrcU32, Error, PacketHeader, ReadBlockFromSlice, ReadFrom, ReadStatus, TryReadFrom,
+        TryReadFromBuffered, WriteTo,
+    };
     use std::io::{BufReader, Cursor, Seek};
 
     fn sample_header() -> PacketHeader {
@@ -200,7 +203,10 @@ mod tests {
         let last = bad_crc.len() - 1;
         bad_crc[last] ^= 0xFF;
         let mut cursor = Cursor::new(bad_crc);
-        assert!(matches!(PacketHeader::read(&mut cursor), Err(Error::CrcDismatch)));
+        assert!(matches!(
+            PacketHeader::read(&mut cursor),
+            Err(Error::CrcDismatch)
+        ));
     }
 
     #[test]

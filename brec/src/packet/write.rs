@@ -165,11 +165,11 @@ impl<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> WriteVectoredMut
 #[cfg(test)]
 mod tests {
     use crate::{
-        ByteBlock, DefaultPayloadContext, Error, ExtractPayloadFrom, IoSlices,
-        PacketDef, PacketHeader, PayloadDef, PayloadEncode, PayloadEncodeReferred, PayloadHeader,
-        PayloadHooks, PayloadInnerDef, PayloadSchema, PayloadSignature, PayloadSize, PayloadCrc,
-        ReadFrom, ReadStatus, TryExtractPayloadFrom, TryExtractPayloadFromBuffered, TryReadFrom, TryReadFromBuffered,
-        WriteMutTo, WriteTo, WriteVectoredMutTo, WriteVectoredTo,
+        ByteBlock, DefaultPayloadContext, Error, ExtractPayloadFrom, IoSlices, PacketDef,
+        PacketHeader, PayloadCrc, PayloadDef, PayloadEncode, PayloadEncodeReferred, PayloadHeader,
+        PayloadHooks, PayloadInnerDef, PayloadSchema, PayloadSignature, PayloadSize, ReadFrom,
+        ReadStatus, TryExtractPayloadFrom, TryExtractPayloadFromBuffered, TryReadFrom,
+        TryReadFromBuffered, WriteMutTo, WriteTo, WriteVectoredMutTo, WriteVectoredTo,
     };
     use std::io::{Cursor, Read, Write};
 
@@ -207,7 +207,9 @@ mod tests {
         }
     }
     impl TryReadFrom for OkBlock {
-        fn try_read<T: std::io::Read + std::io::Seek>(_: &mut T) -> Result<ReadStatus<Self>, Error> {
+        fn try_read<T: std::io::Read + std::io::Seek>(
+            _: &mut T,
+        ) -> Result<ReadStatus<Self>, Error> {
             Err(Error::Test)
         }
     }
@@ -257,7 +259,9 @@ mod tests {
         }
     }
     impl TryReadFrom for ErrBlock {
-        fn try_read<T: std::io::Read + std::io::Seek>(_: &mut T) -> Result<ReadStatus<Self>, Error> {
+        fn try_read<T: std::io::Read + std::io::Seek>(
+            _: &mut T,
+        ) -> Result<ReadStatus<Self>, Error> {
             Err(Error::Test)
         }
     }
@@ -555,9 +559,10 @@ mod tests {
     #[test]
     fn write_returns_partial_when_payload_header_is_short() {
         let payload = LocalPayload(vec![10, 20, 30, 40]);
-        let payload_header_len = PayloadHeader::new(&payload, &mut DefaultPayloadContext::default())
-            .expect("payload header")
-            .size();
+        let payload_header_len =
+            PayloadHeader::new(&payload, &mut DefaultPayloadContext::default())
+                .expect("payload header")
+                .size();
         let mut packet =
             PacketDef::<OkBlock, LocalPayload, LocalPayload>::new(vec![], Some(payload));
         let mut writer = ScriptedWriter {
@@ -569,19 +574,21 @@ mod tests {
         let written = packet
             .write(&mut writer, &mut DefaultPayloadContext::default())
             .expect("write");
-        assert_eq!(written, PacketHeader::SIZE as usize + payload_header_len - 1);
+        assert_eq!(
+            written,
+            PacketHeader::SIZE as usize + payload_header_len - 1
+        );
     }
 
     #[test]
     fn write_returns_partial_when_payload_body_is_short() {
         let payload = LocalPayload(vec![10, 20, 30, 40]);
-        let payload_header_len = PayloadHeader::new(&payload, &mut DefaultPayloadContext::default())
-            .expect("payload header")
-            .size();
-        let mut packet = PacketDef::<OkBlock, LocalPayload, LocalPayload>::new(
-            vec![],
-            Some(payload.clone()),
-        );
+        let payload_header_len =
+            PayloadHeader::new(&payload, &mut DefaultPayloadContext::default())
+                .expect("payload header")
+                .size();
+        let mut packet =
+            PacketDef::<OkBlock, LocalPayload, LocalPayload>::new(vec![], Some(payload.clone()));
         let mut writer = ScriptedWriter {
             limits: vec![
                 PacketHeader::SIZE as usize,
@@ -603,7 +610,8 @@ mod tests {
 
     #[test]
     fn write_and_slices_propagate_block_errors() {
-        let mut packet = PacketDef::<ErrBlock, LocalPayload, LocalPayload>::new(vec![ErrBlock], None);
+        let mut packet =
+            PacketDef::<ErrBlock, LocalPayload, LocalPayload>::new(vec![ErrBlock], None);
         let err = packet
             .write(&mut Vec::new(), &mut DefaultPayloadContext::default())
             .expect_err("block write must fail");
@@ -618,7 +626,8 @@ mod tests {
 
     #[test]
     fn write_all_propagates_block_error() {
-        let mut packet = PacketDef::<ErrBlock, LocalPayload, LocalPayload>::new(vec![ErrBlock], None);
+        let mut packet =
+            PacketDef::<ErrBlock, LocalPayload, LocalPayload>::new(vec![ErrBlock], None);
         let err = packet
             .write_all(&mut Vec::new(), &mut DefaultPayloadContext::default())
             .expect_err("block write_all must fail");
@@ -684,8 +693,10 @@ mod tests {
             vectored.extend_from_slice(&s);
         }
 
-        let mut packet_all =
-            PacketDef::<OkBlock, OwnedPayload, OwnedPayload>::new(vec![OkBlock(vec![1, 2])], Some(payload));
+        let mut packet_all = PacketDef::<OkBlock, OwnedPayload, OwnedPayload>::new(
+            vec![OkBlock(vec![1, 2])],
+            Some(payload),
+        );
         let mut out_all = Vec::new();
         packet_all
             .write_all(&mut out_all, &mut DefaultPayloadContext::default())
@@ -808,5 +819,4 @@ mod tests {
             3
         );
     }
-
 }

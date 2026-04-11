@@ -367,8 +367,7 @@ mod tests {
         PayloadDef, PayloadHeader, PayloadSchema, ReadBlockFrom, ReadBlockFromSlice, ReadFrom,
         ReadStatus, RuleDef, RuleDefId, RuleFnDef, RulesDef, TryExtractPayloadFrom,
         TryExtractPayloadFromBuffered, TryReadFrom, TryReadFromBuffered, WriteMutTo, WriteTo,
-        WriteVectoredMutTo, WriteVectoredTo,
-        packet::rules::PeekAs,
+        WriteVectoredMutTo, WriteVectoredTo, packet::rules::PeekAs,
     };
     use std::io::Cursor;
     use std::sync::{
@@ -418,7 +417,9 @@ mod tests {
     }
 
     impl TryReadFrom for RuleBlock {
-        fn try_read<T: std::io::Read + std::io::Seek>(_: &mut T) -> Result<ReadStatus<Self>, Error> {
+        fn try_read<T: std::io::Read + std::io::Seek>(
+            _: &mut T,
+        ) -> Result<ReadStatus<Self>, Error> {
             Err(Error::Test)
         }
     }
@@ -494,17 +495,23 @@ mod tests {
 
     impl crate::PayloadEncodeReferred for RulePayload {
         fn encode(&self, _ctx: &mut Self::Context<'_>) -> std::io::Result<Option<&[u8]>> {
-            Err(std::io::Error::other("rules test payload encode_referred stub"))
+            Err(std::io::Error::other(
+                "rules test payload encode_referred stub",
+            ))
         }
     }
 
     impl crate::PayloadHooks for RulePayload {
         fn after_decode(&mut self) -> std::io::Result<()> {
-            Err(std::io::Error::other("rules test payload after_decode stub"))
+            Err(std::io::Error::other(
+                "rules test payload after_decode stub",
+            ))
         }
 
         fn before_encode(&mut self) -> std::io::Result<()> {
-            Err(std::io::Error::other("rules test payload before_encode stub"))
+            Err(std::io::Error::other(
+                "rules test payload before_encode stub",
+            ))
         }
     }
 
@@ -685,10 +692,14 @@ mod tests {
             })))
             .expect("prefilter rule");
         rules
-            .add_rule(RuleDef::FilterPayload(RuleFnDef::Static(|payload| payload == [1, 2, 3])))
+            .add_rule(RuleDef::FilterPayload(RuleFnDef::Static(|payload| {
+                payload == [1, 2, 3]
+            })))
             .expect("payload rule");
         rules
-            .add_rule(RuleDef::FilterPacket(RuleFnDef::Static(|packet| packet.payload.is_none())))
+            .add_rule(RuleDef::FilterPacket(RuleFnDef::Static(|packet| {
+                packet.payload.is_none()
+            })))
             .expect("packet rule");
 
         rules.ignore(&[9, 9]).expect("ignore callback");
@@ -703,11 +714,10 @@ mod tests {
         assert!(!rules.filter_payload(&[7, 8]));
 
         let packet_no_payload = PacketDef::<RuleBlock, RulePayload, RulePayload>::default();
-        let packet_with_payload =
-            PacketDef::<RuleBlock, RulePayload, RulePayload>::new(
-                vec![],
-                Some(RulePayload::new(1)),
-            );
+        let packet_with_payload = PacketDef::<RuleBlock, RulePayload, RulePayload>::new(
+            vec![],
+            Some(RulePayload::new(1)),
+        );
         assert!(rules.filter_packet(&packet_no_payload));
         assert!(!rules.filter_packet(&packet_with_payload));
     }

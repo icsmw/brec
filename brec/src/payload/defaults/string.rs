@@ -71,8 +71,8 @@ mod tests {
     fn string_payload_roundtrip_and_signature() {
         let mut payload = String::from("hello");
 
-        let header =
-            PayloadHeader::new(&payload, &mut default_payload_context()).expect("header must build");
+        let header = PayloadHeader::new(&payload, &mut default_payload_context())
+            .expect("header must build");
         assert_eq!(header.payload_len(), 5);
         assert_eq!(payload.sig(), <String as StaticPayloadSignature>::ssig());
 

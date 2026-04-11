@@ -126,10 +126,11 @@ mod tests {
     #[test]
     fn stream_subscription_maps_callbacks_to_events() {
         let (tx, mut rx) = mpsc::unbounded_channel();
-        let mut sub = StreamSubscription::<TestBlock, TestPayload, TestPayload, DefaultPayloadContext> {
-            tx,
-            _phantom: PhantomData,
-        };
+        let mut sub =
+            StreamSubscription::<TestBlock, TestPayload, TestPayload, DefaultPayloadContext> {
+                tx,
+                _phantom: PhantomData,
+            };
 
         let update = <StreamSubscription<
             TestBlock,
@@ -237,13 +238,15 @@ mod tests {
 
     #[test]
     fn stream_subscription_swallows_send_errors() {
-        let (tx, rx) = mpsc::unbounded_channel::<FileObserverEvent<TestBlock, TestPayload, TestPayload>>();
+        let (tx, rx) =
+            mpsc::unbounded_channel::<FileObserverEvent<TestBlock, TestPayload, TestPayload>>();
         drop(rx);
 
-        let mut sub = StreamSubscription::<TestBlock, TestPayload, TestPayload, DefaultPayloadContext> {
-            tx,
-            _phantom: PhantomData,
-        };
+        let mut sub =
+            StreamSubscription::<TestBlock, TestPayload, TestPayload, DefaultPayloadContext> {
+                tx,
+                _phantom: PhantomData,
+            };
 
         assert_eq!(
             <StreamSubscription<

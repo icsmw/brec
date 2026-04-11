@@ -82,6 +82,9 @@ mod tests {
         let mut out_all = Vec::new();
         header.write_all(&mut out_all).expect("write_all must work");
         assert_eq!(out_all.len(), PacketHeader::SIZE as usize);
-        assert_eq!(out, out_all, "write and write_all must emit identical bytes");
+        assert_eq!(
+            out, out_all,
+            "write and write_all must emit identical bytes"
+        );
     }
 }

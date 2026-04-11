@@ -520,7 +520,10 @@ mod tests {
 
         match reader.read(&mut ()).expect("first read") {
             NextPacket::NotEnoughData(needed) => assert_eq!(needed, 2),
-            NextPacket::NoData | NextPacket::NotFound | NextPacket::Skipped | NextPacket::Found(_) => {
+            NextPacket::NoData
+            | NextPacket::NotFound
+            | NextPacket::Skipped
+            | NextPacket::Found(_) => {
                 panic!("expected NotEnoughData")
             }
         }

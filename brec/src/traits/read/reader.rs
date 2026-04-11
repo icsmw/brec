@@ -258,7 +258,10 @@ mod tests {
         reader.refill().expect("refill must work");
         assert_eq!(reader.buffer_len().expect("inner should be consumed"), 2);
         assert_eq!(reader.len().expect("len must work"), 5);
-        assert_eq!(reader.fill_buf().expect("fill_buf must work"), &[1, 2, 3, 4, 5]);
+        assert_eq!(
+            reader.fill_buf().expect("fill_buf must work"),
+            &[1, 2, 3, 4, 5]
+        );
 
         reader.consume(4);
         assert_eq!(reader.fill_buf().expect("fill_buf must work"), &[5]);
@@ -284,7 +287,9 @@ mod tests {
         assert!(reader.is_empty().expect("is_empty must work"));
 
         let mut out = [];
-        let read = reader.read(&mut out).expect("read with empty buffer must work");
+        let read = reader
+            .read(&mut out)
+            .expect("read with empty buffer must work");
         assert_eq!(read, 0);
     }
 }
