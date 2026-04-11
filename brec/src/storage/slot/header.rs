@@ -33,7 +33,9 @@ impl ReadFrom for SlotHeader {
         let mut sig = [0u8; 8];
         buf.read_exact(&mut sig)?;
         if sig != STORAGE_SLOT_SIG {
-            return Err(Error::SignatureDismatch(Unrecognized::payload(sig.to_vec())));
+            return Err(Error::SignatureDismatch(Unrecognized::payload(
+                sig.to_vec(),
+            )));
         }
 
         let mut capacity = [0u8; 8usize];
@@ -65,7 +67,9 @@ impl TryReadFrom for SlotHeader {
         buf.read_exact(&mut sig)?;
         if sig != STORAGE_SLOT_SIG {
             buf.seek(std::io::SeekFrom::Start(start_pos))?;
-            return Err(Error::SignatureDismatch(Unrecognized::payload(sig.to_vec())));
+            return Err(Error::SignatureDismatch(Unrecognized::payload(
+                sig.to_vec(),
+            )));
         }
 
         let mut capacity = [0u8; 8usize];

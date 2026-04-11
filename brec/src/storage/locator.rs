@@ -88,7 +88,9 @@ mod tests {
         assert_eq!(next, slots[0].size());
         assert_eq!(locator.current(), (0, 0));
 
-        locator.insert(&mut slots, 15).expect("insert into first slot");
+        locator
+            .insert(&mut slots, 15)
+            .expect("insert into first slot");
         assert_eq!(slots[0].lenghts[0], 15);
     }
 
@@ -103,7 +105,9 @@ mod tests {
         let slots = vec![first, second];
         let mut locator = FreeSlotLocator::default();
 
-        let next = locator.next(&slots).expect("must find free offset in second slot");
+        let next = locator
+            .next(&slots)
+            .expect("must find free offset in second slot");
         let expected_slot_offset = slots[0].size() + slots[0].width();
         let expected_next = expected_slot_offset + slots[1].size();
 
@@ -138,10 +142,13 @@ mod tests {
         let mut locator = FreeSlotLocator::default();
         locator.setup(slots.iter());
 
-        let expected_offset = slots[0].size() + slots[0].width() + slots[1].size() + slots[1].width();
+        let expected_offset =
+            slots[0].size() + slots[0].width() + slots[1].size() + slots[1].width();
         assert_eq!(locator.current(), (2, expected_offset));
 
-        let next = locator.next(&slots).expect("next free offset in third slot");
+        let next = locator
+            .next(&slots)
+            .expect("next free offset in third slot");
         assert_eq!(next, expected_offset + slots[2].size());
     }
 }

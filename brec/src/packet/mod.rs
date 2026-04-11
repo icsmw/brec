@@ -377,7 +377,9 @@ mod tests {
     }
 
     impl TryReadFrom for TestBlock {
-        fn try_read<T: std::io::Read + std::io::Seek>(_: &mut T) -> Result<ReadStatus<Self>, Error> {
+        fn try_read<T: std::io::Read + std::io::Seek>(
+            _: &mut T,
+        ) -> Result<ReadStatus<Self>, Error> {
             panic!("unexpected TestBlock::try_read(stream) call in packet::mod tests")
         }
     }
@@ -440,11 +442,8 @@ mod tests {
                 len: body.len() as u32,
             }
             .as_vec();
-            let header = PacketHeader::from_lengths(
-                0,
-                (payload_header.len() + body.len()) as u64,
-                true,
-            );
+            let header =
+                PacketHeader::from_lengths(0, (payload_header.len() + body.len()) as u64, true);
             header.write_all(&mut out).expect("header");
             out.extend_from_slice(&payload_header);
             out.extend_from_slice(&body);
@@ -488,11 +487,11 @@ mod tests {
             buffered: DecodeOutcome::NotEnough(11),
             stream: DecodeOutcome::ErrInvalidLength,
         };
-        let err = match PacketDef::<TestBlock, TestPayload, TestPayload>::filtered::<
-            _,
-            TestBlockRef,
-        >(&mut reader, &rules, &mut ctx)
-        {
+        let err = match PacketDef::<TestBlock, TestPayload, TestPayload>::filtered::<_, TestBlockRef>(
+            &mut reader,
+            &rules,
+            &mut ctx,
+        ) {
             Ok(_) => panic!("must be not enough"),
             Err(err) => err,
         };
@@ -507,11 +506,11 @@ mod tests {
             buffered: DecodeOutcome::ErrInvalidLength,
             stream: DecodeOutcome::Success,
         };
-        let err = match PacketDef::<TestBlock, TestPayload, TestPayload>::filtered::<
-            _,
-            TestBlockRef,
-        >(&mut reader, &rules, &mut ctx)
-        {
+        let err = match PacketDef::<TestBlock, TestPayload, TestPayload>::filtered::<_, TestBlockRef>(
+            &mut reader,
+            &rules,
+            &mut ctx,
+        ) {
             Ok(_) => panic!("must propagate decode error"),
             Err(err) => err,
         };
@@ -539,11 +538,11 @@ mod tests {
             buffered: DecodeOutcome::ErrCrcDismatch,
             stream: DecodeOutcome::NotEnough(13),
         };
-        let err = match PacketDef::<TestBlock, TestPayload, TestPayload>::filtered::<
-            _,
-            TestBlockRef,
-        >(&mut reader, &rules, &mut ctx)
-        {
+        let err = match PacketDef::<TestBlock, TestPayload, TestPayload>::filtered::<_, TestBlockRef>(
+            &mut reader,
+            &rules,
+            &mut ctx,
+        ) {
             Ok(_) => panic!("stream not enough"),
             Err(err) => err,
         };
@@ -554,11 +553,11 @@ mod tests {
             buffered: DecodeOutcome::ErrCrcDismatch,
             stream: DecodeOutcome::ErrInvalidLength,
         };
-        let err = match PacketDef::<TestBlock, TestPayload, TestPayload>::filtered::<
-            _,
-            TestBlockRef,
-        >(&mut reader, &rules, &mut ctx)
-        {
+        let err = match PacketDef::<TestBlock, TestPayload, TestPayload>::filtered::<_, TestBlockRef>(
+            &mut reader,
+            &rules,
+            &mut ctx,
+        ) {
             Ok(_) => panic!("stream error"),
             Err(err) => err,
         };

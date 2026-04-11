@@ -137,7 +137,10 @@ mod tests {
         assert!(matches!(Slot::read(&mut cursor), Err(Error::CrcDismatch)));
 
         let mut cursor = Cursor::new(bytes);
-        assert!(matches!(Slot::try_read(&mut cursor), Err(Error::CrcDismatch)));
+        assert!(matches!(
+            Slot::try_read(&mut cursor),
+            Err(Error::CrcDismatch)
+        ));
     }
 
     #[test]

@@ -82,7 +82,10 @@ mod tests {
 
         anchored.insert(11).expect("insert first");
         assert_eq!(anchored.get_free_slot_index(), Some(1));
-        assert_eq!(anchored.get_slot_offset(1), Some(anchored.inner.size() + 11));
+        assert_eq!(
+            anchored.get_slot_offset(1),
+            Some(anchored.inner.size() + 11)
+        );
         assert_eq!(anchored.width(), 11);
         assert!(matches!(anchored.is_empty(0), Ok(false)));
 

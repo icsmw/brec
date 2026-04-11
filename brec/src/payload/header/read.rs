@@ -150,7 +150,9 @@ impl TryReadFromBuffered for PayloadHeader {
 
 #[cfg(test)]
 mod tests {
-    use crate::{ByteBlock, Error, PayloadHeader, ReadFrom, ReadStatus, TryReadFrom, TryReadFromBuffered};
+    use crate::{
+        ByteBlock, Error, PayloadHeader, ReadFrom, ReadStatus, TryReadFrom, TryReadFromBuffered,
+    };
     use std::io::{BufReader, Cursor, Seek};
 
     fn sample_header_bytes() -> Vec<u8> {

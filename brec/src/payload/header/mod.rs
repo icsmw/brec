@@ -114,7 +114,10 @@ impl PayloadHeader {
 
 #[cfg(test)]
 mod tests {
-    use crate::{ByteBlock, PayloadCrc, PayloadEncode, PayloadEncodeReferred, PayloadHeader, PayloadHooks, PayloadSchema, PayloadSignature, PayloadSize};
+    use crate::{
+        ByteBlock, PayloadCrc, PayloadEncode, PayloadEncodeReferred, PayloadHeader, PayloadHooks,
+        PayloadSchema, PayloadSignature, PayloadSize,
+    };
 
     struct DemoPayload(Vec<u8>);
 

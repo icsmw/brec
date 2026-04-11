@@ -514,7 +514,10 @@ mod tests {
 
         let second_base = slots[0].size() + slots[0].width();
         assert_eq!(*second.start(), second_base + slots[1].size());
-        assert_eq!(*second.end(), second_base + slots[1].size() + slots[1].width());
+        assert_eq!(
+            *second.end(),
+            second_base + slots[1].size() + slots[1].width()
+        );
     }
 
     #[test]
@@ -524,7 +527,9 @@ mod tests {
         let slots = [empty, used];
         let mut it = PacketsLocatorIterator::new(slots.iter());
 
-        let range = it.from(0).expect("first packet should resolve in second slot");
+        let range = it
+            .from(0)
+            .expect("first packet should resolve in second slot");
         let base = slots[0].size() + slots[0].width();
         assert_eq!(*range.start(), base + slots[1].size());
         assert_eq!(*range.end(), base + slots[1].size() + slots[1].width());
