@@ -14,10 +14,12 @@ if ! command -v lcov >/dev/null 2>&1; then
   exit 1
 fi
 
-find "${ROOT_DIR}" -type f -path '*/coverage_results/lcov.info' 2>/dev/null | sort -u > "${SOURCES_LIST}"
+find "${ROOT_DIR}" -type f \
+  \( -path '*/coverage_results/lcov.info' -o -path '*/coverage_results/*.lcov.info' \) \
+  2>/dev/null | sort -u > "${SOURCES_LIST}"
 
 if [[ ! -s "${SOURCES_LIST}" ]]; then
-  echo "No lcov.info files found under ${ROOT_DIR}" >&2
+  echo "No coverage tracefiles found under ${ROOT_DIR}" >&2
   exit 1
 fi
 

@@ -16,8 +16,20 @@ if ! cargo llvm-cov --version >/dev/null 2>&1; then
   cargo install cargo-llvm-cov --locked
 fi
 
-echo "Ensuring llvm-tools-preview is installed..."
+echo "Ensuring nightly toolchain is installed..."
+rustup toolchain install nightly
+
+echo "Ensuring llvm-tools-preview is installed for stable and nightly..."
 rustup component add llvm-tools-preview
+rustup component add llvm-tools-preview --toolchain nightly
+
+echo "Ensuring wasm32 target is installed for nightly..."
+rustup target add wasm32-unknown-unknown --toolchain nightly
+
+if ! command -v wasm-bindgen-test-runner >/dev/null 2>&1; then
+  echo "Installing wasm-bindgen CLI (includes wasm-bindgen-test-runner)..."
+  cargo install wasm-bindgen-cli --locked
+fi
 
 if ! command -v lcov >/dev/null 2>&1; then
   echo "lcov not found in PATH, installing..."
