@@ -6,3 +6,5 @@ cargo test --features locked_storage -- --nocapture
 cargo test --features observer -- --nocapture
 cargo test --features crypt -- --nocapture
 cargo test --features bincode -- --nocapture
+cargo test --features napi -- --nocapture
+cargo test --features wasm -- --nocapture

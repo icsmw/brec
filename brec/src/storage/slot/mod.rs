@@ -256,7 +256,7 @@ impl Iterator for SlotIterator<'_> {
 #[cfg(test)]
 mod tests {
     use super::Slot;
-    use crate::{CrcU32, Error, Size, StaticSize, STORAGE_SLOT_SIG};
+    use crate::{CrcU32, Error, STORAGE_SLOT_SIG, Size, StaticSize};
 
     #[test]
     fn slot_default_shape_and_crc_are_valid() {

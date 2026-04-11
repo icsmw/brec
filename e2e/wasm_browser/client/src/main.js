@@ -1,121 +1,125 @@
 import init, { decode_packet, encode_packet } from 'wasmjs';
 
-const statusEl = document.getElementById('status');
-const rxEl = document.getElementById('rx');
-const txEl = document.getElementById('tx');
-const rxBytesEl = document.getElementById('rx-bytes');
-const txBytesEl = document.getElementById('tx-bytes');
-const errorEl = document.getElementById('error');
+const ui = {
+  status: document.getElementById('status'),
+  rx: document.getElementById('rx'),
+  tx: document.getElementById('tx'),
+  rxBytes: document.getElementById('rx-bytes'),
+  txBytes: document.getElementById('tx-bytes'),
+  error: document.getElementById('error'),
+};
 
-let rx = 0;
-let tx = 0;
-let rxBytes = 0;
-let txBytes = 0;
+class Tracking {
+  constructor(elements) {
+    this.ui = elements;
+    this.rx = 0;
+    this.tx = 0;
+    this.rxBytes = 0;
+    this.txBytes = 0;
+    this.status = 'init';
+    this.error = null;
+  }
 
-function setStatus(text) {
-  statusEl.textContent = text;
+  setStatus(text) {
+    this.ui.status.textContent = text;
+    this.status = text;
+  }
+
+  setError(text) {
+    this.ui.error.textContent = text;
+    this.setStatus('error');
+    this.error = text;
+    console.error('[client] error:', text);
+  }
+
+  asUint8Array(data) {
+    if (data instanceof ArrayBuffer) {
+      return new Uint8Array(data);
+    }
+    if (ArrayBuffer.isView(data)) {
+      return new Uint8Array(data.buffer, data.byteOffset, data.byteLength);
+    }
+    if (data instanceof Blob) {
+      return data.arrayBuffer().then((buf) => new Uint8Array(buf));
+    }
+    throw new Error(`Unsupported WS binary type: ${Object.prototype.toString.call(data)}`);
+  }
+
+  addRxBytes(count) {
+    this.rxBytes += count;
+  }
+
+  addTxBytes(count) {
+    this.txBytes += count;
+  }
+
+  incPackets() {
+    this.rx += 1;
+    this.tx += 1;
+  }
+
+  render() {
+    this.ui.rx.textContent = `received: ${this.rx}`;
+    this.ui.tx.textContent = `sent: ${this.tx}`;
+    this.ui.rxBytes.textContent = `received bytes: ${this.rxBytes}`;
+    this.ui.txBytes.textContent = `sent bytes: ${this.txBytes}`;
+  }
+
+  printStatus() {
+    console.log(
+      `[client] status packets_rx=${this.rx} packets_tx=${this.tx} bytes_rx=${this.rxBytes} bytes_tx=${this.txBytes}`,
+    );
+  }
+
+  summaryLine() {
+    return `CLIENT_SUMMARY packets_rx=${this.rx} packets_tx=${this.tx} bytes_rx=${this.rxBytes} bytes_tx=${this.txBytes}`;
+  }
 }
 
-function setError(text) {
-  errorEl.textContent = text;
-  setStatus('error');
-  console.error('[client] error:', text);
-}
-
-function asUint8Array(data) {
-  if (data instanceof ArrayBuffer) {
-    return new Uint8Array(data);
-  }
-  if (ArrayBuffer.isView(data)) {
-    return new Uint8Array(data.buffer, data.byteOffset, data.byteLength);
-  }
-  if (data instanceof Blob) {
-    return data.arrayBuffer().then((buf) => new Uint8Array(buf));
-  }
-  throw new Error(`Unsupported WS binary type: ${Object.prototype.toString.call(data)}`);
-}
-
-function variantName(value) {
-  if (value == null) {
-    return 'none';
-  }
-  if (typeof value !== 'object') {
-    return String(value);
-  }
-
-  if (typeof value.kind === 'string') {
-    return value.kind;
-  }
-  if (typeof value.type === 'string') {
-    return value.type;
-  }
-
-  const keys = Object.keys(value);
-  if (keys.length === 1) {
-    return keys[0];
-  }
-  return 'unknown';
-}
-
-function describePacket(packet) {
-  const blocks = Array.isArray(packet.blocks)
-    ? packet.blocks.map((b) => variantName(b)).join(', ')
-    : '';
-  const payload = variantName(packet.payload ?? null);
-  return `got packet: blocks: [${blocks}], payload: ${payload}`;
-}
 
 async function run() {
+  const tracking = new Tracking(ui);
   await init();
 
   const params = new URLSearchParams(window.location.search);
   const wsUrl = params.get('ws') ?? 'ws://127.0.0.1:19001';
 
-  setStatus(`connecting ${wsUrl}`);
+  tracking.setStatus(`connecting ${wsUrl}`);
 
   const ws = new WebSocket(wsUrl);
   ws.binaryType = 'arraybuffer';
 
   ws.onopen = () => {
-    setStatus('connected');
+    tracking.setStatus('connected');
   };
 
   ws.onerror = () => {
-    setError('websocket error');
+    tracking.setError('websocket error');
   };
 
   ws.onclose = () => {
-    if (statusEl.textContent !== 'error') {
-      setStatus('done');
+    if (tracking.status !== 'error') {
+      tracking.setStatus('done');
     }
-    window.__wsEcho = { rx, tx, rxBytes, txBytes, status: statusEl.textContent };
-    console.log(
-      `CLIENT_SUMMARY packets_rx=${rx} packets_tx=${tx} bytes_rx=${rxBytes} bytes_tx=${txBytes}`,
-    );
+    console.log(tracking.summaryLine());
   };
 
   ws.onmessage = async (event) => {
     try {
-      const inBytes = await asUint8Array(event.data);
-      rxBytes += inBytes.length;
+      const inBytes = await tracking.asUint8Array(event.data);
+      tracking.addRxBytes(inBytes.length);
       const packet = decode_packet(inBytes);
-      console.log(`[client] ${describePacket(packet)}`);
-      const outBytes = encode_packet(packet.blocks, packet.payload ?? null);
-      txBytes += outBytes.length;
+      tracking.printStatus();
+      const outBytes = encode_packet(packet);
+      tracking.addTxBytes(outBytes.length);
 
       ws.send(outBytes);
 
-      rx += 1;
-      tx += 1;
-      rxEl.textContent = `received: ${rx}`;
-      txEl.textContent = `sent: ${tx}`;
-      rxBytesEl.textContent = `received bytes: ${rxBytes}`;
-      txBytesEl.textContent = `sent bytes: ${txBytes}`;
-      window.__wsEcho = { rx, tx, rxBytes, txBytes, status: statusEl.textContent };
+      tracking.incPackets();
+      tracking.render();
     } catch (err) {
       const message = err instanceof Error ? err.stack ?? err.message : String(err);
-      setError(message);
-      window.__wsEcho = { rx, tx, rxBytes, txBytes, status: 'error', error: message };
+      tracking.setError(message);
       ws.close();
     }
   };
@@ -123,6 +127,5 @@ async function run() {
 
 run().catch((err) => {
   const message = err instanceof Error ? err.stack ?? err.message : String(err);
-  setError(message);
-  window.__wsEcho = { rx, tx, rxBytes, txBytes, status: 'error', error: message };
+  console.error('[client] error:', message);
 });

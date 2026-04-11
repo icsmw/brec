@@ -5,7 +5,16 @@
 pub mod crypt;
 #[cfg(feature = "napi")]
 #[path = "napi/mod.rs"]
+/// N-API (Node.js) conversion helpers.
+///
+/// See: <https://icsmw.github.io/brec/integrations/napi/>
 pub mod napi_feature;
+#[cfg(feature = "wasm")]
+#[path = "wasm/mod.rs"]
+/// wasm-bindgen conversion helpers for browser/wasm JavaScript runtimes.
+///
+/// See: <https://icsmw.github.io/brec/integrations/wasm/>
+pub mod wasm_feature;
 #[cfg(feature = "bincode")]
 pub use bincode;
 #[cfg(test)]
@@ -46,3 +55,5 @@ pub use crate::error::*;
 pub use crate::napi_feature::*;
 pub use crate::packet::*;
 pub use crate::traits::*;
+#[cfg(feature = "wasm")]
+pub use crate::wasm_feature::*;

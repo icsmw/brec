@@ -13,7 +13,7 @@
     "wasmjs": "file:../bindings/pkg"
   },
   "devDependencies": {
-    "@playwright/test": "^1.55.0",
+    "@playwright/test": "1.58.2",
     "vite": "^6.4.0"
   }
 }

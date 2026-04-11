@@ -73,7 +73,7 @@ If your payload uses `#[payload(bincode, crypt)]`, you need both:
 
 With `bincode`, the payload gets automatic encode/decode support, so you do not have to manually implement the payload traits just to use encryption.
 
-If you need the runtime-state side of this model first, see [Payload Context](context.md).
+If you need the runtime-state side of this model first, see [Payload Context](../parts/context.md).
 
 ## Core idea
 

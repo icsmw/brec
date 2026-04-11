@@ -1,6 +1,6 @@
 use brec::prelude::*;
 
-#[derive(serde::Deserialize, serde::Serialize, PartialEq, PartialOrd, Debug, Clone)]
+#[derive(serde::Deserialize, serde::Serialize, PartialEq, PartialOrd, Debug, Clone, brec::Wasm)]
 pub struct NestedStructCA {
     pub field_u8: u8,
     pub field_u16: u16,
@@ -31,7 +31,7 @@ impl Arbitrary for NestedStructCA {
     }
 }
 
-#[derive(serde::Deserialize, serde::Serialize, PartialEq, PartialOrd, Debug, Clone)]
+#[derive(serde::Deserialize, serde::Serialize, PartialEq, PartialOrd, Debug, Clone, brec::Wasm)]
 pub struct NestedStructCB {
     pub field_i8: i8,
     pub field_i16: i16,
@@ -59,7 +59,7 @@ impl Arbitrary for NestedStructCB {
     }
 }
 
-#[derive(serde::Deserialize, serde::Serialize, PartialEq, PartialOrd, Debug, Clone)]
+#[derive(serde::Deserialize, serde::Serialize, PartialEq, PartialOrd, Debug, Clone, brec::Wasm)]
 pub struct NestedStructCC {
     pub field_bool: bool,
     pub field_str: String,
@@ -87,7 +87,7 @@ impl Arbitrary for NestedStructCC {
     }
 }
 
-#[derive(serde::Deserialize, serde::Serialize, PartialEq, PartialOrd, Debug, Clone)]
+#[derive(serde::Deserialize, serde::Serialize, PartialEq, PartialOrd, Debug, Clone, brec::Wasm)]
 pub enum NestedEnumC {
     One(String),
     Two(Vec<u8>),

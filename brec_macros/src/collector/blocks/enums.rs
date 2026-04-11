@@ -24,6 +24,11 @@ pub fn generate(
     } else {
         quote! {}
     };
+    let wasm_impl = if cfg!(feature = "wasm") {
+        super::wasm::generate_wasm_impl(blocks)?
+    } else {
+        quote! {}
+    };
     Ok(quote! {
         #derives
         #[allow(non_snake_case)]
@@ -33,6 +38,7 @@ pub fn generate(
 
         impl brec::BlockDef for Block {}
         #napi_impl
+        #wasm_impl
     })
 }
 

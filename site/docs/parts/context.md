@@ -22,7 +22,7 @@ Typical examples:
 - external lookup state
 - user-defined runtime options
 
-For the built-in crypto integration that uses this mechanism, see [Crypt](crypt.md).
+For the built-in crypto integration that uses this mechanism, see [Crypt](../features/crypt.md).
 
 Instead of passing an arbitrary generic options type through the whole API, `brec` binds a context type to the payload family through `PayloadSchema`.
 

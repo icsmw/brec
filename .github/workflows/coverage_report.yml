@@ -24,6 +24,9 @@ jobs:
       - name: Setup Rust
         run: rustup update
 
+      - name: Ensure nightly toolchain
+        run: rustup toolchain install nightly
+
       - name: Run coverage
         run: bash ./coverage.sh
 

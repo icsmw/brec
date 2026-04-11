@@ -14,7 +14,9 @@ default    = []
 test-utils = ["dep:proptest"]
 
 [dependencies]
-brec      = { workspace = true, features = ["bincode"] }
+brec      = { workspace = true, features = ["bincode", "wasm"] }
+wasm-bindgen = { workspace = true }
+js-sys    = { workspace = true }
 serde     = { workspace = true, features = ["derive"] }
 thiserror = "2.0"
 proptest  = { version = "1.10", optional = true }

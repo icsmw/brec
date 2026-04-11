@@ -372,7 +372,8 @@ mod tests {
     use crate::{RuleDef, RuleFnDef, tests::*};
     use std::io::Cursor;
 
-    type ReaderUnderTest = ReaderDef<Cursor<Vec<u8>>, TestBlock, TestBlock, TestPayload, TestPayload>;
+    type ReaderUnderTest =
+        ReaderDef<Cursor<Vec<u8>>, TestBlock, TestBlock, TestPayload, TestPayload>;
 
     fn empty_reader() -> ReaderUnderTest {
         ReaderDef::new(Cursor::new(Vec::new())).expect("reader must initialize on empty source")
@@ -387,7 +388,12 @@ mod tests {
 
         assert_eq!(reader.reload().expect("reload on empty"), 0);
         assert!(reader.nth(0, &mut ()).expect("nth").is_none());
-        assert!(reader.nth_filtered(0, &mut ()).expect("nth_filtered").is_none());
+        assert!(
+            reader
+                .nth_filtered(0, &mut ())
+                .expect("nth_filtered")
+                .is_none()
+        );
 
         assert!(matches!(reader.seek(0, &mut ()), Err(Error::EmptySource)));
         assert!(reader.iter(&mut ()).next().is_none());
