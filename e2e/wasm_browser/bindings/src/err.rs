@@ -3,21 +3,13 @@ use wasm_bindgen::JsValue;
 
 #[derive(Error, Debug)]
 pub enum ConvertorError {
-    #[error("Write error {0}")]
-    WriteError(String),
-    #[error("Read error {0}")]
-    ReadError(String),
-    #[error("Payload header reading: {0}")]
-    PayloadHeaderReading(String),
-    #[error("Serialize error: {0}")]
-    SerializeError(String),
-    #[error("Serde error: {0}")]
-    Serde(serde_wasm_bindgen::Error),
+    #[error("Conversion error: {0}")]
+    Conversion(String),
 }
 
-impl From<serde_wasm_bindgen::Error> for ConvertorError {
-    fn from(err: serde_wasm_bindgen::Error) -> Self {
-        Self::Serde(err)
+impl From<brec::Error> for ConvertorError {
+    fn from(err: brec::Error) -> Self {
+        Self::Conversion(err.to_string())
     }
 }
 

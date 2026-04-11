@@ -6,6 +6,9 @@ pub mod crypt;
 #[cfg(feature = "napi")]
 #[path = "napi/mod.rs"]
 pub mod napi_feature;
+#[cfg(feature = "wasm")]
+#[path = "wasm/mod.rs"]
+pub mod wasm_feature;
 #[cfg(feature = "bincode")]
 pub use bincode;
 #[cfg(test)]
@@ -46,3 +49,5 @@ pub use crate::error::*;
 pub use crate::napi_feature::*;
 pub use crate::packet::*;
 pub use crate::traits::*;
+#[cfg(feature = "wasm")]
+pub use crate::wasm_feature::*;

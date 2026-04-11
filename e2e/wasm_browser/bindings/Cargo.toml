@@ -10,10 +10,8 @@ license     = "Apache-2.0"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-serde    = { workspace = true, features = ["derive"] }
 protocol = { path = "../protocol" }
 brec = { workspace = true, features = ["bincode"] }
 
 wasm-bindgen       = { workspace = true }
-serde-wasm-bindgen = { workspace = true }
 thiserror          = { workspace = true }

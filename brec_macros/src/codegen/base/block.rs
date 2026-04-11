@@ -89,6 +89,11 @@ impl Gen for Block {
         } else {
             quote! {}
         };
+        let wasm = if cfg!(feature = "wasm") {
+            self.generate_wasm()?
+        } else {
+            quote! {}
+        };
         Ok(quote! {
             #base
             #crc
@@ -100,6 +105,7 @@ impl Gen for Block {
             #write
             #write_vec
             #napi
+            #wasm
         })
     }
 }

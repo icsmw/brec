@@ -7,6 +7,7 @@ mod enums;
 mod napi;
 mod props;
 mod read;
+mod wasm;
 mod write;
 
 pub fn generate(blocks: Vec<&Block>, cfg: &Config) -> Result<TokenStream, E> {

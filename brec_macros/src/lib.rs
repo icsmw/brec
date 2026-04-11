@@ -317,6 +317,22 @@ pub fn derive_napi(input: TokenStream) -> TokenStream {
     }
 }
 
+/// Derives `brec::WasmConvert` for regular Rust `struct` / `enum` types.
+///
+/// Use it for nested types used inside `#[payload]` objects when `wasm` conversion
+/// should be schema-driven and lossless for numeric edge cases.
+#[proc_macro_derive(Wasm)]
+pub fn derive_wasm(input: TokenStream) -> TokenStream {
+    let input = parse_macro_input!(input as DeriveInput);
+    let name = &input.ident;
+    match codegen::generate_wasm_impl(name, &input.data) {
+        Ok(tokens) => tokens.into(),
+        Err(err) => syn::Error::new_spanned(&input, err)
+            .to_compile_error()
+            .into(),
+    }
+}
+
 /// Inserts the generated glue code that connects user-defined `Block` and `Payload` types with the `brec` framework.
 ///
 /// This macro must be called exactly once per crate and is responsible for:

@@ -1,12 +1,15 @@
-FROM mcr.microsoft.com/playwright:v1.55.0-jammy
+FROM mcr.microsoft.com/playwright:v1.58.2-jammy
 
 WORKDIR /workspace
 
-COPY . .
+ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
 
+COPY client/package*.json ./client/
+COPY bindings/pkg ./bindings/pkg
 WORKDIR /workspace/client
 
-RUN npm install
-RUN npx playwright install chromium
+RUN npm ci
+
+COPY client ./
 
 CMD ["npm", "run", "test:e2e"]

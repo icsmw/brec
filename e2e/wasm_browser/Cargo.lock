@@ -34,8 +34,6 @@ version = "0.1.0"
 dependencies = [
  "brec",
  "protocol",
- "serde",
- "serde-wasm-bindgen",
  "thiserror",
  "wasm-bindgen",
 ]
@@ -79,7 +77,9 @@ dependencies = [
  "brec_macros",
  "crc32fast",
  "enum_ids",
+ "js-sys",
  "thiserror",
+ "wasm-bindgen",
 ]
 
 [[package]]
@@ -426,9 +426,11 @@ name = "protocol"
 version = "0.1.0"
 dependencies = [
  "brec",
+ "js-sys",
  "proptest",
  "serde",
  "thiserror",
+ "wasm-bindgen",
 ]
 
 [[package]]
@@ -535,17 +537,6 @@ checksum = "9a8e94ea7f378bd32cbbd37198a4a91436180c5bb472411e48b5ec2e2124ae9e"
 dependencies = [
  "serde_core",
  "serde_derive",
-]
-
-[[package]]
-name = "serde-wasm-bindgen"
-version = "0.6.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8302e169f0eddcc139c70f139d19d6467353af16f9fce27e8c30158036a1e16b"
-dependencies = [
- "js-sys",
- "serde",
- "wasm-bindgen",
 ]
 
 [[package]]
