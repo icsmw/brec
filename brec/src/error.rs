@@ -7,6 +7,8 @@ use crate::crypt::CryptError;
 use crate::napi_feature::NapiError;
 #[cfg(feature = "observer")]
 use crate::storage::SensorError;
+#[cfg(feature = "wasm")]
+use crate::wasm_feature::WasmError;
 
 /// Signature bytes that were read but did not match known block/payload signatures.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -247,6 +249,10 @@ pub enum Error {
     /// Wrapper over `NapiError` when the `napi` feature is enabled.
     #[error("Napi: {0}")]
     Napi(#[from] NapiError),
+    #[cfg(feature = "wasm")]
+    /// Wrapper over `WasmError` when the `wasm` feature is enabled.
+    #[error("Wasm: {0}")]
+    Wasm(#[from] WasmError),
     /// Sentinel error variant used in tests.
     #[error("Test error has been fired")]
     Test,

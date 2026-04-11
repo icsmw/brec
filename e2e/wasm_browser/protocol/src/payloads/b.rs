@@ -64,15 +64,7 @@ impl Arbitrary for PayloadB {
         )
             .prop_map(
                 move |(
-                    (
-                        vec_u8,
-                        vec_u16,
-                        vec_u32,
-                        vec_i8,
-                        vec_i16,
-                        vec_i32,
-                        vec_str,
-                    ),
+                    (vec_u8, vec_u16, vec_u32, vec_i8, vec_i16, vec_i32, vec_str),
                     (
                         field_u8,
                         field_u16,

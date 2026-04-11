@@ -53,6 +53,11 @@ pub fn generate(
     } else {
         quote! {}
     };
+    let wasm_impl = if cfg!(feature = "wasm") {
+        super::wasm::generate_wasm_impl(&payloads, cfg)?
+    } else {
+        quote! {}
+    };
     Ok(quote! {
         #context_def
 
@@ -73,6 +78,7 @@ pub fn generate(
 
         impl brec::PayloadDef<Payload> for Payload {}
         #napi_impl
+        #wasm_impl
 
     })
 }

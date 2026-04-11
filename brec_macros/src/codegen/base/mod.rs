@@ -1,6 +1,7 @@
 mod block;
 mod napi;
 mod payload;
+mod wasm;
 
 use crate::*;
 use proc_macro2::TokenStream;

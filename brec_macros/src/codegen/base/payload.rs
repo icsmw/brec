@@ -121,6 +121,11 @@ impl Base for Payload {
         } else {
             quote! {}
         };
+        let wasm_impl = if cfg!(feature = "wasm") {
+            self.generate_wasm()?
+        } else {
+            quote! {}
+        };
         Ok(quote! {
             #sig_impl
             #hooks_impl
@@ -128,6 +133,7 @@ impl Base for Payload {
             #bincode_impl
             #crypt_and_bincode_impl
             #napi_impl
+            #wasm_impl
         })
     }
 }

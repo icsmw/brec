@@ -29,6 +29,7 @@ locked_storage      = []
 observer            = []
 resilient           = []
 napi                = []
+wasm                = []
 
 [dependencies]
 thiserror.workspace   = true
