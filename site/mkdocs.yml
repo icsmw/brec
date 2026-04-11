@@ -11,9 +11,12 @@ nav:
       - Blocks: parts/blocks.md
       - Payloads: parts/payloads.md
       - Payload Context: parts/context.md
-      - Crypt: parts/crypt.md
-      - NAPI (Rust <-> JS): parts/napi.md
       - Packets: parts/packets.md
+  - Features:
+      - Crypt: features/crypt.md
+  - Integrations:
+      - NAPI (Rust <-> JS): integrations/napi.md
+      - WASM (Rust <-> JS): integrations/wasm.md
   - Code Generation: code_generation.md
   - Protocol Tools:
       - Buffer: tools/buffer.md

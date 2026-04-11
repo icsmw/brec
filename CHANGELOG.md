@@ -3,7 +3,9 @@
 ### Added
 
 - Rust feature flag `napi`: direct Rust <-> JavaScript object conversion for generated `Block`, `Payload`, and `PacketDef` protocol types.
+- Rust feature flag `wasm`: direct Rust <-> JavaScript object conversion for generated `Block`, `Payload`, and `PacketDef` protocol types in `wasm-bindgen` runtimes.
 - Dedicated documentation section for N-API usage, JS reflection model, and nested payload requirements.
+- Dedicated documentation section for WASM usage, JS reflection model, and nested payload requirements.
 
 ## 0.3.0 (20.03.2026)
 

@@ -89,6 +89,18 @@ pub fn decode_packet<'env>(env: &'env napi::Env, buf: napi::bindgen_prelude::Buf
     Packet::decode_napi(env, buf, &mut ctx)
         .map_err(|e| napi::Error::from_reason(format!("decode packet: {e}")))
 }
+
+#[napi]
+pub fn encode_packet(
+    env: napi::Env,
+    packet: napi::Unknown<'_>,
+) -> napi::Result<napi::bindgen_prelude::Buffer> {
+    let mut ctx = ();
+    let mut out = Vec::new();
+    Packet::encode_napi(&env, packet, &mut out, &mut ctx)
+        .map_err(|e| napi::Error::from_reason(format!("encode packet: {e}")))?;
+    Ok(out.into())
+}
 ```
 
 Reference implementation in this repository:
@@ -190,3 +202,7 @@ Generated protocol types expose NAPI helper methods:
 - `encode_napi(...)` - JS object -> bytes
 
 For packet and payload paths, context is passed explicitly (`ctx`) exactly like in regular Rust encode/decode flows.
+
+## See Also
+
+- [WASM (Rust <-> JS)](./wasm.md)
