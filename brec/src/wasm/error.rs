@@ -29,3 +29,55 @@ impl WasmError {
         Self::InvalidField(name.into(), err.to_string()).into()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::Error;
+    #[cfg(target_arch = "wasm32")]
+    use wasm_bindgen_test::wasm_bindgen_test;
+
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    #[cfg_attr(not(target_arch = "wasm32"), test)]
+    fn wasm_error_display_messages_are_stable() {
+        let invalid_object = WasmError::InvalidObject("bad root".to_owned());
+        assert_eq!(invalid_object.to_string(), "Invalid JS object: bad root");
+
+        let missing = WasmError::MissingField("payload".to_owned());
+        assert_eq!(missing.to_string(), "Missing field: payload");
+
+        let invalid_field = WasmError::InvalidField("u64".to_owned(), "expected BigInt".to_owned());
+        assert_eq!(
+            invalid_field.to_string(),
+            "Invalid field value for u64: expected BigInt"
+        );
+
+        let shape = WasmError::InvalidAggregatorShape("missing packets".to_owned());
+        assert_eq!(
+            shape.to_string(),
+            "Invalid aggregator object shape: missing packets"
+        );
+    }
+
+    #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
+    #[cfg_attr(not(target_arch = "wasm32"), test)]
+    fn invalid_field_helpers_wrap_into_crate_error() {
+        let by_hint = WasmError::invalid_field(WasmFieldHint::U16, "not a number");
+        match by_hint {
+            Error::Wasm(WasmError::InvalidField(name, message)) => {
+                assert_eq!(name, "u16");
+                assert_eq!(message, "not a number");
+            }
+            other => panic!("unexpected error variant: {other:?}"),
+        }
+
+        let by_name = WasmError::invalid_field_name("custom_field", "broken");
+        match by_name {
+            Error::Wasm(WasmError::InvalidField(name, message)) => {
+                assert_eq!(name, "custom_field");
+                assert_eq!(message, "broken");
+            }
+            other => panic!("unexpected error variant: {other:?}"),
+        }
+    }
+}
