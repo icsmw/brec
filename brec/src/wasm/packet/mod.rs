@@ -121,9 +121,9 @@ impl WasmConvert for f64 {
 
 impl<T: WasmConvert> WasmConvert for Vec<T> {
     fn to_wasm_value(&self) -> Result<JsValue, Error> {
-        let arr = Array::new();
-        for item in self {
-            arr.push(&item.to_wasm_value()?);
+        let arr = Array::new_with_length(self.len() as u32);
+        for (idx, item) in self.iter().enumerate() {
+            arr.set(idx as u32, item.to_wasm_value()?);
         }
         Ok(arr.into())
     }
@@ -135,7 +135,9 @@ impl<T: WasmConvert> WasmConvert for Vec<T> {
                 "expected array",
             ));
         }
-        let arr = Array::from(&value);
+        let arr = value
+            .dyn_into::<Array>()
+            .map_err(|_| WasmError::invalid_field(WasmFieldHint::Vec, "expected array"))?;
         let mut out = Vec::with_capacity(arr.length() as usize);
         for idx in 0..arr.length() {
             out.push(T::from_wasm_value(arr.get(idx))?);
@@ -193,9 +195,9 @@ impl<B: BlockDef + WasmObject, P: PayloadDef<Inner>, Inner: PayloadInnerDef + Wa
     /// Converts packet into `{ blocks: Array<{}>, payload: {} | null }`.
     pub fn to_wasm_object(&self) -> Result<JsValue, Error> {
         let obj = js_sys::Object::new();
-        let blocks = Array::new();
-        for block in self.blocks.iter() {
-            blocks.push(&block.to_wasm_object()?);
+        let blocks = Array::new_with_length(self.blocks.len() as u32);
+        for (idx, block) in self.blocks.iter().enumerate() {
+            blocks.set(idx as u32, block.to_wasm_object()?);
         }
         set_field(
             &obj,
@@ -235,22 +237,21 @@ impl<B: BlockDef + WasmObject, P: PayloadDef<Inner>, Inner: PayloadInnerDef + Wa
             })?);
         }
 
-        let payload =
-            if Reflect::has(&obj, &JsValue::from_str(PAYLOAD_FIELD_NAME)).map_err(|_| {
-                WasmError::invalid_field(WasmFieldHint::Payload, "failed to inspect payload")
-            })? {
-                let raw =
-                    Reflect::get(&obj, &JsValue::from_str(PAYLOAD_FIELD_NAME)).map_err(|_| {
-                        WasmError::invalid_field(WasmFieldHint::Payload, "failed to read payload")
-                    })?;
-                if raw.is_null() || raw.is_undefined() {
-                    None
-                } else {
-                    Some(Inner::from_wasm_object(raw)?)
-                }
-            } else {
+        let payload_key = JsValue::from_str(PAYLOAD_FIELD_NAME);
+        let payload = if Reflect::has(&obj, &payload_key).map_err(|_| {
+            WasmError::invalid_field(WasmFieldHint::Payload, "failed to inspect payload")
+        })? {
+            let raw = Reflect::get(&obj, &payload_key).map_err(|_| {
+                WasmError::invalid_field(WasmFieldHint::Payload, "failed to read payload")
+            })?;
+            if raw.is_null() || raw.is_undefined() {
                 None
-            };
+            } else {
+                Some(Inner::from_wasm_object(raw)?)
+            }
+        } else {
+            None
+        };
 
         Ok(Self::new(blocks, payload))
     }
