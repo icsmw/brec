@@ -3,9 +3,9 @@
 **/target
 
 # Node artifacts
-client/node_modules
-client/test-results
-client/playwright-report
+**/node_modules
+**/test-results
+**/playwright-report
 
 # Temp/runtime logs
 .server_e2e.log

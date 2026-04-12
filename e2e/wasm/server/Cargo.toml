@@ -3,7 +3,7 @@ name        = "server"
 version     = "0.1.0"
 edition     = "2024"
 authors     = ["d.astafyev@outlook.com"]
-description = "WebSocket server skeleton for wasm_browser cross-platform example"
+description = "WebSocket server skeleton for wasm browser/node cross-platform example"
 license     = "Apache-2.0"
 
 [dependencies]

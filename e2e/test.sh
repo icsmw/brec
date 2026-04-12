@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-cd ./wasm_browser
+cd ./wasm
 bash ./test.sh
 cd ..
 

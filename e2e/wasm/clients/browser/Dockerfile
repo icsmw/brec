@@ -4,12 +4,12 @@ WORKDIR /workspace
 
 ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
 
-COPY client/package*.json ./client/
-COPY bindings/pkg ./bindings/pkg
-WORKDIR /workspace/client
+COPY clients/browser/package*.json ./clients/browser/
+COPY binding/pkg ./binding/pkg
+WORKDIR /workspace/clients/browser
 
 RUN npm ci
 
-COPY client ./
+COPY clients/browser ./
 
 CMD ["npm", "run", "test:e2e"]

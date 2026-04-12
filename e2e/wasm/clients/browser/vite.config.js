@@ -6,7 +6,7 @@ export default defineConfig({
     port: 4173,
     strictPort: true,
     fs: {
-      allow: ['..'],
+      allow: ['..', '../../binding'],
     },
   },
   preview: {

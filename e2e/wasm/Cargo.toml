@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members  = ["bindings", "protocol", "server"]
+members  = ["binding", "protocol", "server"]
 
 [workspace.dependencies]
 brec              = { path = "../../brec" }
