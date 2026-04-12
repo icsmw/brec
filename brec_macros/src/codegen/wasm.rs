@@ -44,6 +44,7 @@ fn gen_struct_to_wasm(fields: &Fields) -> Result<TokenStream, E> {
             })
         }
         Fields::Unnamed(fields) => {
+            let len = fields.unnamed.len() as u32;
             let setters = fields
                 .unnamed
                 .iter()
@@ -61,7 +62,7 @@ fn gen_struct_to_wasm(fields: &Fields) -> Result<TokenStream, E> {
                 })
                 .collect::<Result<Vec<_>, E>>()?;
             Ok(quote! {
-                let arr = js_sys::Array::new();
+                let arr = js_sys::Array::new_with_length(#len);
                 #(#setters)*
                 Ok(arr.into())
             })
@@ -166,6 +167,7 @@ fn gen_variant_to_wasm(enum_name: &Ident, variant: &Variant) -> Result<TokenStre
                     }
                 })
             } else {
+                let len = fields.unnamed.len() as u32;
                 let bindings = (0..fields.unnamed.len())
                     .map(|idx| {
                         syn::Ident::new(&format!("v{}", idx), proc_macro2::Span::call_site())
@@ -184,7 +186,7 @@ fn gen_variant_to_wasm(enum_name: &Ident, variant: &Variant) -> Result<TokenStre
                     .collect::<Vec<_>>();
                 Ok(quote! {
                     #enum_name::#vname(#(#bindings),*) => {
-                        let arr = js_sys::Array::new();
+                        let arr = js_sys::Array::new_with_length(#len);
                         #(#set_elems)*
                         js_sys::Reflect::set(&obj, &wasm_bindgen::JsValue::from_str(#key), &arr)
                             .map_err(|err| brec::WasmError::invalid_field_name(#key, format!("{err:?}")))?;
