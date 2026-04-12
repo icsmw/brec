@@ -10,7 +10,7 @@
     "test:e2e": "playwright test"
   },
   "dependencies": {
-    "wasmjs": "file:../bindings/pkg"
+    "wasmjs": "file:../../binding/pkg"
   },
   "devDependencies": {
     "@playwright/test": "1.58.2",

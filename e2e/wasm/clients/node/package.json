@@ -1,0 +1,13 @@
+{
+  "name": "wasm-node-e2e-client",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Node websocket echo client for brec wasm e2e",
+  "scripts": {
+    "test:e2e": "node src/main.js"
+  },
+  "dependencies": {
+    "wasmjs": "file:../../binding/pkg",
+    "ws": "^8.18.3"
+  }
+}

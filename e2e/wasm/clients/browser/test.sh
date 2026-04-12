@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-ROOT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
-SERVER_LOG="${ROOT_DIR}/.server_e2e.log"
-CLIENT_LOG="${ROOT_DIR}/.client_e2e.log"
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+WASM_DIR="$(cd -- "${SCRIPT_DIR}/../.." && pwd)"
+SERVER_LOG="${SCRIPT_DIR}/.server_e2e.log"
+CLIENT_LOG="${SCRIPT_DIR}/.client_e2e.log"
 SERVER_PID=""
 TAIL_PID=""
 IMAGE_TAG="wasm-browser-e2e:local"
@@ -42,26 +43,26 @@ trap cleanup EXIT
 
 echo "Checking local compilation before e2e..."
 (
-  cd "${ROOT_DIR}"
+  cd "${WASM_DIR}"
   cargo check -p protocol --features test-utils
   cargo check -p bindings --target wasm32-unknown-unknown
   cargo test -p server --no-run
 )
 
-echo "Rebuilding bindings/pkg via wasm-pack..."
+echo "Rebuilding binding/pkg via wasm-pack..."
 (
-  cd "${ROOT_DIR}/bindings"
+  cd "${WASM_DIR}/binding"
   wasm-pack build --dev --target web --out-dir pkg --out-name wasmjs
 )
 
-if [[ ! -f "${ROOT_DIR}/bindings/pkg/wasmjs.js" ]] || [[ ! -f "${ROOT_DIR}/bindings/pkg/wasmjs_bg.wasm" ]]; then
-  echo "bindings/pkg build failed: missing wasmjs.js or wasmjs_bg.wasm" >&2
+if [[ ! -f "${WASM_DIR}/binding/pkg/wasmjs.js" ]] || [[ ! -f "${WASM_DIR}/binding/pkg/wasmjs_bg.wasm" ]]; then
+  echo "binding/pkg build failed: missing wasmjs.js or wasmjs_bg.wasm" >&2
   exit 1
 fi
 
 echo "Starting local rust server test..."
 (
-  cd "${ROOT_DIR}"
+  cd "${WASM_DIR}"
   BROWSER_E2E=1 \
   TEST_PACKAGE_COUNT="${TEST_PACKAGE_COUNT}" \
   TEST_WS_ADDR="${SERVER_BIND_ADDR}" \
@@ -94,7 +95,7 @@ tail -f "${SERVER_LOG}" &
 TAIL_PID=$!
 
 echo "Building browser-e2e image..."
-docker build -t "${IMAGE_TAG}" -f "${ROOT_DIR}/client/Dockerfile" "${ROOT_DIR}"
+docker build -t "${IMAGE_TAG}" -f "${WASM_DIR}/clients/browser/Dockerfile" "${WASM_DIR}"
 
 echo "Running client e2e in container..."
 docker run --rm \

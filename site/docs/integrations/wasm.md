@@ -48,10 +48,10 @@ If you want to expose your protocol as a wasm module and use protocol objects di
    - `Packet::decode_wasm` / `Packet::encode_wasm`
 7. Build the bindings crate with `wasm-pack` (or your preferred wasm-bindgen workflow) and consume it from JS.
 
-Build example (from the `e2e/wasm_browser` workspace):
+Build example (from the `e2e/wasm` workspace):
 
 ```bash
-cd e2e/wasm_browser/bindings
+cd e2e/wasm/binding
 wasm-pack build --dev --target web --out-dir pkg --out-name wasmjs
 ```
 
@@ -99,19 +99,21 @@ pub fn encode_packet(packet: JsValue) -> Result<Vec<u8>, JsValue> {
 
 Reference implementation in this repository:
 
-- WASM browser e2e workspace: `e2e/wasm_browser/`
-- Protocol crate: `e2e/wasm_browser/protocol`
-- Bindings crate: `e2e/wasm_browser/bindings`
-- Browser client: `e2e/wasm_browser/client`
-- End-to-end script: `e2e/wasm_browser/test.sh`
+- WASM shared e2e workspace: `e2e/wasm/`
+- Protocol crate: `e2e/wasm/protocol`
+- Binding crate: `e2e/wasm/binding`
+- Browser client: `e2e/wasm/clients/browser`
+- Node client: `e2e/wasm/clients/node`
+- End-to-end scripts: `e2e/wasm/clients/browser/test.sh`, `e2e/wasm/clients/node/test.sh`, `e2e/wasm/test.sh`
 
 Direct links:
 
-- <https://github.com/icsmw/brec/tree/main/e2e/wasm_browser>
-- <https://github.com/icsmw/brec/blob/main/e2e/wasm_browser/protocol/src/lib.rs>
-- <https://github.com/icsmw/brec/blob/main/e2e/wasm_browser/bindings/src/lib.rs>
-- <https://github.com/icsmw/brec/blob/main/e2e/wasm_browser/client/src/main.js>
-- <https://github.com/icsmw/brec/blob/main/e2e/wasm_browser/test.sh>
+- <https://github.com/icsmw/brec/tree/main/e2e/wasm>
+- <https://github.com/icsmw/brec/blob/main/e2e/wasm/protocol/src/lib.rs>
+- <https://github.com/icsmw/brec/blob/main/e2e/wasm/binding/src/lib.rs>
+- <https://github.com/icsmw/brec/blob/main/e2e/wasm/clients/browser/src/main.js>
+- <https://github.com/icsmw/brec/blob/main/e2e/wasm/clients/node/src/main.js>
+- <https://github.com/icsmw/brec/blob/main/e2e/wasm/test.sh>
 
 ## Required Macros For Payload Types
 
