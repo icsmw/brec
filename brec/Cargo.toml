@@ -23,6 +23,7 @@ categories = [
 bincode = ["dep:bincode"]
 napi = ["dep:napi", "brec_macros/napi"]
 wasm = ["dep:wasm-bindgen", "dep:js-sys", "brec_macros/wasm"]
+java = ["dep:jni", "brec_macros/java"]
 locked_storage = ["fs4", "brec_macros/locked_storage"]
 observer = [
     "dep:notify",
@@ -56,6 +57,7 @@ bincode               = { workspace = true, optional = true }
 napi                  = { workspace = true, features = ["serde-json", "napi6"], optional = true }
 wasm-bindgen          = { workspace = true, optional = true }
 js-sys                = { workspace = true, optional = true }
+jni                   = { workspace = true, optional = true }
 serde                 = { workspace = true, optional = true }
 notify                = { workspace = true, optional = true }
 tracing               = { workspace = true, optional = true }

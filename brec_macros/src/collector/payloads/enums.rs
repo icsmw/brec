@@ -49,12 +49,17 @@ pub fn generate(
         }
     };
     let napi_impl = if cfg!(feature = "napi") {
-        super::napi::generate_napi_impl(&payloads, cfg)?
+        integrations::collector::payloads::napi::generate_impl(&payloads, cfg)?
     } else {
         quote! {}
     };
     let wasm_impl = if cfg!(feature = "wasm") {
-        super::wasm::generate_wasm_impl(&payloads, cfg)?
+        integrations::collector::payloads::wasm::generate_impl(&payloads, cfg)?
+    } else {
+        quote! {}
+    };
+    let java_impl = if cfg!(feature = "java") {
+        integrations::collector::payloads::java::generate_impl(&payloads, cfg)?
     } else {
         quote! {}
     };
@@ -79,6 +84,7 @@ pub fn generate(
         impl brec::PayloadDef<Payload> for Payload {}
         #napi_impl
         #wasm_impl
+        #java_impl
 
     })
 }

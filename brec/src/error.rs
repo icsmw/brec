@@ -3,12 +3,14 @@ use thiserror::Error;
 
 #[cfg(feature = "crypt")]
 use crate::crypt::CryptError;
+#[cfg(feature = "java")]
+use crate::integrations::java_feature::JavaError;
 #[cfg(feature = "napi")]
-use crate::napi_feature::NapiError;
+use crate::integrations::napi_feature::NapiError;
+#[cfg(feature = "wasm")]
+use crate::integrations::wasm_feature::WasmError;
 #[cfg(feature = "observer")]
 use crate::storage::SensorError;
-#[cfg(feature = "wasm")]
-use crate::wasm_feature::WasmError;
 
 /// Signature bytes that were read but did not match known block/payload signatures.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -249,6 +251,10 @@ pub enum Error {
     /// Wrapper over `NapiError` when the `napi` feature is enabled.
     #[error("Napi: {0}")]
     Napi(#[from] NapiError),
+    #[cfg(feature = "java")]
+    /// Wrapper over `JavaError` when the `java` feature is enabled.
+    #[error("Java: {0}")]
+    Java(#[from] JavaError),
     #[cfg(feature = "wasm")]
     /// Wrapper over `WasmError` when the `wasm` feature is enabled.
     #[error("Wasm: {0}")]

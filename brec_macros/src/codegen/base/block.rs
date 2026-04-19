@@ -94,6 +94,11 @@ impl Gen for Block {
         } else {
             quote! {}
         };
+        let java = if cfg!(feature = "java") {
+            self.generate_java()?
+        } else {
+            quote! {}
+        };
         Ok(quote! {
             #base
             #crc
@@ -106,6 +111,7 @@ impl Gen for Block {
             #write_vec
             #napi
             #wasm
+            #java
         })
     }
 }
