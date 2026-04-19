@@ -115,11 +115,23 @@ echo "Building java client image..."
 docker build -t "${IMAGE_TAG}" -f "${ROOT_DIR}/client/Dockerfile" "${ROOT_DIR}"
 
 echo "Running java client in container..."
-docker run --rm \
-  --add-host=host.docker.internal:host-gateway \
-  -e TEST_PACKAGE_COUNT="${TEST_PACKAGE_COUNT}" \
-  -e TEST_WS_ADDR="${CLIENT_WS_ADDR}" \
-  "${IMAGE_TAG}" | tee "${CLIENT_LOG}"
+DOCKER_RUN_ARGS=(
+  --rm
+  --add-host=host.docker.internal:host-gateway
+  -e TEST_PACKAGE_COUNT="${TEST_PACKAGE_COUNT}"
+  -e TEST_WS_ADDR="${CLIENT_WS_ADDR}"
+)
+
+if [[ -n "${LLVM_PROFILE_FILE:-}" ]]; then
+  DOCKER_RUN_ARGS+=(-e "LLVM_PROFILE_FILE=${LLVM_PROFILE_FILE}")
+fi
+
+if [[ -n "${CARGO_LLVM_COV_TARGET_DIR:-}" ]]; then
+  mkdir -p "${CARGO_LLVM_COV_TARGET_DIR}"
+  DOCKER_RUN_ARGS+=(-v "${CARGO_LLVM_COV_TARGET_DIR}:${CARGO_LLVM_COV_TARGET_DIR}")
+fi
+
+docker run "${DOCKER_RUN_ARGS[@]}" "${IMAGE_TAG}" | tee "${CLIENT_LOG}"
 
 echo "Waiting local server test to finish..."
 wait "${SERVER_PID}"
