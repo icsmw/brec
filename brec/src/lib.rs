@@ -34,6 +34,18 @@ pub use brec_macros::*;
 pub use crc32fast;
 #[cfg(feature = "crypt")]
 pub use crypt::{BricCryptCodec, CryptAlgorithm, CryptEnvelopeRecord};
+#[cfg(feature = "java")]
+pub use integrations::java_feature;
+#[cfg(feature = "java")]
+pub use integrations::java_feature::*;
+#[cfg(feature = "napi")]
+pub use integrations::napi_feature;
+#[cfg(feature = "napi")]
+pub use integrations::napi_feature::*;
+#[cfg(feature = "wasm")]
+pub use integrations::wasm_feature;
+#[cfg(feature = "wasm")]
+pub use integrations::wasm_feature::*;
 pub use payload::{
     DefaultPayloadContext, PayloadDecode, PayloadEncode, PayloadEncodeReferred, PayloadHeader,
     PayloadHooks, PayloadSchema, default_payload_context,
