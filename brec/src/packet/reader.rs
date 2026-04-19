@@ -1,4 +1,4 @@
-use std::{io::BufRead,ops::RangeInclusive};
+use std::{io::BufRead, ops::RangeInclusive};
 
 use crate::*;
 
@@ -246,9 +246,8 @@ impl<
                 }
                 self.buffered.clear();
                 if payload_prefetched > 0 {
-                    self.buffered.extend_from_slice(
-                        &buffer[header_end..header_end + payload_prefetched],
-                    );
+                    self.buffered
+                        .extend_from_slice(&buffer[header_end..header_end + payload_prefetched]);
                 }
                 self.inner.consume(consumed_from_extracted);
                 self.recent = HeaderReadState::Ready(Some(header));
@@ -490,9 +489,8 @@ mod tests {
     use crate::{RuleDef, RuleFnDef, tests::*};
     use std::io::Cursor;
     use std::sync::{
-        Arc,
+        Arc, Mutex,
         atomic::{AtomicUsize, Ordering},
-        Mutex,
     };
 
     type ReaderUnderTest<'a> =
@@ -547,9 +545,11 @@ mod tests {
         let ignored = Arc::new(AtomicUsize::new(0));
         let ignored_c = ignored.clone();
         reader
-            .add_rule(RuleDef::Ignored(RuleFnDef::Dynamic(Box::new(move |bytes| {
-                ignored_c.fetch_add(bytes.len(), Ordering::SeqCst);
-            }))))
+            .add_rule(RuleDef::Ignored(RuleFnDef::Dynamic(Box::new(
+                move |bytes| {
+                    ignored_c.fetch_add(bytes.len(), Ordering::SeqCst);
+                },
+            ))))
             .expect("ignored callback");
 
         match reader.read(&mut ()).expect("first read") {
@@ -632,9 +632,11 @@ mod tests {
         let ignored = Arc::new(AtomicUsize::new(0));
         let ignored_c = ignored.clone();
         reader
-            .add_rule(RuleDef::Ignored(RuleFnDef::Dynamic(Box::new(move |bytes| {
-                ignored_c.fetch_add(bytes.len(), Ordering::SeqCst);
-            }))))
+            .add_rule(RuleDef::Ignored(RuleFnDef::Dynamic(Box::new(
+                move |bytes| {
+                    ignored_c.fetch_add(bytes.len(), Ordering::SeqCst);
+                },
+            ))))
             .expect("ignored callback");
 
         assert!(matches!(
@@ -668,14 +670,17 @@ mod tests {
 
         let mut input = Cursor::new(vec![0x44, 0x55, 0x66, 0x77, 0x88]);
         let mut reader = ReaderUnderTest::new(&mut input);
-        reader.recent = HeaderReadState::Refill(Some((refill_buffer, PacketHeader::ssize() as usize)));
+        reader.recent =
+            HeaderReadState::Refill(Some((refill_buffer, PacketHeader::ssize() as usize)));
 
         let ignored = Arc::new(AtomicUsize::new(0));
         let ignored_c = ignored.clone();
         reader
-            .add_rule(RuleDef::Ignored(RuleFnDef::Dynamic(Box::new(move |bytes| {
-                ignored_c.fetch_add(bytes.len(), Ordering::SeqCst);
-            }))))
+            .add_rule(RuleDef::Ignored(RuleFnDef::Dynamic(Box::new(
+                move |bytes| {
+                    ignored_c.fetch_add(bytes.len(), Ordering::SeqCst);
+                },
+            ))))
             .expect("ignored callback");
 
         match reader.read(&mut ()).expect("refill read") {
@@ -702,9 +707,11 @@ mod tests {
         let ignored = Arc::new(AtomicUsize::new(0));
         let ignored_c = ignored.clone();
         reader
-            .add_rule(RuleDef::Ignored(RuleFnDef::Dynamic(Box::new(move |bytes| {
-                ignored_c.fetch_add(bytes.len(), Ordering::SeqCst);
-            }))))
+            .add_rule(RuleDef::Ignored(RuleFnDef::Dynamic(Box::new(
+                move |bytes| {
+                    ignored_c.fetch_add(bytes.len(), Ordering::SeqCst);
+                },
+            ))))
             .expect("ignored callback");
 
         assert!(matches!(
@@ -720,7 +727,10 @@ mod tests {
             reader.read(&mut ()).expect("eof after tail"),
             NextPacket::NoData
         ));
-        assert_eq!(ignored.load(Ordering::SeqCst), initial.len() + extracted.len());
+        assert_eq!(
+            ignored.load(Ordering::SeqCst),
+            initial.len() + extracted.len()
+        );
         drop(reader);
         assert_eq!(input.position() as usize, extracted.len());
     }
@@ -753,12 +763,14 @@ mod tests {
         let ignored = Arc::new(Mutex::new(Vec::<u8>::new()));
         let ignored_c = ignored.clone();
         reader
-            .add_rule(RuleDef::Ignored(RuleFnDef::Dynamic(Box::new(move |bytes| {
-                ignored_c
-                    .lock()
-                    .expect("ignored bytes lock")
-                    .extend_from_slice(bytes);
-            }))))
+            .add_rule(RuleDef::Ignored(RuleFnDef::Dynamic(Box::new(
+                move |bytes| {
+                    ignored_c
+                        .lock()
+                        .expect("ignored bytes lock")
+                        .extend_from_slice(bytes);
+                },
+            ))))
             .expect("ignored callback");
 
         let mut found = 0usize;

@@ -34,13 +34,7 @@ impl CryptEnvelopeRecord {
         payload: Vec<u8>,
         key_id: Option<Vec<u8>>,
     ) -> Self {
-        let key_id = key_id.and_then(|key_id| {
-            if key_id.is_empty() {
-                None
-            } else {
-                Some(key_id)
-            }
-        });
+        let key_id = key_id.filter(|key_id| !key_id.is_empty());
         Self {
             version: consts::ENVELOPE_VERSION,
             algorithm: CryptAlgorithm::ChaCha20Poly1305RsaOaepSha256,
