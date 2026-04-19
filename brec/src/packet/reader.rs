@@ -210,86 +210,75 @@ impl<
         mut buffer: Vec<u8>,
         needed: usize,
     ) -> Result<NextPacket<B, P, Inner>, Error> {
+        let read_header = PacketBufReaderDef::<'a, R, B, BR, P, Inner>::read_header;
         let extracted = self.inner.fill_buf()?;
-        if extracted.is_empty() {
-            match PacketBufReaderDef::<'a, R, B, BR, P, Inner>::read_header(&buffer)? {
-                PacketHeaderState::Found(header, sgmt) => {
-                    let header_start = *sgmt.start();
-                    let header_end = *sgmt.end();
-                    let packet_end = header_end + header.size as usize;
-                    if packet_end > buffer.len() {
-                        self.rules.ignore(&buffer)?;
-                        return Ok(NextPacket::NoData);
-                    }
-                    if header_start > 0 {
-                        self.rules.ignore(&buffer[..header_start])?;
-                    }
-                    if packet_end < buffer.len() {
-                        self.rules.ignore(&buffer[packet_end..])?;
-                    }
-                    self.buffered.clear();
-                    self.buffered.extend_from_slice(&buffer[header_end..packet_end]);
-                    self.recent = HeaderReadState::Ready(Some(header));
-                    return Ok(NextPacket::NotEnoughData(0));
-                }
-                PacketHeaderState::NotFound | PacketHeaderState::NotEnoughData(_, _) => {
-                    self.rules.ignore(&buffer)?;
-                    return Ok(NextPacket::NoData);
-                }
-            }
-        }
         let extracted_len = extracted.len();
-        if extracted_len < needed {
-            buffer.extend_from_slice(extracted);
-            self.inner.consume(extracted_len);
-            self.recent = HeaderReadState::Refill(Some((buffer, needed - extracted_len)));
-            return Ok(NextPacket::NotEnoughData(needed - extracted_len));
-        }
         let buffered = buffer.len();
-        // First make attempt to read header without possible litter
-        buffer.extend_from_slice(&extracted[..needed]);
-        match PacketBufReaderDef::<'a, R, B, BR, P, Inner>::read_header(&buffer)? {
-            PacketHeaderState::Found(header, sgmt) => {
-                if sgmt.start() > &0 {
-                    self.rules.ignore(&buffer[..*sgmt.start()])?;
-                }
-                self.inner.consume(sgmt.end() - buffered);
-                self.recent = HeaderReadState::Ready(Some(header));
-                return Ok(NextPacket::NotEnoughData(0));
-            }
-            _ => {
-                // Do nothing, because it might be litter in stream
-            }
+        let mut appended = extracted_len.min(needed);
+        if appended > 0 {
+            // First make attempt to read header with just enough newly received bytes.
+            buffer.extend_from_slice(&extracted[..appended]);
         }
-        // Second, if buffer has litter, header might be in next bytes. Trying all available bytes
-        buffer.extend_from_slice(&extracted[needed..]);
+        let mut status = read_header(&buffer)?;
+        if !matches!(status, PacketHeaderState::Found(_, _)) && appended < extracted_len {
+            // If not found yet, include all currently available bytes and re-check.
+            buffer.extend_from_slice(&extracted[appended..]);
+            appended = extracted_len;
+            status = read_header(&buffer)?;
+        }
         let header_len = PacketHeader::ssize() as usize;
-        match PacketBufReaderDef::<'a, R, B, BR, P, Inner>::read_header(&buffer)? {
+        match status {
             PacketHeaderState::Found(header, sgmt) => {
-                if sgmt.start() > &0 {
-                    self.rules.ignore(&buffer[..*sgmt.start()])?;
+                let header_start = *sgmt.start();
+                let header_end = *sgmt.end();
+                if header_start > 0 {
+                    self.rules.ignore(&buffer[..header_start])?;
                 }
-                self.inner.consume(sgmt.end() - buffered);
+                let consumed_from_extracted = header_end.saturating_sub(buffered).min(appended);
+                let consumed_front = buffered + consumed_from_extracted;
+                let payload_prefetched = consumed_front
+                    .saturating_sub(header_end)
+                    .min(header.size as usize);
+                let packet_end = header_end + header.size as usize;
+                let ignored_tail_end = consumed_front.min(buffer.len());
+                if packet_end < ignored_tail_end {
+                    self.rules.ignore(&buffer[packet_end..ignored_tail_end])?;
+                }
+                self.buffered.clear();
+                if payload_prefetched > 0 {
+                    self.buffered.extend_from_slice(
+                        &buffer[header_end..header_end + payload_prefetched],
+                    );
+                }
+                self.inner.consume(consumed_from_extracted);
                 self.recent = HeaderReadState::Ready(Some(header));
                 Ok(NextPacket::NotEnoughData(0))
             }
             PacketHeaderState::NotEnoughData(from, needed) => {
+                if appended == 0 {
+                    self.rules.ignore(&buffer)?;
+                    return Ok(NextPacket::NoData);
+                }
                 if from > 0 {
                     // We can drain most bytes in buffer and left only length of header signature
                     self.rules.ignore(&buffer[..from])?;
                     buffer.drain(..from);
                 }
-                self.inner.consume(extracted_len);
+                self.inner.consume(appended);
                 self.recent = HeaderReadState::Refill(Some((buffer, needed)));
                 Ok(NextPacket::NotEnoughData(needed))
             }
             PacketHeaderState::NotFound => {
+                if appended == 0 {
+                    self.rules.ignore(&buffer)?;
+                    return Ok(NextPacket::NoData);
+                }
                 if buffer.len() > header_len {
                     self.rules.ignore(&buffer[..buffer.len() - header_len])?;
                     // We can drain most bytes in buffer and left only length of header signature
                     buffer.drain(..(buffer.len() - header_len));
                 }
-                self.inner.consume(extracted_len);
+                self.inner.consume(appended);
                 self.recent = HeaderReadState::Refill(Some((buffer, header_len)));
                 Ok(NextPacket::NotFound)
             }
@@ -503,6 +492,7 @@ mod tests {
     use std::sync::{
         Arc,
         atomic::{AtomicUsize, Ordering},
+        Mutex,
     };
 
     type ReaderUnderTest<'a> =
@@ -668,6 +658,127 @@ mod tests {
             reader.read(&mut ()).expect("stream end"),
             NextPacket::NoData
         ));
+    }
+
+    #[test]
+    fn read_refill_not_enough_with_prefix_ignores_prefix_and_consumes_new_data() {
+        let mut refill_buffer = vec![0x11, 0x22];
+        refill_buffer.extend_from_slice(&crate::PACKET_SIG);
+        refill_buffer.push(0x33);
+
+        let mut input = Cursor::new(vec![0x44, 0x55, 0x66, 0x77, 0x88]);
+        let mut reader = ReaderUnderTest::new(&mut input);
+        reader.recent = HeaderReadState::Refill(Some((refill_buffer, PacketHeader::ssize() as usize)));
+
+        let ignored = Arc::new(AtomicUsize::new(0));
+        let ignored_c = ignored.clone();
+        reader
+            .add_rule(RuleDef::Ignored(RuleFnDef::Dynamic(Box::new(move |bytes| {
+                ignored_c.fetch_add(bytes.len(), Ordering::SeqCst);
+            }))))
+            .expect("ignored callback");
+
+        match reader.read(&mut ()).expect("refill read") {
+            NextPacket::NotEnoughData(needed) => assert!(needed > 0),
+            NextPacket::Found(_)
+            | NextPacket::NoData
+            | NextPacket::NotFound
+            | NextPacket::Skipped => panic!("expected NotEnoughData"),
+        }
+        assert_eq!(ignored.load(Ordering::SeqCst), 2);
+        assert_eq!(input.position() as usize, 5);
+    }
+
+    #[test]
+    fn read_refill_not_found_with_new_data_keeps_only_signature_tail() {
+        let initial = vec![0xAA, 0xBB, 0xCC];
+        let header_len = PacketHeader::ssize() as usize;
+        let extracted = vec![0x10; header_len + 5];
+
+        let mut input = Cursor::new(extracted.clone());
+        let mut reader = ReaderUnderTest::new(&mut input);
+        reader.recent = HeaderReadState::Refill(Some((initial.clone(), header_len)));
+
+        let ignored = Arc::new(AtomicUsize::new(0));
+        let ignored_c = ignored.clone();
+        reader
+            .add_rule(RuleDef::Ignored(RuleFnDef::Dynamic(Box::new(move |bytes| {
+                ignored_c.fetch_add(bytes.len(), Ordering::SeqCst);
+            }))))
+            .expect("ignored callback");
+
+        assert!(matches!(
+            reader.read(&mut ()).expect("refill not found"),
+            NextPacket::NotFound
+        ));
+        assert_eq!(
+            ignored.load(Ordering::SeqCst),
+            initial.len() + extracted.len() - header_len
+        );
+
+        assert!(matches!(
+            reader.read(&mut ()).expect("eof after tail"),
+            NextPacket::NoData
+        ));
+        assert_eq!(ignored.load(Ordering::SeqCst), initial.len() + extracted.len());
+        drop(reader);
+        assert_eq!(input.position() as usize, extracted.len());
+    }
+
+    #[test]
+    fn read_preserves_full_ignored_bytes_sequence() {
+        let packet = empty_packet_bytes();
+
+        let litter_prefix = vec![0xA1, 0xB2, 0xC3, 0xD4];
+        let mut litter_mid = vec![0x11, 0x22, 0x33];
+        litter_mid.extend_from_slice(&crate::PACKET_SIG);
+        litter_mid.extend_from_slice(&[0x44, 0x55, 0x66, 0x77]);
+        let litter_suffix = vec![0xDE, 0xAD, 0xBE, 0xEF, 0x01];
+
+        let mut stream = Vec::new();
+        stream.extend_from_slice(&litter_prefix);
+        stream.extend_from_slice(&packet);
+        stream.extend_from_slice(&litter_mid);
+        stream.extend_from_slice(&packet);
+        stream.extend_from_slice(&litter_suffix);
+
+        let mut expected_ignored = Vec::new();
+        expected_ignored.extend_from_slice(&litter_prefix);
+        expected_ignored.extend_from_slice(&litter_mid);
+        expected_ignored.extend_from_slice(&litter_suffix);
+
+        let mut input = Cursor::new(stream);
+        let mut reader = ReaderUnderTest::new(&mut input);
+
+        let ignored = Arc::new(Mutex::new(Vec::<u8>::new()));
+        let ignored_c = ignored.clone();
+        reader
+            .add_rule(RuleDef::Ignored(RuleFnDef::Dynamic(Box::new(move |bytes| {
+                ignored_c
+                    .lock()
+                    .expect("ignored bytes lock")
+                    .extend_from_slice(bytes);
+            }))))
+            .expect("ignored callback");
+
+        let mut found = 0usize;
+        loop {
+            match reader.read(&mut ()).expect("reader read") {
+                NextPacket::Found(packet) => {
+                    assert!(packet.blocks.is_empty());
+                    assert!(packet.payload.is_none());
+                    found += 1;
+                }
+                NextPacket::NotEnoughData(_) | NextPacket::NotFound | NextPacket::Skipped => {}
+                NextPacket::NoData => break,
+            }
+        }
+
+        assert_eq!(found, 2);
+        assert_eq!(
+            *ignored.lock().expect("ignored bytes lock"),
+            expected_ignored
+        );
     }
 
     #[test]
