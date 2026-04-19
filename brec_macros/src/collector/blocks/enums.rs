@@ -20,12 +20,17 @@ pub fn generate(
         quote! {#[derive(#(#derives,)*)]}
     };
     let napi_impl = if cfg!(feature = "napi") {
-        super::napi::generate_napi_impl(blocks)?
+        integrations::collector::blocks::napi::generate_impl(blocks)?
     } else {
         quote! {}
     };
     let wasm_impl = if cfg!(feature = "wasm") {
-        super::wasm::generate_wasm_impl(blocks)?
+        integrations::collector::blocks::wasm::generate_impl(blocks)?
+    } else {
+        quote! {}
+    };
+    let java_impl = if cfg!(feature = "java") {
+        integrations::collector::blocks::java::generate_impl(blocks)?
     } else {
         quote! {}
     };
@@ -39,6 +44,7 @@ pub fn generate(
         impl brec::BlockDef for Block {}
         #napi_impl
         #wasm_impl
+        #java_impl
     })
 }
 

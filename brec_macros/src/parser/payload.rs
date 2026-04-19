@@ -24,7 +24,7 @@ pub fn parse(attrs: PayloadAttrs, mut input: DeriveInput) -> TokenStream {
         return syn::Error::new_spanned(&input, err).to_compile_error();
     }
     let napi_convert_impl = if cfg!(feature = "napi") {
-        match codegen::generate_napi_impl(&payload_name, &payload_data) {
+        match integrations::codegen::napi::generate_impl(&payload_name, &payload_data) {
             Ok(tokens) => tokens,
             Err(err) => {
                 return syn::Error::new_spanned(&input, err).to_compile_error();
@@ -34,7 +34,17 @@ pub fn parse(attrs: PayloadAttrs, mut input: DeriveInput) -> TokenStream {
         quote! {}
     };
     let wasm_convert_impl = if cfg!(feature = "wasm") {
-        match codegen::generate_wasm_impl(&payload_name, &payload_data) {
+        match integrations::codegen::wasm::generate_impl(&payload_name, &payload_data) {
+            Ok(tokens) => tokens,
+            Err(err) => {
+                return syn::Error::new_spanned(&input, err).to_compile_error();
+            }
+        }
+    } else {
+        quote! {}
+    };
+    let java_convert_impl = if cfg!(feature = "java") {
+        match integrations::codegen::java::generate_impl(&payload_name, &payload_data) {
             Ok(tokens) => tokens,
             Err(err) => {
                 return syn::Error::new_spanned(&input, err).to_compile_error();
@@ -48,6 +58,7 @@ pub fn parse(attrs: PayloadAttrs, mut input: DeriveInput) -> TokenStream {
 
         #napi_convert_impl
         #wasm_convert_impl
+        #java_convert_impl
         #reflected
     }
 }

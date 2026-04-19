@@ -126,6 +126,11 @@ impl Base for Payload {
         } else {
             quote! {}
         };
+        let java_impl = if cfg!(feature = "java") {
+            self.generate_java()?
+        } else {
+            quote! {}
+        };
         Ok(quote! {
             #sig_impl
             #hooks_impl
@@ -134,6 +139,7 @@ impl Base for Payload {
             #crypt_and_bincode_impl
             #napi_impl
             #wasm_impl
+            #java_impl
         })
     }
 }

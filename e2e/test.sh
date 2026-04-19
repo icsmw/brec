@@ -8,3 +8,7 @@ cd ..
 cd ./node
 bash ./test.sh
 cd ..
+
+cd ./java
+bash ./test.sh
+cd ..

@@ -1,0 +1,16 @@
+[package]
+name        = "bindings"
+version     = "0.1.0"
+edition     = "2024"
+authors     = ["d.astafyev@outlook.com"]
+description = "JNI bindings for brec java e2e"
+license     = "Apache-2.0"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+protocol  = { path = "../protocol" }
+brec      = { workspace = true, features = ["bincode", "java"] }
+jni       = { workspace = true }
+thiserror = { workspace = true }

@@ -30,6 +30,7 @@ observer            = []
 resilient           = []
 napi                = []
 wasm                = []
+java                = []
 
 [dependencies]
 thiserror.workspace   = true

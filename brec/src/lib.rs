@@ -1,26 +1,15 @@
 #![deny(unused_crate_dependencies)]
 #![doc = include_str!("../README.md")]
 
-#[cfg(feature = "crypt")]
-pub mod crypt;
-#[cfg(feature = "napi")]
-#[path = "napi/mod.rs"]
-/// N-API (Node.js) conversion helpers.
-///
-/// See: <https://icsmw.github.io/brec/integrations/napi/>
-pub mod napi_feature;
-#[cfg(feature = "wasm")]
-#[path = "wasm/mod.rs"]
-/// wasm-bindgen conversion helpers for browser/wasm JavaScript runtimes.
-///
-/// See: <https://icsmw.github.io/brec/integrations/wasm/>
-pub mod wasm_feature;
-#[cfg(feature = "bincode")]
-pub use bincode;
 #[cfg(test)]
 pub mod tests;
 #[cfg(test)]
 use tempfile as _;
+
+#[cfg(feature = "crypt")]
+pub mod crypt;
+#[cfg(feature = "bincode")]
+pub use bincode;
 
 extern crate brec_macros;
 
@@ -29,6 +18,7 @@ pub const MAX_BLOCKS_COUNT: u8 = u8::MAX;
 
 /// Shared error types used across the crate.
 pub mod error;
+pub mod integrations;
 /// Packet types, readers, rules, and related helpers.
 pub mod packet;
 /// Payload traits, headers, and default payload helpers.
@@ -51,9 +41,5 @@ pub use payload::{
 pub use storage::*;
 
 pub use crate::error::*;
-#[cfg(feature = "napi")]
-pub use crate::napi_feature::*;
 pub use crate::packet::*;
 pub use crate::traits::*;
-#[cfg(feature = "wasm")]
-pub use crate::wasm_feature::*;

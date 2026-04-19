@@ -8,6 +8,7 @@ mod collector;
 mod entities;
 mod error;
 mod generate;
+mod integrations;
 mod modificators;
 mod parser;
 mod parsing;
@@ -311,7 +312,7 @@ pub fn payload(attr: TokenStream, input: TokenStream) -> TokenStream {
 pub fn derive_napi(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
     let name = &input.ident;
-    match codegen::generate_napi_impl(name, &input.data) {
+    match integrations::codegen::napi::generate_impl(name, &input.data) {
         Ok(tokens) => tokens.into(),
         Err(err) => syn::Error::new_spanned(&input, err)
             .to_compile_error()
@@ -329,7 +330,23 @@ pub fn derive_napi(input: TokenStream) -> TokenStream {
 pub fn derive_wasm(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
     let name = &input.ident;
-    match codegen::generate_wasm_impl(name, &input.data) {
+    match integrations::codegen::wasm::generate_impl(name, &input.data) {
+        Ok(tokens) => tokens.into(),
+        Err(err) => syn::Error::new_spanned(&input, err)
+            .to_compile_error()
+            .into(),
+    }
+}
+
+/// Derives `brec::JavaConvert` for regular Rust `struct` / `enum` types.
+///
+/// Use it for nested types used inside `#[payload]` objects when `java` conversion
+/// should be schema-driven for JNI-backed integrations.
+#[proc_macro_derive(Java)]
+pub fn derive_java(input: TokenStream) -> TokenStream {
+    let input = parse_macro_input!(input as DeriveInput);
+    let name = &input.ident;
+    match integrations::codegen::java::generate_impl(name, &input.data) {
         Ok(tokens) => tokens.into(),
         Err(err) => syn::Error::new_spanned(&input, err)
             .to_compile_error()
