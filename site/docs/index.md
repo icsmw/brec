@@ -24,6 +24,7 @@
 - **Optional file observer** - Enable the `observer` feature to watch storage files and consume newly appended packets asynchronously.
 - **Optional Node.js bridge (N-API)** - With the `napi` feature, protocol objects can be converted directly between Rust and JavaScript without JSON as an intermediate transport.
 - **Optional WASM bridge (`wasm-bindgen`)** - With the `wasm` feature, protocol objects can be converted directly between Rust and JavaScript in browser/wasm runtimes without JSON as an intermediate transport.
+- **Optional Java bridge (JNI)** - With the `java` feature, protocol objects can be converted directly between Rust and Java runtime objects without JSON as an intermediate transport.
 - **High performance** - Parsing performance is on par with the most optimized binary parsers (see the Performance section in [performance](stability/performance.md)).
 - **Simple to use** - Just annotate your structs with #[block] or #[payload], and brec takes care of the rest - your protocol is ready to go.
 

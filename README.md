@@ -29,6 +29,7 @@
 - **Optional payload encryption** - With the `crypt` feature, selected payloads can be encrypted while other payloads in the same protocol remain open.
 - **Optional Node.js bridge (N-API)** - With the `napi` feature, protocol objects can be converted directly between Rust and JavaScript without JSON conversion as an intermediate transport.
 - **Optional WASM bridge (`wasm-bindgen`)** - With the `wasm` feature, protocol objects can be converted directly between Rust and JavaScript in browser/wasm runtimes, without JSON as an intermediate transport.
+- **Optional Java bridge (JNI)** - With the `java` feature, protocol objects can be converted directly between Rust and Java runtime objects without JSON conversion as an intermediate transport.
 - **High performance** - Parsing performance is on par with the most optimized binary parsers (see the Performance section in [documentation](https://icsmw.github.io/brec/)).
 - **Simple to use** - Just annotate your structs with #[block] or #[payload], and brec takes care of the rest - your protocol is ready to go.
 
@@ -93,6 +94,7 @@ Useful entry points:
 - [Crypt](https://icsmw.github.io/brec/features/crypt/)
 - [NAPI (Rust <-> JS)](https://icsmw.github.io/brec/integrations/napi/)
 - [WASM (Rust <-> JS)](https://icsmw.github.io/brec/integrations/wasm/)
+- [Java (Rust <-> Java)](https://icsmw.github.io/brec/integrations/java/)
 
 ## Contributing
 

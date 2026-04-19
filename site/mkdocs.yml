@@ -17,6 +17,7 @@ nav:
   - Integrations:
       - NAPI (Rust <-> JS): integrations/napi.md
       - WASM (Rust <-> JS): integrations/wasm.md
+      - Java (Rust <-> Java): integrations/java.md
   - Code Generation: code_generation.md
   - Protocol Tools:
       - Buffer: tools/buffer.md
