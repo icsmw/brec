@@ -342,6 +342,8 @@ pub fn derive_wasm(input: TokenStream) -> TokenStream {
 ///
 /// Use it for nested types used inside `#[payload]` objects when `java` conversion
 /// should be schema-driven for JNI-backed integrations.
+///
+/// See: <https://icsmw.github.io/brec/integrations/java/>
 #[proc_macro_derive(Java)]
 pub fn derive_java(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);

@@ -184,6 +184,43 @@ Default payloads (when enabled) are:
 }
 ```
 
+## Data Contract On The Consumer Side
+
+On the Node.js side you receive plain runtime JavaScript values (`object`, `Array`, `BigInt`, `string`, etc.), not generated runtime types.
+
+What `brec` guarantees:
+
+- The decoded object shape follows the protocol definition.
+- If a variant is `BlockA`, the object contains exactly `BlockA` fields.
+- If a variant is `PayloadA`, the object contains exactly `PayloadA` fields.
+- Field names are preserved exactly as defined in your Rust protocol types.
+
+What `brec` does not do for you:
+
+- It does not generate runtime validators in JS.
+- It does not enforce TypeScript compile-time typing by itself.
+
+Responsibility split:
+
+- `brec` validates protocol data while decoding and produces protocol-shaped objects.
+- Your application is responsible for additional business-level validation and optional static typing wrappers.
+
+How to read these objects in JS:
+
+```js
+const packet = decode_packet(bytes);
+
+for (const blockObj of packet.blocks) {
+  const [blockKind, blockFields] = Object.entries(blockObj)[0];
+  // blockKind -> "BlockA", blockFields -> { ...fields from protocol... }
+}
+
+if (packet.payload != null) {
+  const [payloadKind, payloadFields] = Object.entries(packet.payload)[0];
+  // payloadKind -> "PayloadA", payloadFields -> { ...fields from protocol... }
+}
+```
+
 ## Numeric Mapping Rules
 
 To keep conversion lossless:
@@ -206,3 +243,4 @@ For packet and payload paths, context is passed explicitly (`ctx`) exactly like 
 ## See Also
 
 - [WASM (Rust <-> JS)](./wasm.md)
+- [Java (Rust <-> Java)](./java.md)

@@ -6,6 +6,7 @@
 
 - N-API conversion when the `napi` feature is enabled in `brec`
 - wasm-bindgen conversion when the `wasm` feature is enabled in `brec`
+- Java conversion via JNI when the `java` feature is enabled in `brec`
 
 For complete documentation and usage details:
 
@@ -13,3 +14,4 @@ For complete documentation and usage details:
 - Documentation: https://icsmw.github.io/brec/
 - N-API feature: https://icsmw.github.io/brec/integrations/napi/
 - WASM feature: https://icsmw.github.io/brec/integrations/wasm/
+- Java feature: https://icsmw.github.io/brec/integrations/java/
