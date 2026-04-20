@@ -1,0 +1,1743 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+        <link rel="canonical" href="https://icsmw.github.io/brec/integrations/wasm/">
+      
+      
+        <link rel="prev" href="../napi/">
+      
+      
+        <link rel="next" href="../java/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>WASM (Rust JS) - BRec (Binary Record)</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    <body dir="ltr">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#wasm-rust-js" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="BRec (Binary Record)" class="md-header__button md-logo" aria-label="BRec (Binary Record)" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            BRec (Binary Record)
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              WASM (Rust <-> JS)
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="BRec (Binary Record)" class="md-nav__button md-logo" aria-label="BRec (Binary Record)" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    BRec (Binary Record)
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../overview/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting_started/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Protocol Parts
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Protocol Parts
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../parts/blocks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Blocks
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../parts/payloads/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Payloads
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../parts/context/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Payload Context
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../parts/packets/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Packets
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Features
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Features
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../features/resilient/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Resilient Compatibility
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../features/crypt/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Crypt
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Integrations
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Integrations
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../napi/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    NAPI (Rust <-> JS)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    WASM (Rust <-> JS)
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    WASM (Rust <-> JS)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#motivation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Motivation
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#enabling-the-feature" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Enabling The Feature
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#quick-start-wasm-bindgen-module" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Quick Start (wasm-bindgen Module)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#required-macros-for-payload-types" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Required Macros For Payload Types
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#rust-js-reflection" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Rust -&gt; JS Reflection
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Rust -&gt; JS Reflection">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#block-enum-shape" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Block enum shape
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#payload-enum-shape" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Payload enum shape
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#packet-shape" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Packet shape
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#data-contract-on-the-consumer-side" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Data Contract On The Consumer Side
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#numeric-mapping-rules" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Numeric Mapping Rules
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Numeric Mapping Rules">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#why-float-bit-patterns" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Why Float Bit Patterns?
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#generated-helpers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Generated Helpers
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#javascript-usage-pattern" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        JavaScript Usage Pattern
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#error-behavior" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Error Behavior
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#runtime-notes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Runtime Notes
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#limitations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Limitations
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#see-also" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        See Also
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../java/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Java (Rust <-> Java)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../code_generation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Code Generation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8" >
+        
+          
+          <label class="md-nav__link" for="__nav_8" id="__nav_8_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Protocol Tools
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_8">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Protocol Tools
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tools/buffer/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Buffer
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tools/storage/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Storage
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../specification/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Specification
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_10" >
+        
+          
+          <label class="md-nav__link" for="__nav_10" id="__nav_10_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Stability & Performance
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_10_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_10">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Stability & Performance
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../stability/tests/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tests
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../stability/performance/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Performance
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#motivation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Motivation
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#enabling-the-feature" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Enabling The Feature
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#quick-start-wasm-bindgen-module" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Quick Start (wasm-bindgen Module)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#required-macros-for-payload-types" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Required Macros For Payload Types
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#rust-js-reflection" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Rust -&gt; JS Reflection
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Rust -&gt; JS Reflection">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#block-enum-shape" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Block enum shape
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#payload-enum-shape" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Payload enum shape
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#packet-shape" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Packet shape
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#data-contract-on-the-consumer-side" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Data Contract On The Consumer Side
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#numeric-mapping-rules" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Numeric Mapping Rules
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Numeric Mapping Rules">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#why-float-bit-patterns" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Why Float Bit Patterns?
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#generated-helpers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Generated Helpers
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#javascript-usage-pattern" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        JavaScript Usage Pattern
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#error-behavior" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Error Behavior
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#runtime-notes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Runtime Notes
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#limitations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Limitations
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#see-also" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        See Also
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+
+<h1 id="wasm-rust-js">WASM (Rust &lt;-&gt; JS)</h1>
+<p>The <code>wasm</code> feature adds direct Rust &lt;-&gt; JavaScript conversion for generated protocol types.</p>
+<p>This is intended for <code>wasm-bindgen</code> targets (browser and other JS runtimes) where you want to work with protocol objects in JS without JSON as a transport layer.</p>
+<h2 id="motivation">Motivation</h2>
+<p>The main reason to use <code>wasm</code> is to avoid extra conversion layers such as:</p>
+<ol>
+<li>Rust binary -&gt; Rust struct -&gt; JSON string</li>
+<li>JSON string -&gt; JS object</li>
+</ol>
+<p>and then the reverse on encode.</p>
+<p>With <code>wasm</code>, conversion is done directly between Rust values and JS values (<code>JsValue</code>):</p>
+<ul>
+<li>less CPU spent on JSON serialization/parsing glue</li>
+<li>fewer temporary allocations related to string conversion</li>
+<li>strict numeric mapping for wide integers and float bit-exact roundtrips</li>
+</ul>
+<p>As with any optimization, exact speedups depend on workload.
+For packet-heavy wasm integrations, this removes a meaningful class of overhead.</p>
+<h2 id="enabling-the-feature">Enabling The Feature</h2>
+<p>Enable <code>wasm</code> in your protocol crate:</p>
+<pre><code class="language-toml">[dependencies]
+brec = { version = &quot;...&quot;, features = [&quot;wasm&quot;, &quot;bincode&quot;] }
+</code></pre>
+<p><code>bincode</code> is typically used because payload support in generated WASM aggregators expects payload variants to be <code>#[payload(bincode)]</code>.</p>
+<h2 id="quick-start-wasm-bindgen-module">Quick Start (wasm-bindgen Module)</h2>
+<p>If you want to expose your protocol as a wasm module and use protocol objects directly in JS:</p>
+<ol>
+<li>In your protocol crate, enable <code>brec</code> with <code>wasm</code> and your payload codec (usually <code>bincode</code>).</li>
+<li>Define blocks with <code>#[brec::block]</code>.</li>
+<li>Define payloads with <code>#[payload(bincode)]</code>.</li>
+<li>For nested custom payload field types, derive <code>brec::Wasm</code>.</li>
+<li>Call <code>brec::generate!()</code> to generate <code>Block</code>, <code>Payload</code>, and <code>Packet</code> glue.</li>
+<li>In your wasm bindings crate, expose functions with <code>#[wasm_bindgen]</code> and call generated helpers:</li>
+<li><code>Block::decode_wasm</code> / <code>Block::encode_wasm</code></li>
+<li><code>Payload::decode_wasm</code> / <code>Payload::encode_wasm</code></li>
+<li><code>Packet::decode_wasm</code> / <code>Packet::encode_wasm</code></li>
+<li>Build the bindings crate with <code>wasm-pack</code> (or your preferred wasm-bindgen workflow) and consume it from JS.</li>
+</ol>
+<p>Build example (from the <code>e2e/wasm</code> workspace):</p>
+<pre><code class="language-bash">cd e2e/wasm/binding
+wasm-pack build --dev --target web --out-dir pkg --out-name wasmjs
+</code></pre>
+<p>Minimal shape:</p>
+<pre><code class="language-rust">// protocol crate
+#[brec::block]
+pub struct MyBlock {
+    pub id: u64,
+}
+
+#[derive(serde::Serialize, serde::Deserialize, brec::Wasm)]
+pub struct Inner {
+    pub tag: String,
+}
+
+#[payload(bincode)]
+#[derive(serde::Serialize, serde::Deserialize)]
+pub struct MyPayload {
+    pub inner: Inner,
+}
+
+brec::generate!();
+</code></pre>
+<pre><code class="language-rust">// bindings crate
+#[wasm_bindgen]
+pub fn decode_packet(buf: &amp;[u8]) -&gt; Result&lt;JsValue, JsValue&gt; {
+    let mut ctx = ();
+    Packet::decode_wasm(buf, &amp;mut ctx)
+        .map_err(|e| JsValue::from_str(&amp;format!(&quot;decode packet: {e}&quot;)))
+}
+
+#[wasm_bindgen]
+pub fn encode_packet(packet: JsValue) -&gt; Result&lt;Vec&lt;u8&gt;, JsValue&gt; {
+    let mut ctx = ();
+    let mut out = Vec::new();
+    Packet::encode_wasm(packet, &amp;mut out, &amp;mut ctx)
+        .map_err(|e| JsValue::from_str(&amp;format!(&quot;encode packet: {e}&quot;)))?;
+    Ok(out)
+}
+</code></pre>
+<p>Reference implementation in this repository:</p>
+<ul>
+<li>WASM shared e2e workspace: <code>e2e/wasm/</code></li>
+<li>Protocol crate: <code>e2e/wasm/protocol</code></li>
+<li>Binding crate: <code>e2e/wasm/binding</code></li>
+<li>Browser client: <code>e2e/wasm/clients/browser</code></li>
+<li>Node client: <code>e2e/wasm/clients/node</code></li>
+<li>End-to-end scripts: <code>e2e/wasm/clients/browser/test.sh</code>, <code>e2e/wasm/clients/node/test.sh</code>, <code>e2e/wasm/test.sh</code></li>
+</ul>
+<p>Direct links:</p>
+<ul>
+<li><a href="https://github.com/icsmw/brec/tree/main/e2e/wasm">https://github.com/icsmw/brec/tree/main/e2e/wasm</a></li>
+<li><a href="https://github.com/icsmw/brec/blob/main/e2e/wasm/protocol/src/lib.rs">https://github.com/icsmw/brec/blob/main/e2e/wasm/protocol/src/lib.rs</a></li>
+<li><a href="https://github.com/icsmw/brec/blob/main/e2e/wasm/binding/src/lib.rs">https://github.com/icsmw/brec/blob/main/e2e/wasm/binding/src/lib.rs</a></li>
+<li><a href="https://github.com/icsmw/brec/blob/main/e2e/wasm/clients/browser/src/main.js">https://github.com/icsmw/brec/blob/main/e2e/wasm/clients/browser/src/main.js</a></li>
+<li><a href="https://github.com/icsmw/brec/blob/main/e2e/wasm/clients/node/src/main.js">https://github.com/icsmw/brec/blob/main/e2e/wasm/clients/node/src/main.js</a></li>
+<li><a href="https://github.com/icsmw/brec/blob/main/e2e/wasm/test.sh">https://github.com/icsmw/brec/blob/main/e2e/wasm/test.sh</a></li>
+</ul>
+<h2 id="required-macros-for-payload-types">Required Macros For Payload Types</h2>
+<p>For payload WASM conversion, nested custom Rust types must implement <code>brec::WasmConvert</code>.</p>
+<p>Use:</p>
+<ul>
+<li><code>#[derive(brec::Wasm)]</code> for nested structs/enums used inside payload fields</li>
+<li><code>#[payload(bincode)]</code> for payloads supported by the generated Payload WASM aggregator</li>
+</ul>
+<p>Example:</p>
+<pre><code class="language-rust">#[derive(serde::Serialize, serde::Deserialize, brec::Wasm, Clone, Debug)]
+pub struct Inner {
+    pub id: u32,
+    pub flag: bool,
+}
+
+#[payload(bincode)]
+#[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]
+pub struct MyPayload {
+    pub inner: Inner,
+}
+</code></pre>
+<p>If a payload variant is not <code>#[payload(bincode)]</code>, the generated WASM payload aggregator returns an error for that variant.</p>
+<h2 id="rust-js-reflection">Rust -&gt; JS Reflection</h2>
+<p>The generated WASM API uses explicit object shapes.</p>
+<h3 id="block-enum-shape">Block enum shape</h3>
+<p>Each block is represented as an object with exactly one key:</p>
+<pre><code class="language-js">{ &quot;MyBlock&quot;: { /* block fields */ } }
+</code></pre>
+<h3 id="payload-enum-shape">Payload enum shape</h3>
+<p>Each payload is represented as an object with exactly one key:</p>
+<pre><code class="language-js">{ &quot;MyPayload&quot;: { /* payload fields */ } }
+</code></pre>
+<p>Default payloads (when enabled) are:</p>
+<pre><code class="language-js">{ &quot;Bytes&quot;: [/* u8 array */] }
+{ &quot;String&quot;: &quot;...&quot; }
+</code></pre>
+<h3 id="packet-shape">Packet shape</h3>
+<p><code>PacketDef</code> WASM conversion uses:</p>
+<pre><code class="language-js">{
+  blocks: Array&lt;object&gt;,   // each element is one-key Block object
+  payload: object | null   // one-key Payload object, null, or undefined on input
+}
+</code></pre>
+<h2 id="data-contract-on-the-consumer-side">Data Contract On The Consumer Side</h2>
+<p>On the JavaScript side you receive plain runtime values (<code>object</code>, <code>Array</code>, <code>BigInt</code>, <code>string</code>, etc.), not generated runtime types.</p>
+<p>What <code>brec</code> guarantees:</p>
+<ul>
+<li>The decoded object shape follows the protocol definition.</li>
+<li>If a variant is <code>BlockA</code>, the object contains exactly <code>BlockA</code> fields.</li>
+<li>If a variant is <code>PayloadA</code>, the object contains exactly <code>PayloadA</code> fields.</li>
+<li>Field names are preserved exactly as defined in your Rust protocol types.</li>
+</ul>
+<p>What <code>brec</code> does not do for you:</p>
+<ul>
+<li>It does not generate runtime validators in JS.</li>
+<li>It does not enforce TypeScript compile-time typing by itself.</li>
+</ul>
+<p>Responsibility split:</p>
+<ul>
+<li><code>brec</code> validates protocol data while decoding and produces protocol-shaped objects.</li>
+<li>Your application is responsible for additional business-level validation and optional static typing wrappers.</li>
+</ul>
+<p>How to read these objects in JS:</p>
+<pre><code class="language-js">const packet = decode_packet(bytes);
+
+for (const blockObj of packet.blocks) {
+  const [blockKind, blockFields] = Object.entries(blockObj)[0];
+  // blockKind -&gt; &quot;BlockA&quot;, blockFields -&gt; { ...fields from protocol... }
+}
+
+if (packet.payload != null) {
+  const [payloadKind, payloadFields] = Object.entries(packet.payload)[0];
+  // payloadKind -&gt; &quot;PayloadA&quot;, payloadFields -&gt; { ...fields from protocol... }
+}
+</code></pre>
+<h2 id="numeric-mapping-rules">Numeric Mapping Rules</h2>
+<p>To keep conversion lossless:</p>
+<ul>
+<li><code>i64</code>, <code>u64</code>, <code>i128</code>, <code>u128</code> are mapped via JS <code>BigInt</code></li>
+<li><code>f32</code> is transferred as its <code>u32</code> bit pattern</li>
+<li><code>f64</code> is transferred as its <code>u64</code> bit pattern via JS <code>BigInt</code></li>
+</ul>
+<p>This preserves exact Rust values across JS roundtrips, including edge cases.</p>
+<h3 id="why-float-bit-patterns">Why Float Bit Patterns?</h3>
+<p><code>f32</code>/<code>f64</code> are encoded via bit patterns rather than plain JS <code>Number</code> to avoid accidental precision loss and to preserve exact payload values end-to-end.</p>
+<p>This is especially important when values are serialized/deserialized many times across runtime boundaries.</p>
+<h2 id="generated-helpers">Generated Helpers</h2>
+<p>Generated protocol types expose WASM helper methods:</p>
+<ul>
+<li><code>decode_wasm(...)</code> - bytes -&gt; JS object</li>
+<li><code>encode_wasm(...)</code> - JS object -&gt; bytes</li>
+</ul>
+<p>For packet and payload paths, context is passed explicitly (<code>ctx</code>) exactly like in regular Rust encode/decode flows.</p>
+<h2 id="javascript-usage-pattern">JavaScript Usage Pattern</h2>
+<p>Typical browser-side flow:</p>
+<pre><code class="language-js">import init, { decode_packet, encode_packet } from 'wasmjs';
+
+await init();
+
+const packet = decode_packet(inBytes); // JS object
+const outBytes = encode_packet(packet); // Uint8Array-compatible bytes
+</code></pre>
+<p>For large integer fields (<code>i64/u64/i128/u128</code>), provide <code>BigInt</code> values from JS:</p>
+<pre><code class="language-js">const payload = {
+  PayloadA: {
+    field_u64: 42n,
+    field_i128: -123n,
+  },
+};
+</code></pre>
+<h2 id="error-behavior">Error Behavior</h2>
+<p>WASM conversion errors are surfaced as conversion/shape errors (for example: invalid object shape, missing field, invalid field type/range).</p>
+<p>Common causes:</p>
+<ul>
+<li>enum wrapper object has zero or multiple keys</li>
+<li><code>BigInt</code>-required field receives <code>Number</code></li>
+<li>tuple/array field shape mismatch</li>
+<li>payload variant not marked with <code>#[payload(bincode)]</code></li>
+</ul>
+<h2 id="runtime-notes">Runtime Notes</h2>
+<ul>
+<li>Browser wasm modules are typically built with <code>wasm-pack --target web</code>.</li>
+<li>In Node runtimes with wasm-bindgen, the same object conversion rules apply.</li>
+<li>The conversion API is independent from transport; you can use WebSocket, fetch, SharedArrayBuffer pipelines, etc.</li>
+</ul>
+<h2 id="limitations">Limitations</h2>
+<ul>
+<li>Source-based Rust coverage (<code>cargo llvm-cov</code>) for <code>wasm32-unknown-unknown</code> is not generally available in standard setups.</li>
+<li>If you need coverage in browser tests, treat JS-side coverage and Rust-native coverage as separate pipelines.</li>
+</ul>
+<h2 id="see-also">See Also</h2>
+<ul>
+<li><a href="../../parts/blocks/">Blocks</a></li>
+<li><a href="../../parts/payloads/">Payloads</a></li>
+<li><a href="../../parts/packets/">Packets</a></li>
+<li><a href="../napi/">NAPI (Rust &lt;-&gt; JS)</a></li>
+<li><a href="../java/">Java (Rust &lt;-&gt; Java)</a></li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": [], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>

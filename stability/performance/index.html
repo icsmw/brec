@@ -1,0 +1,2584 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+        <link rel="canonical" href="https://icsmw.github.io/brec/stability/performance/">
+      
+      
+        <link rel="prev" href="../tests/">
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>Performance - BRec (Binary Record)</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    <body dir="ltr">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#performance" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="BRec (Binary Record)" class="md-header__button md-logo" aria-label="BRec (Binary Record)" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            BRec (Binary Record)
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Performance
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="BRec (Binary Record)" class="md-nav__button md-logo" aria-label="BRec (Binary Record)" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    BRec (Binary Record)
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../overview/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting_started/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Protocol Parts
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Protocol Parts
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../parts/blocks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Blocks
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../parts/payloads/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Payloads
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../parts/context/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Payload Context
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../parts/packets/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Packets
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Features
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Features
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../features/resilient/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Resilient Compatibility
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../features/crypt/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Crypt
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Integrations
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Integrations
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../integrations/napi/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    NAPI (Rust <-> JS)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../integrations/wasm/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    WASM (Rust <-> JS)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../integrations/java/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Java (Rust <-> Java)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../code_generation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Code Generation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8" >
+        
+          
+          <label class="md-nav__link" for="__nav_8" id="__nav_8_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Protocol Tools
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_8">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Protocol Tools
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tools/buffer/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Buffer
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tools/storage/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Storage
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../specification/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Specification
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_10" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_10" id="__nav_10_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Stability & Performance
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_10_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_10">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Stability & Performance
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tests/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tests
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Performance
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Performance
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#performance" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Performance
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Performance">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#basic-scenarios" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Basic Scenarios
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#scope-of-evaluation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Scope of Evaluation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#operations-evaluated" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Operations Evaluated
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#data" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Data
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#other-test-features-characteristics" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Other Test Features / Characteristics
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#results" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Results
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Results">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#test-small-record" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Test: Small Record
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#test-large-record" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Test: Large Record
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#test-large-record-crypted" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Test: Large Record Crypted
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#test-zero-copy-test-borrowed-test" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Test: Zero-copy test (borrowed test)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#general" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        General
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#conclusion" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Conclusion
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#performance" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Performance
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Performance">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#basic-scenarios" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Basic Scenarios
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#scope-of-evaluation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Scope of Evaluation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#operations-evaluated" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Operations Evaluated
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#data" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Data
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#other-test-features-characteristics" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Other Test Features / Characteristics
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#results" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Results
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Results">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#test-small-record" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Test: Small Record
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#test-large-record" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Test: Large Record
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#test-large-record-crypted" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Test: Large Record Crypted
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#test-zero-copy-test-borrowed-test" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Test: Zero-copy test (borrowed test)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#general" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        General
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#conclusion" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Conclusion
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+
+  <h1>Performance</h1>
+
+<h2 id="performance">Performance</h2>
+<p>The primary goal of these measurements is to provide a fair evaluation of the performance of the <code>brec</code> library, as well as a fair evaluation of the scenarios where using <code>brec</code> provides the highest efficiency.</p>
+<p>When selecting protocols for comparison, the goal is not to maximize coverage of all protocols that exist today. Such measurements are unlikely to provide useful information. Instead, the "front-runners" were chosen as reference points:</p>
+<ul>
+<li>JSON as the universal and most widely used protocol today</li>
+<li>Protobuf as the most widely used protocol among binary formats</li>
+<li>FlatBuffer as a protocol based on the zero-copy concept</li>
+</ul>
+<p>In addition, the benchmark includes a Plain Text scenario where writing and reading are done "as-is". This scenario is introduced as a baseline reference point.</p>
+<p>The inclusion of FlatBuffer is justified by the fact that <code>brec</code> also combines a zero-copy approach, providing access to blocks without unnecessary memory allocation. This makes it possible to implement data filtering before the parser proceeds to process the payload.</p>
+<p>One of the goals of these measurements is therefore to show the impact of <code>brec</code> architecture and how it defines the most efficient library usage scenarios.</p>
+<h3 id="basic-scenarios">Basic Scenarios</h3>
+<p>A total of 4 main scenarios are tested:</p>
+<ol>
+<li>Small Record: a simple small data packet. It contains a pair of numeric fields and a string payload.</li>
+<li>Large Record: a larger packet with a large payload containing key/value pairs.</li>
+<li>Large Record Crypted: same as the previous one, except encryption is applied to the payload (where possible). Obviously, Plain Text and JSON are encrypted entirely. Also, for benchmark fairness, exactly the same encryption approach/conditions are applied in all sub-scenarios.</li>
+<li>Zero-copy test (borrowed test): this test includes only Protobuf and FlatBuffer, since comparing Plain Text and JSON here does not make sense. Protobuf should arguably also be excluded, but it is kept for comparison. The goal is to show performance when packet reading is done in zero-copy mode, where possible.</li>
+</ol>
+<h3 id="scope-of-evaluation">Scope of Evaluation</h3>
+<p>Each of the scenarios above (except the last one) includes the following protocols for evaluation:</p>
+<ul>
+<li>Plain text: data processing "as-is"; no encoding or decoding</li>
+<li>JSON: data is converted to JSON objects</li>
+<li>Protobuf: data is encoded/decoded using protobuf</li>
+<li>FlatBuffer: data is encoded/decoded using flatbuffer</li>
+<li>FlatBuffer Owned: data is encoded/decoded using flatbuffer, but copied into memory at the final stage</li>
+<li>Brec Storage: writing and reading <code>brec</code> packets is performed through Storage (part of the <code>brec</code> toolkit). Storage is responsible not only for writing and reading, but also for "mapping" records in a file by splitting files into slots for faster record access during reads</li>
+<li>Brec Stream: writing and reading <code>brec</code> packets is done "as-is" into a binary file</li>
+</ul>
+<h3 id="operations-evaluated">Operations Evaluated</h3>
+<p>Operation notes:
+- Writing: packets are written to a file
+- Reading: packets are read from a file
+- Filtering: packets are read from a file with a filter applied; in other words, packets that do not satisfy the search condition are skipped</p>
+<h3 id="data">Data</h3>
+<p>Common data</p>
+<pre><code class="language-rust">pub enum Level {
+    Err,
+    Warn,
+    Info,
+    Debug,
+}
+
+pub enum Target {
+    Server,
+    Client,
+    Proxy,
+}
+</code></pre>
+<p>Note: Conversion of <code>Level</code> and <code>Target</code> into <code>u8</code> is required but omitted here for brevity.</p>
+<p>Small Record</p>
+<pre><code class="language-rust">#[block]
+pub struct Metadata {
+    pub level: Level,
+    pub target: Target,
+    pub tm: u64,
+}
+
+/// Data unit to be write/read &amp; encode/decode
+pub struct Record {
+    pub mt: Metadata,
+    pub msg: String,
+}
+</code></pre>
+<p>Large Record &amp; Large Record Crypted</p>
+<pre><code class="language-rust">#[block]
+pub struct Metadata {
+    pub level: Level,
+    pub target: Target,
+    pub tm: u64,
+}
+
+#[payload(bincode)]
+pub struct Attachment {
+    pub uuid: String,
+    pub name: String,
+    pub chunk: u32,
+    pub data: Vec&lt;u8&gt;,
+    pub fields: BTreeMap&lt;String, String&gt;,
+}
+
+/// Data unit to be write/read &amp; encode/decode
+pub struct Record {
+    pub mt: Metadata,
+    pub atc: Attachment,
+}
+</code></pre>
+<p>Borrowed blocks only (referred path benchmark)</p>
+<pre><code class="language-rust">/// Data unit to be write/read &amp; encode/decode
+#[block]
+pub struct BlockBorrowed {
+    pub field_u8: u8,
+    pub field_u16: u16,
+    pub field_u32: u32,
+    pub field_u64: u64,
+    pub field_u128: u128,
+    pub field_i8: i8,
+    pub field_i16: i16,
+    pub field_i32: i32,
+    pub field_i64: i64,
+    pub field_i128: i128,
+    pub field_f32: f32,
+    pub field_f64: f64,
+    pub field_bool: bool,
+    pub blob_a: [u8; 100],
+    pub blob_b: [u8; 255],
+}
+</code></pre>
+<h3 id="other-test-features-characteristics">Other Test Features / Characteristics</h3>
+<ul>
+<li>test data is generated randomly (<code>proptest</code>)</li>
+<li>tests are run sequentially in a single thread</li>
+<li>iterations of each test are performed without refreshing the data</li>
+<li>data for different protocols (JSON, Protobuf, FlatBuffer, <code>brec</code>) differs slightly due to format differences, but the author tried to keep data as close as possible so the benchmarks remain fair</li>
+</ul>
+<h2 id="results">Results</h2>
+<h3 id="test-small-record">Test: Small Record</h3>
+<table>
+<thead>
+<tr>
+<th>Platform</th>
+<th>Case</th>
+<th>Bytes</th>
+<th>Rows</th>
+<th>Time, ms</th>
+<th>Avg, us/row</th>
+<th>Rate, Mbit/s</th>
+<th>CPU, ms</th>
+<th>RSS,  Kb</th>
+<th>PeakRSS,  Kb</th>
+<th>Iterations</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Plain text</td>
+<td>Writing</td>
+<td>2,005 Mb</td>
+<td>2,500,000</td>
+<td>2,476</td>
+<td>0.99</td>
+<td>6794.05</td>
+<td>2,501</td>
+<td>41</td>
+<td>22</td>
+<td>10</td>
+</tr>
+<tr>
+<td>Plain text</td>
+<td>Reading</td>
+<td>2,005 Mb</td>
+<td>2,500,000</td>
+<td>650</td>
+<td>0.26</td>
+<td>25863.75</td>
+<td>653</td>
+<td>0</td>
+<td>0</td>
+<td>10</td>
+</tr>
+<tr>
+<td>Plain text</td>
+<td>Filtering</td>
+<td>2,005 Mb</td>
+<td>293,500</td>
+<td>759</td>
+<td>2.59</td>
+<td>22170.38</td>
+<td>766</td>
+<td>0</td>
+<td>0</td>
+<td>10</td>
+</tr>
+<tr>
+<td>JSON</td>
+<td>Writing</td>
+<td>2,114 Mb</td>
+<td>2,500,000</td>
+<td>4,217</td>
+<td>1.69</td>
+<td>4207.15</td>
+<td>4,233</td>
+<td>22</td>
+<td>22</td>
+<td>10</td>
+</tr>
+<tr>
+<td>JSON</td>
+<td>Reading</td>
+<td>2,114 Mb</td>
+<td>2,500,000</td>
+<td>1,480</td>
+<td><strong>0.59</strong></td>
+<td>11983.78</td>
+<td>1,494</td>
+<td>2</td>
+<td>2</td>
+<td>10</td>
+</tr>
+<tr>
+<td>JSON</td>
+<td>Filtering</td>
+<td>2,114 Mb</td>
+<td>293,500</td>
+<td>1,497</td>
+<td>5.10</td>
+<td>11851.88</td>
+<td>1,511</td>
+<td>0</td>
+<td>0</td>
+<td>10</td>
+</tr>
+<tr>
+<td>Protobuf</td>
+<td>Writing</td>
+<td>1,986 Mb</td>
+<td>2,500,000</td>
+<td>3,992</td>
+<td>1.60</td>
+<td>4174.13</td>
+<td>4,035</td>
+<td>44</td>
+<td>43</td>
+<td>10</td>
+</tr>
+<tr>
+<td>Protobuf</td>
+<td>Reading</td>
+<td>1,986 Mb</td>
+<td>2,500,000</td>
+<td>1,909</td>
+<td><strong>0.76</strong></td>
+<td>8727.11</td>
+<td>1,923</td>
+<td>0</td>
+<td>0</td>
+<td>10</td>
+</tr>
+<tr>
+<td>Protobuf</td>
+<td>Filtering</td>
+<td>1,986 Mb</td>
+<td>293,500</td>
+<td>1,950</td>
+<td>6.64</td>
+<td>8544.26</td>
+<td>1,967</td>
+<td>0</td>
+<td>0</td>
+<td>10</td>
+</tr>
+<tr>
+<td>FlatBuffers</td>
+<td>Writing</td>
+<td>2,102 Mb</td>
+<td>2,500,000</td>
+<td>5,155</td>
+<td>2.06</td>
+<td>3421.80</td>
+<td>5,109</td>
+<td>0</td>
+<td>0</td>
+<td>10</td>
+</tr>
+<tr>
+<td>FlatBuffers</td>
+<td>Reading</td>
+<td>2,102 Mb</td>
+<td>2,500,000</td>
+<td>1,701</td>
+<td><strong>0.68</strong></td>
+<td>10368.76</td>
+<td>1,716</td>
+<td>0</td>
+<td>0</td>
+<td>10</td>
+</tr>
+<tr>
+<td>FlatBuffers</td>
+<td>Filtering</td>
+<td>2,102 Mb</td>
+<td>293,500</td>
+<td>1,657</td>
+<td>5.65</td>
+<td>10641.21</td>
+<td>1,670</td>
+<td>0</td>
+<td>0</td>
+<td>10</td>
+</tr>
+<tr>
+<td>FlatBuffers Owned</td>
+<td>Writing</td>
+<td>2,102 Mb</td>
+<td>2,500,000</td>
+<td>5,153</td>
+<td>2.06</td>
+<td>3422.94</td>
+<td>5,201</td>
+<td>0</td>
+<td>0</td>
+<td>10</td>
+</tr>
+<tr>
+<td>FlatBuffers Owned</td>
+<td>Reading</td>
+<td>2,102 Mb</td>
+<td>2,500,000</td>
+<td>1,763</td>
+<td><strong>0.71</strong></td>
+<td>10006.43</td>
+<td>1,777</td>
+<td>0</td>
+<td>0</td>
+<td>10</td>
+</tr>
+<tr>
+<td>FlatBuffers Owned</td>
+<td>Filtering</td>
+<td>2,102 Mb</td>
+<td>293,500</td>
+<td>1,829</td>
+<td>6.23</td>
+<td>9643.44</td>
+<td>1,846</td>
+<td>0</td>
+<td>0</td>
+<td>10</td>
+</tr>
+<tr>
+<td>Brec Storage</td>
+<td>Writing</td>
+<td>2,111 Mb</td>
+<td>2,500,000</td>
+<td>8,120</td>
+<td>3.25</td>
+<td>2180.72</td>
+<td>8,188</td>
+<td>19,298</td>
+<td>19,289</td>
+<td>10</td>
+</tr>
+<tr>
+<td>Brec Storage</td>
+<td>Reading</td>
+<td>2,111 Mb</td>
+<td>2,500,000</td>
+<td>2,509</td>
+<td><strong>1.00</strong></td>
+<td>7058.13</td>
+<td>2,530</td>
+<td>19,222</td>
+<td>19,222</td>
+<td>10</td>
+</tr>
+<tr>
+<td>Brec Storage</td>
+<td>Filtering</td>
+<td>2,111 Mb</td>
+<td>293,500</td>
+<td>1,441</td>
+<td>4.91</td>
+<td>12287.56</td>
+<td>1,449</td>
+<td>19,534</td>
+<td>19,534</td>
+<td>10</td>
+</tr>
+<tr>
+<td>Brec Stream</td>
+<td>Writing</td>
+<td>2,091 Mb</td>
+<td>2,500,000</td>
+<td>6,735</td>
+<td>2.69</td>
+<td>2605.49</td>
+<td>6,792</td>
+<td>0</td>
+<td>0</td>
+<td>10</td>
+</tr>
+<tr>
+<td>Brec Stream</td>
+<td>Reading</td>
+<td>2,091 Mb</td>
+<td>2,500,000</td>
+<td>1,914</td>
+<td><strong>0.77</strong></td>
+<td>9167.30</td>
+<td>1,929</td>
+<td>4</td>
+<td>4</td>
+<td>10</td>
+</tr>
+<tr>
+<td>Brec Stream</td>
+<td>Filtering</td>
+<td>2,091 Mb</td>
+<td>293,500</td>
+<td>863</td>
+<td>2.94</td>
+<td>20331.88</td>
+<td>865</td>
+<td>4</td>
+<td>4</td>
+<td>10</td>
+</tr>
+</tbody>
+</table>
+<p><img alt="results" src="../../assets/small_record_read_write.svg" /></p>
+<p><img alt="results" src="../../assets/small_record_filtering.svg" /></p>
+<p>Evaluation of test results:</p>
+<ul>
+<li>In this section, Plain Text should be treated only as a baseline marker, not as a production-format competitor.</li>
+<li>For small packets, JSON is very strong on full reads among structured formats, while Protobuf is slightly faster on writes (the gap is on the order of tens of nanoseconds per row, not fractions of a nanosecond).</li>
+<li>At the same time, JSON efficiency "breaks" once filtering is involved. This is not related to format efficiency itself, but to its architecture and the fact that the message must still be fully parsed. <code>brec</code> performs best in filtering simply because the fields used for filtering are moved into blocks, which are processed before the payload and allow skipping full packet parsing.</li>
+<li>For full reading, Brec Stream remains close to Protobuf, while FlatBuffers is ahead by a visible but moderate margin.</li>
+</ul>
+<h3 id="test-large-record">Test: Large Record</h3>
+<table>
+<thead>
+<tr>
+<th>Platform</th>
+<th>Case</th>
+<th>Bytes</th>
+<th>Rows</th>
+<th>Time, ms</th>
+<th>Avg, us/row</th>
+<th>Rate, Mbit/s</th>
+<th>CPU, ms</th>
+<th>RSS, Kb</th>
+<th>PeakRSS, Kb</th>
+<th>Iterations</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Plain text</td>
+<td>Writing</td>
+<td>4,986 Mb</td>
+<td>2,500,000</td>
+<td>4,183</td>
+<td>1.67</td>
+<td>10000.53</td>
+<td>3,947</td>
+<td>2</td>
+<td>2</td>
+<td>10</td>
+</tr>
+<tr>
+<td>Plain text</td>
+<td>Reading</td>
+<td>4,986 Mb</td>
+<td>2,500,000</td>
+<td>13,220</td>
+<td>5.29</td>
+<td>3164.11</td>
+<td>13,108</td>
+<td>0</td>
+<td>0</td>
+<td>10</td>
+</tr>
+<tr>
+<td>Plain text</td>
+<td>Filtering</td>
+<td>4,986 Mb</td>
+<td>308,500</td>
+<td>13,264</td>
+<td>43.00</td>
+<td>3153.45</td>
+<td>13,371</td>
+<td>0</td>
+<td>0</td>
+<td>10</td>
+</tr>
+<tr>
+<td>JSON</td>
+<td>Writing</td>
+<td>5,216 Mb</td>
+<td>2,500,000</td>
+<td>14,317</td>
+<td>5.73</td>
+<td>3056.29</td>
+<td>14,454</td>
+<td>0</td>
+<td>0</td>
+<td>10</td>
+</tr>
+<tr>
+<td>JSON</td>
+<td>Reading</td>
+<td>5,216 Mb</td>
+<td>2,500,000</td>
+<td>31,784</td>
+<td>12.71</td>
+<td>1376.68</td>
+<td>32,046</td>
+<td>0</td>
+<td>0</td>
+<td>10</td>
+</tr>
+<tr>
+<td>JSON</td>
+<td>Filtering</td>
+<td>5,216 Mb</td>
+<td>308,500</td>
+<td>31,819</td>
+<td>103.14</td>
+<td>1375.19</td>
+<td>32,069</td>
+<td>0</td>
+<td>0</td>
+<td>10</td>
+</tr>
+<tr>
+<td>Protobuf</td>
+<td>Writing</td>
+<td>3,409 Mb</td>
+<td>2,500,000</td>
+<td>7,112</td>
+<td>2.84</td>
+<td>4021.85</td>
+<td>7,180</td>
+<td>31</td>
+<td>29</td>
+<td>10</td>
+</tr>
+<tr>
+<td>Protobuf</td>
+<td>Reading</td>
+<td>3,409 Mb</td>
+<td>2,500,000</td>
+<td>15,634</td>
+<td><strong>6.25</strong></td>
+<td>1829.55</td>
+<td>15,756</td>
+<td>0</td>
+<td>0</td>
+<td>10</td>
+</tr>
+<tr>
+<td>Protobuf</td>
+<td>Filtering</td>
+<td>3,409 Mb</td>
+<td>308,500</td>
+<td>15,638</td>
+<td>50.69</td>
+<td>1829.08</td>
+<td>15,731</td>
+<td>0</td>
+<td>0</td>
+<td>10</td>
+</tr>
+<tr>
+<td>FlatBuffers</td>
+<td>Writing</td>
+<td>3,878 Mb</td>
+<td>2,500,000</td>
+<td>7,618</td>
+<td>3.05</td>
+<td>4270.89</td>
+<td>7,691</td>
+<td>0</td>
+<td>0</td>
+<td>10</td>
+</tr>
+<tr>
+<td>FlatBuffers</td>
+<td>Reading</td>
+<td>3,878 Mb</td>
+<td>2,500,000</td>
+<td>2,571</td>
+<td>1.03</td>
+<td>12657.02</td>
+<td>2,568</td>
+<td>0</td>
+<td>0</td>
+<td>10</td>
+</tr>
+<tr>
+<td>FlatBuffers</td>
+<td>Filtering</td>
+<td>3,878 Mb</td>
+<td>308,500</td>
+<td>2,294</td>
+<td>7.43</td>
+<td>14186.19</td>
+<td>2,269</td>
+<td>0</td>
+<td>0</td>
+<td>10</td>
+</tr>
+<tr>
+<td>FlatBuffers Owned</td>
+<td>Writing</td>
+<td>3,878 Mb</td>
+<td>2,500,000</td>
+<td>7,717</td>
+<td>3.09</td>
+<td>4216.48</td>
+<td>7,761</td>
+<td>0</td>
+<td>0</td>
+<td>10</td>
+</tr>
+<tr>
+<td>FlatBuffers Owned</td>
+<td>Reading</td>
+<td>3,878 Mb</td>
+<td>2,500,000</td>
+<td>3,948</td>
+<td>1.58</td>
+<td>8240.88</td>
+<td>3,909</td>
+<td>0</td>
+<td>0</td>
+<td>10</td>
+</tr>
+<tr>
+<td>FlatBuffers Owned</td>
+<td>Filtering</td>
+<td>3,878 Mb</td>
+<td>308,500</td>
+<td>3,850</td>
+<td>12.48</td>
+<td>8452.03</td>
+<td>3,868</td>
+<td>0</td>
+<td>0</td>
+<td>10</td>
+</tr>
+<tr>
+<td>Brec Storage</td>
+<td>Writing</td>
+<td>3,476 Mb</td>
+<td>2,500,000</td>
+<td>11,935</td>
+<td>4.77</td>
+<td>2443.55</td>
+<td>12,042</td>
+<td>17,317</td>
+<td>17,304</td>
+<td>10</td>
+</tr>
+<tr>
+<td>Brec Storage</td>
+<td>Reading</td>
+<td>3,476 Mb</td>
+<td>2,500,000</td>
+<td>15,315</td>
+<td>6.13</td>
+<td>1904.24</td>
+<td>14,927</td>
+<td>14,952</td>
+<td>15,343</td>
+<td>10</td>
+</tr>
+<tr>
+<td>Brec Storage</td>
+<td>Filtering</td>
+<td>3,476 Mb</td>
+<td>308,500</td>
+<td>5,394</td>
+<td>17.48</td>
+<td>5406.84</td>
+<td>4,858</td>
+<td>15,033</td>
+<td>15,424</td>
+<td>10</td>
+</tr>
+<tr>
+<td>Brec Stream</td>
+<td>Writing</td>
+<td>3,457 Mb</td>
+<td>2,500,000</td>
+<td>10,233</td>
+<td>4.09</td>
+<td>2834.28</td>
+<td>10,331</td>
+<td>0</td>
+<td>0</td>
+<td>10</td>
+</tr>
+<tr>
+<td>Brec Stream</td>
+<td>Reading</td>
+<td>3,457 Mb</td>
+<td>2,500,000</td>
+<td>14,529</td>
+<td><strong>5.81</strong></td>
+<td>1996.19</td>
+<td>14,632</td>
+<td>4</td>
+<td>4</td>
+<td>10</td>
+</tr>
+<tr>
+<td>Brec Stream</td>
+<td>Filtering</td>
+<td>3,457 Mb</td>
+<td>308,500</td>
+<td>4,231</td>
+<td>13.72</td>
+<td>6854.39</td>
+<td>4,234</td>
+<td>4</td>
+<td>4</td>
+<td>10</td>
+</tr>
+</tbody>
+</table>
+<p><img alt="results" src="../../assets/large_record_read_write.svg" /></p>
+<p><img alt="results" src="../../assets/large_record_filtering.svg" /></p>
+<p>Evaluation of test results:</p>
+<ul>
+<li>With more complex data, JSON efficiency drops dramatically. This applies to both writes and especially reads. It is particularly noticeable in the filtering task, where JSON is several times slower than other formats.</li>
+<li>The clear favorite in this benchmark is FlatBuffers, especially in full-read and filtering operations.</li>
+<li>In this benchmark, <code>brec</code> outperforms JSON across all criteria, and it also outperforms Protobuf on filtering. In write/read throughput, <code>brec</code> and Protobuf remain in the same practical range, while FlatBuffers is ahead.</li>
+<li>For filtering specifically, the gap between FlatBuffers and <code>brec</code> is still meaningful in this scenario, but <code>brec</code> keeps a strong advantage over JSON and Protobuf.</li>
+<li>Also, when working with large data structures, the efficiency of binary protocols in storage footprint and disk usage becomes noticeable. On average, binary protocols are 20-40% more compact than JSON.</li>
+</ul>
+<h3 id="test-large-record-crypted">Test: Large Record Crypted</h3>
+<table>
+<thead>
+<tr>
+<th>Platform</th>
+<th>Case</th>
+<th>Bytes</th>
+<th>Rows</th>
+<th>Time, ms</th>
+<th>Avg, us/row</th>
+<th>Rate, Mbit/s</th>
+<th>CPU, ms</th>
+<th>RSS,  Kb</th>
+<th>PeakRSS,  Kb</th>
+<th>Iterations</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Crypt Plain text</td>
+<td>Writing</td>
+<td>5,379 Mb</td>
+<td>2,500,000</td>
+<td>18,762</td>
+<td>7.50</td>
+<td>2405.31</td>
+<td>18,931</td>
+<td>0</td>
+<td>0</td>
+<td>10</td>
+</tr>
+<tr>
+<td>Crypt Plain text</td>
+<td>Reading</td>
+<td>5,379 Mb</td>
+<td>2,500,000</td>
+<td>29,382</td>
+<td>11.75</td>
+<td>1535.87</td>
+<td>29,607</td>
+<td>0</td>
+<td>0</td>
+<td>10</td>
+</tr>
+<tr>
+<td>Crypt Plain text</td>
+<td>Filtering</td>
+<td>5,379 Mb</td>
+<td>318,000</td>
+<td>29,752</td>
+<td>93.56</td>
+<td>1516.79</td>
+<td>29,982</td>
+<td>0</td>
+<td>0</td>
+<td>10</td>
+</tr>
+<tr>
+<td>Crypt JSON</td>
+<td>Writing</td>
+<td>5,610 Mb</td>
+<td>2,500,000</td>
+<td>29,697</td>
+<td>11.88</td>
+<td>1584.70</td>
+<td>29,963</td>
+<td>0</td>
+<td>0</td>
+<td>10</td>
+</tr>
+<tr>
+<td>Crypt JSON</td>
+<td>Reading</td>
+<td>5,610 Mb</td>
+<td>2,500,000</td>
+<td>48,520</td>
+<td>19.41</td>
+<td>969.93</td>
+<td>48,926</td>
+<td>0</td>
+<td>0</td>
+<td>10</td>
+</tr>
+<tr>
+<td>Crypt JSON</td>
+<td>Filtering</td>
+<td>5,610 Mb</td>
+<td>318,000</td>
+<td>48,747</td>
+<td>153.29</td>
+<td>965.40</td>
+<td>49,144</td>
+<td>0</td>
+<td>0</td>
+<td>10</td>
+</tr>
+<tr>
+<td>Protobuf</td>
+<td>Writing</td>
+<td>3,812 Mb</td>
+<td>2,500,000</td>
+<td>19,542</td>
+<td><strong>7.82</strong></td>
+<td>1636.39</td>
+<td>19,700</td>
+<td>0</td>
+<td>0</td>
+<td>10</td>
+</tr>
+<tr>
+<td>Protobuf</td>
+<td>Reading</td>
+<td>3,812 Mb</td>
+<td>2,500,000</td>
+<td>29,094</td>
+<td>11.64</td>
+<td>1099.13</td>
+<td>29,328</td>
+<td>0</td>
+<td>0</td>
+<td>10</td>
+</tr>
+<tr>
+<td>Protobuf</td>
+<td>Filtering</td>
+<td>3,812 Mb</td>
+<td>318,000</td>
+<td>29,365</td>
+<td>92.34</td>
+<td>1088.97</td>
+<td>29,589</td>
+<td>0</td>
+<td>0</td>
+<td>10</td>
+</tr>
+<tr>
+<td>FlatBuffers</td>
+<td>Writing</td>
+<td>4,310 Mb</td>
+<td>2,500,000</td>
+<td>21,363</td>
+<td><strong>8.55</strong></td>
+<td>1692.56</td>
+<td>21,542</td>
+<td>0</td>
+<td>0</td>
+<td>10</td>
+</tr>
+<tr>
+<td>FlatBuffers</td>
+<td>Reading</td>
+<td>4,310 Mb</td>
+<td>2,500,000</td>
+<td>16,324</td>
+<td><strong>6.53</strong></td>
+<td>2215.03</td>
+<td>16,432</td>
+<td>0</td>
+<td>0</td>
+<td>10</td>
+</tr>
+<tr>
+<td>FlatBuffers</td>
+<td>Filtering</td>
+<td>4,310 Mb</td>
+<td>318,000</td>
+<td>6,846</td>
+<td>21.53</td>
+<td>5281.74</td>
+<td>6,880</td>
+<td>0</td>
+<td>0</td>
+<td>10</td>
+</tr>
+<tr>
+<td>FlatBuffers Owned</td>
+<td>Writing</td>
+<td>4,310 Mb</td>
+<td>2,500,000</td>
+<td>21,435</td>
+<td><strong>8.57</strong></td>
+<td>1686.91</td>
+<td>21,623</td>
+<td>0</td>
+<td>0</td>
+<td>10</td>
+</tr>
+<tr>
+<td>FlatBuffers Owned</td>
+<td>Reading</td>
+<td>4,310 Mb</td>
+<td>2,500,000</td>
+<td>18,067</td>
+<td><strong>7.23</strong></td>
+<td>2001.37</td>
+<td>18,197</td>
+<td>0</td>
+<td>0</td>
+<td>10</td>
+</tr>
+<tr>
+<td>FlatBuffers Owned</td>
+<td>Filtering</td>
+<td>4,310 Mb</td>
+<td>318,000</td>
+<td>18,096</td>
+<td>56.90</td>
+<td>1998.19</td>
+<td>18,220</td>
+<td>0</td>
+<td>0</td>
+<td>10</td>
+</tr>
+<tr>
+<td>Brec Storage</td>
+<td>Writing</td>
+<td>3,879 Mb</td>
+<td>2,500,000</td>
+<td>23,921</td>
+<td><strong>9.57</strong></td>
+<td>1360.41</td>
+<td>24,122</td>
+<td>14,639</td>
+<td>14,632</td>
+<td>10</td>
+</tr>
+<tr>
+<td>Brec Storage</td>
+<td>Reading</td>
+<td>3,879 Mb</td>
+<td>2,500,000</td>
+<td>27,836</td>
+<td>11.13</td>
+<td>1169.08</td>
+<td>27,235</td>
+<td>4,119</td>
+<td>4,121</td>
+<td>10</td>
+</tr>
+<tr>
+<td>Brec Storage</td>
+<td>Filtering</td>
+<td>3,879 Mb</td>
+<td>318,000</td>
+<td>10,033</td>
+<td>31.55</td>
+<td>3243.47</td>
+<td>9,195</td>
+<td>3,664</td>
+<td>3,664</td>
+<td>10</td>
+</tr>
+<tr>
+<td>Brec Stream</td>
+<td>Writing</td>
+<td>3,860 Mb</td>
+<td>2,500,000</td>
+<td>22,154</td>
+<td><strong>8.86</strong></td>
+<td>1461.68</td>
+<td>22,331</td>
+<td>0</td>
+<td>0</td>
+<td>10</td>
+</tr>
+<tr>
+<td>Brec Stream</td>
+<td>Reading</td>
+<td>3,860 Mb</td>
+<td>2,500,000</td>
+<td>26,565</td>
+<td><strong>10.63</strong></td>
+<td>1218.97</td>
+<td>26,758</td>
+<td>4</td>
+<td>4</td>
+<td>10</td>
+</tr>
+<tr>
+<td>Brec Stream</td>
+<td>Filtering</td>
+<td>3,860 Mb</td>
+<td>318,000</td>
+<td>8,644</td>
+<td>27.18</td>
+<td>3745.90</td>
+<td>8,690</td>
+<td>4</td>
+<td>4</td>
+<td>10</td>
+</tr>
+</tbody>
+</table>
+<p><img alt="results" src="../../assets/large_record_crypt_read_write.svg" /></p>
+<p><img alt="results" src="../../assets/large_record_crypt_filtering.svg" /></p>
+<p>Evaluation of test results:</p>
+<ul>
+<li>In general, the results of this test repeat the previous one, amplifying protocol issues that were already visible with large data. JSON metrics predictably worsen because the entire packet is encrypted.</li>
+<li>FlatBuffers, just like in the previous test, is the absolute leader overall.</li>
+<li>At the same time, <code>brec</code> remains competitive for this encrypted workload, especially versus JSON and Protobuf in filtering. The gap to FlatBuffers in read/filtering is noticeable, but not catastrophic for practical use.</li>
+<li>Protobuf is clearly better than JSON in filtering, but it is still behind FlatBuffers and behind <code>brec</code> in this scenario.</li>
+</ul>
+<h3 id="test-zero-copy-test-borrowed-test">Test: Zero-copy test (borrowed test)</h3>
+<table>
+<thead>
+<tr>
+<th>Platform</th>
+<th>Case</th>
+<th>Bytes</th>
+<th>Rows</th>
+<th>Time, ms</th>
+<th>Avg, us/row</th>
+<th>Rate, Mbit/s</th>
+<th>CPU, ms</th>
+<th>RSS, Kb</th>
+<th>PeakRSS, Kb</th>
+<th>Iterations</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Protobuf</td>
+<td>Writing</td>
+<td>1,123 Mb</td>
+<td>2,500,000</td>
+<td>4,812</td>
+<td>1.92</td>
+<td>1958.67</td>
+<td>4,855</td>
+<td>0</td>
+<td>0</td>
+<td>10</td>
+</tr>
+<tr>
+<td>Protobuf</td>
+<td>Reading</td>
+<td>1,123 Mb</td>
+<td>2,500,000</td>
+<td>2,579</td>
+<td>1.03</td>
+<td>3654.96</td>
+<td>2,594</td>
+<td>0</td>
+<td>0</td>
+<td>10</td>
+</tr>
+<tr>
+<td>FlatBuffers</td>
+<td>Writing</td>
+<td>1,284 Mb</td>
+<td>2,500,000</td>
+<td>5,358</td>
+<td>2.14</td>
+<td>2010.77</td>
+<td>5,409</td>
+<td>0</td>
+<td>0</td>
+<td>10</td>
+</tr>
+<tr>
+<td>FlatBuffers</td>
+<td>Reading</td>
+<td>1,284 Mb</td>
+<td>2,500,000</td>
+<td>1,974</td>
+<td>0.79</td>
+<td>5458.64</td>
+<td>1,981</td>
+<td>0</td>
+<td>0</td>
+<td>10</td>
+</tr>
+<tr>
+<td>Brec Storage</td>
+<td>Writing</td>
+<td>1,132 Mb</td>
+<td>2,500,000</td>
+<td>8,216</td>
+<td>3.29</td>
+<td>1156.38</td>
+<td>8,283</td>
+<td>16,611</td>
+<td>16,593</td>
+<td>10</td>
+</tr>
+<tr>
+<td>Brec Storage</td>
+<td>Reading</td>
+<td>1,132 Mb</td>
+<td>2,500,000</td>
+<td>2,451</td>
+<td><strong>0.98</strong></td>
+<td>3876.24</td>
+<td>2,023</td>
+<td>16,892</td>
+<td>16,892</td>
+<td>10</td>
+</tr>
+<tr>
+<td>Brec Stream</td>
+<td>Writing</td>
+<td>1,113 Mb</td>
+<td>2,500,000</td>
+<td>4,375</td>
+<td>1.75</td>
+<td>2134.64</td>
+<td>4,413</td>
+<td>0</td>
+<td>0</td>
+<td>10</td>
+</tr>
+<tr>
+<td>Brec Stream</td>
+<td>Reading</td>
+<td>1,113 Mb</td>
+<td>2,500,000</td>
+<td>1,150</td>
+<td><strong>0.46</strong></td>
+<td>8120.96</td>
+<td>1,143</td>
+<td>4</td>
+<td>4</td>
+<td>10</td>
+</tr>
+</tbody>
+</table>
+<p><img alt="results" src="../../assets/borrowed_blocks_only_read_write.svg" /></p>
+<p>Evaluation of test results:</p>
+<ul>
+<li>As mentioned above, the goal of this test is, where possible, to pass through the entire data set by "peeking" into data without copying it. In this case, Protobuf serves rather as a metric baseline, and its evaluation in this test is not fully fair.</li>
+<li>In this benchmark, Brec Stream shows a clear advantage over FlatBuffers for both writing and reading.</li>
+<li>Brec Storage demonstrates the expected trade-off: additional indexing/mapping overhead and memory usage in exchange for storage-oriented capabilities.</li>
+<li>It should still be clarified that <code>brec</code> zero-copy usage is limited by the currently supported data types, while FlatBuffers supports a broader set.</li>
+</ul>
+<h2 id="general">General</h2>
+<ul>
+<li>In the Brec Storage scenario, active memory usage (compared to others) is observed. This is due to Storage mapping data into slots for more efficient placement in the file.</li>
+<li>For fairness, <strong>CRC checks are enabled</strong> for all <code>brec</code> component. CRC is calculated for blocks, payloads, and slots (in the case of storage).</li>
+</ul>
+<h2 id="conclusion">Conclusion</h2>
+<ul>
+<li>the tests show that <code>brec</code>, as a binary format, is performance-competitive with Protobuf and FlatBuffers in a number of practical scenarios</li>
+<li>the strongest side of <code>brec</code> is filtering-oriented workloads, where block-first processing helps avoid unnecessary payload parsing</li>
+<li>FlatBuffers remains the top performer for several full-read heavy large-record scenarios, while <code>brec</code> keeps competitive throughput and strong filtering behavior</li>
+<li>Brec Stream demonstrates very strong results in the zero-copy benchmark; Brec Storage provides additional storage mechanics at the cost of extra memory/write overhead</li>
+<li>overall, <code>brec</code> is a strong candidate for log/event processing workloads where selective reads and filtering are key operations</li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": [], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>
