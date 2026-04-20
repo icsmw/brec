@@ -131,6 +131,11 @@ impl Base for Payload {
         } else {
             quote! {}
         };
+        let csharp_impl = if cfg!(feature = "csharp") {
+            self.generate_csharp()?
+        } else {
+            quote! {}
+        };
         Ok(quote! {
             #sig_impl
             #hooks_impl
@@ -140,6 +145,7 @@ impl Base for Payload {
             #napi_impl
             #wasm_impl
             #java_impl
+            #csharp_impl
         })
     }
 }

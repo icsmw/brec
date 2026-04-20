@@ -99,6 +99,11 @@ impl Gen for Block {
         } else {
             quote! {}
         };
+        let csharp = if cfg!(feature = "csharp") {
+            self.generate_csharp()?
+        } else {
+            quote! {}
+        };
         Ok(quote! {
             #base
             #crc
@@ -112,6 +117,7 @@ impl Gen for Block {
             #napi
             #wasm
             #java
+            #csharp
         })
     }
 }

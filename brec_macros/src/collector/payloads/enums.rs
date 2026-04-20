@@ -63,6 +63,11 @@ pub fn generate(
     } else {
         quote! {}
     };
+    let csharp_impl = if cfg!(feature = "csharp") {
+        integrations::collector::payloads::csharp::generate_impl(&payloads, cfg)?
+    } else {
+        quote! {}
+    };
     Ok(quote! {
         #context_def
 
@@ -85,6 +90,7 @@ pub fn generate(
         #napi_impl
         #wasm_impl
         #java_impl
+        #csharp_impl
 
     })
 }

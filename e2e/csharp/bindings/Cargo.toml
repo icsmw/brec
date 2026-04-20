@@ -1,0 +1,15 @@
+[package]
+name        = "bindings"
+version     = "0.1.0"
+edition     = "2024"
+authors     = ["d.astafyev@outlook.com"]
+description = "C ABI bindings for brec csharp e2e"
+license     = "Apache-2.0"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+protocol  = { path = "../protocol" }
+brec      = { workspace = true, features = ["bincode", "csharp"] }
+thiserror = { workspace = true }

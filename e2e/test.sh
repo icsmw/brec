@@ -12,3 +12,7 @@ cd ..
 cd ./java
 bash ./test.sh
 cd ..
+
+cd ./csharp
+bash ./test.sh
+cd ..

@@ -31,6 +31,7 @@ resilient           = []
 napi                = []
 wasm                = []
 java                = []
+csharp              = []
 
 [dependencies]
 thiserror.workspace   = true

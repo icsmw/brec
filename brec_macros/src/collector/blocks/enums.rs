@@ -34,6 +34,11 @@ pub fn generate(
     } else {
         quote! {}
     };
+    let csharp_impl = if cfg!(feature = "csharp") {
+        integrations::collector::blocks::csharp::generate_impl(blocks)?
+    } else {
+        quote! {}
+    };
     Ok(quote! {
         #derives
         #[allow(non_snake_case)]
@@ -45,6 +50,7 @@ pub fn generate(
         #napi_impl
         #wasm_impl
         #java_impl
+        #csharp_impl
     })
 }
 
