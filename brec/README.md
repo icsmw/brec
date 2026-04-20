@@ -19,6 +19,7 @@
 - **Persistent storage layer** - `brec` provides a high-performance storage engine for persisting packets. Its slot-based layout enables fast indexed access, filtering, and direct access by packet index.
 - **Payload runtime context** - Payloads may depend on explicit runtime state during encoding and decoding.
 - **Optional payload encryption** - With the `crypt` feature, selected payloads can be encrypted while others in the same protocol remain open.
+- **Optional resilient compatibility** - With the `resilient` feature, older readers can skip unknown blocks and payloads during protocol evolution.
 - **Optional Node.js bridge (N-API)** - With the `napi` feature, protocol objects can be converted directly between Rust and JavaScript without JSON conversion as an intermediate transport.
 - **Optional WASM bridge (`wasm-bindgen`)** - With the `wasm` feature, protocol objects can be converted directly between Rust and JavaScript in browser/wasm runtimes without JSON as an intermediate transport.
 - **Optional Java bridge (JNI)** - With the `java` feature, protocol objects can be converted directly between Rust and Java runtime objects without JSON as an intermediate transport.

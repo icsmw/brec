@@ -24,6 +24,8 @@ let my_packet = Packet::new(
 
 To clarify, **runtime performance is not affected**, but the compilation time increases because the compiler has to generate multiple implementations for generic types used in `PacketDef` (an internal `brec` structure).
 
+For mixed-version deployments, pair packet evolution with the `resilient` feature so older readers can skip unknown blocks/payloads instead of failing hard. See [Resilient Compatibility](../features/resilient.md).
+
 ### Packet Trait Implementations
 
 A `Packet` can be used as a standalone unit for data exchange. It implements the following traits:

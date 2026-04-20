@@ -5,6 +5,8 @@ If your payload needs runtime state during encoding or decoding, see [Payload Co
 
 If your payload also needs transparent encryption and decryption, see [Crypt](../features/crypt.md).
 
+If newer payload types may appear before all consumers are upgraded, see [Resilient Compatibility](../features/resilient.md) for deterministic skipping of unknown payload signatures.
+
 ### Required Traits
 
 | Trait                  | Method | Return Type | Description |
@@ -73,6 +75,8 @@ Enabling the `bincode` feature provides the simplest and most flexible way to de
 If you need manual payload implementations with a custom runtime context instead, see [Payload Context](context.md).
 
 If you need `bincode` payloads with transparent encryption, see [Crypt](../features/crypt.md).
+
+If mixed protocol versions must coexist, consider enabling `resilient` so unknown payload variants can be skipped safely; details are in [Resilient Compatibility](../features/resilient.md).
 
 `#[payload(bincode)]` is available only when the crate dependency enables the `bincode` feature:
 

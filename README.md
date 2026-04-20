@@ -27,6 +27,7 @@
 - **Optional file observer** - Enable the `observer` feature to watch storage files and consume newly appended packets asynchronously.
 - **Payload runtime context** - Payloads may use explicit runtime state during encode/decode, which makes features like custom context-aware payload logic and crypto integration possible.
 - **Optional payload encryption** - With the `crypt` feature, selected payloads can be encrypted while other payloads in the same protocol remain open.
+- **Optional resilient compatibility** - With the `resilient` feature, older readers can skip unknown blocks and payloads during protocol evolution.
 - **Optional Node.js bridge (N-API)** - With the `napi` feature, protocol objects can be converted directly between Rust and JavaScript without JSON conversion as an intermediate transport.
 - **Optional WASM bridge (`wasm-bindgen`)** - With the `wasm` feature, protocol objects can be converted directly between Rust and JavaScript in browser/wasm runtimes, without JSON as an intermediate transport.
 - **Optional Java bridge (JNI)** - With the `java` feature, protocol objects can be converted directly between Rust and Java runtime objects without JSON conversion as an intermediate transport.
@@ -36,7 +37,7 @@
 ## Core Architectural Capabilities
 
 - A `brec` packet is a set of blocks (from 0 to 255) plus an optional payload. This effectively gives packets a built-in indexing layer at the architecture level. The restricted type set for blocks is a deliberate trade-off: it limits what can be placed into blocks, but enables low-allocation (and often allocation-free) reads and efficient pre-filtering before payload parsing (see [performance](https://icsmw.github.io/brec/stability/performance/)).
-- `brec` is schema-free in packet composition, while still strongly typed in its components. The developer defines all supported block and payload types, and packets are assembled from these building elements. This allows protocol evolution not only by adding new payload shapes, but also by extending the indexing layer in packets without breaking compatibility. In practice, this compatibility story is implemented by the [`resilient` feature](https://icsmw.github.io/brec/stability/resilient/): an older parser may skip unknown blocks or payloads and still read the packet when the protocol is designed for forward-compatible evolution.
+- `brec` is schema-free in packet composition, while still strongly typed in its components. The developer defines all supported block and payload types, and packets are assembled from these building elements. This allows protocol evolution not only by adding new payload shapes, but also by extending the indexing layer in packets without breaking compatibility. In practice, this compatibility story is implemented by the [`resilient` feature](https://icsmw.github.io/brec/features/resilient/): an older parser may skip unknown blocks or payloads and still read the packet when the protocol is designed for forward-compatible evolution.
 
 In other words, `brec` combines the flexibility of schema-free protocols with the strictness of binary formats.
 
@@ -92,6 +93,7 @@ Useful entry points:
 - [Payloads](https://icsmw.github.io/brec/parts/payloads/)
 - [Payload Context](https://icsmw.github.io/brec/parts/context/)
 - [Crypt](https://icsmw.github.io/brec/features/crypt/)
+- [Resilient Compatibility](https://icsmw.github.io/brec/features/resilient/)
 - [NAPI (Rust <-> JS)](https://icsmw.github.io/brec/integrations/napi/)
 - [WASM (Rust <-> JS)](https://icsmw.github.io/brec/integrations/wasm/)
 - [Java (Rust <-> Java)](https://icsmw.github.io/brec/integrations/java/)

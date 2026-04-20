@@ -19,7 +19,7 @@ pub const MAX_BLOCKS_COUNT: u8 = u8::MAX;
 /// Shared error types used across the crate.
 pub mod error;
 pub mod integrations;
-/// Packet types, readers, rules, and related helpers.
+/// Packet types, readers, rules, and related helpers (including resilient-mode parsing paths).
 pub mod packet;
 /// Payload traits, headers, and default payload helpers.
 pub mod payload;

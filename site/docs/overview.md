@@ -12,3 +12,5 @@ The payload (`Payload`) is an optional part of the packet. Unlike blocks (`Block
 Unlike most protocols, `brec` does not require users to define a fixed set of messages but does require them to describe blocks (`Block`) and payload data (`Payload`).
 
 Users can construct packets (messages) by combining various sets of blocks and payloads. This means `brec` does not impose a predefined list of packets (`Packet`) within the protocol but allows them to be defined dynamically. As a result, the same block and/or payload can be used across multiple packets (messages) without any restrictions.
+
+If you need forward-compatible protocol evolution across mixed versions, enable `resilient`; older readers can skip unknown blocks and payloads deterministically. See [Resilient Compatibility](features/resilient.md).

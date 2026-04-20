@@ -35,6 +35,8 @@ If you later need runtime payload state during encoding or decoding, see [Payloa
 
 If you need some payloads to be encrypted while others stay open, see [Crypt](features/crypt.md).
 
+If you plan rolling upgrades and need older readers to skip unknown blocks/payloads, see [Resilient Compatibility](features/resilient.md).
+
 ```rust
 #[derive(Default, serde::Deserialize, serde::Serialize)]
 pub enum MyNestedEntity {

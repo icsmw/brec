@@ -80,6 +80,8 @@ pub struct BlockWithEnum {
 
 However, in most cases, this approach is not recommended. It is better to ensure the visibility of all blocks at the location where the `brec::generate!()` code generator is invoked.
 
+If your protocol evolves over time and older readers should tolerate newly added blocks, use the `resilient` feature. It adds block body length to make unknown block skipping deterministic. See [Resilient Compatibility](../features/resilient.md).
+
 The code generator provides support for the following traits:
 
 | Trait                  | Available Methods | Return Type | Purpose |

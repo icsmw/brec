@@ -13,6 +13,7 @@ nav:
       - Payload Context: parts/context.md
       - Packets: parts/packets.md
   - Features:
+      - Resilient Compatibility: features/resilient.md
       - Crypt: features/crypt.md
   - Integrations:
       - NAPI (Rust <-> JS): integrations/napi.md
@@ -24,6 +25,5 @@ nav:
       - Storage: tools/storage.md
   - Specification: specification.md  
   - Stability & Performance:
-      - Resilient Compatibility: stability/resilient.md
       - Tests: stability/tests.md
       - Performance: stability/performance.md
