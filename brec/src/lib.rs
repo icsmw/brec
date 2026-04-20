@@ -34,6 +34,13 @@ pub use brec_macros::*;
 pub use crc32fast;
 #[cfg(feature = "crypt")]
 pub use crypt::{BricCryptCodec, CryptAlgorithm, CryptEnvelopeRecord};
+#[cfg(feature = "csharp")]
+pub use integrations::csharp_feature;
+#[cfg(feature = "csharp")]
+pub use integrations::csharp_feature::{
+    CSharpConvert, CSharpError, CSharpFieldHint, CSharpFieldHintId, CSharpObject, CSharpObjectMap,
+    CSharpValue, FromCSharpValue,
+};
 #[cfg(feature = "java")]
 pub use integrations::java_feature;
 #[cfg(feature = "java")]

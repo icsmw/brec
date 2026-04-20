@@ -3,6 +3,8 @@ use thiserror::Error;
 
 #[cfg(feature = "crypt")]
 use crate::crypt::CryptError;
+#[cfg(feature = "csharp")]
+use crate::integrations::csharp_feature::CSharpError;
 #[cfg(feature = "java")]
 use crate::integrations::java_feature::JavaError;
 #[cfg(feature = "napi")]
@@ -255,6 +257,10 @@ pub enum Error {
     /// Wrapper over `JavaError` when the `java` feature is enabled.
     #[error("Java: {0}")]
     Java(#[from] JavaError),
+    #[cfg(feature = "csharp")]
+    /// Wrapper over `CSharpError` when the `csharp` feature is enabled.
+    #[error("CSharp: {0}")]
+    CSharp(#[from] CSharpError),
     #[cfg(feature = "wasm")]
     /// Wrapper over `WasmError` when the `wasm` feature is enabled.
     #[error("Wasm: {0}")]

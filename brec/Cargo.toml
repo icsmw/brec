@@ -24,6 +24,7 @@ bincode = ["dep:bincode"]
 napi = ["dep:napi", "brec_macros/napi"]
 wasm = ["dep:wasm-bindgen", "dep:js-sys", "brec_macros/wasm"]
 java = ["dep:jni", "brec_macros/java"]
+csharp = ["brec_macros/csharp"]
 locked_storage = ["fs4", "brec_macros/locked_storage"]
 observer = [
     "dep:notify",

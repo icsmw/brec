@@ -356,6 +356,22 @@ pub fn derive_java(input: TokenStream) -> TokenStream {
     }
 }
 
+/// Derives `brec::CSharpConvert` for regular Rust `struct` / `enum` types.
+///
+/// Use it for nested types used inside `#[payload]` objects when `csharp`
+/// conversion should be schema-driven for C ABI / PInvoke-backed integrations.
+#[proc_macro_derive(CSharp)]
+pub fn derive_csharp(input: TokenStream) -> TokenStream {
+    let input = parse_macro_input!(input as DeriveInput);
+    let name = &input.ident;
+    match integrations::codegen::csharp::generate_impl(name, &input.data) {
+        Ok(tokens) => tokens.into(),
+        Err(err) => syn::Error::new_spanned(&input, err)
+            .to_compile_error()
+            .into(),
+    }
+}
+
 /// Inserts the generated glue code that connects user-defined `Block` and `Payload` types with the `brec` framework.
 ///
 /// This macro must be called exactly once per crate and is responsible for:

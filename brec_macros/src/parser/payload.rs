@@ -53,12 +53,23 @@ pub fn parse(attrs: PayloadAttrs, mut input: DeriveInput) -> TokenStream {
     } else {
         quote! {}
     };
+    let csharp_convert_impl = if cfg!(feature = "csharp") {
+        match integrations::codegen::csharp::generate_impl(&payload_name, &payload_data) {
+            Ok(tokens) => tokens,
+            Err(err) => {
+                return syn::Error::new_spanned(&input, err).to_compile_error();
+            }
+        }
+    } else {
+        quote! {}
+    };
     quote! {
         #input
 
         #napi_convert_impl
         #wasm_convert_impl
         #java_convert_impl
+        #csharp_convert_impl
         #reflected
     }
 }

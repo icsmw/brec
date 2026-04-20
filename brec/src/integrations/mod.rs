@@ -1,3 +1,7 @@
+#[cfg(feature = "csharp")]
+#[path = "csharp/mod.rs"]
+/// Rust-side C# conversion helpers built on a stable value ABI.
+pub mod csharp_feature;
 #[cfg(feature = "java")]
 #[path = "java/mod.rs"]
 /// JNI conversion helpers for Java runtimes.
