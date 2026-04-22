@@ -11,10 +11,10 @@ mod modificators;
 mod parser;
 mod tokenized;
 
-use brec_gen_tys::*;
+use brec_macros_parser::*;
 use codegen::*;
 use proc_macro::TokenStream;
-use syn::{DeriveInput, parse_macro_input};
+use syn::{parse_macro_input, DeriveInput};
 use tokenized::*;
 
 /// Marks a struct as a `Block` type used within the `brec` system.

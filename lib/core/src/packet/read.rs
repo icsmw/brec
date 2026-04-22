@@ -1,6 +1,6 @@
 use crate::*;
 #[cfg(feature = "resilient")]
-use brec_common::{BLOCK_CRC_LEN, BLOCK_SIG_LEN, BLOCK_SIZE_FIELD_LEN};
+use brec_consts::{BLOCK_CRC_LEN, BLOCK_SIG_LEN, BLOCK_SIZE_FIELD_LEN};
 
 /// Reads a complete `PacketDef` from a stream, including header, blocks, and optional payload.
 ///

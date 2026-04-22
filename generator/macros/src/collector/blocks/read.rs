@@ -1,6 +1,6 @@
 use crate::*;
 
-use brec_common::*;
+use brec_consts::*;
 use proc_macro2::TokenStream;
 use quote::quote;
 

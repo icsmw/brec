@@ -10,7 +10,7 @@ cargo +nightly clippy --tests --all --all-features -- -D warnings
 cargo fmt --all --check
 cd ..
 
-cd ./brec_common
+cd ./brec_consts
 cargo +nightly clippy --tests --all --all-features -- -D warnings
 cargo fmt --all --check
 cd ..

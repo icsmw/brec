@@ -147,7 +147,7 @@ name = "brec"
 version = "0.3.0"
 dependencies = [
  "bincode",
- "brec_common",
+ "brec_consts",
  "brec_macros",
  "chacha20poly1305",
  "crc32fast",
@@ -175,29 +175,15 @@ dependencies = [
 ]
 
 [[package]]
-name = "brec_common"
+name = "brec_consts"
 version = "0.3.0"
-
-[[package]]
-name = "brec_gen_tys"
-version = "0.1.0"
-dependencies = [
- "brec_common",
- "crc32fast",
- "enum_ids",
- "lazy_static",
- "proc-macro2",
- "quote",
- "syn",
- "thiserror 2.0.18",
-]
 
 [[package]]
 name = "brec_in_node_gen"
 version = "0.1.0"
 dependencies = [
- "brec_common",
- "brec_gen_tys",
+ "brec_consts",
+ "brec_macros_parser",
  "enum_ids",
  "proc-macro2",
  "quote",
@@ -208,8 +194,8 @@ dependencies = [
 name = "brec_macros"
 version = "0.3.0"
 dependencies = [
- "brec_common",
- "brec_gen_tys",
+ "brec_consts",
+ "brec_macros_parser",
  "crc32fast",
  "enum_ids",
  "lazy_static",
@@ -219,6 +205,20 @@ dependencies = [
  "syn",
  "thiserror 2.0.18",
  "uuid",
+]
+
+[[package]]
+name = "brec_macros_parser"
+version = "0.1.0"
+dependencies = [
+ "brec_consts",
+ "crc32fast",
+ "enum_ids",
+ "lazy_static",
+ "proc-macro2",
+ "quote",
+ "syn",
+ "thiserror 2.0.18",
 ]
 
 [[package]]

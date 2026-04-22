@@ -1,46 +1,46 @@
 [workspace]
 resolver = "2"
 members = [
-    "brec_common",
-    "brec_macros",
-    "brec",
-    "brec_gen_tys",
+    "lib/consts",
+    "lib/core",
+    "generator/macros",
+    "generator/parser",
     "integration/node/gen",
 ]
 exclude = ["gen_tests/*", "measurements/*", "examples/*", "tests/*"]
 
 [workspace.dependencies]
-notify            = "8.2"
-thiserror         = "2.0"
-uuid              = "1.23"
-proptest          = "1.11"
-paste             = "1.0"
-syn               = { version = "2.0", features = ["full"] }
-quote             = "1.0"
-proc-macro2       = "1.0"
-enum_ids          = "0.7"
-crc32fast         = "1.4"
-lazy_static       = "1.5"
-serde             = { version = "1.0", features = ["derive"] }
-bincode           = { version = "2.0", features = ["serde"] }
-brec_macros       = { version = "0.3.0", path = "./brec_macros" }
-brec_common       = { version = "0.3.0", path = "./brec_common" }
-brec_gen_tys      = { version = "0.1.0", path = "./brec_gen_tys" }
-fs4               = { version = "0.13", features = ["sync"] }
-tracing           = "0.1"
-tempfile          = "3.27"
-tokio             = "1.51"
-tokio-util        = "0.7"
-tokio-stream      = "0.1"
-chacha20poly1305  = "0.10"
-rsa               = { version = "0.9", features = ["pem", "sha2"] }
-sha2              = "0.10"
-secrecy           = "0.10"
-zeroize           = "1.8"
-x509-parser       = "0.18"
-pem               = "3.0"
-napi              = "3.8"
-wasm-bindgen      = "0.2"
-js-sys            = "0.3"
-wasm-bindgen-test = "0.3"
-jni               = "0.21"
+notify             = "8.2"
+thiserror          = "2.0"
+uuid               = "1.23"
+proptest           = "1.11"
+paste              = "1.0"
+syn                = { version = "2.0", features = ["full"] }
+quote              = "1.0"
+proc-macro2        = "1.0"
+enum_ids           = "0.7"
+crc32fast          = "1.4"
+lazy_static        = "1.5"
+serde              = { version = "1.0", features = ["derive"] }
+bincode            = { version = "2.0", features = ["serde"] }
+brec_macros        = { version = "0.3.0", path = "./generator/macros" }
+brec_consts        = { version = "0.3.0", path = "./lib/consts" }
+brec_macros_parser = { version = "0.1.0", path = "./generator/parser" }
+fs4                = { version = "0.13", features = ["sync"] }
+tracing            = "0.1"
+tempfile           = "3.27"
+tokio              = "1.51"
+tokio-util         = "0.7"
+tokio-stream       = "0.1"
+chacha20poly1305   = "0.10"
+rsa                = { version = "0.9", features = ["pem", "sha2"] }
+sha2               = "0.10"
+secrecy            = "0.10"
+zeroize            = "1.8"
+x509-parser        = "0.18"
+pem                = "3.0"
+napi               = "3.8"
+wasm-bindgen       = "0.2"
+js-sys             = "0.3"
+wasm-bindgen-test  = "0.3"
+jni                = "0.21"

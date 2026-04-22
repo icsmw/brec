@@ -3,7 +3,7 @@ mod attr;
 pub use attr::*;
 
 use crate::*;
-use brec_common::*;
+use brec_consts::*;
 use crc32fast::Hasher;
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote};

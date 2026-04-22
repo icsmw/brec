@@ -1,9 +1,9 @@
 [package]
-name        = "brec_common"
-version     = "0.3.0"
+name        = "brec_macros_parser"
+version     = "0.1.0"
 edition     = "2024"
 authors     = ["d.astafyev@outlook.com"]
-description = "Shared type & funcs for brec."
+description = "Shared types for Brec code generation"
 license     = "Apache-2.0"
 repository  = "https://github.com/icsmw/brec.git"
 homepage    = "https://github.com/icsmw/brec"
@@ -21,3 +21,17 @@ categories = [
 
 [lib]
 path = "src/lib.rs"
+
+[features]
+observer  = []
+resilient = []
+
+[dependencies]
+thiserror.workspace   = true
+syn.workspace         = true
+quote.workspace       = true
+proc-macro2.workspace = true
+enum_ids.workspace    = true
+crc32fast.workspace   = true
+brec_consts.workspace = true
+lazy_static.workspace = true
