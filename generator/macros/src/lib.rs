@@ -295,24 +295,6 @@ pub fn payload(attr: TokenStream, input: TokenStream) -> TokenStream {
     parser::payload::parse(attrs, input).into()
 }
 
-/// Derives `brec::JavaConvert` for regular Rust `struct` / `enum` types.
-///
-/// Use it for nested types used inside `#[payload]` objects when `java` conversion
-/// should be schema-driven for JNI-backed integrations.
-///
-/// See: <https://icsmw.github.io/brec/integrations/java/>
-#[proc_macro_derive(Java)]
-pub fn derive_java(input: TokenStream) -> TokenStream {
-    let input = parse_macro_input!(input as DeriveInput);
-    let name = &input.ident;
-    match integrations::codegen::java::generate_impl(name, &input.data) {
-        Ok(tokens) => tokens.into(),
-        Err(err) => syn::Error::new_spanned(&input, err)
-            .to_compile_error()
-            .into(),
-    }
-}
-
 /// Derives `brec::CSharpConvert` for regular Rust `struct` / `enum` types.
 ///
 /// Use it for nested types used inside `#[payload]` objects when `csharp`

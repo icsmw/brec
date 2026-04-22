@@ -136,10 +136,15 @@ impl Base for Payload {
                 quote! {}
             }
         };
-        let java_impl = if cfg!(feature = "java") {
-            integrations::codegen::base::java::payload::generate_java(&self.name(), &self.attrs)?
-        } else {
-            quote! {}
+        let java_impl = {
+            #[cfg(feature = "java")]
+            {
+                brec_in_java_gen::codegen::base::payload::generate(&self.name(), &self.attrs)?
+            }
+            #[cfg(not(feature = "java"))]
+            {
+                quote! {}
+            }
         };
         let csharp_impl = if cfg!(feature = "csharp") {
             integrations::codegen::base::csharp::payload::generate_csharp(
