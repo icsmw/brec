@@ -84,10 +84,15 @@ impl Gen for Block {
         let size = Size::generate(self);
         let write = Write::generate(self)?;
         let write_vec = WriteVectored::generate(self)?;
-        let napi = if cfg!(feature = "napi") {
-            integrations::codegen::base::napi::block::generate_napi(&self.name(), &self.fields)?
-        } else {
-            quote! {}
+        let napi = {
+            #[cfg(feature = "napi")]
+            {
+                brec_in_node_gen::codegen::base::block::generate(&self.name(), &self.fields)?
+            }
+            #[cfg(not(feature = "napi"))]
+            {
+                quote! {}
+            }
         };
         let wasm = if cfg!(feature = "wasm") {
             integrations::codegen::base::wasm::block::generate_wasm(&self.name(), &self.fields)?

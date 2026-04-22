@@ -156,10 +156,11 @@ name = "brec_consts"
 version = "0.3.0"
 
 [[package]]
-name = "brec_macros_parser"
-version = "0.1.0"
+name = "brec_macros"
+version = "0.3.0"
 dependencies = [
  "brec_consts",
+ "brec_macros_parser",
  "crc32fast",
  "enum_ids",
  "lazy_static",
@@ -170,11 +171,10 @@ dependencies = [
 ]
 
 [[package]]
-name = "brec_macros"
-version = "0.3.0"
+name = "brec_macros_parser"
+version = "0.1.0"
 dependencies = [
  "brec_consts",
- "brec_macros_parser",
  "crc32fast",
  "enum_ids",
  "lazy_static",

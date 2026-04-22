@@ -7,7 +7,7 @@ description = "This crate is intended for testing brec"
 license     = "Apache-2.0"
 
 [dependencies]
-brec  = { path = "../../brec", features = ["bincode", "crypt"] }
+brec  = { path = "../../lib/core", features = ["bincode", "crypt"] }
 serde = "1.0"
 
 [dev-dependencies]

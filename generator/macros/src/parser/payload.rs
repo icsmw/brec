@@ -23,15 +23,20 @@ pub fn parse(attrs: PayloadAttrs, mut input: DeriveInput) -> TokenStream {
     if let Err(err) = modificators::attrs::inject_repr_c(&mut input) {
         return syn::Error::new_spanned(&input, err).to_compile_error();
     }
-    let napi_convert_impl = if cfg!(feature = "napi") {
-        match integrations::codegen::napi::generate_impl(&payload_name, &payload_data) {
-            Ok(tokens) => tokens,
-            Err(err) => {
-                return syn::Error::new_spanned(&input, err).to_compile_error();
+    let napi_convert_impl = {
+        #[cfg(feature = "napi")]
+        {
+            match brec_in_node_gen::codegen::generate_impl(&payload_name, &payload_data) {
+                Ok(tokens) => tokens,
+                Err(err) => {
+                    return syn::Error::new_spanned(&input, err).to_compile_error();
+                }
             }
         }
-    } else {
-        quote! {}
+        #[cfg(not(feature = "napi"))]
+        {
+            quote! {}
+        }
     };
     let wasm_convert_impl = if cfg!(feature = "wasm") {
         match integrations::codegen::wasm::generate_impl(&payload_name, &payload_data) {
