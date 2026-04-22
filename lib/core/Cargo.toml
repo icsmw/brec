@@ -53,7 +53,7 @@ thiserror.workspace   = true
 crc32fast.workspace   = true
 enum_ids.workspace    = true
 brec_macros           = { workspace = true, features = [], optional = false }
-brec_common.workspace = true
+brec_consts.workspace = true
 bincode               = { workspace = true, optional = true }
 napi                  = { workspace = true, features = ["serde-json", "napi6"], optional = true }
 wasm-bindgen          = { workspace = true, optional = true }

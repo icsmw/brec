@@ -1,4 +1,4 @@
-use brec_common::*;
+use brec_consts::*;
 use thiserror::Error;
 
 #[cfg(feature = "crypt")]

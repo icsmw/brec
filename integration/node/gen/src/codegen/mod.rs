@@ -1,6 +1,6 @@
 pub mod base;
 
-use brec_gen_tys::*;
+use brec_macros_parser::*;
 use proc_macro2::TokenStream;
 use quote::quote;
 use syn::{Data, Fields, Ident, Variant};

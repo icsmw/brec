@@ -1,4 +1,4 @@
-use brec_gen_tys::*;
+use brec_macros_parser::*;
 use proc_macro2::{Ident, TokenStream};
 use quote::quote;
 
