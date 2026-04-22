@@ -5,7 +5,9 @@ use crate::*;
 use std::convert::TryFrom;
 
 pub fn parse(attrs: PayloadAttrs, mut input: DeriveInput) -> TokenStream {
+    #[cfg(any(feature = "napi", feature = "wasm", feature = "java", feature = "csharp"))]
     let payload_data = input.data.clone();
+    #[cfg(any(feature = "napi", feature = "wasm", feature = "java", feature = "csharp"))]
     let payload_name = input.ident.clone();
     let payload = match Payload::try_from((attrs.clone(), &mut input)) {
         Ok(p) => p,
@@ -68,15 +70,20 @@ pub fn parse(attrs: PayloadAttrs, mut input: DeriveInput) -> TokenStream {
             quote! {}
         }
     };
-    let csharp_convert_impl = if cfg!(feature = "csharp") {
-        match integrations::codegen::csharp::generate_impl(&payload_name, &payload_data) {
-            Ok(tokens) => tokens,
-            Err(err) => {
-                return syn::Error::new_spanned(&input, err).to_compile_error();
+    let csharp_convert_impl = {
+        #[cfg(feature = "csharp")]
+        {
+            match brec_in_csharp_gen::codegen::generate_impl(&payload_name, &payload_data) {
+                Ok(tokens) => tokens,
+                Err(err) => {
+                    return syn::Error::new_spanned(&input, err).to_compile_error();
+                }
             }
         }
-    } else {
-        quote! {}
+        #[cfg(not(feature = "csharp"))]
+        {
+            quote! {}
+        }
     };
     quote! {
         #input

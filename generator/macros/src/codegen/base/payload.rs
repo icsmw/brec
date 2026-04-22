@@ -146,13 +146,15 @@ impl Base for Payload {
                 quote! {}
             }
         };
-        let csharp_impl = if cfg!(feature = "csharp") {
-            integrations::codegen::base::csharp::payload::generate_csharp(
-                &self.name(),
-                &self.attrs,
-            )?
-        } else {
-            quote! {}
+        let csharp_impl = {
+            #[cfg(feature = "csharp")]
+            {
+                brec_in_csharp_gen::codegen::base::payload::generate(&self.name(), &self.attrs)?
+            }
+            #[cfg(not(feature = "csharp"))]
+            {
+                quote! {}
+            }
         };
         Ok(quote! {
             #sig_impl

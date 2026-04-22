@@ -6,7 +6,6 @@ mod tests;
 mod codegen;
 mod collector;
 mod generate;
-mod integrations;
 mod modificators;
 mod parser;
 mod tokenized;
@@ -302,12 +301,25 @@ pub fn payload(attr: TokenStream, input: TokenStream) -> TokenStream {
 #[proc_macro_derive(CSharp)]
 pub fn derive_csharp(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
+    #[cfg(feature = "csharp")]
     let name = &input.ident;
-    match integrations::codegen::csharp::generate_impl(name, &input.data) {
-        Ok(tokens) => tokens.into(),
-        Err(err) => syn::Error::new_spanned(&input, err)
-            .to_compile_error()
-            .into(),
+    #[cfg(feature = "csharp")]
+    {
+        match brec_in_csharp_gen::codegen::generate_impl(name, &input.data) {
+            Ok(tokens) => tokens.into(),
+            Err(err) => syn::Error::new_spanned(&input, err)
+                .to_compile_error()
+                .into(),
+        }
+    }
+    #[cfg(not(feature = "csharp"))]
+    {
+        syn::Error::new_spanned(
+            &input,
+            "derive(CSharp) requires enabling the `csharp` feature",
+        )
+        .to_compile_error()
+        .into()
     }
 }
 

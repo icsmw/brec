@@ -114,10 +114,15 @@ impl Gen for Block {
                 quote! {}
             }
         };
-        let csharp = if cfg!(feature = "csharp") {
-            integrations::codegen::base::csharp::block::generate_csharp(&self.name(), &self.fields)?
-        } else {
-            quote! {}
+        let csharp = {
+            #[cfg(feature = "csharp")]
+            {
+                brec_in_csharp_gen::codegen::base::block::generate(&self.name(), &self.fields)?
+            }
+            #[cfg(not(feature = "csharp"))]
+            {
+                quote! {}
+            }
         };
         Ok(quote! {
             #base
