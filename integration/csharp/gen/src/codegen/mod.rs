@@ -1,4 +1,6 @@
-use crate::*;
+pub mod base;
+
+use brec_macros_parser::*;
 use proc_macro2::TokenStream;
 use quote::quote;
 use syn::{Data, Fields, Ident, Variant};
@@ -313,7 +315,7 @@ fn gen_variant_from_csharp(variant: &Variant) -> Result<TokenStream, E> {
     }
 }
 
-pub(crate) fn generate_impl(name: &Ident, data: &Data) -> Result<TokenStream, E> {
+pub fn generate_impl(name: &Ident, data: &Data) -> Result<TokenStream, E> {
     match data {
         Data::Struct(data) => {
             let to_csharp = gen_struct_to_csharp(&data.fields)?;

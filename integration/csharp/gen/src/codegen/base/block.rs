@@ -1,4 +1,4 @@
-use crate::*;
+use brec_macros_parser::*;
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
 use syn::{Ident, LitStr};
@@ -43,9 +43,8 @@ fn from_csharp_field_get(field: &Field) -> Result<TokenStream, E> {
     })
 }
 
-pub(crate) fn generate_csharp(block_name: &Ident, fields: &[Field]) -> Result<TokenStream, E> {
-    let to_csharp = 
-        fields
+pub fn generate(block_name: &Ident, fields: &[Field]) -> Result<TokenStream, E> {
+    let to_csharp = fields
         .iter()
         .filter(|field| !field.injected)
         .map(to_csharp_field_set)

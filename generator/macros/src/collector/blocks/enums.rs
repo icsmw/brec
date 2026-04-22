@@ -49,10 +49,15 @@ pub fn generate(
             quote! {}
         }
     };
-    let csharp_impl = if cfg!(feature = "csharp") {
-        integrations::collector::blocks::csharp::generate_impl(blocks)?
-    } else {
-        quote! {}
+    let csharp_impl = {
+        #[cfg(feature = "csharp")]
+        {
+            brec_in_csharp_gen::collector::block::generate_impl(blocks)?
+        }
+        #[cfg(not(feature = "csharp"))]
+        {
+            quote! {}
+        }
     };
     Ok(quote! {
         #derives

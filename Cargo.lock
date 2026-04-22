@@ -182,6 +182,18 @@ name = "brec_consts"
 version = "0.3.0"
 
 [[package]]
+name = "brec_in_csharp_gen"
+version = "0.1.0"
+dependencies = [
+ "brec_consts",
+ "brec_macros_parser",
+ "enum_ids",
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
 name = "brec_in_java_gen"
 version = "0.1.0"
 dependencies = [
@@ -252,6 +264,7 @@ name = "brec_macros"
 version = "0.3.0"
 dependencies = [
  "brec_consts",
+ "brec_in_csharp_gen",
  "brec_in_java_gen",
  "brec_in_node_gen",
  "brec_in_wasm_gen",

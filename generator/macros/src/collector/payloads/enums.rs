@@ -78,10 +78,15 @@ pub fn generate(
             quote! {}
         }
     };
-    let csharp_impl = if cfg!(feature = "csharp") {
-        integrations::collector::payloads::csharp::generate_impl(&payloads, cfg)?
-    } else {
-        quote! {}
+    let csharp_impl = {
+        #[cfg(feature = "csharp")]
+        {
+            brec_in_csharp_gen::collector::payload::generate_impl(&payloads, cfg)?
+        }
+        #[cfg(not(feature = "csharp"))]
+        {
+            quote! {}
+        }
     };
     Ok(quote! {
         #context_def
