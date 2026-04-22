@@ -1,7 +1,7 @@
-use crate::*;
-use proc_macro2::TokenStream;
+use brec_gen_tys::*;
+use proc_macro2::{Ident, TokenStream};
 use quote::{format_ident, quote};
-use syn::{Ident, LitStr};
+use syn::LitStr;
 
 fn to_napi_field_set(field: &Field) -> Result<TokenStream, E> {
     let rust_field = format_ident!("{}", field.name);
@@ -24,10 +24,9 @@ fn to_napi_field_set(field: &Field) -> Result<TokenStream, E> {
     })
 }
 
-fn from_napi_field_get(field: &Field) -> Result<TokenStream, E> {
+fn from_napi_field_get(field: &Field, ty: TokenStream) -> Result<TokenStream, E> {
     let rust_field = format_ident!("{}", field.name);
     let js_field = LitStr::new(&field.name, proc_macro2::Span::call_site());
-    let ty = field.ty.direct();
     Ok(match &field.ty {
         Ty::F32 => quote! {
             let #rust_field: u32 = obj
@@ -202,7 +201,7 @@ fn from_napi_field_get(field: &Field) -> Result<TokenStream, E> {
     })
 }
 
-pub(crate) fn generate_napi(block_name: &Ident, fields: &[Field]) -> Result<TokenStream, E> {
+pub fn generate(name: &Ident, fields: &[Field]) -> Result<TokenStream, E> {
     let to_napi = fields
         .iter()
         .filter(|field| !field.injected)
@@ -211,7 +210,7 @@ pub(crate) fn generate_napi(block_name: &Ident, fields: &[Field]) -> Result<Toke
     let from_napi = fields
         .iter()
         .filter(|field| !field.injected)
-        .map(from_napi_field_get)
+        .map(|field| from_napi_field_get(field, field.ty.direct()))
         .collect::<Result<Vec<_>, _>>()?;
     let ctor_fields = fields
         .iter()
@@ -223,7 +222,7 @@ pub(crate) fn generate_napi(block_name: &Ident, fields: &[Field]) -> Result<Toke
         .collect::<Vec<_>>();
 
     Ok(quote! {
-        impl #block_name {
+        impl #name {
             fn to_napi_object<'env>(&self, env: &'env napi::Env) -> Result<napi::Unknown<'env>, brec::Error> {
                 use napi::bindgen_prelude::{JsObjectValue, JsValue, Object};
                 let mut obj: Object<'env> = Object::new(env)
@@ -248,24 +247,24 @@ pub(crate) fn generate_napi(block_name: &Ident, fields: &[Field]) -> Result<Toke
                 bytes: napi::bindgen_prelude::Buffer,
             ) -> Result<napi::Unknown<'env>, brec::Error> {
                 let mut src = bytes.as_ref();
-                let block = <#block_name as brec::ReadBlockFrom>::read(&mut src, false)?;
+                let block = <#name as brec::ReadBlockFrom>::read(&mut src, false)?;
                 block.to_napi_object(env)
             }
 
             pub fn encode_napi(value: napi::Unknown<'_>, out: &mut Vec<u8>) -> Result<(), brec::Error> {
-                let block = #block_name::from_napi_object(value)?;
+                let block = #name::from_napi_object(value)?;
                 brec::WriteTo::write_all(&block, out)?;
                 Ok(())
             }
         }
 
-        impl brec::NapiObject for #block_name {
+        impl brec::NapiObject for #name {
             fn to_napi_object<'env>(&self, env: &'env napi::Env) -> Result<napi::Unknown<'env>, brec::Error> {
-                #block_name::to_napi_object(self, env)
+                #name::to_napi_object(self, env)
             }
 
             fn from_napi_object(_env: &napi::Env, value: napi::Unknown<'_>) -> Result<Self, brec::Error> {
-                #block_name::from_napi_object(value)
+                #name::from_napi_object(value)
             }
         }
     })

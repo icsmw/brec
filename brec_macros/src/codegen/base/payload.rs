@@ -117,22 +117,25 @@ impl Base for Payload {
             quote! {}
         };
         let napi_impl = if cfg!(feature = "napi") {
-            self.generate_napi()?
+            integrations::codegen::base::napi::payload::generate_napi(&self.name(), &self.attrs)?
         } else {
             quote! {}
         };
         let wasm_impl = if cfg!(feature = "wasm") {
-            self.generate_wasm()?
+            integrations::codegen::base::wasm::payload::generate_wasm(&self.name(), &self.attrs)?
         } else {
             quote! {}
         };
         let java_impl = if cfg!(feature = "java") {
-            self.generate_java()?
+            integrations::codegen::base::java::payload::generate_java(&self.name(), &self.attrs)?
         } else {
             quote! {}
         };
         let csharp_impl = if cfg!(feature = "csharp") {
-            self.generate_csharp()?
+            integrations::codegen::base::csharp::payload::generate_csharp(
+                &self.name(),
+                &self.attrs,
+            )?
         } else {
             quote! {}
         };

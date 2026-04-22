@@ -44,7 +44,11 @@ impl Write for Block {
             }
         }
         let const_sig = self.const_sig_name();
-        let size = self.size();
+        let size = self.size(if cfg!(feature = "resilient") {
+            BLOCK_SIZE_FIELD_LEN
+        } else {
+            0
+        });
         let write_len = if cfg!(feature = "resilient") {
             let len = self
                 .fields

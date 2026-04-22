@@ -85,22 +85,22 @@ impl Gen for Block {
         let write = Write::generate(self)?;
         let write_vec = WriteVectored::generate(self)?;
         let napi = if cfg!(feature = "napi") {
-            self.generate_napi()?
+            integrations::codegen::base::napi::block::generate_napi(&self.name(), &self.fields)?
         } else {
             quote! {}
         };
         let wasm = if cfg!(feature = "wasm") {
-            self.generate_wasm()?
+            integrations::codegen::base::wasm::block::generate_wasm(&self.name(), &self.fields)?
         } else {
             quote! {}
         };
         let java = if cfg!(feature = "java") {
-            self.generate_java()?
+            integrations::codegen::base::java::block::generate_java(&self.name(), &self.fields)?
         } else {
             quote! {}
         };
         let csharp = if cfg!(feature = "csharp") {
-            self.generate_csharp()?
+            integrations::codegen::base::csharp::block::generate_csharp(&self.name(), &self.fields)?
         } else {
             quote! {}
         };

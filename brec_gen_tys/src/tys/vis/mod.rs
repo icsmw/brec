@@ -1,6 +1,6 @@
 use proc_macro2::TokenStream;
 use quote::{ToTokens, quote};
-use syn::{Visibility, token};
+use syn::{DeriveInput, Visibility, token};
 
 use crate::*;
 

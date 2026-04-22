@@ -5,24 +5,17 @@ mod tests;
 
 mod codegen;
 mod collector;
-mod entities;
-mod error;
 mod generate;
 mod integrations;
 mod modificators;
 mod parser;
-mod parsing;
 mod tokenized;
 
+use brec_gen_tys::*;
 use codegen::*;
-use collector::*;
-use entities::*;
-use error::*;
-use generate::*;
-use tokenized::*;
-
 use proc_macro::TokenStream;
 use syn::{DeriveInput, parse_macro_input};
+use tokenized::*;
 
 /// Marks a struct as a `Block` type used within the `brec` system.
 ///
