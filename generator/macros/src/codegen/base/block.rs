@@ -94,10 +94,15 @@ impl Gen for Block {
                 quote! {}
             }
         };
-        let wasm = if cfg!(feature = "wasm") {
-            integrations::codegen::base::wasm::block::generate_wasm(&self.name(), &self.fields)?
-        } else {
-            quote! {}
+        let wasm = {
+            #[cfg(feature = "wasm")]
+            {
+                brec_in_wasm_gen::codegen::base::block::generate(&self.name(), &self.fields)?
+            }
+            #[cfg(not(feature = "wasm"))]
+            {
+                quote! {}
+            }
         };
         let java = if cfg!(feature = "java") {
             integrations::codegen::base::java::block::generate_java(&self.name(), &self.fields)?

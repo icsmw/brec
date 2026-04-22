@@ -1,4 +1,4 @@
-use crate::*;
+use brec_macros_parser::*;
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
 use syn::{Ident, LitStr};
@@ -42,7 +42,7 @@ fn from_wasm_field_get(field: &Field) -> Result<TokenStream, E> {
     })
 }
 
-pub(crate) fn generate_wasm(block_name: &Ident, fields: &[Field]) -> Result<TokenStream, E> {
+pub fn generate(block_name: &Ident, fields: &[Field]) -> Result<TokenStream, E> {
     let to_wasm = fields
         .iter()
         .filter(|field| !field.injected)

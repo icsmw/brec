@@ -38,15 +38,20 @@ pub fn parse(attrs: PayloadAttrs, mut input: DeriveInput) -> TokenStream {
             quote! {}
         }
     };
-    let wasm_convert_impl = if cfg!(feature = "wasm") {
-        match integrations::codegen::wasm::generate_impl(&payload_name, &payload_data) {
-            Ok(tokens) => tokens,
-            Err(err) => {
-                return syn::Error::new_spanned(&input, err).to_compile_error();
+    let wasm_convert_impl = {
+        #[cfg(feature = "wasm")]
+        {
+            match brec_in_wasm_gen::codegen::generate_impl(&payload_name, &payload_data) {
+                Ok(tokens) => tokens,
+                Err(err) => {
+                    return syn::Error::new_spanned(&input, err).to_compile_error();
+                }
             }
         }
-    } else {
-        quote! {}
+        #[cfg(not(feature = "wasm"))]
+        {
+            quote! {}
+        }
     };
     let java_convert_impl = if cfg!(feature = "java") {
         match integrations::codegen::java::generate_impl(&payload_name, &payload_data) {

@@ -58,10 +58,15 @@ pub fn generate(
             quote! {}
         }
     };
-    let wasm_impl = if cfg!(feature = "wasm") {
-        integrations::collector::payloads::wasm::generate_impl(&payloads, cfg)?
-    } else {
-        quote! {}
+    let wasm_impl = {
+        #[cfg(feature = "wasm")]
+        {
+            brec_in_wasm_gen::collector::payload::generate_impl(&payloads, cfg)?
+        }
+        #[cfg(not(feature = "wasm"))]
+        {
+            quote! {}
+        }
     };
     let java_impl = if cfg!(feature = "java") {
         integrations::collector::payloads::java::generate_impl(&payloads, cfg)?

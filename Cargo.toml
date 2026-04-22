@@ -7,6 +7,8 @@ members = [
     "generator/parser",
     "integration/node/gen",
     "integration/node/macro",
+    "integration/wasm/gen",
+    "integration/wasm/macro",
 ]
 exclude = ["gen_tests/*", "measurements/*", "examples/*", "tests/*"]
 
@@ -29,6 +31,8 @@ brec_consts            = { version = "0.3.0", path = "./lib/consts" }
 brec_macros_parser     = { version = "0.1.0", path = "./generator/parser" }
 brec_in_node_gen       = { version = "0.1.0", path = "./integration/node/gen" }
 brec_in_node_gen_macro = { version = "0.1.0", path = "./integration/node/macro" }
+brec_in_wasm_gen       = { version = "0.1.0", path = "./integration/wasm/gen" }
+brec_in_wasm_gen_macro = { version = "0.1.0", path = "./integration/wasm/macro" }
 
 fs4               = { version = "0.13", features = ["sync"] }
 tracing           = "0.1"

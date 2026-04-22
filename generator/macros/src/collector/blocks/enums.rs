@@ -29,10 +29,15 @@ pub fn generate(
             quote! {}
         }
     };
-    let wasm_impl = if cfg!(feature = "wasm") {
-        integrations::collector::blocks::wasm::generate_impl(blocks)?
-    } else {
-        quote! {}
+    let wasm_impl = {
+        #[cfg(feature = "wasm")]
+        {
+            brec_in_wasm_gen::collector::block::generate_impl(blocks)?
+        }
+        #[cfg(not(feature = "wasm"))]
+        {
+            quote! {}
+        }
     };
     let java_impl = if cfg!(feature = "java") {
         integrations::collector::blocks::java::generate_impl(blocks)?

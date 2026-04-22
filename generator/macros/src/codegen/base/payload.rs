@@ -126,10 +126,15 @@ impl Base for Payload {
                 quote! {}
             }
         };
-        let wasm_impl = if cfg!(feature = "wasm") {
-            integrations::codegen::base::wasm::payload::generate_wasm(&self.name(), &self.attrs)?
-        } else {
-            quote! {}
+        let wasm_impl = {
+            #[cfg(feature = "wasm")]
+            {
+                brec_in_wasm_gen::codegen::base::payload::generate(&self.name(), &self.attrs)?
+            }
+            #[cfg(not(feature = "wasm"))]
+            {
+                quote! {}
+            }
         };
         let java_impl = if cfg!(feature = "java") {
             integrations::codegen::base::java::payload::generate_java(&self.name(), &self.attrs)?

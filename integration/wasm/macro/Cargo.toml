@@ -1,0 +1,30 @@
+[package]
+name        = "brec_in_wasm_gen_macro"
+version     = "0.1.0"
+edition     = "2024"
+authors     = ["d.astafyev@outlook.com"]
+description = "Code generator for brec. Implements wasm derive macro."
+license     = "Apache-2.0"
+resolver    = "2"
+repository  = "https://github.com/icsmw/brec.git"
+homepage    = "https://github.com/icsmw/brec"
+readme      = "README.md"
+
+keywords = ["binary", "packet", "storage", "logging", "streaming"]
+
+categories = [
+    "encoding",
+    "data-structures",
+    "filesystem",
+    "development-tools",
+    "parser-implementations",
+]
+
+[lib]
+proc-macro = true
+
+[dependencies]
+syn.workspace         = true
+quote.workspace       = true
+proc-macro2.workspace = true
+brec_in_wasm_gen      = { workspace = true }
