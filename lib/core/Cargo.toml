@@ -22,7 +22,7 @@ categories = [
 [features]
 bincode = ["dep:bincode"]
 napi = ["dep:napi", "dep:brec_in_node_gen_macro", "brec_macros/napi"]
-wasm = ["dep:wasm-bindgen", "dep:js-sys", "brec_macros/wasm"]
+wasm = ["dep:wasm-bindgen", "dep:js-sys", "dep:brec_in_wasm_gen_macro", "brec_macros/wasm"]
 java = ["dep:jni", "brec_macros/java"]
 csharp = ["brec_macros/csharp"]
 locked_storage = ["fs4", "brec_macros/locked_storage"]
@@ -54,6 +54,7 @@ crc32fast.workspace    = true
 enum_ids.workspace     = true
 brec_macros            = { workspace = true, features = [], optional = false }
 brec_in_node_gen_macro = { workspace = true, optional = true }
+brec_in_wasm_gen_macro = { workspace = true, optional = true }
 brec_consts.workspace  = true
 bincode                = { workspace = true, optional = true }
 napi                   = { workspace = true, features = ["serde-json", "napi6"], optional = true }

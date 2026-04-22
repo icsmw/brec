@@ -1,10 +1,10 @@
-use crate::*;
+use brec_macros_parser::*;
 
 use proc_macro2::TokenStream;
 use quote::quote;
 use syn::LitStr;
 
-pub(crate) fn generate_impl(payloads: &[&Payload], cfg: &Config) -> Result<TokenStream, E> {
+pub fn generate_impl(payloads: &[&Payload], cfg: &Config) -> Result<TokenStream, E> {
     let mut to_wrapped = Vec::new();
     let mut from_wrapped = Vec::new();
     for payload in payloads.iter().filter(|pl| !pl.attrs.is_ctx()) {

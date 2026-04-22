@@ -1,20 +1,20 @@
-use crate::*;
+use brec_macros_parser::*;
 use proc_macro2::TokenStream;
 use quote::quote;
 use syn::Ident;
 
-pub(crate) fn generate_wasm(payload_name: &Ident, attrs: &PayloadAttrs) -> Result<TokenStream, E> {
+pub fn generate(name: &Ident, attrs: &PayloadAttrs) -> Result<TokenStream, E> {
     if attrs.is_ctx() {
         return Ok(quote! {});
     }
     Ok(quote! {
-        impl #payload_name {
+        impl #name {
             fn to_wasm_object(&self) -> Result<wasm_bindgen::JsValue, brec::Error> {
-                <#payload_name as brec::WasmConvert>::to_wasm_value(self)
+                <#name as brec::WasmConvert>::to_wasm_value(self)
             }
 
             fn from_wasm_object(value: wasm_bindgen::JsValue) -> Result<Self, brec::Error> {
-                <#payload_name as brec::WasmConvert>::from_wasm_value(value)
+                <#name as brec::WasmConvert>::from_wasm_value(value)
             }
 
             pub fn decode_wasm(
@@ -23,7 +23,7 @@ pub(crate) fn generate_wasm(payload_name: &Ident, attrs: &PayloadAttrs) -> Resul
             ) -> Result<wasm_bindgen::JsValue, brec::Error> {
                 let mut cursor = std::io::Cursor::new(bytes);
                 let header = <brec::PayloadHeader as brec::ReadFrom>::read(&mut cursor)?;
-                let payload = <#payload_name as brec::ReadPayloadFrom<#payload_name>>::read(
+                let payload = <#name as brec::ReadPayloadFrom<#name>>::read(
                     &mut cursor,
                     &header,
                     ctx,
@@ -36,19 +36,19 @@ pub(crate) fn generate_wasm(payload_name: &Ident, attrs: &PayloadAttrs) -> Resul
                 out: &mut Vec<u8>,
                 ctx: &mut crate::PayloadContext<'_>,
             ) -> Result<(), brec::Error> {
-                let mut payload = #payload_name::from_wasm_object(value)?;
+                let mut payload = #name::from_wasm_object(value)?;
                 brec::WritePayloadWithHeaderTo::write_all(&mut payload, out, ctx)?;
                 Ok(())
             }
         }
 
-        impl brec::WasmObject for #payload_name {
+        impl brec::WasmObject for #name {
             fn to_wasm_object(&self) -> Result<wasm_bindgen::JsValue, brec::Error> {
-                #payload_name::to_wasm_object(self)
+                #name::to_wasm_object(self)
             }
 
             fn from_wasm_object(value: wasm_bindgen::JsValue) -> Result<Self, brec::Error> {
-                #payload_name::from_wasm_object(value)
+                #name::from_wasm_object(value)
             }
         }
     })

@@ -30,6 +30,10 @@ pub mod storage;
 /// Low-level traits used by generated and handwritten protocol types.
 pub mod traits;
 
+#[cfg(feature = "napi")]
+pub use brec_in_node_gen_macro::Napi;
+#[cfg(feature = "wasm")]
+pub use brec_in_wasm_gen_macro::Wasm;
 pub use brec_macros::*;
 pub use crc32fast;
 #[cfg(feature = "crypt")]
@@ -49,8 +53,6 @@ pub use integrations::java_feature::*;
 pub use integrations::napi_feature;
 #[cfg(feature = "napi")]
 pub use integrations::napi_feature::*;
-#[cfg(feature = "napi")]
-pub use brec_in_node_gen_macro::Napi;
 #[cfg(feature = "wasm")]
 pub use integrations::wasm_feature;
 #[cfg(feature = "wasm")]

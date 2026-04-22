@@ -29,7 +29,7 @@ locked_storage      = []
 observer            = []
 resilient           = []
 napi                = ["dep:brec_in_node_gen"]
-wasm                = []
+wasm                = ["dep:brec_in_wasm_gen"]
 java                = []
 csharp              = []
 
@@ -44,6 +44,7 @@ lazy_static.workspace        = true
 brec_consts.workspace        = true
 brec_macros_parser.workspace = true
 brec_in_node_gen             = { workspace = true, optional = true }
+brec_in_wasm_gen             = { workspace = true, optional = true }
 
 [dev-dependencies]
 proptest.workspace    = true

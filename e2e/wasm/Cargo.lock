@@ -80,6 +80,7 @@ version = "0.3.0"
 dependencies = [
  "bincode",
  "brec_consts",
+ "brec_in_wasm_gen_macro",
  "brec_macros",
  "crc32fast",
  "enum_ids",
@@ -93,10 +94,33 @@ name = "brec_consts"
 version = "0.3.0"
 
 [[package]]
+name = "brec_in_wasm_gen"
+version = "0.1.0"
+dependencies = [
+ "brec_consts",
+ "brec_macros_parser",
+ "enum_ids",
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
+name = "brec_in_wasm_gen_macro"
+version = "0.1.0"
+dependencies = [
+ "brec_in_wasm_gen",
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
 name = "brec_macros"
 version = "0.3.0"
 dependencies = [
  "brec_consts",
+ "brec_in_wasm_gen",
  "brec_macros_parser",
  "crc32fast",
  "enum_ids",
@@ -1068,9 +1092,9 @@ dependencies = [
 
 [[package]]
 name = "winnow"
-version = "1.0.1"
+version = "1.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "09dac053f1cd375980747450bfc7250c264eaae0583872e845c0c7cd578872b5"
+checksum = "2ee1708bef14716a11bae175f579062d4554d95be2c6829f518df847b7b3fdd0"
 
 [[package]]
 name = "wit-bindgen"
