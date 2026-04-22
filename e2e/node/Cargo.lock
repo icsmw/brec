@@ -96,10 +96,25 @@ name = "brec_common"
 version = "0.3.0"
 
 [[package]]
+name = "brec_gen_tys"
+version = "0.1.0"
+dependencies = [
+ "brec_common",
+ "crc32fast",
+ "enum_ids",
+ "lazy_static",
+ "proc-macro2",
+ "quote",
+ "syn",
+ "thiserror",
+]
+
+[[package]]
 name = "brec_macros"
 version = "0.3.0"
 dependencies = [
  "brec_common",
+ "brec_gen_tys",
  "crc32fast",
  "enum_ids",
  "lazy_static",

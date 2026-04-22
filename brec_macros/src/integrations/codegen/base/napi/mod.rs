@@ -1,2 +1,2 @@
-mod block;
-mod payload;
+pub mod block;
+pub mod payload;

@@ -1,20 +1,19 @@
-use crate::*;
-use proc_macro2::TokenStream;
+use brec_gen_tys::*;
+use proc_macro2::{Ident, TokenStream};
 use quote::quote;
-use syn::Ident;
 
-pub(crate) fn generate_napi(payload_name: &Ident, attrs: &PayloadAttrs) -> Result<TokenStream, E> {
+pub fn generate(name: &Ident, attrs: &PayloadAttrs) -> Result<TokenStream, E> {
     if attrs.is_ctx() {
         return Ok(quote! {});
     }
     Ok(quote! {
-        impl #payload_name {
+        impl #name {
             fn to_napi_object<'env>(&self, env: &'env napi::Env) -> Result<napi::Unknown<'env>, brec::Error> {
-                <#payload_name as brec::NapiConvert>::to_napi_value(self, env)
+                <#name as brec::NapiConvert>::to_napi_value(self, env)
             }
 
             fn from_napi_object(env: &napi::Env, value: napi::Unknown<'_>) -> Result<Self, brec::Error> {
-                <#payload_name as brec::NapiConvert>::from_napi_value(env, value)
+                <#name as brec::NapiConvert>::from_napi_value(env, value)
             }
 
             pub fn decode_napi<'env>(
@@ -24,7 +23,7 @@ pub(crate) fn generate_napi(payload_name: &Ident, attrs: &PayloadAttrs) -> Resul
             ) -> Result<napi::Unknown<'env>, brec::Error> {
                 let mut cursor = std::io::Cursor::new(bytes.as_ref());
                 let header = <brec::PayloadHeader as brec::ReadFrom>::read(&mut cursor)?;
-                let payload = <#payload_name as brec::ReadPayloadFrom<#payload_name>>::read(
+                let payload = <#name as brec::ReadPayloadFrom<#name>>::read(
                     &mut cursor,
                     &header,
                     ctx,
@@ -38,19 +37,19 @@ pub(crate) fn generate_napi(payload_name: &Ident, attrs: &PayloadAttrs) -> Resul
                 out: &mut Vec<u8>,
                 ctx: &mut crate::PayloadContext<'_>,
             ) -> Result<(), brec::Error> {
-                let mut payload = #payload_name::from_napi_object(env, value)?;
+                let mut payload = #name::from_napi_object(env, value)?;
                 brec::WritePayloadWithHeaderTo::write_all(&mut payload, out, ctx)?;
                 Ok(())
             }
         }
 
-        impl brec::NapiObject for #payload_name {
+        impl brec::NapiObject for #name {
             fn to_napi_object<'env>(&self, env: &'env napi::Env) -> Result<napi::Unknown<'env>, brec::Error> {
-                #payload_name::to_napi_object(self, env)
+                #name::to_napi_object(self, env)
             }
 
             fn from_napi_object(env: &napi::Env, value: napi::Unknown<'_>) -> Result<Self, brec::Error> {
-                #payload_name::from_napi_object(env, value)
+                #name::from_napi_object(env, value)
             }
         }
     })

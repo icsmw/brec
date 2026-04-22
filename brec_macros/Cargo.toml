@@ -34,14 +34,15 @@ java                = []
 csharp              = []
 
 [dependencies]
-thiserror.workspace   = true
-syn.workspace         = true
-quote.workspace       = true
-proc-macro2.workspace = true
-enum_ids.workspace    = true
-crc32fast.workspace   = true
-lazy_static.workspace = true
-brec_common.workspace = true
+thiserror.workspace    = true
+syn.workspace          = true
+quote.workspace        = true
+proc-macro2.workspace  = true
+enum_ids.workspace     = true
+crc32fast.workspace    = true
+lazy_static.workspace  = true
+brec_common.workspace  = true
+brec_gen_tys.workspace = true
 
 [dev-dependencies]
 proptest.workspace    = true

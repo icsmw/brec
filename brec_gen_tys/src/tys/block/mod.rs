@@ -1,6 +1,6 @@
 mod attr;
 
-pub(crate) use attr::*;
+pub use attr::*;
 
 use crate::*;
 use brec_common::*;
@@ -54,19 +54,14 @@ impl Block {
         let len_lit = LitInt::new(&BLOCK_SIG_LEN.to_string(), proc_macro2::Span::call_site());
         quote! { #len_lit }
     }
-    pub fn size(&self) -> usize {
-        let size = self
-            .fields
+    pub fn size(&self, extra_bytes: usize) -> usize {
+        self.fields
             .iter()
             .map(|f| f.size())
             .collect::<Vec<usize>>()
             .iter()
-            .sum::<usize>();
-        if cfg!(feature = "resilient") {
-            size + BLOCK_SIZE_FIELD_LEN
-        } else {
-            size
-        }
+            .sum::<usize>()
+            + extra_bytes
     }
     pub fn const_sig_name(&self) -> Ident {
         format_ident!("{}", self.name.to_ascii_uppercase())

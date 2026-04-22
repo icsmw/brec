@@ -1,8 +1,4 @@
-mod config;
-mod parser;
-
-use crate::Collector;
-pub use config::*;
+use crate::*;
 use proc_macro2::{Span, TokenStream};
 
 pub fn generate(cfg: &Config) -> TokenStream {
@@ -10,7 +6,7 @@ pub fn generate(cfg: &Config) -> TokenStream {
         Ok(collector) => collector,
         Err(err) => return syn::Error::new(Span::call_site(), err).into_compile_error(),
     };
-    match collector.render(cfg) {
+    match crate::collector::generate(&mut collector, cfg) {
         Ok(tokens) => tokens,
         Err(err) => syn::Error::new(Span::call_site(), err).into_compile_error(),
     }

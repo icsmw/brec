@@ -1,6 +1,6 @@
 mod attr;
 
-pub(crate) use attr::*;
+pub use attr::*;
 
 use crate::*;
 use crc32fast::Hasher;
