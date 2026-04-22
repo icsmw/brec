@@ -116,10 +116,15 @@ impl Base for Payload {
         } else {
             quote! {}
         };
-        let napi_impl = if cfg!(feature = "napi") {
-            integrations::codegen::base::napi::payload::generate_napi(&self.name(), &self.attrs)?
-        } else {
-            quote! {}
+        let napi_impl = {
+            #[cfg(feature = "napi")]
+            {
+                brec_in_node_gen::codegen::base::payload::generate(&self.name(), &self.attrs)?
+            }
+            #[cfg(not(feature = "napi"))]
+            {
+                quote! {}
+            }
         };
         let wasm_impl = if cfg!(feature = "wasm") {
             integrations::codegen::base::wasm::payload::generate_wasm(&self.name(), &self.attrs)?

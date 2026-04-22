@@ -1,13 +1,13 @@
 #!/bin/bash
 set -e
 
-cd ./brec
+cd ./lib/core
 sh test.sh
-cd ..
+cd ../..
 
-cd ./brec_macros
+cd ./generator/macros
 cargo test --all-features
-cd ..
+cd ../..
 
 cd ./examples
 sh test.sh

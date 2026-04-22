@@ -19,10 +19,15 @@ pub fn generate(
     } else {
         quote! {#[derive(#(#derives,)*)]}
     };
-    let napi_impl = if cfg!(feature = "napi") {
-        integrations::collector::blocks::napi::generate_impl(blocks)?
-    } else {
-        quote! {}
+    let napi_impl = {
+        #[cfg(feature = "napi")]
+        {
+            brec_in_node_gen::collector::block::generate_impl(blocks)?
+        }
+        #[cfg(not(feature = "napi"))]
+        {
+            quote! {}
+        }
     };
     let wasm_impl = if cfg!(feature = "wasm") {
         integrations::collector::blocks::wasm::generate_impl(blocks)?

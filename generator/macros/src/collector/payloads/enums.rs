@@ -48,10 +48,15 @@ pub fn generate(
             String(String),
         }
     };
-    let napi_impl = if cfg!(feature = "napi") {
-        integrations::collector::payloads::napi::generate_impl(&payloads, cfg)?
-    } else {
-        quote! {}
+    let napi_impl = {
+        #[cfg(feature = "napi")]
+        {
+            brec_in_node_gen::collector::payload::generate_impl(&payloads, cfg)?
+        }
+        #[cfg(not(feature = "napi"))]
+        {
+            quote! {}
+        }
     };
     let wasm_impl = if cfg!(feature = "wasm") {
         integrations::collector::payloads::wasm::generate_impl(&payloads, cfg)?

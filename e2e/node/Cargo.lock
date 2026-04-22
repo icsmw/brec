@@ -84,6 +84,7 @@ version = "0.3.0"
 dependencies = [
  "bincode",
  "brec_consts",
+ "brec_in_node_gen_macro",
  "brec_macros",
  "crc32fast",
  "enum_ids",
@@ -96,10 +97,34 @@ name = "brec_consts"
 version = "0.3.0"
 
 [[package]]
-name = "brec_macros_parser"
+name = "brec_in_node_gen"
 version = "0.1.0"
 dependencies = [
  "brec_consts",
+ "brec_macros_parser",
+ "enum_ids",
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
+name = "brec_in_node_gen_macro"
+version = "0.1.0"
+dependencies = [
+ "brec_in_node_gen",
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
+name = "brec_macros"
+version = "0.3.0"
+dependencies = [
+ "brec_consts",
+ "brec_in_node_gen",
+ "brec_macros_parser",
  "crc32fast",
  "enum_ids",
  "lazy_static",
@@ -110,11 +135,10 @@ dependencies = [
 ]
 
 [[package]]
-name = "brec_macros"
-version = "0.3.0"
+name = "brec_macros_parser"
+version = "0.1.0"
 dependencies = [
  "brec_consts",
- "brec_macros_parser",
  "crc32fast",
  "enum_ids",
  "lazy_static",
