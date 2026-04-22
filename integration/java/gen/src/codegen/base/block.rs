@@ -1,4 +1,4 @@
-use crate::*;
+use brec_macros_parser::*;
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
 use syn::{Ident, LitStr};
@@ -43,7 +43,7 @@ fn from_java_field_get(field: &Field) -> Result<TokenStream, E> {
     })
 }
 
-pub(crate) fn generate_java(block_name: &Ident, fields: &[Field]) -> Result<TokenStream, E> {
+pub fn generate(block_name: &Ident, fields: &[Field]) -> Result<TokenStream, E> {
     let to_java = fields
         .iter()
         .filter(|field| !field.injected)

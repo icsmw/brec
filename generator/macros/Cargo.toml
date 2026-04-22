@@ -30,7 +30,7 @@ observer            = []
 resilient           = []
 napi                = ["dep:brec_in_node_gen"]
 wasm                = ["dep:brec_in_wasm_gen"]
-java                = []
+java                = ["dep:brec_in_java_gen"]
 csharp              = []
 
 [dependencies]
@@ -45,6 +45,7 @@ brec_consts.workspace        = true
 brec_macros_parser.workspace = true
 brec_in_node_gen             = { workspace = true, optional = true }
 brec_in_wasm_gen             = { workspace = true, optional = true }
+brec_in_java_gen             = { workspace = true, optional = true }
 
 [dev-dependencies]
 proptest.workspace    = true

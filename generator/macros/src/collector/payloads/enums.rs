@@ -68,10 +68,15 @@ pub fn generate(
             quote! {}
         }
     };
-    let java_impl = if cfg!(feature = "java") {
-        integrations::collector::payloads::java::generate_impl(&payloads, cfg)?
-    } else {
-        quote! {}
+    let java_impl = {
+        #[cfg(feature = "java")]
+        {
+            brec_in_java_gen::collector::payload::generate_impl(&payloads, cfg)?
+        }
+        #[cfg(not(feature = "java"))]
+        {
+            quote! {}
+        }
     };
     let csharp_impl = if cfg!(feature = "csharp") {
         integrations::collector::payloads::csharp::generate_impl(&payloads, cfg)?

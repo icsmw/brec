@@ -7,6 +7,8 @@ members = [
     "generator/parser",
     "integration/node/gen",
     "integration/node/macro",
+    "integration/java/gen",
+    "integration/java/macro",
     "integration/wasm/gen",
     "integration/wasm/macro",
 ]
@@ -31,6 +33,8 @@ brec_consts            = { version = "0.3.0", path = "./lib/consts" }
 brec_macros_parser     = { version = "0.1.0", path = "./generator/parser" }
 brec_in_node_gen       = { version = "0.1.0", path = "./integration/node/gen" }
 brec_in_node_gen_macro = { version = "0.1.0", path = "./integration/node/macro" }
+brec_in_java_gen       = { version = "0.1.0", path = "./integration/java/gen" }
+brec_in_java_gen_macro = { version = "0.1.0", path = "./integration/java/macro" }
 brec_in_wasm_gen       = { version = "0.1.0", path = "./integration/wasm/gen" }
 brec_in_wasm_gen_macro = { version = "0.1.0", path = "./integration/wasm/macro" }
 

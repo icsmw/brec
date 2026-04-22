@@ -104,10 +104,15 @@ impl Gen for Block {
                 quote! {}
             }
         };
-        let java = if cfg!(feature = "java") {
-            integrations::codegen::base::java::block::generate_java(&self.name(), &self.fields)?
-        } else {
-            quote! {}
+        let java = {
+            #[cfg(feature = "java")]
+            {
+                brec_in_java_gen::codegen::base::block::generate(&self.name(), &self.fields)?
+            }
+            #[cfg(not(feature = "java"))]
+            {
+                quote! {}
+            }
         };
         let csharp = if cfg!(feature = "csharp") {
             integrations::codegen::base::csharp::block::generate_csharp(&self.name(), &self.fields)?
