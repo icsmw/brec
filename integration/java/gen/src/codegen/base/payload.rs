@@ -9,12 +9,12 @@ pub fn generate(name: &Ident, attrs: &PayloadAttrs) -> Result<TokenStream, E> {
     }
     Ok(quote! {
         impl #name {
-            fn to_java_object<'local>(&self, env: &mut jni::JNIEnv<'local>) -> Result<jni::objects::JObject<'local>, brec::Error> {
-                <#name as brec::JavaConvert>::to_java_value(self, env)
+            fn to_java_object<'local>(&self, env: &mut jni::JNIEnv<'local>) -> Result<jni::objects::JObject<'local>, brec::java_feat::JavaError> {
+                <#name as brec::java_feat::JavaConvert>::to_java_value(self, env)
             }
 
-            fn from_java_object<'local>(env: &mut jni::JNIEnv<'local>, value: jni::objects::JObject<'local>) -> Result<Self, brec::Error> {
-                <#name as brec::JavaConvert>::from_java_value(env, value)
+            fn from_java_object<'local>(env: &mut jni::JNIEnv<'local>, value: jni::objects::JObject<'local>) -> Result<Self, brec::java_feat::JavaError> {
+                <#name as brec::java_feat::JavaConvert>::from_java_value(env, value)
             }
 
             pub fn decode_java<'local>(
@@ -29,7 +29,7 @@ pub fn generate(name: &Ident, attrs: &PayloadAttrs) -> Result<TokenStream, E> {
                     &header,
                     ctx,
                 )?;
-                payload.to_java_object(env)
+                Ok(payload.to_java_object(env)?)
             }
 
             pub fn encode_java<'local>(
@@ -44,12 +44,12 @@ pub fn generate(name: &Ident, attrs: &PayloadAttrs) -> Result<TokenStream, E> {
             }
         }
 
-        impl brec::JavaObject for #name {
-            fn to_java_object<'local>(&self, env: &mut jni::JNIEnv<'local>) -> Result<jni::objects::JObject<'local>, brec::Error> {
+        impl brec::java_feat::JavaObject for #name {
+            fn to_java_object<'local>(&self, env: &mut jni::JNIEnv<'local>) -> Result<jni::objects::JObject<'local>, brec::java_feat::JavaError> {
                 #name::to_java_object(self, env)
             }
 
-            fn from_java_object<'local>(env: &mut jni::JNIEnv<'local>, value: jni::objects::JObject<'local>) -> Result<Self, brec::Error> {
+            fn from_java_object<'local>(env: &mut jni::JNIEnv<'local>, value: jni::objects::JObject<'local>) -> Result<Self, brec::java_feat::JavaError> {
                 #name::from_java_object(env, value)
             }
         }

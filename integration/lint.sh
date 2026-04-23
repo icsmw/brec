@@ -5,7 +5,17 @@ cargo +nightly clippy --tests --all --all-features -- -D warnings
 cargo fmt --all --check
 cd ../..
 
+cd ./csharp/lib
+cargo +nightly clippy --tests --all --all-features -- -D warnings
+cargo fmt --all --check
+cd ../..
+
 cd ./java/gen
+cargo +nightly clippy --tests --all --all-features -- -D warnings
+cargo fmt --all --check
+cd ../..
+
+cd ./java/lib
 cargo +nightly clippy --tests --all --all-features -- -D warnings
 cargo fmt --all --check
 cd ../..
@@ -31,6 +41,11 @@ cargo fmt --all --check
 cd ../..
 
 cd ./wasm/macro
+cargo +nightly clippy --tests --all --all-features -- -D warnings
+cargo fmt --all --check
+cd ../..
+
+cd ./wasm/lib
 cargo +nightly clippy --tests --all --all-features -- -D warnings
 cargo fmt --all --check
 cd ../..

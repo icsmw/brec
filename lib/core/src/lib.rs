@@ -30,33 +30,24 @@ pub mod storage;
 /// Low-level traits used by generated and handwritten protocol types.
 pub mod traits;
 
+#[cfg(feature = "csharp")]
+pub use brec_in_csharp_lib as csharp_feat;
 #[cfg(feature = "java")]
 pub use brec_in_java_gen_macro::Java;
+#[cfg(feature = "java")]
+pub use brec_in_java_lib as java_feat;
 #[cfg(feature = "napi")]
 pub use brec_in_node_gen_macro::Napi;
 #[cfg(feature = "napi")]
 pub use brec_in_node_lib as napi_feat;
 #[cfg(feature = "wasm")]
 pub use brec_in_wasm_gen_macro::Wasm;
+#[cfg(feature = "wasm")]
+pub use brec_in_wasm_lib as wasm_feat;
 pub use brec_macros::*;
 pub use crc32fast;
 #[cfg(feature = "crypt")]
 pub use crypt::{BricCryptCodec, CryptAlgorithm, CryptEnvelopeRecord};
-#[cfg(feature = "csharp")]
-pub use integrations::csharp_feature;
-#[cfg(feature = "csharp")]
-pub use integrations::csharp_feature::{
-    CSharpConvert, CSharpError, CSharpFieldHint, CSharpFieldHintId, CSharpObject, CSharpObjectMap,
-    CSharpValue, FromCSharpValue,
-};
-#[cfg(feature = "java")]
-pub use integrations::java_feature;
-#[cfg(feature = "java")]
-pub use integrations::java_feature::*;
-#[cfg(feature = "wasm")]
-pub use integrations::wasm_feature;
-#[cfg(feature = "wasm")]
-pub use integrations::wasm_feature::*;
 pub use payload::{
     DefaultPayloadContext, PayloadDecode, PayloadEncode, PayloadEncodeReferred, PayloadHeader,
     PayloadHooks, PayloadSchema, default_payload_context,

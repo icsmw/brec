@@ -1,7 +1,6 @@
 mod error;
 mod packet;
 
-use crate::Error;
 use std::collections::BTreeMap;
 
 pub use error::*;
@@ -60,17 +59,17 @@ pub enum CSharpFieldHint {
 
 /// Runtime conversion helper used by generated code.
 pub trait FromCSharpValue: Sized {
-    fn from_csharp_value(value: CSharpValue) -> Result<Self, Error>;
+    fn from_csharp_value(value: CSharpValue) -> Result<Self, CSharpError>;
 }
 
 impl FromCSharpValue for CSharpValue {
-    fn from_csharp_value(value: CSharpValue) -> Result<Self, Error> {
+    fn from_csharp_value(value: CSharpValue) -> Result<Self, CSharpError> {
         Ok(value)
     }
 }
 
 impl FromCSharpValue for CSharpObjectMap {
-    fn from_csharp_value(value: CSharpValue) -> Result<Self, Error> {
+    fn from_csharp_value(value: CSharpValue) -> Result<Self, CSharpError> {
         match value {
             CSharpValue::Object(obj) => Ok(obj),
             other => Err(CSharpError::invalid_field(
@@ -82,7 +81,7 @@ impl FromCSharpValue for CSharpObjectMap {
 }
 
 impl FromCSharpValue for Vec<CSharpValue> {
-    fn from_csharp_value(value: CSharpValue) -> Result<Self, Error> {
+    fn from_csharp_value(value: CSharpValue) -> Result<Self, CSharpError> {
         match value {
             CSharpValue::Array(arr) => Ok(arr),
             other => Err(CSharpError::invalid_field(
@@ -97,7 +96,7 @@ impl FromCSharpValue for Vec<CSharpValue> {
 pub fn from_value<T: FromCSharpValue>(
     hint: CSharpFieldHint,
     value: CSharpValue,
-) -> Result<T, Error> {
+) -> Result<T, CSharpError> {
     T::from_csharp_value(value).map_err(|err| CSharpError::invalid_field(hint, err))
 }
 
@@ -105,7 +104,7 @@ pub fn from_value<T: FromCSharpValue>(
 pub fn from_value_name<T: FromCSharpValue>(
     name: impl Into<String>,
     value: CSharpValue,
-) -> Result<T, Error> {
+) -> Result<T, CSharpError> {
     T::from_csharp_value(value).map_err(|err| CSharpError::invalid_field_name(name, err))
 }
 
@@ -115,31 +114,37 @@ pub fn new_object() -> CSharpObjectMap {
 }
 
 #[inline]
-pub fn map_put(map: &mut CSharpObjectMap, key: &str, value: CSharpValue) -> Result<(), Error> {
+pub fn map_put(
+    map: &mut CSharpObjectMap,
+    key: &str,
+    value: CSharpValue,
+) -> Result<(), CSharpError> {
     map.insert(key.to_owned(), value);
     Ok(())
 }
 
 #[inline]
-pub fn map_take(map: &mut CSharpObjectMap, key: &str) -> Result<CSharpValue, Error> {
+pub fn map_take(map: &mut CSharpObjectMap, key: &str) -> Result<CSharpValue, CSharpError> {
     map.remove(key)
-        .ok_or_else(|| Error::CSharp(CSharpError::MissingField(key.to_owned())))
+        .ok_or_else(|| CSharpError::MissingField(key.to_owned()))
 }
 
 #[inline]
-pub fn map_get(map: &CSharpObjectMap, key: &str) -> Result<CSharpValue, Error> {
+pub fn map_get(map: &CSharpObjectMap, key: &str) -> Result<CSharpValue, CSharpError> {
     map.get(key)
         .cloned()
-        .ok_or_else(|| Error::CSharp(CSharpError::MissingField(key.to_owned())))
+        .ok_or_else(|| CSharpError::MissingField(key.to_owned()))
 }
 
 #[inline]
-pub fn map_has(map: &CSharpObjectMap, key: &str) -> Result<bool, Error> {
+pub fn map_has(map: &CSharpObjectMap, key: &str) -> Result<bool, CSharpError> {
     Ok(map.contains_key(key))
 }
 
 #[inline]
-pub fn map_keys_len_and_first(map: &CSharpObjectMap) -> Result<(usize, Option<String>), Error> {
+pub fn map_keys_len_and_first(
+    map: &CSharpObjectMap,
+) -> Result<(usize, Option<String>), CSharpError> {
     Ok((map.len(), map.keys().next().cloned()))
 }
 
@@ -149,13 +154,13 @@ pub fn new_array(cap: usize) -> Vec<CSharpValue> {
 }
 
 #[inline]
-pub fn list_add(list: &mut Vec<CSharpValue>, value: CSharpValue) -> Result<(), Error> {
+pub fn list_add(list: &mut Vec<CSharpValue>, value: CSharpValue) -> Result<(), CSharpError> {
     list.push(value);
     Ok(())
 }
 
 #[inline]
-pub fn list_get(list: &[CSharpValue], idx: usize) -> Result<CSharpValue, Error> {
+pub fn list_get(list: &[CSharpValue], idx: usize) -> Result<CSharpValue, CSharpError> {
     list.get(idx).cloned().ok_or_else(|| {
         CSharpError::invalid_field(
             CSharpFieldHint::Vec,
@@ -165,6 +170,6 @@ pub fn list_get(list: &[CSharpValue], idx: usize) -> Result<CSharpValue, Error> 
 }
 
 #[inline]
-pub fn list_size(list: &[CSharpValue]) -> Result<usize, Error> {
+pub fn list_size(list: &[CSharpValue]) -> Result<usize, CSharpError> {
     Ok(list.len())
 }

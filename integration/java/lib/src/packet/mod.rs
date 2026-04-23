@@ -1,5 +1,4 @@
 use super::{JavaError, JavaFieldHint, map_get, map_has, map_put, new_array_list, new_hash_map};
-use crate::*;
 use jni::{
     JNIEnv,
     objects::{JByteArray, JObject, JString, JValue},
@@ -12,25 +11,32 @@ const BLOCKS_FIELD_NAME: &str = "blocks";
 /// Rust <-> Java object conversion contract used by `java` helpers.
 pub trait JavaObject: Sized {
     /// Converts this value into a Java object representation.
-    fn to_java_object<'local>(&self, env: &mut JNIEnv<'local>) -> Result<JObject<'local>, Error>;
+    fn to_java_object<'local>(
+        &self,
+        env: &mut JNIEnv<'local>,
+    ) -> Result<JObject<'local>, JavaError>;
     /// Constructs this value from a Java object representation.
     fn from_java_object<'local>(
         env: &mut JNIEnv<'local>,
         value: JObject<'local>,
-    ) -> Result<Self, Error>;
+    ) -> Result<Self, JavaError>;
 }
 
 /// Schema-driven Rust <-> Java conversion used by payload nested types.
 pub trait JavaConvert: Sized {
-    fn to_java_value<'local>(&self, env: &mut JNIEnv<'local>) -> Result<JObject<'local>, Error>;
+    fn to_java_value<'local>(&self, env: &mut JNIEnv<'local>)
+    -> Result<JObject<'local>, JavaError>;
     fn from_java_value<'local>(
         env: &mut JNIEnv<'local>,
         value: JObject<'local>,
-    ) -> Result<Self, Error>;
+    ) -> Result<Self, JavaError>;
 }
 
 #[inline]
-fn new_java_long<'local>(env: &mut JNIEnv<'local>, value: i64) -> Result<JObject<'local>, Error> {
+fn new_java_long<'local>(
+    env: &mut JNIEnv<'local>,
+    value: i64,
+) -> Result<JObject<'local>, JavaError> {
     env.call_static_method(
         "java/lang/Long",
         "valueOf",
@@ -47,7 +53,7 @@ fn from_java_long<'local>(
     env: &mut JNIEnv<'local>,
     value: &JObject<'local>,
     hint: JavaFieldHint,
-) -> Result<i64, Error> {
+) -> Result<i64, JavaError> {
     env.call_method(value, "longValue", "()J", &[])
         .map_err(|err| JavaError::invalid_field(hint, err))?
         .j()
@@ -55,7 +61,10 @@ fn from_java_long<'local>(
 }
 
 #[inline]
-fn new_java_bool<'local>(env: &mut JNIEnv<'local>, value: bool) -> Result<JObject<'local>, Error> {
+fn new_java_bool<'local>(
+    env: &mut JNIEnv<'local>,
+    value: bool,
+) -> Result<JObject<'local>, JavaError> {
     let raw: jboolean = if value { 1 } else { 0 };
     env.call_static_method(
         "java/lang/Boolean",
@@ -72,7 +81,7 @@ fn new_java_bool<'local>(env: &mut JNIEnv<'local>, value: bool) -> Result<JObjec
 fn from_java_bool<'local>(
     env: &mut JNIEnv<'local>,
     value: &JObject<'local>,
-) -> Result<bool, Error> {
+) -> Result<bool, JavaError> {
     env.call_method(value, "booleanValue", "()Z", &[])
         .map_err(|err| JavaError::invalid_field(JavaFieldHint::Bool, err))?
         .z()
@@ -80,7 +89,10 @@ fn from_java_bool<'local>(
 }
 
 #[inline]
-fn new_big_integer<'local>(env: &mut JNIEnv<'local>, text: &str) -> Result<JObject<'local>, Error> {
+fn new_big_integer<'local>(
+    env: &mut JNIEnv<'local>,
+    text: &str,
+) -> Result<JObject<'local>, JavaError> {
     let jstr: JObject<'local> = env
         .new_string(text)
         .map(JObject::from)
@@ -98,7 +110,7 @@ fn parse_big_integer<'local, T: std::str::FromStr>(
     env: &mut JNIEnv<'local>,
     value: &JObject<'local>,
     hint: JavaFieldHint,
-) -> Result<T, Error> {
+) -> Result<T, JavaError> {
     let text_obj = env
         .call_method(value, "toString", "()Ljava/lang/String;", &[])
         .map_err(|err| JavaError::invalid_field(hint, err))?
@@ -114,14 +126,17 @@ fn parse_big_integer<'local, T: std::str::FromStr>(
 }
 
 impl JavaConvert for bool {
-    fn to_java_value<'local>(&self, env: &mut JNIEnv<'local>) -> Result<JObject<'local>, Error> {
+    fn to_java_value<'local>(
+        &self,
+        env: &mut JNIEnv<'local>,
+    ) -> Result<JObject<'local>, JavaError> {
         new_java_bool(env, *self)
     }
 
     fn from_java_value<'local>(
         env: &mut JNIEnv<'local>,
         value: JObject<'local>,
-    ) -> Result<Self, Error> {
+    ) -> Result<Self, JavaError> {
         if value.is_null() {
             return Err(JavaError::invalid_field(
                 JavaFieldHint::Bool,
@@ -133,7 +148,10 @@ impl JavaConvert for bool {
 }
 
 impl JavaConvert for String {
-    fn to_java_value<'local>(&self, env: &mut JNIEnv<'local>) -> Result<JObject<'local>, Error> {
+    fn to_java_value<'local>(
+        &self,
+        env: &mut JNIEnv<'local>,
+    ) -> Result<JObject<'local>, JavaError> {
         env.new_string(self)
             .map(JObject::from)
             .map_err(|err| JavaError::invalid_field(JavaFieldHint::String, err))
@@ -142,7 +160,7 @@ impl JavaConvert for String {
     fn from_java_value<'local>(
         env: &mut JNIEnv<'local>,
         value: JObject<'local>,
-    ) -> Result<Self, Error> {
+    ) -> Result<Self, JavaError> {
         if value.is_null() {
             return Err(JavaError::invalid_field(
                 JavaFieldHint::String,
@@ -161,11 +179,11 @@ macro_rules! impl_java_int_via_long {
     ($($ty:ty => $hint:expr),* $(,)?) => {
         $(
             impl JavaConvert for $ty {
-                fn to_java_value<'local>(&self, env: &mut JNIEnv<'local>) -> Result<JObject<'local>, Error> {
+                fn to_java_value<'local>(&self, env: &mut JNIEnv<'local>) -> Result<JObject<'local>, JavaError> {
                     new_java_long(env, *self as i64)
                 }
 
-                fn from_java_value<'local>(env: &mut JNIEnv<'local>, value: JObject<'local>) -> Result<Self, Error> {
+                fn from_java_value<'local>(env: &mut JNIEnv<'local>, value: JObject<'local>) -> Result<Self, JavaError> {
                     if value.is_null() {
                         return Err(JavaError::invalid_field($hint, "null is not allowed"));
                     }
@@ -188,14 +206,17 @@ impl_java_int_via_long!(
 );
 
 impl JavaConvert for i64 {
-    fn to_java_value<'local>(&self, env: &mut JNIEnv<'local>) -> Result<JObject<'local>, Error> {
+    fn to_java_value<'local>(
+        &self,
+        env: &mut JNIEnv<'local>,
+    ) -> Result<JObject<'local>, JavaError> {
         new_big_integer(env, &self.to_string())
     }
 
     fn from_java_value<'local>(
         env: &mut JNIEnv<'local>,
         value: JObject<'local>,
-    ) -> Result<Self, Error> {
+    ) -> Result<Self, JavaError> {
         if value.is_null() {
             return Err(JavaError::invalid_field(
                 JavaFieldHint::I64,
@@ -207,14 +228,17 @@ impl JavaConvert for i64 {
 }
 
 impl JavaConvert for u64 {
-    fn to_java_value<'local>(&self, env: &mut JNIEnv<'local>) -> Result<JObject<'local>, Error> {
+    fn to_java_value<'local>(
+        &self,
+        env: &mut JNIEnv<'local>,
+    ) -> Result<JObject<'local>, JavaError> {
         new_big_integer(env, &self.to_string())
     }
 
     fn from_java_value<'local>(
         env: &mut JNIEnv<'local>,
         value: JObject<'local>,
-    ) -> Result<Self, Error> {
+    ) -> Result<Self, JavaError> {
         if value.is_null() {
             return Err(JavaError::invalid_field(
                 JavaFieldHint::U64,
@@ -226,14 +250,17 @@ impl JavaConvert for u64 {
 }
 
 impl JavaConvert for i128 {
-    fn to_java_value<'local>(&self, env: &mut JNIEnv<'local>) -> Result<JObject<'local>, Error> {
+    fn to_java_value<'local>(
+        &self,
+        env: &mut JNIEnv<'local>,
+    ) -> Result<JObject<'local>, JavaError> {
         new_big_integer(env, &self.to_string())
     }
 
     fn from_java_value<'local>(
         env: &mut JNIEnv<'local>,
         value: JObject<'local>,
-    ) -> Result<Self, Error> {
+    ) -> Result<Self, JavaError> {
         if value.is_null() {
             return Err(JavaError::invalid_field(
                 JavaFieldHint::I128,
@@ -245,14 +272,17 @@ impl JavaConvert for i128 {
 }
 
 impl JavaConvert for u128 {
-    fn to_java_value<'local>(&self, env: &mut JNIEnv<'local>) -> Result<JObject<'local>, Error> {
+    fn to_java_value<'local>(
+        &self,
+        env: &mut JNIEnv<'local>,
+    ) -> Result<JObject<'local>, JavaError> {
         new_big_integer(env, &self.to_string())
     }
 
     fn from_java_value<'local>(
         env: &mut JNIEnv<'local>,
         value: JObject<'local>,
-    ) -> Result<Self, Error> {
+    ) -> Result<Self, JavaError> {
         if value.is_null() {
             return Err(JavaError::invalid_field(
                 JavaFieldHint::U128,
@@ -264,28 +294,34 @@ impl JavaConvert for u128 {
 }
 
 impl JavaConvert for f32 {
-    fn to_java_value<'local>(&self, env: &mut JNIEnv<'local>) -> Result<JObject<'local>, Error> {
+    fn to_java_value<'local>(
+        &self,
+        env: &mut JNIEnv<'local>,
+    ) -> Result<JObject<'local>, JavaError> {
         <u32 as JavaConvert>::to_java_value(&self.to_bits(), env)
     }
 
     fn from_java_value<'local>(
         env: &mut JNIEnv<'local>,
         value: JObject<'local>,
-    ) -> Result<Self, Error> {
+    ) -> Result<Self, JavaError> {
         let bits = <u32 as JavaConvert>::from_java_value(env, value)?;
         Ok(f32::from_bits(bits))
     }
 }
 
 impl JavaConvert for f64 {
-    fn to_java_value<'local>(&self, env: &mut JNIEnv<'local>) -> Result<JObject<'local>, Error> {
+    fn to_java_value<'local>(
+        &self,
+        env: &mut JNIEnv<'local>,
+    ) -> Result<JObject<'local>, JavaError> {
         <u64 as JavaConvert>::to_java_value(&self.to_bits(), env)
     }
 
     fn from_java_value<'local>(
         env: &mut JNIEnv<'local>,
         value: JObject<'local>,
-    ) -> Result<Self, Error> {
+    ) -> Result<Self, JavaError> {
         let bits = <u64 as JavaConvert>::from_java_value(env, value).map_err(|_| {
             JavaError::invalid_field(JavaFieldHint::F64, "expected BigInteger bits")
         })?;
@@ -294,7 +330,10 @@ impl JavaConvert for f64 {
 }
 
 impl<T: JavaConvert> JavaConvert for Vec<T> {
-    fn to_java_value<'local>(&self, env: &mut JNIEnv<'local>) -> Result<JObject<'local>, Error> {
+    fn to_java_value<'local>(
+        &self,
+        env: &mut JNIEnv<'local>,
+    ) -> Result<JObject<'local>, JavaError> {
         let list = new_array_list(env, self.len() as i32)?;
         for item in self.iter() {
             let value = item.to_java_value(env)?;
@@ -306,7 +345,7 @@ impl<T: JavaConvert> JavaConvert for Vec<T> {
     fn from_java_value<'local>(
         env: &mut JNIEnv<'local>,
         value: JObject<'local>,
-    ) -> Result<Self, Error> {
+    ) -> Result<Self, JavaError> {
         if value.is_null() {
             return Err(JavaError::invalid_field(
                 JavaFieldHint::Vec,
@@ -324,7 +363,10 @@ impl<T: JavaConvert> JavaConvert for Vec<T> {
 }
 
 impl<T: JavaConvert> JavaConvert for Option<T> {
-    fn to_java_value<'local>(&self, env: &mut JNIEnv<'local>) -> Result<JObject<'local>, Error> {
+    fn to_java_value<'local>(
+        &self,
+        env: &mut JNIEnv<'local>,
+    ) -> Result<JObject<'local>, JavaError> {
         match self {
             Some(v) => T::to_java_value(v, env),
             None => Ok(JObject::null()),
@@ -334,7 +376,7 @@ impl<T: JavaConvert> JavaConvert for Option<T> {
     fn from_java_value<'local>(
         env: &mut JNIEnv<'local>,
         value: JObject<'local>,
-    ) -> Result<Self, Error> {
+    ) -> Result<Self, JavaError> {
         if value.is_null() {
             Ok(None)
         } else {
@@ -344,7 +386,10 @@ impl<T: JavaConvert> JavaConvert for Option<T> {
 }
 
 impl<const N: usize> JavaConvert for [u8; N] {
-    fn to_java_value<'local>(&self, env: &mut JNIEnv<'local>) -> Result<JObject<'local>, Error> {
+    fn to_java_value<'local>(
+        &self,
+        env: &mut JNIEnv<'local>,
+    ) -> Result<JObject<'local>, JavaError> {
         env.byte_array_from_slice(self)
             .map(JObject::from)
             .map_err(|err| JavaError::invalid_field(JavaFieldHint::Blob, err))
@@ -353,7 +398,7 @@ impl<const N: usize> JavaConvert for [u8; N] {
     fn from_java_value<'local>(
         env: &mut JNIEnv<'local>,
         value: JObject<'local>,
-    ) -> Result<Self, Error> {
+    ) -> Result<Self, JavaError> {
         if value.is_null() {
             return Err(JavaError::invalid_field(
                 JavaFieldHint::Blob,
@@ -364,99 +409,70 @@ impl<const N: usize> JavaConvert for [u8; N] {
             .convert_byte_array(JByteArray::from(value))
             .map_err(|err| JavaError::invalid_field(JavaFieldHint::Blob, err))?;
         raw.try_into().map_err(|bytes: Vec<u8>| {
-            Error::Java(JavaError::InvalidField(
+            JavaError::InvalidField(
                 JavaFieldHint::Blob.id().to_string(),
                 format!("expected {N} bytes, got {}", bytes.len()),
-            ))
+            )
         })
     }
 }
 
-impl<B: BlockDef + JavaObject, P: PayloadDef<Inner>, Inner: PayloadInnerDef + JavaObject>
-    PacketDef<B, P, Inner>
-{
-    /// Converts packet into `Map{ blocks -> List<{}>, payload -> {} | null }`.
-    pub fn to_java_object<'local>(
-        &self,
-        env: &mut JNIEnv<'local>,
-    ) -> Result<JObject<'local>, Error> {
-        let obj = new_hash_map(env)?;
-        let blocks = new_array_list(env, self.blocks.len() as i32)?;
-        for block in self.blocks.iter() {
-            let value = block.to_java_object(env)?;
-            super::list_add(env, &blocks, &value)?;
-        }
-        map_put(env, &obj, BLOCKS_FIELD_NAME, &blocks)?;
+/// Converts packet into `Map{ blocks -> List<{}>, payload -> {} | null }`.
+pub fn to_java_object<'local, Block: JavaObject, Payload: JavaObject>(
+    env: &mut JNIEnv<'local>,
+    blocks: &[Block],
+    payload: Option<&Payload>,
+) -> Result<JObject<'local>, JavaError> {
+    let obj = new_hash_map(env)?;
+    let blocks_list = new_array_list(env, blocks.len() as i32)?;
+    for block in blocks {
+        let value = block.to_java_object(env)?;
+        super::list_add(env, &blocks_list, &value)?;
+    }
+    map_put(env, &obj, BLOCKS_FIELD_NAME, &blocks_list)?;
 
-        let payload = match self.payload.as_ref() {
-            Some(payload) => payload.to_java_object(env)?,
-            None => JObject::null(),
-        };
-        map_put(env, &obj, PAYLOAD_FIELD_NAME, &payload)?;
-        Ok(obj)
+    let payload = match payload {
+        Some(payload) => payload.to_java_object(env)?,
+        None => JObject::null(),
+    };
+    map_put(env, &obj, PAYLOAD_FIELD_NAME, &payload)?;
+    Ok(obj)
+}
+
+/// Parses packet from `Map{ blocks -> List<{}>, payload -> {} | null }`.
+pub fn from_java_object<'local, Block: JavaObject, Payload: JavaObject>(
+    env: &mut JNIEnv<'local>,
+    value: JObject<'local>,
+) -> Result<(Vec<Block>, Option<Payload>), JavaError> {
+    if value.is_null() {
+        return Err(JavaError::InvalidObject("null packet object".to_owned()));
+    }
+    let blocks_obj = map_get(env, &value, BLOCKS_FIELD_NAME)?;
+    if blocks_obj.is_null() {
+        return Err(JavaError::MissingField(BLOCKS_FIELD_NAME.to_owned()));
+    }
+    let blocks_len = super::list_size(env, &blocks_obj)?;
+    let mut blocks = Vec::with_capacity(blocks_len as usize);
+    for idx in 0..blocks_len {
+        let block_obj = super::list_get(env, &blocks_obj, idx)?;
+        blocks.push(Block::from_java_object(env, block_obj).map_err(|err| {
+            JavaError::InvalidField(
+                JavaFieldHint::Blocks.id().to_string(),
+                format!("index {idx}: {err}"),
+            )
+        })?);
     }
 
-    /// Parses packet from `Map{ blocks -> List<{}>, payload -> {} | null }`.
-    pub fn from_java_object<'local>(
-        env: &mut JNIEnv<'local>,
-        value: JObject<'local>,
-    ) -> Result<Self, Error> {
-        if value.is_null() {
-            return Err(Error::Java(JavaError::InvalidObject(
-                "null packet object".to_owned(),
-            )));
-        }
-        let blocks_obj = map_get(env, &value, BLOCKS_FIELD_NAME)?;
-        if blocks_obj.is_null() {
-            return Err(Error::Java(JavaError::MissingField(
-                BLOCKS_FIELD_NAME.to_owned(),
-            )));
-        }
-        let blocks_len = super::list_size(env, &blocks_obj)?;
-        let mut blocks = Vec::with_capacity(blocks_len as usize);
-        for idx in 0..blocks_len {
-            let block_obj = super::list_get(env, &blocks_obj, idx)?;
-            blocks.push(B::from_java_object(env, block_obj).map_err(|err| {
-                Error::Java(JavaError::InvalidField(
-                    JavaFieldHint::Blocks.id().to_string(),
-                    format!("index {idx}: {err}"),
-                ))
-            })?);
-        }
-
-        let payload = if map_has(env, &value, PAYLOAD_FIELD_NAME)? {
-            let raw = map_get(env, &value, PAYLOAD_FIELD_NAME)?;
-            if raw.is_null() {
-                None
-            } else {
-                Some(Inner::from_java_object(env, raw)?)
-            }
-        } else {
+    let payload = if map_has(env, &value, PAYLOAD_FIELD_NAME)? {
+        let raw = map_get(env, &value, PAYLOAD_FIELD_NAME)?;
+        if raw.is_null() {
             None
-        };
-        Ok(Self::new(blocks, payload))
-    }
+        } else {
+            Some(Payload::from_java_object(env, raw)?)
+        }
+    } else {
+        None
+    };
 
-    /// Reads packet bytes and converts to Java object.
-    pub fn decode_java<'local>(
-        env: &mut JNIEnv<'local>,
-        bytes: &[u8],
-        ctx: &mut <Inner as PayloadSchema>::Context<'_>,
-    ) -> Result<JObject<'local>, Error> {
-        let mut cursor = std::io::Cursor::new(bytes);
-        let packet = <Self as ReadPacketFrom>::read(&mut cursor, ctx)?;
-        packet.to_java_object(env)
-    }
-
-    /// Parses Java object packet and encodes into packet bytes.
-    pub fn encode_java<'local>(
-        env: &mut JNIEnv<'local>,
-        value: JObject<'local>,
-        out: &mut Vec<u8>,
-        ctx: &mut <Inner as PayloadSchema>::Context<'_>,
-    ) -> Result<(), Error> {
-        let mut packet = Self::from_java_object(env, value)?;
-        packet.write_all(out, ctx)?;
-        Ok(())
-    }
+    Ok((blocks, payload))
 }

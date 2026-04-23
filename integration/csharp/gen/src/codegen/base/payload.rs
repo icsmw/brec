@@ -9,18 +9,18 @@ pub fn generate(name: &Ident, attrs: &PayloadAttrs) -> Result<TokenStream, E> {
     }
     Ok(quote! {
         impl #name {
-            fn to_csharp_object(&self) -> Result<brec::CSharpValue, brec::Error> {
-                <#name as brec::CSharpConvert>::to_csharp_value(self)
+            fn to_csharp_object(&self) -> Result<brec::csharp_feat::CSharpValue, brec::csharp_feat::CSharpError> {
+                <#name as brec::csharp_feat::CSharpConvert>::to_csharp_value(self)
             }
 
-            fn from_csharp_object(value: brec::CSharpValue) -> Result<Self, brec::Error> {
-                <#name as brec::CSharpConvert>::from_csharp_value(value)
+            fn from_csharp_object(value: brec::csharp_feat::CSharpValue) -> Result<Self, brec::csharp_feat::CSharpError> {
+                <#name as brec::csharp_feat::CSharpConvert>::from_csharp_value(value)
             }
 
             pub fn decode_csharp(
                 bytes: &[u8],
                 ctx: &mut crate::PayloadContext<'_>,
-            ) -> Result<brec::CSharpValue, brec::Error> {
+            ) -> Result<brec::csharp_feat::CSharpValue, brec::Error> {
                 let mut cursor = std::io::Cursor::new(bytes);
                 let header = <brec::PayloadHeader as brec::ReadFrom>::read(&mut cursor)?;
                 let payload = <#name as brec::ReadPayloadFrom<#name>>::read(
@@ -28,11 +28,11 @@ pub fn generate(name: &Ident, attrs: &PayloadAttrs) -> Result<TokenStream, E> {
                     &header,
                     ctx,
                 )?;
-                payload.to_csharp_object()
+                Ok(payload.to_csharp_object()?)
             }
 
             pub fn encode_csharp(
-                value: brec::CSharpValue,
+                value: brec::csharp_feat::CSharpValue,
                 out: &mut Vec<u8>,
                 ctx: &mut crate::PayloadContext<'_>,
             ) -> Result<(), brec::Error> {
@@ -42,12 +42,12 @@ pub fn generate(name: &Ident, attrs: &PayloadAttrs) -> Result<TokenStream, E> {
             }
         }
 
-        impl brec::CSharpObject for #name {
-            fn to_csharp_object(&self) -> Result<brec::CSharpValue, brec::Error> {
+        impl brec::csharp_feat::CSharpObject for #name {
+            fn to_csharp_object(&self) -> Result<brec::csharp_feat::CSharpValue, brec::csharp_feat::CSharpError> {
                 #name::to_csharp_object(self)
             }
 
-            fn from_csharp_object(value: brec::CSharpValue) -> Result<Self, brec::Error> {
+            fn from_csharp_object(value: brec::csharp_feat::CSharpValue) -> Result<Self, brec::csharp_feat::CSharpError> {
                 #name::from_csharp_object(value)
             }
         }

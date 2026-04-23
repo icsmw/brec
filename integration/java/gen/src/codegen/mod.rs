@@ -32,14 +32,14 @@ fn gen_struct_to_java(fields: &Fields) -> Result<TokenStream, E> {
                     let ty = &field.ty;
                     Ok(quote! {
                         {
-                            let value = <#ty as brec::JavaConvert>::to_java_value(&self.#ident, env)?;
-                            brec::java_feature::map_put(env, &obj, #name, &value)?;
+                            let value = <#ty as brec::java_feat::JavaConvert>::to_java_value(&self.#ident, env)?;
+                            brec::java_feat::map_put(env, &obj, #name, &value)?;
                         }
                     })
                 })
                 .collect::<Result<Vec<_>, E>>()?;
             Ok(quote! {
-                let obj = brec::java_feature::new_hash_map(env)?;
+                let obj = brec::java_feat::new_hash_map(env)?;
                 #(#setters)*
                 Ok(obj)
             })
@@ -56,21 +56,21 @@ fn gen_struct_to_java(fields: &Fields) -> Result<TokenStream, E> {
                     let ty = &field.ty;
                     Ok(quote! {
                         {
-                            let value = <#ty as brec::JavaConvert>::to_java_value(&self.#idx_member, env)?;
-                            brec::java_feature::list_add(env, &arr, &value)
-                                .map_err(|err| brec::JavaError::invalid_field_name(#idx_lit.to_string(), err))?;
+                            let value = <#ty as brec::java_feat::JavaConvert>::to_java_value(&self.#idx_member, env)?;
+                            brec::java_feat::list_add(env, &arr, &value)
+                                .map_err(|err| brec::java_feat::JavaError::invalid_field_name(#idx_lit.to_string(), err))?;
                         }
                     })
                 })
                 .collect::<Result<Vec<_>, E>>()?;
             Ok(quote! {
-                let arr = brec::java_feature::new_array_list(env, #len)?;
+                let arr = brec::java_feat::new_array_list(env, #len)?;
                 #(#setters)*
                 Ok(arr)
             })
         }
         Fields::Unit => Ok(quote! {
-            let obj = brec::java_feature::new_hash_map(env)?;
+            let obj = brec::java_feat::new_hash_map(env)?;
             Ok(obj)
         }),
     }
@@ -87,9 +87,9 @@ fn gen_struct_from_java(name: &Ident, fields: &Fields) -> Result<TokenStream, E>
                     let field_name = ident.to_string();
                     let ty = &field.ty;
                     Ok(quote! {
-                        let raw = brec::java_feature::map_get(env, &obj, #field_name)
-                            .map_err(|err| brec::JavaError::invalid_field_name(#field_name, err))?;
-                        let #ident: #ty = <#ty as brec::JavaConvert>::from_java_value(env, raw)?;
+                        let raw = brec::java_feat::map_get(env, &obj, #field_name)
+                            .map_err(|err| brec::java_feat::JavaError::invalid_field_name(#field_name, err))?;
+                        let #ident: #ty = <#ty as brec::java_feat::JavaConvert>::from_java_value(env, raw)?;
                     })
                 })
                 .collect::<Result<Vec<_>, E>>()?;
@@ -118,9 +118,9 @@ fn gen_struct_from_java(name: &Ident, fields: &Fields) -> Result<TokenStream, E>
                     let ident = syn::Ident::new(&format!("v{}", idx), proc_macro2::Span::call_site());
                     let ty = &field.ty;
                     Ok(quote! {
-                        let raw = brec::java_feature::list_get(env, &arr, #idx_lit)
-                            .map_err(|err| brec::JavaError::invalid_field_name(#idx_lit.to_string(), err))?;
-                        let #ident: #ty = <#ty as brec::JavaConvert>::from_java_value(env, raw)?;
+                        let raw = brec::java_feat::list_get(env, &arr, #idx_lit)
+                            .map_err(|err| brec::java_feat::JavaError::invalid_field_name(#idx_lit.to_string(), err))?;
+                        let #ident: #ty = <#ty as brec::java_feat::JavaConvert>::from_java_value(env, raw)?;
                     })
                 })
                 .collect::<Result<Vec<_>, E>>()?;
@@ -129,11 +129,11 @@ fn gen_struct_from_java(name: &Ident, fields: &Fields) -> Result<TokenStream, E>
                 .collect::<Vec<_>>();
             Ok(quote! {
                 let arr = value;
-                let arr_len = brec::java_feature::list_size(env, &arr)?;
+                let arr_len = brec::java_feat::list_size(env, &arr)?;
                 if arr_len != #len {
-                    return Err(brec::Error::Java(brec::JavaError::InvalidAggregatorShape(
+                    return Err(brec::java_feat::JavaError::InvalidAggregatorShape(
                         format!("expected array with {} elements, got {}", #len, arr_len),
-                    )));
+                    ));
                 }
                 #(#getters)*
                 Ok(#name(#(#ctor_fields),*))
@@ -152,17 +152,17 @@ fn gen_variant_to_java(enum_name: &Ident, variant: &Variant) -> Result<TokenStre
     match &variant.fields {
         Fields::Unit => Ok(quote! {
             #enum_name::#vname => {
-                brec::java_feature::map_put(env, &obj, #key, &jni::objects::JObject::null())
-                    .map_err(|err| brec::JavaError::invalid_field_name(#key, err))?;
+                brec::java_feat::map_put(env, &obj, #key, &jni::objects::JObject::null())
+                    .map_err(|err| brec::java_feat::JavaError::invalid_field_name(#key, err))?;
             }
         }),
         Fields::Unnamed(fields) => {
             if fields.unnamed.len() == 1 {
                 Ok(quote! {
                     #enum_name::#vname(inner) => {
-                        let value = brec::JavaConvert::to_java_value(inner, env)?;
-                        brec::java_feature::map_put(env, &obj, #key, &value)
-                            .map_err(|err| brec::JavaError::invalid_field_name(#key, err))?;
+                        let value = brec::java_feat::JavaConvert::to_java_value(inner, env)?;
+                        brec::java_feat::map_put(env, &obj, #key, &value)
+                            .map_err(|err| brec::java_feat::JavaError::invalid_field_name(#key, err))?;
                     }
                 })
             } else {
@@ -175,19 +175,19 @@ fn gen_variant_to_java(enum_name: &Ident, variant: &Variant) -> Result<TokenStre
                     .iter()
                     .map(|ident| {
                         quote! {
-                            let value = brec::JavaConvert::to_java_value(#ident, env)?;
-                            brec::java_feature::list_add(env, &arr, &value)
-                                .map_err(|err| brec::JavaError::invalid_field_name(#key, err))?;
+                            let value = brec::java_feat::JavaConvert::to_java_value(#ident, env)?;
+                            brec::java_feat::list_add(env, &arr, &value)
+                                .map_err(|err| brec::java_feat::JavaError::invalid_field_name(#key, err))?;
                         }
                     })
                     .collect::<Vec<_>>();
                 let len = bindings.len() as i32;
                 Ok(quote! {
                     #enum_name::#vname(#(#bindings),*) => {
-                        let arr = brec::java_feature::new_array_list(env, #len)?;
+                        let arr = brec::java_feat::new_array_list(env, #len)?;
                         #(#set_elems)*
-                        brec::java_feature::map_put(env, &obj, #key, &arr)
-                            .map_err(|err| brec::JavaError::invalid_field_name(#key, err))?;
+                        brec::java_feat::map_put(env, &obj, #key, &arr)
+                            .map_err(|err| brec::java_feat::JavaError::invalid_field_name(#key, err))?;
                     }
                 })
             }
@@ -200,9 +200,9 @@ fn gen_variant_to_java(enum_name: &Ident, variant: &Variant) -> Result<TokenStre
                     let ident = get_named_field_ident(field)?;
                     let fname = ident.to_string();
                     Ok(quote! {
-                        let value = brec::JavaConvert::to_java_value(#ident, env)?;
-                        brec::java_feature::map_put(env, &inner, #fname, &value)
-                            .map_err(|err| brec::JavaError::invalid_field_name(#key, err))?;
+                        let value = brec::java_feat::JavaConvert::to_java_value(#ident, env)?;
+                        brec::java_feat::map_put(env, &inner, #fname, &value)
+                            .map_err(|err| brec::java_feat::JavaError::invalid_field_name(#key, err))?;
                     })
                 })
                 .collect::<Result<Vec<_>, E>>()?;
@@ -213,10 +213,10 @@ fn gen_variant_to_java(enum_name: &Ident, variant: &Variant) -> Result<TokenStre
                 .collect::<Result<Vec<_>, E>>()?;
             Ok(quote! {
                 #enum_name::#vname { #(#bindings),* } => {
-                    let inner = brec::java_feature::new_hash_map(env)?;
+                    let inner = brec::java_feat::new_hash_map(env)?;
                     #(#setters)*
-                    brec::java_feature::map_put(env, &obj, #key, &inner)
-                        .map_err(|err| brec::JavaError::invalid_field_name(#key, err))?;
+                    brec::java_feat::map_put(env, &obj, #key, &inner)
+                        .map_err(|err| brec::java_feat::JavaError::invalid_field_name(#key, err))?;
                 }
             })
         }
@@ -233,7 +233,7 @@ fn gen_variant_from_java(variant: &Variant) -> Result<TokenStream, E> {
                 let ty = get_first_unnamed_ty(fields)?;
                 Ok(quote! {
                     #key => {
-                        let value: #ty = <#ty as brec::JavaConvert>::from_java_value(env, inner)?;
+                        let value: #ty = <#ty as brec::java_feat::JavaConvert>::from_java_value(env, inner)?;
                         Ok(Self::#vname(value))
                     }
                 })
@@ -248,9 +248,9 @@ fn gen_variant_from_java(variant: &Variant) -> Result<TokenStream, E> {
                         let ident = syn::Ident::new(&format!("v{}", idx), proc_macro2::Span::call_site());
                         let ty = &field.ty;
                         quote! {
-                            let raw = brec::java_feature::list_get(env, &arr, #idx_lit)
-                                .map_err(|err| brec::JavaError::invalid_field_name(#key, err))?;
-                            let #ident: #ty = <#ty as brec::JavaConvert>::from_java_value(env, raw)?;
+                            let raw = brec::java_feat::list_get(env, &arr, #idx_lit)
+                                .map_err(|err| brec::java_feat::JavaError::invalid_field_name(#key, err))?;
+                            let #ident: #ty = <#ty as brec::java_feat::JavaConvert>::from_java_value(env, raw)?;
                         }
                     })
                     .collect::<Vec<_>>();
@@ -262,9 +262,9 @@ fn gen_variant_from_java(variant: &Variant) -> Result<TokenStream, E> {
                 Ok(quote! {
                     #key => {
                         let arr = inner;
-                        let arr_len = brec::java_feature::list_size(env, &arr)?;
+                        let arr_len = brec::java_feat::list_size(env, &arr)?;
                         if arr_len != #len {
-                            return Err(brec::JavaError::invalid_field_name(
+                            return Err(brec::java_feat::JavaError::invalid_field_name(
                                 #key,
                                 format!("expected tuple array with {} elements, got {}", #len, arr_len),
                             ));
@@ -284,9 +284,9 @@ fn gen_variant_from_java(variant: &Variant) -> Result<TokenStream, E> {
                     let fname = ident.to_string();
                     let ty = &field.ty;
                     Ok(quote! {
-                        let raw = brec::java_feature::map_get(env, &obj, #fname)
-                            .map_err(|err| brec::JavaError::invalid_field_name(#key, err))?;
-                        let #ident: #ty = <#ty as brec::JavaConvert>::from_java_value(env, raw)?;
+                        let raw = brec::java_feat::map_get(env, &obj, #fname)
+                            .map_err(|err| brec::java_feat::JavaError::invalid_field_name(#key, err))?;
+                        let #ident: #ty = <#ty as brec::java_feat::JavaConvert>::from_java_value(env, raw)?;
                     })
                 })
                 .collect::<Result<Vec<_>, E>>()?;
@@ -315,12 +315,12 @@ pub fn generate_impl(name: &Ident, data: &Data) -> Result<TokenStream, E> {
             let to_java = gen_struct_to_java(&data.fields)?;
             let from_java = gen_struct_from_java(name, &data.fields)?;
             Ok(quote! {
-                impl brec::JavaConvert for #name {
-                    fn to_java_value<'local>(&self, env: &mut jni::JNIEnv<'local>) -> Result<jni::objects::JObject<'local>, brec::Error> {
+                impl brec::java_feat::JavaConvert for #name {
+                    fn to_java_value<'local>(&self, env: &mut jni::JNIEnv<'local>) -> Result<jni::objects::JObject<'local>, brec::java_feat::JavaError> {
                         #to_java
                     }
 
-                    fn from_java_value<'local>(env: &mut jni::JNIEnv<'local>, value: jni::objects::JObject<'local>) -> Result<Self, brec::Error> {
+                    fn from_java_value<'local>(env: &mut jni::JNIEnv<'local>, value: jni::objects::JObject<'local>) -> Result<Self, brec::java_feat::JavaError> {
                         #from_java
                     }
                 }
@@ -338,34 +338,34 @@ pub fn generate_impl(name: &Ident, data: &Data) -> Result<TokenStream, E> {
                 .map(gen_variant_from_java)
                 .collect::<Result<Vec<_>, _>>()?;
             Ok(quote! {
-                impl brec::JavaConvert for #name {
-                    fn to_java_value<'local>(&self, env: &mut jni::JNIEnv<'local>) -> Result<jni::objects::JObject<'local>, brec::Error> {
-                        let obj = brec::java_feature::new_hash_map(env)?;
+                impl brec::java_feat::JavaConvert for #name {
+                    fn to_java_value<'local>(&self, env: &mut jni::JNIEnv<'local>) -> Result<jni::objects::JObject<'local>, brec::java_feat::JavaError> {
+                        let obj = brec::java_feat::new_hash_map(env)?;
                         match self {
                             #(#to_arms)*
                         }
                         Ok(obj)
                     }
 
-                    fn from_java_value<'local>(env: &mut jni::JNIEnv<'local>, value: jni::objects::JObject<'local>) -> Result<Self, brec::Error> {
+                    fn from_java_value<'local>(env: &mut jni::JNIEnv<'local>, value: jni::objects::JObject<'local>) -> Result<Self, brec::java_feat::JavaError> {
                         let obj = value;
-                        let (keys_len, key_opt) = brec::java_feature::map_keys_len_and_first(env, &obj)?;
+                        let (keys_len, key_opt) = brec::java_feat::map_keys_len_and_first(env, &obj)?;
                         if keys_len != 1 {
-                            return Err(brec::Error::Java(brec::JavaError::InvalidAggregatorShape(
+                            return Err(brec::java_feat::JavaError::InvalidAggregatorShape(
                                 format!("expected object with exactly 1 field, got {}", keys_len),
-                            )));
+                            ));
                         }
                         let key = key_opt.ok_or_else(|| {
-                            brec::Error::Java(brec::JavaError::InvalidAggregatorShape(
+                            brec::java_feat::JavaError::InvalidAggregatorShape(
                                 "expected object key to be a string".to_owned(),
-                            ))
+                            )
                         })?;
-                        let inner = brec::java_feature::map_get(env, &obj, &key)?;
+                        let inner = brec::java_feat::map_get(env, &obj, &key)?;
                         match key.as_str() {
                             #(#from_arms)*
-                            _ => Err(brec::Error::Java(brec::JavaError::InvalidAggregatorShape(
+                            _ => Err(brec::java_feat::JavaError::InvalidAggregatorShape(
                                 format!("unknown enum key: {key}"),
-                            ))),
+                            )),
                         }
                     }
                 }

@@ -1,8 +1,8 @@
 mod error;
 mod packet;
 
-use crate::Error;
 pub use error::*;
+pub use jni;
 use jni::{
     JNIEnv,
     objects::{JObject, JString, JValue},
@@ -34,7 +34,7 @@ pub enum JavaFieldHint {
 }
 
 #[inline]
-pub fn new_hash_map<'local>(env: &mut JNIEnv<'local>) -> Result<JObject<'local>, Error> {
+pub fn new_hash_map<'local>(env: &mut JNIEnv<'local>) -> Result<JObject<'local>, JavaError> {
     env.new_object("java/util/HashMap", "()V", &[])
         .map_err(|err| JavaError::invalid_field(JavaFieldHint::Object, err))
 }
@@ -45,7 +45,7 @@ pub fn map_put<'local>(
     map: &JObject<'local>,
     key: &str,
     value: &JObject<'local>,
-) -> Result<(), Error> {
+) -> Result<(), JavaError> {
     let key_obj: JObject<'local> = env
         .new_string(key)
         .map(JObject::from)
@@ -65,7 +65,7 @@ pub fn map_get<'local>(
     env: &mut JNIEnv<'local>,
     map: &JObject<'local>,
     key: &str,
-) -> Result<JObject<'local>, Error> {
+) -> Result<JObject<'local>, JavaError> {
     let key_obj: JObject<'local> = env
         .new_string(key)
         .map(JObject::from)
@@ -88,7 +88,7 @@ pub fn map_has<'local>(
     env: &mut JNIEnv<'local>,
     map: &JObject<'local>,
     key: &str,
-) -> Result<bool, Error> {
+) -> Result<bool, JavaError> {
     let key_obj: JObject<'local> = env
         .new_string(key)
         .map(JObject::from)
@@ -108,7 +108,7 @@ pub fn map_has<'local>(
 pub fn map_keys_len_and_first<'local>(
     env: &mut JNIEnv<'local>,
     map: &JObject<'local>,
-) -> Result<(i32, Option<String>), Error> {
+) -> Result<(i32, Option<String>), JavaError> {
     let keys_set = env
         .call_method(map, "keySet", "()Ljava/util/Set;", &[])
         .map_err(|err| JavaError::invalid_field(JavaFieldHint::Object, err))?
@@ -141,7 +141,7 @@ pub fn map_keys_len_and_first<'local>(
 pub fn new_array_list<'local>(
     env: &mut JNIEnv<'local>,
     cap: i32,
-) -> Result<JObject<'local>, Error> {
+) -> Result<JObject<'local>, JavaError> {
     env.new_object("java/util/ArrayList", "(I)V", &[JValue::Int(cap)])
         .map_err(|err| JavaError::invalid_field(JavaFieldHint::Vec, err))
 }
@@ -151,7 +151,7 @@ pub fn list_add<'local>(
     env: &mut JNIEnv<'local>,
     list: &JObject<'local>,
     value: &JObject<'local>,
-) -> Result<(), Error> {
+) -> Result<(), JavaError> {
     env.call_method(
         list,
         "add",
@@ -167,7 +167,7 @@ pub fn list_get<'local>(
     env: &mut JNIEnv<'local>,
     list: &JObject<'local>,
     idx: i32,
-) -> Result<JObject<'local>, Error> {
+) -> Result<JObject<'local>, JavaError> {
     env.call_method(list, "get", "(I)Ljava/lang/Object;", &[JValue::Int(idx)])
         .map_err(|err| JavaError::invalid_field(JavaFieldHint::Vec, err))?
         .l()
@@ -175,7 +175,10 @@ pub fn list_get<'local>(
 }
 
 #[inline]
-pub fn list_size<'local>(env: &mut JNIEnv<'local>, list: &JObject<'local>) -> Result<i32, Error> {
+pub fn list_size<'local>(
+    env: &mut JNIEnv<'local>,
+    list: &JObject<'local>,
+) -> Result<i32, JavaError> {
     env.call_method(list, "size", "()I", &[])
         .map_err(|err| JavaError::invalid_field(JavaFieldHint::Vec, err))?
         .i()

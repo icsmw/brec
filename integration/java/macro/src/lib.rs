@@ -1,7 +1,7 @@
 use proc_macro::TokenStream;
 use syn::{DeriveInput, parse_macro_input};
 
-/// Derives `brec::JavaConvert` for regular Rust `struct` / `enum` types.
+/// Derives `brec::java_feat::JavaConvert` for regular Rust `struct` / `enum` types.
 ///
 /// Use it for nested types used inside `#[payload]` objects when `java` conversion
 /// should be schema-driven for JNI-backed integrations.

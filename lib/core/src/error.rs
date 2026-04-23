@@ -4,13 +4,13 @@ use thiserror::Error;
 #[cfg(feature = "crypt")]
 use crate::crypt::CryptError;
 #[cfg(feature = "csharp")]
-use crate::integrations::csharp_feature::CSharpError;
+use crate::csharp_feat::CSharpError;
 #[cfg(feature = "java")]
-use crate::integrations::java_feature::JavaError;
-#[cfg(feature = "wasm")]
-use crate::integrations::wasm_feature::WasmError;
+use crate::java_feat::JavaError;
 #[cfg(feature = "observer")]
 use crate::storage::SensorError;
+#[cfg(feature = "wasm")]
+use crate::wasm_feat::WasmError;
 #[cfg(feature = "napi")]
 use brec_in_node_lib::NapiError;
 
