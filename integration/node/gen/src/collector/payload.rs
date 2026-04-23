@@ -13,34 +13,34 @@ pub fn generate_impl(payloads: &[&Payload], cfg: &Config) -> Result<TokenStream,
         if payload.attrs.is_bincode() {
             to_wrapped.push(quote! {
                 Payload::#fullname(payload) => {
-                    let value = brec::NapiObject::to_napi_object(payload, env)?;
+                    let value = brec::napi_feat::NapiObject::to_napi_object(payload, env)?;
                     obj.set_named_property(#key, value).map_err(|err| {
-                        brec::Error::Napi(brec::NapiError::InvalidAggregatorShape(err.to_string()))
+                        brec::napi_feat::NapiError::InvalidAggregatorShape(err.to_string())
                     })?;
                 }
             });
             from_wrapped.push(quote! {
                 #key => {
                     let inner: napi::Unknown<'_> = obj.get_named_property(#key).map_err(|err| {
-                        brec::Error::Napi(brec::NapiError::InvalidAggregatorShape(err.to_string()))
+                        brec::napi_feat::NapiError::InvalidAggregatorShape(err.to_string())
                     })?;
-                    let payload = <#fullpath as brec::NapiObject>::from_napi_object(env, inner)?;
+                    let payload = <#fullpath as brec::napi_feat::NapiObject>::from_napi_object(env, inner)?;
                     return Ok(Payload::#fullname(payload));
                 }
             });
         } else {
             to_wrapped.push(quote! {
                 Payload::#fullname(_) => {
-                    return Err(brec::Error::Napi(brec::NapiError::InvalidAggregatorShape(
+                    return Err(brec::napi_feat::NapiError::InvalidAggregatorShape(
                         format!("payload variant {} requires #[payload(bincode)] for napi MVP", #key),
-                    )));
+                    ));
                 }
             });
             from_wrapped.push(quote! {
                 #key => {
-                    return Err(brec::Error::Napi(brec::NapiError::InvalidAggregatorShape(
+                    return Err(brec::napi_feat::NapiError::InvalidAggregatorShape(
                         format!("payload variant {} requires #[payload(bincode)] for napi MVP", #key),
-                    )));
+                    ));
                 }
             });
         }
@@ -53,37 +53,37 @@ pub fn generate_impl(payloads: &[&Payload], cfg: &Config) -> Result<TokenStream,
             quote! {
                 Payload::Bytes(payload) => {
                     let value = env.to_js_value(payload).map_err(|err| {
-                        brec::Error::Napi(brec::NapiError::InvalidAggregatorShape(err.to_string()))
+                        brec::napi_feat::NapiError::InvalidAggregatorShape(err.to_string())
                     })?;
                     obj.set_named_property("Bytes", value).map_err(|err| {
-                        brec::Error::Napi(brec::NapiError::InvalidAggregatorShape(err.to_string()))
+                        brec::napi_feat::NapiError::InvalidAggregatorShape(err.to_string())
                     })?;
                 }
                 Payload::String(payload) => {
                     let value = env.to_js_value(payload).map_err(|err| {
-                        brec::Error::Napi(brec::NapiError::InvalidAggregatorShape(err.to_string()))
+                        brec::napi_feat::NapiError::InvalidAggregatorShape(err.to_string())
                     })?;
                     obj.set_named_property("String", value).map_err(|err| {
-                        brec::Error::Napi(brec::NapiError::InvalidAggregatorShape(err.to_string()))
+                        brec::napi_feat::NapiError::InvalidAggregatorShape(err.to_string())
                     })?;
                 }
             },
             quote! {
                 "Bytes" => {
                     let inner: napi::Unknown<'_> = obj.get_named_property("Bytes").map_err(|err| {
-                        brec::Error::Napi(brec::NapiError::InvalidAggregatorShape(err.to_string()))
+                        brec::napi_feat::NapiError::InvalidAggregatorShape(err.to_string())
                     })?;
                     let payload = env.from_js_value::<Vec<u8>, _>(inner).map_err(|err| {
-                        brec::Error::Napi(brec::NapiError::InvalidAggregatorShape(err.to_string()))
+                        brec::napi_feat::NapiError::InvalidAggregatorShape(err.to_string())
                     })?;
                     return Ok(Payload::Bytes(payload));
                 }
                 "String" => {
                     let inner: napi::Unknown<'_> = obj.get_named_property("String").map_err(|err| {
-                        brec::Error::Napi(brec::NapiError::InvalidAggregatorShape(err.to_string()))
+                        brec::napi_feat::NapiError::InvalidAggregatorShape(err.to_string())
                     })?;
                     let payload = env.from_js_value::<String, _>(inner).map_err(|err| {
-                        brec::Error::Napi(brec::NapiError::InvalidAggregatorShape(err.to_string()))
+                        brec::napi_feat::NapiError::InvalidAggregatorShape(err.to_string())
                     })?;
                     return Ok(Payload::String(payload));
                 }
@@ -93,10 +93,10 @@ pub fn generate_impl(payloads: &[&Payload], cfg: &Config) -> Result<TokenStream,
 
     Ok(quote! {
         impl Payload {
-            fn to_napi_object<'env>(&self, env: &'env napi::Env) -> Result<napi::Unknown<'env>, brec::Error> {
+            fn to_napi_object<'env>(&self, env: &'env napi::Env) -> Result<napi::Unknown<'env>, brec::napi_feat::NapiError> {
                 use napi::bindgen_prelude::{JsObjectValue, JsValue, Object};
                 let mut obj: Object<'env> = Object::new(env).map_err(|err| {
-                    brec::Error::Napi(brec::NapiError::InvalidAggregatorShape(err.to_string()))
+                    brec::napi_feat::NapiError::InvalidAggregatorShape(err.to_string())
                 })?;
                 match self {
                     #(#to_wrapped)*
@@ -105,31 +105,31 @@ pub fn generate_impl(payloads: &[&Payload], cfg: &Config) -> Result<TokenStream,
                 Ok(obj.to_unknown())
             }
 
-            fn from_napi_object(env: &napi::Env, value: napi::Unknown<'_>) -> Result<Self, brec::Error> {
+            fn from_napi_object(env: &napi::Env, value: napi::Unknown<'_>) -> Result<Self, brec::napi_feat::NapiError> {
                 use napi::bindgen_prelude::JsObjectValue;
                 let obj: napi::bindgen_prelude::Object<'_> =
-                    brec::napi_feature::from_unknown_name("object", value)
-                        .map_err(|err| brec::Error::Napi(brec::NapiError::InvalidAggregatorShape(err.to_string())))?;
+                    brec::napi_feat::from_unknown_name("object", value)
+                        .map_err(|err| brec::napi_feat::NapiError::InvalidAggregatorShape(err.to_string()))?;
                 let keys = obj.get_property_names().map_err(|err| {
-                    brec::Error::Napi(brec::NapiError::InvalidAggregatorShape(err.to_string()))
+                    brec::napi_feat::NapiError::InvalidAggregatorShape(err.to_string())
                 })?;
                 let keys_len = keys.get_array_length().map_err(|err| {
-                    brec::Error::Napi(brec::NapiError::InvalidAggregatorShape(err.to_string()))
+                    brec::napi_feat::NapiError::InvalidAggregatorShape(err.to_string())
                 })?;
                 if keys_len != 1 {
-                    return Err(brec::Error::Napi(brec::NapiError::InvalidAggregatorShape(
+                    return Err(brec::napi_feat::NapiError::InvalidAggregatorShape(
                         format!("expected object with exactly one field, got {}", keys_len),
-                    )));
+                    ));
                 }
                 let key: String = keys.get_element(0).map_err(|err| {
-                    brec::Error::Napi(brec::NapiError::InvalidAggregatorShape(err.to_string()))
+                    brec::napi_feat::NapiError::InvalidAggregatorShape(err.to_string())
                 })?;
                 match key.as_str() {
                     #(#from_wrapped)*
                     #defaults_from
-                    _ => Err(brec::Error::Napi(brec::NapiError::InvalidAggregatorShape(
+                    _ => Err(brec::napi_feat::NapiError::InvalidAggregatorShape(
                         format!("unknown payload key: {key}"),
-                    ))),
+                    )),
                 }
             }
 
@@ -141,7 +141,7 @@ pub fn generate_impl(payloads: &[&Payload], cfg: &Config) -> Result<TokenStream,
                 let mut cursor = std::io::Cursor::new(bytes.as_ref());
                 let header = <brec::PayloadHeader as brec::ReadFrom>::read(&mut cursor)?;
                 let payload = <Payload as brec::ExtractPayloadFrom<Payload>>::read(&mut cursor, &header, ctx)?;
-                payload.to_napi_object(env)
+                Ok(payload.to_napi_object(env)?)
             }
 
             pub fn encode_napi(
@@ -156,12 +156,12 @@ pub fn generate_impl(payloads: &[&Payload], cfg: &Config) -> Result<TokenStream,
             }
         }
 
-        impl brec::NapiObject for Payload {
-            fn to_napi_object<'env>(&self, env: &'env napi::Env) -> Result<napi::Unknown<'env>, brec::Error> {
+        impl brec::napi_feat::NapiObject for Payload {
+            fn to_napi_object<'env>(&self, env: &'env napi::Env) -> Result<napi::Unknown<'env>, brec::napi_feat::NapiError> {
                 Payload::to_napi_object(self, env)
             }
 
-            fn from_napi_object(env: &napi::Env, value: napi::Unknown<'_>) -> Result<Self, brec::Error> {
+            fn from_napi_object(env: &napi::Env, value: napi::Unknown<'_>) -> Result<Self, brec::napi_feat::NapiError> {
                 Payload::from_napi_object(env, value)
             }
         }

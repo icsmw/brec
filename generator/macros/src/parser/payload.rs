@@ -5,9 +5,19 @@ use crate::*;
 use std::convert::TryFrom;
 
 pub fn parse(attrs: PayloadAttrs, mut input: DeriveInput) -> TokenStream {
-    #[cfg(any(feature = "napi", feature = "wasm", feature = "java", feature = "csharp"))]
+    #[cfg(any(
+        feature = "napi",
+        feature = "wasm",
+        feature = "java",
+        feature = "csharp"
+    ))]
     let payload_data = input.data.clone();
-    #[cfg(any(feature = "napi", feature = "wasm", feature = "java", feature = "csharp"))]
+    #[cfg(any(
+        feature = "napi",
+        feature = "wasm",
+        feature = "java",
+        feature = "csharp"
+    ))]
     let payload_name = input.ident.clone();
     let payload = match Payload::try_from((attrs.clone(), &mut input)) {
         Ok(p) => p,

@@ -1,25 +1,36 @@
 #!/bin/bash
 
-cd ./lib/core
+cd ./csharp/gen
 cargo +nightly clippy --tests --all --all-features -- -D warnings
 cargo fmt --all --check
 cd ../..
 
-cd ./lib/consts
+cd ./java/gen
 cargo +nightly clippy --tests --all --all-features -- -D warnings
 cargo fmt --all --check
 cd ../..
 
-cd ./generator/macros
+cd ./java/macro
 cargo +nightly clippy --tests --all --all-features -- -D warnings
 cargo fmt --all --check
 cd ../..
 
-cd ./generator/parser
+cd ./node/gen
 cargo +nightly clippy --tests --all --all-features -- -D warnings
 cargo fmt --all --check
 cd ../..
 
-cd ./integration
-sh lint.sh
+cd ./node/macro
+cargo +nightly clippy --tests --all --all-features -- -D warnings
+cargo fmt --all --check
+cd ../..
+
+cd ./wasm/gen
+cargo +nightly clippy --tests --all --all-features -- -D warnings
+cargo fmt --all --check
+cd ../..
+
+cd ./wasm/macro
+cargo +nightly clippy --tests --all --all-features -- -D warnings
+cargo fmt --all --check
 cd ../..

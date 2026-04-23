@@ -1,4 +1,4 @@
-use super::NapiFieldHint;
+use crate::NapiFieldHint;
 use thiserror::Error;
 
 /// Error details for Rust <-> Node.js conversion in `napi` helpers.
@@ -20,12 +20,12 @@ pub enum NapiError {
 
 impl NapiError {
     #[inline]
-    pub fn invalid_field(hint: NapiFieldHint, err: impl ToString) -> crate::Error {
-        Self::InvalidField(hint.id().to_string(), err.to_string()).into()
+    pub fn invalid_field(hint: NapiFieldHint, err: impl ToString) -> NapiError {
+        Self::InvalidField(hint.id().to_string(), err.to_string())
     }
 
     #[inline]
-    pub fn invalid_field_name(name: impl Into<String>, err: impl ToString) -> crate::Error {
-        Self::InvalidField(name.into(), err.to_string()).into()
+    pub fn invalid_field_name(name: impl Into<String>, err: impl ToString) -> NapiError {
+        Self::InvalidField(name.into(), err.to_string())
     }
 }

@@ -32,9 +32,9 @@ fn gen_struct_to_napi(fields: &Fields) -> Result<TokenStream, E> {
                     let ty = &field.ty;
                     Ok(quote! {
                         {
-                            let value = <#ty as brec::NapiConvert>::to_napi_value(&self.#ident, env)?;
+                            let value = <#ty as brec::napi_feat::NapiConvert>::to_napi_value(&self.#ident, env)?;
                             obj.set_named_property(#name, value)
-                                .map_err(|err| brec::NapiError::invalid_field_name(#name, err))?;
+                                .map_err(|err| brec::napi_feat::NapiError::invalid_field_name(#name, err))?;
                         }
                     })
                 })
@@ -42,7 +42,7 @@ fn gen_struct_to_napi(fields: &Fields) -> Result<TokenStream, E> {
             Ok(quote! {
                 use napi::bindgen_prelude::{JsObjectValue, JsValue, Object};
                 let mut obj: Object<'env> = Object::new(env)
-                    .map_err(|err| brec::Error::Napi(brec::NapiError::InvalidObject(err.to_string())))?;
+                    .map_err(|err| brec::napi_feat::NapiError::InvalidObject(err.to_string()))?;
                 #(#setters)*
                 Ok(obj.to_unknown())
             })
@@ -59,9 +59,9 @@ fn gen_struct_to_napi(fields: &Fields) -> Result<TokenStream, E> {
                     let ty = &field.ty;
                     Ok(quote! {
                         {
-                            let value = <#ty as brec::NapiConvert>::to_napi_value(&self.#idx_member, env)?;
+                            let value = <#ty as brec::napi_feat::NapiConvert>::to_napi_value(&self.#idx_member, env)?;
                             arr.set(#idx_lit, value)
-                                .map_err(|err| brec::NapiError::invalid_field_name(#idx_lit.to_string(), err))?;
+                                .map_err(|err| brec::napi_feat::NapiError::invalid_field_name(#idx_lit.to_string(), err))?;
                         }
                     })
             })
@@ -69,7 +69,7 @@ fn gen_struct_to_napi(fields: &Fields) -> Result<TokenStream, E> {
             Ok(quote! {
                 use napi::bindgen_prelude::JsValue;
                 let mut arr = env.create_array(#len as u32)
-                    .map_err(|err| brec::Error::Napi(brec::NapiError::InvalidObject(err.to_string())))?;
+                    .map_err(|err| brec::napi_feat::NapiError::InvalidObject(err.to_string()))?;
                 #(#setters)*
                 Ok(arr.to_unknown())
             })
@@ -77,7 +77,7 @@ fn gen_struct_to_napi(fields: &Fields) -> Result<TokenStream, E> {
         Fields::Unit => Ok(quote! {
             use napi::bindgen_prelude::{JsObjectValue, JsValue, Object};
             let obj: Object<'env> = Object::new(env)
-                .map_err(|err| brec::Error::Napi(brec::NapiError::InvalidObject(err.to_string())))?;
+                .map_err(|err| brec::napi_feat::NapiError::InvalidObject(err.to_string()))?;
             Ok(obj.to_unknown())
         }),
     }
@@ -95,8 +95,8 @@ fn gen_struct_from_napi(name: &Ident, fields: &Fields) -> Result<TokenStream, E>
                     let ty = &field.ty;
                     Ok(quote! {
                         let raw: napi::Unknown<'_> = obj.get_named_property(#field_name)
-                            .map_err(|err| brec::NapiError::invalid_field_name(#field_name, err))?;
-                        let #ident: #ty = <#ty as brec::NapiConvert>::from_napi_value(env, raw)?;
+                            .map_err(|err| brec::napi_feat::NapiError::invalid_field_name(#field_name, err))?;
+                        let #ident: #ty = <#ty as brec::napi_feat::NapiConvert>::from_napi_value(env, raw)?;
                     })
                 })
                 .collect::<Result<Vec<_>, E>>()?;
@@ -111,7 +111,7 @@ fn gen_struct_from_napi(name: &Ident, fields: &Fields) -> Result<TokenStream, E>
             Ok(quote! {
                 use napi::bindgen_prelude::JsObjectValue;
                 let obj: napi::bindgen_prelude::Object<'_> =
-                    brec::napi_feature::from_unknown_name("object", value)?;
+                    brec::napi_feat::from_unknown_name("object", value)?;
                 #(#getters)*
                 Ok(#name { #(#ctor_fields)* })
             })
@@ -128,9 +128,9 @@ fn gen_struct_from_napi(name: &Ident, fields: &Fields) -> Result<TokenStream, E>
                     let ty = &field.ty;
                     Ok(quote! {
                         let raw: napi::Unknown<'_> = arr.get(#idx_lit)
-                            .map_err(|err| brec::NapiError::invalid_field_name(#idx_lit.to_string(), err))?
-                            .ok_or_else(|| brec::NapiError::invalid_field_name(#idx_lit.to_string(), "missing element"))?;
-                        let #ident: #ty = <#ty as brec::NapiConvert>::from_napi_value(env, raw)?;
+                            .map_err(|err| brec::napi_feat::NapiError::invalid_field_name(#idx_lit.to_string(), err))?
+                            .ok_or_else(|| brec::napi_feat::NapiError::invalid_field_name(#idx_lit.to_string(), "missing element"))?;
+                        let #ident: #ty = <#ty as brec::napi_feat::NapiConvert>::from_napi_value(env, raw)?;
                     })
                 })
                 .collect::<Result<Vec<_>, E>>()?;
@@ -139,11 +139,11 @@ fn gen_struct_from_napi(name: &Ident, fields: &Fields) -> Result<TokenStream, E>
                 .collect::<Vec<_>>();
             Ok(quote! {
                 let arr: napi::bindgen_prelude::Array<'_> =
-                    brec::napi_feature::from_unknown_name("array", value)?;
+                    brec::napi_feat::from_unknown_name("array", value)?;
                 if arr.len() != #len {
-                    return Err(brec::Error::Napi(brec::NapiError::InvalidAggregatorShape(
+                    return Err(brec::napi_feat::NapiError::InvalidAggregatorShape(
                         format!("expected array with {} elements, got {}", #len, arr.len()),
-                    )));
+                    ));
                 }
                 #(#getters)*
                 Ok(#name(#(#ctor_fields),*))
@@ -151,7 +151,7 @@ fn gen_struct_from_napi(name: &Ident, fields: &Fields) -> Result<TokenStream, E>
         }
         Fields::Unit => Ok(quote! {
             let _obj: napi::bindgen_prelude::Object<'_> =
-                brec::napi_feature::from_unknown_name("object", value)?;
+                brec::napi_feat::from_unknown_name("object", value)?;
             Ok(#name)
         }),
     }
@@ -164,16 +164,16 @@ fn gen_variant_to_napi(enum_name: &Ident, variant: &Variant) -> Result<TokenStre
         Fields::Unit => Ok(quote! {
             #enum_name::#vname => {
                 obj.set_named_property(#key, Option::<napi::Unknown<'env>>::None)
-                    .map_err(|err| brec::NapiError::invalid_field_name(#key, err))?;
+                    .map_err(|err| brec::napi_feat::NapiError::invalid_field_name(#key, err))?;
             }
         }),
         Fields::Unnamed(fields) => {
             if fields.unnamed.len() == 1 {
                 Ok(quote! {
                     #enum_name::#vname(inner) => {
-                        let value = brec::NapiConvert::to_napi_value(inner, env)?;
+                        let value = brec::napi_feat::NapiConvert::to_napi_value(inner, env)?;
                         obj.set_named_property(#key, value)
-                            .map_err(|err| brec::NapiError::invalid_field_name(#key, err))?;
+                            .map_err(|err| brec::napi_feat::NapiError::invalid_field_name(#key, err))?;
                     }
                 })
             } else {
@@ -188,9 +188,9 @@ fn gen_variant_to_napi(enum_name: &Ident, variant: &Variant) -> Result<TokenStre
                     .map(|(idx, ident)| {
                         let idx_lit = idx as u32;
                         quote! {
-                            let value = brec::NapiConvert::to_napi_value(#ident, env)?;
+                            let value = brec::napi_feat::NapiConvert::to_napi_value(#ident, env)?;
                             arr.set(#idx_lit, value).map_err(|err| {
-                                brec::NapiError::invalid_field_name(#key, err)
+                                brec::napi_feat::NapiError::invalid_field_name(#key, err)
                             })?;
                         }
                     })
@@ -199,11 +199,11 @@ fn gen_variant_to_napi(enum_name: &Ident, variant: &Variant) -> Result<TokenStre
                 Ok(quote! {
                     #enum_name::#vname(#(#bindings),*) => {
                         let mut arr = env.create_array(#len).map_err(|err| {
-                            brec::NapiError::invalid_field_name(#key, err)
+                            brec::napi_feat::NapiError::invalid_field_name(#key, err)
                         })?;
                         #(#set_elems)*
                         obj.set_named_property(#key, arr).map_err(|err| {
-                            brec::NapiError::invalid_field_name(#key, err)
+                            brec::napi_feat::NapiError::invalid_field_name(#key, err)
                         })?;
                     }
                 })
@@ -217,9 +217,9 @@ fn gen_variant_to_napi(enum_name: &Ident, variant: &Variant) -> Result<TokenStre
                     let ident = get_named_field_ident(field)?;
                     let fname = ident.to_string();
                     Ok(quote! {
-                        let value = brec::NapiConvert::to_napi_value(#ident, env)?;
+                        let value = brec::napi_feat::NapiConvert::to_napi_value(#ident, env)?;
                         inner.set_named_property(#fname, value).map_err(|err| {
-                            brec::NapiError::invalid_field_name(#key, err)
+                            brec::napi_feat::NapiError::invalid_field_name(#key, err)
                         })?;
                     })
                 })
@@ -232,11 +232,11 @@ fn gen_variant_to_napi(enum_name: &Ident, variant: &Variant) -> Result<TokenStre
             Ok(quote! {
                 #enum_name::#vname { #(#bindings),* } => {
                     let mut inner = napi::bindgen_prelude::Object::new(env).map_err(|err| {
-                        brec::NapiError::invalid_field_name(#key, err)
+                        brec::napi_feat::NapiError::invalid_field_name(#key, err)
                     })?;
                     #(#setters)*
                     obj.set_named_property(#key, inner).map_err(|err| {
-                        brec::NapiError::invalid_field_name(#key, err)
+                        brec::napi_feat::NapiError::invalid_field_name(#key, err)
                     })?;
                 }
             })
@@ -254,7 +254,7 @@ fn gen_variant_from_napi(variant: &Variant) -> Result<TokenStream, E> {
                 let ty = get_first_unnamed_ty(fields)?;
                 Ok(quote! {
                     #key => {
-                        let value: #ty = <#ty as brec::NapiConvert>::from_napi_value(env, inner)?;
+                        let value: #ty = <#ty as brec::napi_feat::NapiConvert>::from_napi_value(env, inner)?;
                         Ok(Self::#vname(value))
                     }
                 })
@@ -270,9 +270,9 @@ fn gen_variant_from_napi(variant: &Variant) -> Result<TokenStream, E> {
                         let ty = &field.ty;
                         quote! {
                             let raw: napi::Unknown<'_> = arr.get(#idx_lit)
-                                .map_err(|err| brec::NapiError::invalid_field_name(#key, err))?
-                                .ok_or_else(|| brec::NapiError::invalid_field_name(#key, "missing tuple element"))?;
-                            let #ident: #ty = <#ty as brec::NapiConvert>::from_napi_value(env, raw)?;
+                                .map_err(|err| brec::napi_feat::NapiError::invalid_field_name(#key, err))?
+                                .ok_or_else(|| brec::napi_feat::NapiError::invalid_field_name(#key, "missing tuple element"))?;
+                            let #ident: #ty = <#ty as brec::napi_feat::NapiConvert>::from_napi_value(env, raw)?;
                         }
                     })
                     .collect::<Vec<_>>();
@@ -284,9 +284,9 @@ fn gen_variant_from_napi(variant: &Variant) -> Result<TokenStream, E> {
                 Ok(quote! {
                     #key => {
                         let arr: napi::bindgen_prelude::Array<'_> =
-                            brec::napi_feature::from_unknown_name(#key, inner)?;
+                            brec::napi_feat::from_unknown_name(#key, inner)?;
                         if arr.len() != #len {
-                            return Err(brec::NapiError::invalid_field_name(
+                            return Err(brec::napi_feat::NapiError::invalid_field_name(
                                 #key,
                                 format!("expected tuple array with {} elements, got {}", #len, arr.len()),
                             ));
@@ -307,8 +307,8 @@ fn gen_variant_from_napi(variant: &Variant) -> Result<TokenStream, E> {
                     let ty = &field.ty;
                     Ok(quote! {
                         let raw: napi::Unknown<'_> = obj.get_named_property(#fname)
-                            .map_err(|err| brec::NapiError::invalid_field_name(#key, err))?;
-                        let #ident: #ty = <#ty as brec::NapiConvert>::from_napi_value(env, raw)?;
+                            .map_err(|err| brec::napi_feat::NapiError::invalid_field_name(#key, err))?;
+                        let #ident: #ty = <#ty as brec::napi_feat::NapiConvert>::from_napi_value(env, raw)?;
                     })
                 })
                 .collect::<Result<Vec<_>, E>>()?;
@@ -323,7 +323,7 @@ fn gen_variant_from_napi(variant: &Variant) -> Result<TokenStream, E> {
             Ok(quote! {
                 #key => {
                     let obj: napi::bindgen_prelude::Object<'_> =
-                        brec::napi_feature::from_unknown_name(#key, inner)?;
+                        brec::napi_feat::from_unknown_name(#key, inner)?;
                     #(#reads)*
                     Ok(Self::#vname { #(#ctor)* })
                 }
@@ -338,12 +338,12 @@ pub fn generate_impl(name: &Ident, data: &Data) -> Result<TokenStream, E> {
             let to_napi = gen_struct_to_napi(&data.fields)?;
             let from_napi = gen_struct_from_napi(name, &data.fields)?;
             Ok(quote! {
-                impl brec::NapiConvert for #name {
-                    fn to_napi_value<'env>(&self, env: &'env napi::Env) -> Result<napi::Unknown<'env>, brec::Error> {
+                impl brec::napi_feat::NapiConvert for #name {
+                    fn to_napi_value<'env>(&self, env: &'env napi::Env) -> Result<napi::Unknown<'env>, brec::napi_feat::NapiError> {
                         #to_napi
                     }
 
-                    fn from_napi_value(env: &napi::Env, value: napi::Unknown<'_>) -> Result<Self, brec::Error> {
+                    fn from_napi_value(env: &napi::Env, value: napi::Unknown<'_>) -> Result<Self, brec::napi_feat::NapiError> {
                         #from_napi
                     }
                 }
@@ -361,40 +361,40 @@ pub fn generate_impl(name: &Ident, data: &Data) -> Result<TokenStream, E> {
                 .map(gen_variant_from_napi)
                 .collect::<Result<Vec<_>, _>>()?;
             Ok(quote! {
-                impl brec::NapiConvert for #name {
-                    fn to_napi_value<'env>(&self, env: &'env napi::Env) -> Result<napi::Unknown<'env>, brec::Error> {
+                impl brec::napi_feat::NapiConvert for #name {
+                    fn to_napi_value<'env>(&self, env: &'env napi::Env) -> Result<napi::Unknown<'env>, brec::napi_feat::NapiError> {
                         use napi::bindgen_prelude::{JsObjectValue, JsValue, Object};
                         let mut obj: Object<'env> = Object::new(env)
-                            .map_err(|err| brec::Error::Napi(brec::NapiError::InvalidObject(err.to_string())))?;
+                            .map_err(|err| brec::napi_feat::NapiError::InvalidObject(err.to_string()))?;
                         match self {
                             #(#to_arms)*
                         }
                         Ok(obj.to_unknown())
                     }
 
-                    fn from_napi_value(env: &napi::Env, value: napi::Unknown<'_>) -> Result<Self, brec::Error> {
+                    fn from_napi_value(env: &napi::Env, value: napi::Unknown<'_>) -> Result<Self, brec::napi_feat::NapiError> {
                         use napi::bindgen_prelude::JsObjectValue;
                         let obj: napi::bindgen_prelude::Object<'_> =
-                            brec::napi_feature::from_unknown_name("object", value)?;
+                            brec::napi_feat::from_unknown_name("object", value)?;
                         let keys = obj.get_property_names()
-                            .map_err(|err| brec::Error::Napi(brec::NapiError::InvalidObject(err.to_string())))?;
+                            .map_err(|err| brec::napi_feat::NapiError::InvalidObject(err.to_string()))?;
                         let keys_len = keys.get_array_length()
-                            .map_err(|err| brec::Error::Napi(brec::NapiError::InvalidObject(err.to_string())))?;
+                            .map_err(|err| brec::napi_feat::NapiError::InvalidObject(err.to_string()))?;
                         if keys_len != 1 {
-                            return Err(brec::Error::Napi(brec::NapiError::InvalidAggregatorShape(
+                            return Err(brec::napi_feat::NapiError::InvalidAggregatorShape(
                                 format!("expected object with exactly 1 field, got {}", keys_len),
-                            )));
+                            ));
                         }
                         let key: String = keys.get_element(0)
-                            .map_err(|err| brec::Error::Napi(brec::NapiError::InvalidObject(err.to_string())))?
+                            .map_err(|err| brec::napi_feat::NapiError::InvalidObject(err.to_string()))?
                             ;
                         let inner: napi::Unknown<'_> = obj.get_named_property(key.as_str())
-                            .map_err(|err| brec::NapiError::invalid_field_name(key.clone(), err))?;
+                            .map_err(|err| brec::napi_feat::NapiError::invalid_field_name(key.clone(), err))?;
                         match key.as_str() {
                             #(#from_arms)*
-                            _ => Err(brec::Error::Napi(brec::NapiError::InvalidAggregatorShape(
+                            _ => Err(brec::napi_feat::NapiError::InvalidAggregatorShape(
                                 format!("unknown enum variant key {}", key),
-                            ))),
+                            )),
                         }
                     }
                 }
