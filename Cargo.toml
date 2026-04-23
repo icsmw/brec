@@ -9,9 +9,12 @@ members = [
     "integration/node/macro",
     "integration/node/lib",
     "integration/csharp/gen",
+    "integration/csharp/lib",
     "integration/java/gen",
+    "integration/java/lib",
     "integration/java/macro",
     "integration/wasm/gen",
+    "integration/wasm/lib",
     "integration/wasm/macro",
 ]
 exclude = ["gen_tests/*", "measurements/*", "examples/*", "tests/*"]
@@ -37,9 +40,12 @@ brec_in_node_gen       = { version = "0.1.0", path = "./integration/node/gen" }
 brec_in_node_gen_macro = { version = "0.1.0", path = "./integration/node/macro" }
 brec_in_node_lib       = { version = "0.1.0", path = "./integration/node/lib" }
 brec_in_csharp_gen     = { version = "0.1.0", path = "./integration/csharp/gen" }
+brec_in_csharp_lib     = { version = "0.1.0", path = "./integration/csharp/lib" }
 brec_in_java_gen       = { version = "0.1.0", path = "./integration/java/gen" }
+brec_in_java_lib       = { version = "0.1.0", path = "./integration/java/lib" }
 brec_in_java_gen_macro = { version = "0.1.0", path = "./integration/java/macro" }
 brec_in_wasm_gen       = { version = "0.1.0", path = "./integration/wasm/gen" }
+brec_in_wasm_lib       = { version = "0.1.0", path = "./integration/wasm/lib" }
 brec_in_wasm_gen_macro = { version = "0.1.0", path = "./integration/wasm/macro" }
 
 fs4               = { version = "0.13", features = ["sync"] }

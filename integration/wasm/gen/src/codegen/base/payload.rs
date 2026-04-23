@@ -9,12 +9,12 @@ pub fn generate(name: &Ident, attrs: &PayloadAttrs) -> Result<TokenStream, E> {
     }
     Ok(quote! {
         impl #name {
-            fn to_wasm_object(&self) -> Result<wasm_bindgen::JsValue, brec::Error> {
-                <#name as brec::WasmConvert>::to_wasm_value(self)
+            fn to_wasm_object(&self) -> Result<wasm_bindgen::JsValue, brec::wasm_feat::WasmError> {
+                <#name as brec::wasm_feat::WasmConvert>::to_wasm_value(self)
             }
 
-            fn from_wasm_object(value: wasm_bindgen::JsValue) -> Result<Self, brec::Error> {
-                <#name as brec::WasmConvert>::from_wasm_value(value)
+            fn from_wasm_object(value: wasm_bindgen::JsValue) -> Result<Self, brec::wasm_feat::WasmError> {
+                <#name as brec::wasm_feat::WasmConvert>::from_wasm_value(value)
             }
 
             pub fn decode_wasm(
@@ -28,7 +28,7 @@ pub fn generate(name: &Ident, attrs: &PayloadAttrs) -> Result<TokenStream, E> {
                     &header,
                     ctx,
                 )?;
-                payload.to_wasm_object()
+                Ok(payload.to_wasm_object()?)
             }
 
             pub fn encode_wasm(
@@ -42,12 +42,12 @@ pub fn generate(name: &Ident, attrs: &PayloadAttrs) -> Result<TokenStream, E> {
             }
         }
 
-        impl brec::WasmObject for #name {
-            fn to_wasm_object(&self) -> Result<wasm_bindgen::JsValue, brec::Error> {
+        impl brec::wasm_feat::WasmObject for #name {
+            fn to_wasm_object(&self) -> Result<wasm_bindgen::JsValue, brec::wasm_feat::WasmError> {
                 #name::to_wasm_object(self)
             }
 
-            fn from_wasm_object(value: wasm_bindgen::JsValue) -> Result<Self, brec::Error> {
+            fn from_wasm_object(value: wasm_bindgen::JsValue) -> Result<Self, brec::wasm_feat::WasmError> {
                 #name::from_wasm_object(value)
             }
         }

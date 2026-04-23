@@ -294,7 +294,7 @@ pub fn payload(attr: TokenStream, input: TokenStream) -> TokenStream {
     parser::payload::parse(attrs, input).into()
 }
 
-/// Derives `brec::CSharpConvert` for regular Rust `struct` / `enum` types.
+/// Derives `brec::csharp_feat::CSharpConvert` for regular Rust `struct` / `enum` types.
 ///
 /// Use it for nested types used inside `#[payload]` objects when `csharp`
 /// conversion should be schema-driven for C ABI / PInvoke-backed integrations.

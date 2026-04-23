@@ -2,11 +2,11 @@ macro_rules! impl_wasm_simple {
     ($($ty:ty => $hint:expr),* $(,)?) => {
         $(
             impl WasmConvert for $ty {
-                fn to_wasm_value(&self) -> Result<wasm_bindgen::JsValue, Error> {
+                fn to_wasm_value(&self) -> Result<wasm_bindgen::JsValue, WasmError> {
                     Ok(wasm_bindgen::JsValue::from(*self))
                 }
 
-                fn from_wasm_value(value: wasm_bindgen::JsValue) -> Result<Self, Error> {
+                fn from_wasm_value(value: wasm_bindgen::JsValue) -> Result<Self, WasmError> {
                     let raw = value
                         .as_f64()
                         .ok_or_else(|| WasmError::invalid_field($hint, "expected Number"))?;
@@ -29,25 +29,25 @@ macro_rules! impl_wasm_bigint_signed {
     ($( $ty:ty => ($hint:expr, $id:expr) ),* $(,)?) => {
         $(
             impl WasmConvert for $ty {
-                fn to_wasm_value(&self) -> Result<wasm_bindgen::JsValue, Error> {
+                fn to_wasm_value(&self) -> Result<wasm_bindgen::JsValue, WasmError> {
                     Ok(js_sys::BigInt::from(*self).into())
                 }
 
-                fn from_wasm_value(value: wasm_bindgen::JsValue) -> Result<Self, Error> {
+                fn from_wasm_value(value: wasm_bindgen::JsValue) -> Result<Self, WasmError> {
                     if !value.is_bigint() {
-                        return Err(Error::Wasm(WasmError::InvalidField(
+                        return Err(WasmError::InvalidField(
                             $id.to_string(),
                             "expected BigInt".to_owned(),
-                        )));
+                        ));
                     }
                     let big: js_sys::BigInt = value
                         .dyn_into::<js_sys::BigInt>()
                         .map_err(|_| WasmError::invalid_field($hint, "failed to cast to BigInt"))?;
                     <$ty>::try_from(big).map_err(|_| {
-                        Error::Wasm(WasmError::InvalidField(
+                        WasmError::InvalidField(
                             $id.to_string(),
                             "BigInt is out of range".to_owned(),
-                        ))
+                        )
                     })
                 }
             }
@@ -59,25 +59,25 @@ macro_rules! impl_wasm_bigint_unsigned {
     ($( $ty:ty => ($hint:expr, $id:expr) ),* $(,)?) => {
         $(
             impl WasmConvert for $ty {
-                fn to_wasm_value(&self) -> Result<wasm_bindgen::JsValue, Error> {
+                fn to_wasm_value(&self) -> Result<wasm_bindgen::JsValue, WasmError> {
                     Ok(js_sys::BigInt::from(*self).into())
                 }
 
-                fn from_wasm_value(value: wasm_bindgen::JsValue) -> Result<Self, Error> {
+                fn from_wasm_value(value: wasm_bindgen::JsValue) -> Result<Self, WasmError> {
                     if !value.is_bigint() {
-                        return Err(Error::Wasm(WasmError::InvalidField(
+                        return Err(WasmError::InvalidField(
                             $id.to_string(),
                             "expected BigInt".to_owned(),
-                        )));
+                        ));
                     }
                     let big: js_sys::BigInt = value
                         .dyn_into::<js_sys::BigInt>()
                         .map_err(|_| WasmError::invalid_field($hint, "failed to cast to BigInt"))?;
                     <$ty>::try_from(big).map_err(|_| {
-                        Error::Wasm(WasmError::InvalidField(
+                        WasmError::InvalidField(
                             $id.to_string(),
                             "BigInt is out of range".to_owned(),
-                        ))
+                        )
                     })
                 }
             }

@@ -1,4 +1,4 @@
-use super::CSharpFieldHint;
+use crate::CSharpFieldHint;
 use thiserror::Error;
 
 /// Error details for Rust <-> C# conversion in `csharp` helpers.
@@ -20,12 +20,12 @@ pub enum CSharpError {
 
 impl CSharpError {
     #[inline]
-    pub fn invalid_field(hint: CSharpFieldHint, err: impl ToString) -> crate::Error {
-        Self::InvalidField(hint.id().to_string(), err.to_string()).into()
+    pub fn invalid_field(hint: CSharpFieldHint, err: impl ToString) -> CSharpError {
+        Self::InvalidField(hint.id().to_string(), err.to_string())
     }
 
     #[inline]
-    pub fn invalid_field_name(name: impl Into<String>, err: impl ToString) -> crate::Error {
-        Self::InvalidField(name.into(), err.to_string()).into()
+    pub fn invalid_field_name(name: impl Into<String>, err: impl ToString) -> CSharpError {
+        Self::InvalidField(name.into(), err.to_string())
     }
 }

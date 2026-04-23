@@ -1,4 +1,4 @@
-use super::JavaFieldHint;
+use crate::JavaFieldHint;
 use thiserror::Error;
 
 /// Error details for Rust <-> Java conversion in `java` helpers.
@@ -20,12 +20,12 @@ pub enum JavaError {
 
 impl JavaError {
     #[inline]
-    pub fn invalid_field(hint: JavaFieldHint, err: impl ToString) -> crate::Error {
-        Self::InvalidField(hint.id().to_string(), err.to_string()).into()
+    pub fn invalid_field(hint: JavaFieldHint, err: impl ToString) -> JavaError {
+        Self::InvalidField(hint.id().to_string(), err.to_string())
     }
 
     #[inline]
-    pub fn invalid_field_name(name: impl Into<String>, err: impl ToString) -> crate::Error {
-        Self::InvalidField(name.into(), err.to_string()).into()
+    pub fn invalid_field_name(name: impl Into<String>, err: impl ToString) -> JavaError {
+        Self::InvalidField(name.into(), err.to_string())
     }
 }

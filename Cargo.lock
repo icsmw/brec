@@ -148,17 +148,18 @@ version = "0.3.0"
 dependencies = [
  "bincode",
  "brec_consts",
+ "brec_in_csharp_lib",
  "brec_in_java_gen_macro",
+ "brec_in_java_lib",
  "brec_in_node_gen_macro",
  "brec_in_node_lib",
  "brec_in_wasm_gen_macro",
+ "brec_in_wasm_lib",
  "brec_macros",
  "chacha20poly1305",
  "crc32fast",
  "enum_ids",
  "fs4",
- "jni",
- "js-sys",
  "notify",
  "pem",
  "rsa",
@@ -171,7 +172,6 @@ dependencies = [
  "tokio-stream",
  "tokio-util",
  "tracing",
- "wasm-bindgen",
  "wasm-bindgen-test",
  "x509-parser",
  "zeroize",
@@ -194,6 +194,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "brec_in_csharp_lib"
+version = "0.1.0"
+dependencies = [
+ "brec_consts",
+ "enum_ids",
+ "thiserror 2.0.18",
+]
+
+[[package]]
 name = "brec_in_java_gen"
 version = "0.1.0"
 dependencies = [
@@ -213,6 +222,16 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn",
+]
+
+[[package]]
+name = "brec_in_java_lib"
+version = "0.1.0"
+dependencies = [
+ "brec_consts",
+ "enum_ids",
+ "jni",
+ "thiserror 2.0.18",
 ]
 
 [[package]]
@@ -268,6 +287,17 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn",
+]
+
+[[package]]
+name = "brec_in_wasm_lib"
+version = "0.1.0"
+dependencies = [
+ "brec_consts",
+ "enum_ids",
+ "js-sys",
+ "thiserror 2.0.18",
+ "wasm-bindgen",
 ]
 
 [[package]]
@@ -447,9 +477,9 @@ dependencies = [
 
 [[package]]
 name = "ctor"
-version = "0.10.0"
+version = "0.10.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "95d0d11eb38e7642efca359c3cf6eb7b2e528182d09110165de70192b0352775"
+checksum = "83cf0d42651b16c6dfe68685716d18480d18a9c39c62d76e8cf3eb6ed5d8bcbf"
 dependencies = [
  "ctor-proc-macro",
  "dtor",
@@ -457,9 +487,9 @@ dependencies = [
 
 [[package]]
 name = "ctor-proc-macro"
-version = "0.0.12"
+version = "0.0.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a7ab264ea985f1bd27887d7b21ea2bb046728e05d11909ca138d700c494730db"
+checksum = "7a949c44fcacbbbb7ada007dc7acb34603dd97cd47de5d054f2b6493ecebb483"
 
 [[package]]
 name = "data-encoding"
@@ -525,18 +555,18 @@ dependencies = [
 
 [[package]]
 name = "dtor"
-version = "0.7.0"
+version = "0.8.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "17f72721db8027a4e96dd6fb50d2a1d32259c9d3da1b63dee612ccd981e14293"
+checksum = "edf234dd1594d6dd434a8fb8cada51ddbbc593e40e4a01556a0b31c62da2775b"
 dependencies = [
  "dtor-proc-macro",
 ]
 
 [[package]]
 name = "dtor-proc-macro"
-version = "0.0.12"
+version = "0.0.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8c98b077c7463d01d22dde8a24378ddf1ca7263dc687cffbed38819ea6c21131"
+checksum = "2647271c92754afcb174e758003cfd1cbf1e43e5a7853d7b1813e63e19e39a73"
 
 [[package]]
 name = "enum_ids"
@@ -918,9 +948,9 @@ checksum = "09edd9e8b54e49e587e4f6295a7d29c3ea94d469cb40ab8ca70b288248a81db2"
 
 [[package]]
 name = "libc"
-version = "0.2.185"
+version = "0.2.186"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "52ff2c0fe9bc6cb6b14a0592c2ff4fa9ceb83eea9db979b0487cd054946a2b8f"
+checksum = "68ab91017fe16c622486840e4c83c9a37afeff978bd239b5293d61ece587de66"
 
 [[package]]
 name = "libloading"

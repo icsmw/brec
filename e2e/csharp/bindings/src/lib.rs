@@ -3,7 +3,7 @@ use std::cell::RefCell;
 use std::ffi::{CString, c_char};
 
 pub struct PacketHandle {
-    value: brec::CSharpValue,
+    value: brec::csharp_feat::CSharpValue,
 }
 
 thread_local! {

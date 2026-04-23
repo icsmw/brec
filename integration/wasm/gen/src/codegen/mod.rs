@@ -32,9 +32,9 @@ fn gen_struct_to_wasm(fields: &Fields) -> Result<TokenStream, E> {
                     let ty = &field.ty;
                     Ok(quote! {
                         {
-                            let value = <#ty as brec::WasmConvert>::to_wasm_value(&self.#ident)?;
+                            let value = <#ty as brec::wasm_feat::WasmConvert>::to_wasm_value(&self.#ident)?;
                             js_sys::Reflect::set(&obj, &wasm_bindgen::JsValue::from_str(#name), &value)
-                                .map_err(|err| brec::WasmError::invalid_field_name(#name, format!("{err:?}")))?;
+                                .map_err(|err| brec::wasm_feat::WasmError::invalid_field_name(#name, format!("{err:?}")))?;
                         }
                     })
                 })
@@ -57,7 +57,7 @@ fn gen_struct_to_wasm(fields: &Fields) -> Result<TokenStream, E> {
                     let ty = &field.ty;
                     Ok(quote! {
                         {
-                            let value = <#ty as brec::WasmConvert>::to_wasm_value(&self.#idx_member)?;
+                            let value = <#ty as brec::wasm_feat::WasmConvert>::to_wasm_value(&self.#idx_member)?;
                             arr.set(#idx_lit, value);
                         }
                     })
@@ -87,8 +87,8 @@ fn gen_struct_from_wasm(name: &Ident, fields: &Fields) -> Result<TokenStream, E>
                     let ty = &field.ty;
                     Ok(quote! {
                         let raw = js_sys::Reflect::get(&obj, &wasm_bindgen::JsValue::from_str(#field_name))
-                            .map_err(|err| brec::WasmError::invalid_field_name(#field_name, format!("{err:?}")))?;
-                        let #ident: #ty = <#ty as brec::WasmConvert>::from_wasm_value(raw)?;
+                            .map_err(|err| brec::wasm_feat::WasmError::invalid_field_name(#field_name, format!("{err:?}")))?;
+                        let #ident: #ty = <#ty as brec::wasm_feat::WasmConvert>::from_wasm_value(raw)?;
                     })
                 })
                 .collect::<Result<Vec<_>, E>>()?;
@@ -101,7 +101,7 @@ fn gen_struct_from_wasm(name: &Ident, fields: &Fields) -> Result<TokenStream, E>
                 })
                 .collect::<Result<Vec<_>, E>>()?;
             Ok(quote! {
-                let obj: js_sys::Object = brec::wasm_feature::from_value_name("object", value)?;
+                let obj: js_sys::Object = brec::wasm_feat::from_value_name("object", value)?;
                 #(#getters)*
                 Ok(#name { #(#ctor_fields)* })
             })
@@ -119,7 +119,7 @@ fn gen_struct_from_wasm(name: &Ident, fields: &Fields) -> Result<TokenStream, E>
                     let ty = &field.ty;
                     Ok(quote! {
                         let raw = arr.get(#idx_lit);
-                        let #ident: #ty = <#ty as brec::WasmConvert>::from_wasm_value(raw)?;
+                        let #ident: #ty = <#ty as brec::wasm_feat::WasmConvert>::from_wasm_value(raw)?;
                     })
                 })
                 .collect::<Result<Vec<_>, E>>()?;
@@ -128,22 +128,22 @@ fn gen_struct_from_wasm(name: &Ident, fields: &Fields) -> Result<TokenStream, E>
                 .collect::<Vec<_>>();
             Ok(quote! {
                 if !js_sys::Array::is_array(&value) {
-                    return Err(brec::Error::Wasm(brec::WasmError::InvalidAggregatorShape(
+                    return Err(brec::wasm_feat::WasmError::InvalidAggregatorShape(
                         "expected tuple as array".to_owned(),
-                    )));
+                    ));
                 }
                 let arr = js_sys::Array::from(&value);
                 if arr.length() != #len {
-                    return Err(brec::Error::Wasm(brec::WasmError::InvalidAggregatorShape(
+                    return Err(brec::wasm_feat::WasmError::InvalidAggregatorShape(
                         format!("expected array with {} elements, got {}", #len, arr.length()),
-                    )));
+                    ));
                 }
                 #(#getters)*
                 Ok(#name(#(#ctor_fields),*))
             })
         }
         Fields::Unit => Ok(quote! {
-            let _obj: js_sys::Object = brec::wasm_feature::from_value_name("object", value)?;
+            let _obj: js_sys::Object = brec::wasm_feat::from_value_name("object", value)?;
             Ok(#name)
         }),
     }
@@ -156,16 +156,16 @@ fn gen_variant_to_wasm(enum_name: &Ident, variant: &Variant) -> Result<TokenStre
         Fields::Unit => Ok(quote! {
             #enum_name::#vname => {
                 js_sys::Reflect::set(&obj, &wasm_bindgen::JsValue::from_str(#key), &wasm_bindgen::JsValue::NULL)
-                    .map_err(|err| brec::WasmError::invalid_field_name(#key, format!("{err:?}")))?;
+                    .map_err(|err| brec::wasm_feat::WasmError::invalid_field_name(#key, format!("{err:?}")))?;
             }
         }),
         Fields::Unnamed(fields) => {
             if fields.unnamed.len() == 1 {
                 Ok(quote! {
                     #enum_name::#vname(inner) => {
-                        let value = brec::WasmConvert::to_wasm_value(inner)?;
+                        let value = brec::wasm_feat::WasmConvert::to_wasm_value(inner)?;
                         js_sys::Reflect::set(&obj, &wasm_bindgen::JsValue::from_str(#key), &value)
-                            .map_err(|err| brec::WasmError::invalid_field_name(#key, format!("{err:?}")))?;
+                            .map_err(|err| brec::wasm_feat::WasmError::invalid_field_name(#key, format!("{err:?}")))?;
                     }
                 })
             } else {
@@ -181,7 +181,7 @@ fn gen_variant_to_wasm(enum_name: &Ident, variant: &Variant) -> Result<TokenStre
                     .map(|(idx, ident)| {
                         let idx_lit = idx as u32;
                         quote! {
-                            let value = brec::WasmConvert::to_wasm_value(#ident)?;
+                            let value = brec::wasm_feat::WasmConvert::to_wasm_value(#ident)?;
                             arr.set(#idx_lit, value);
                         }
                     })
@@ -191,7 +191,7 @@ fn gen_variant_to_wasm(enum_name: &Ident, variant: &Variant) -> Result<TokenStre
                         let arr = js_sys::Array::new_with_length(#len);
                         #(#set_elems)*
                         js_sys::Reflect::set(&obj, &wasm_bindgen::JsValue::from_str(#key), &arr)
-                            .map_err(|err| brec::WasmError::invalid_field_name(#key, format!("{err:?}")))?;
+                            .map_err(|err| brec::wasm_feat::WasmError::invalid_field_name(#key, format!("{err:?}")))?;
                     }
                 })
             }
@@ -204,9 +204,9 @@ fn gen_variant_to_wasm(enum_name: &Ident, variant: &Variant) -> Result<TokenStre
                     let ident = get_named_field_ident(field)?;
                     let fname = ident.to_string();
                     Ok(quote! {
-                        let value = brec::WasmConvert::to_wasm_value(#ident)?;
+                        let value = brec::wasm_feat::WasmConvert::to_wasm_value(#ident)?;
                         js_sys::Reflect::set(&inner, &wasm_bindgen::JsValue::from_str(#fname), &value)
-                            .map_err(|err| brec::WasmError::invalid_field_name(#key, format!("{err:?}")))?;
+                            .map_err(|err| brec::wasm_feat::WasmError::invalid_field_name(#key, format!("{err:?}")))?;
                     })
                 })
                 .collect::<Result<Vec<_>, E>>()?;
@@ -220,7 +220,7 @@ fn gen_variant_to_wasm(enum_name: &Ident, variant: &Variant) -> Result<TokenStre
                     let inner = js_sys::Object::new();
                     #(#setters)*
                     js_sys::Reflect::set(&obj, &wasm_bindgen::JsValue::from_str(#key), &inner)
-                        .map_err(|err| brec::WasmError::invalid_field_name(#key, format!("{err:?}")))?;
+                        .map_err(|err| brec::wasm_feat::WasmError::invalid_field_name(#key, format!("{err:?}")))?;
                 }
             })
         }
@@ -237,7 +237,7 @@ fn gen_variant_from_wasm(variant: &Variant) -> Result<TokenStream, E> {
                 let ty = get_first_unnamed_ty(fields)?;
                 Ok(quote! {
                     #key => {
-                        let value: #ty = <#ty as brec::WasmConvert>::from_wasm_value(inner)?;
+                        let value: #ty = <#ty as brec::wasm_feat::WasmConvert>::from_wasm_value(inner)?;
                         Ok(Self::#vname(value))
                     }
                 })
@@ -254,7 +254,7 @@ fn gen_variant_from_wasm(variant: &Variant) -> Result<TokenStream, E> {
                         let ty = &field.ty;
                         quote! {
                             let raw = arr.get(#idx_lit);
-                            let #ident: #ty = <#ty as brec::WasmConvert>::from_wasm_value(raw)?;
+                            let #ident: #ty = <#ty as brec::wasm_feat::WasmConvert>::from_wasm_value(raw)?;
                         }
                     })
                     .collect::<Vec<_>>();
@@ -266,11 +266,11 @@ fn gen_variant_from_wasm(variant: &Variant) -> Result<TokenStream, E> {
                 Ok(quote! {
                     #key => {
                         if !js_sys::Array::is_array(&inner) {
-                            return Err(brec::WasmError::invalid_field_name(#key, "expected tuple array"));
+                            return Err(brec::wasm_feat::WasmError::invalid_field_name(#key, "expected tuple array"));
                         }
                         let arr = js_sys::Array::from(&inner);
                         if arr.length() != #len {
-                            return Err(brec::WasmError::invalid_field_name(
+                            return Err(brec::wasm_feat::WasmError::invalid_field_name(
                                 #key,
                                 format!("expected tuple array with {} elements, got {}", #len, arr.length()),
                             ));
@@ -291,8 +291,8 @@ fn gen_variant_from_wasm(variant: &Variant) -> Result<TokenStream, E> {
                     let ty = &field.ty;
                     Ok(quote! {
                         let raw = js_sys::Reflect::get(&obj, &wasm_bindgen::JsValue::from_str(#fname))
-                            .map_err(|err| brec::WasmError::invalid_field_name(#key, format!("{err:?}")))?;
-                        let #ident: #ty = <#ty as brec::WasmConvert>::from_wasm_value(raw)?;
+                            .map_err(|err| brec::wasm_feat::WasmError::invalid_field_name(#key, format!("{err:?}")))?;
+                        let #ident: #ty = <#ty as brec::wasm_feat::WasmConvert>::from_wasm_value(raw)?;
                     })
                 })
                 .collect::<Result<Vec<_>, E>>()?;
@@ -306,7 +306,7 @@ fn gen_variant_from_wasm(variant: &Variant) -> Result<TokenStream, E> {
                 .collect::<Result<Vec<_>, E>>()?;
             Ok(quote! {
                 #key => {
-                    let obj: js_sys::Object = brec::wasm_feature::from_value_name(#key, inner)?;
+                    let obj: js_sys::Object = brec::wasm_feat::from_value_name(#key, inner)?;
                     #(#reads)*
                     Ok(Self::#vname { #(#ctor)* })
                 }
@@ -321,12 +321,12 @@ pub fn generate_impl(name: &Ident, data: &Data) -> Result<TokenStream, E> {
             let to_wasm = gen_struct_to_wasm(&data.fields)?;
             let from_wasm = gen_struct_from_wasm(name, &data.fields)?;
             Ok(quote! {
-                impl brec::WasmConvert for #name {
-                    fn to_wasm_value(&self) -> Result<wasm_bindgen::JsValue, brec::Error> {
+                impl brec::wasm_feat::WasmConvert for #name {
+                    fn to_wasm_value(&self) -> Result<wasm_bindgen::JsValue, brec::wasm_feat::WasmError> {
                         #to_wasm
                     }
 
-                    fn from_wasm_value(value: wasm_bindgen::JsValue) -> Result<Self, brec::Error> {
+                    fn from_wasm_value(value: wasm_bindgen::JsValue) -> Result<Self, brec::wasm_feat::WasmError> {
                         #from_wasm
                     }
                 }
@@ -344,8 +344,8 @@ pub fn generate_impl(name: &Ident, data: &Data) -> Result<TokenStream, E> {
                 .map(gen_variant_from_wasm)
                 .collect::<Result<Vec<_>, _>>()?;
             Ok(quote! {
-                impl brec::WasmConvert for #name {
-                    fn to_wasm_value(&self) -> Result<wasm_bindgen::JsValue, brec::Error> {
+                impl brec::wasm_feat::WasmConvert for #name {
+                    fn to_wasm_value(&self) -> Result<wasm_bindgen::JsValue, brec::wasm_feat::WasmError> {
                         let obj = js_sys::Object::new();
                         match self {
                             #(#to_arms)*
@@ -353,30 +353,28 @@ pub fn generate_impl(name: &Ident, data: &Data) -> Result<TokenStream, E> {
                         Ok(obj.into())
                     }
 
-                    fn from_wasm_value(value: wasm_bindgen::JsValue) -> Result<Self, brec::Error> {
-                        let obj: js_sys::Object = brec::wasm_feature::from_value_name("object", value)?;
+                    fn from_wasm_value(value: wasm_bindgen::JsValue) -> Result<Self, brec::wasm_feat::WasmError> {
+                        let obj: js_sys::Object = brec::wasm_feat::from_value_name("object", value)?;
                         let keys = js_sys::Object::keys(&obj);
                         let keys_len = keys.length();
                         if keys_len != 1 {
-                            return Err(brec::Error::Wasm(brec::WasmError::InvalidAggregatorShape(
+                            return Err(brec::wasm_feat::WasmError::InvalidAggregatorShape(
                                 format!("expected object with exactly 1 field, got {}", keys_len),
-                            )));
+                            ));
                         }
                         let key = keys
                             .get(0)
                             .as_string()
                             .ok_or_else(|| {
-                                brec::Error::Wasm(brec::WasmError::InvalidObject(
-                                    "enum key must be a string".to_owned(),
-                                ))
+                                brec::wasm_feat::WasmError::InvalidObject("enum key must be a string".to_owned())
                             })?;
                         let inner = js_sys::Reflect::get(&obj, &wasm_bindgen::JsValue::from_str(key.as_str()))
-                            .map_err(|err| brec::WasmError::invalid_field_name(key.clone(), format!("{err:?}")))?;
+                            .map_err(|err| brec::wasm_feat::WasmError::invalid_field_name(key.clone(), format!("{err:?}")))?;
                         match key.as_str() {
                             #(#from_arms)*
-                            _ => Err(brec::Error::Wasm(brec::WasmError::InvalidAggregatorShape(
+                            _ => Err(brec::wasm_feat::WasmError::InvalidAggregatorShape(
                                 format!("unknown enum variant key {}", key),
-                            ))),
+                            )),
                         }
                     }
                 }

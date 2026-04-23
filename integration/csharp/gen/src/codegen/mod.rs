@@ -31,16 +31,16 @@ fn gen_struct_to_csharp(fields: &Fields) -> Result<TokenStream, E> {
                     let ty = &field.ty;
                     Ok(quote! {
                         {
-                            let value = <#ty as brec::CSharpConvert>::to_csharp_value(&self.#ident)?;
-                            brec::csharp_feature::map_put(&mut obj, #name, value)?;
+                            let value = <#ty as brec::csharp_feat::CSharpConvert>::to_csharp_value(&self.#ident)?;
+                            brec::csharp_feat::map_put(&mut obj, #name, value)?;
                         }
                     })
                 })
                 .collect::<Result<Vec<_>, E>>()?;
             Ok(quote! {
-                let mut obj = brec::csharp_feature::new_object();
+                let mut obj = brec::csharp_feat::new_object();
                 #(#setters)*
-                Ok(brec::CSharpValue::Object(obj))
+                Ok(brec::csharp_feat::CSharpValue::Object(obj))
             })
         }
         Fields::Unnamed(fields) => {
@@ -53,23 +53,23 @@ fn gen_struct_to_csharp(fields: &Fields) -> Result<TokenStream, E> {
                     let ty = &field.ty;
                     Ok(quote! {
                         {
-                            let value = <#ty as brec::CSharpConvert>::to_csharp_value(&self.#idx_member)?;
-                            brec::csharp_feature::list_add(&mut arr, value)
-                                .map_err(|err| brec::CSharpError::invalid_field_name(#idx.to_string(), err))?;
+                            let value = <#ty as brec::csharp_feat::CSharpConvert>::to_csharp_value(&self.#idx_member)?;
+                            brec::csharp_feat::list_add(&mut arr, value)
+                                .map_err(|err| brec::csharp_feat::CSharpError::invalid_field_name(#idx.to_string(), err))?;
                         }
                     })
                 })
                 .collect::<Result<Vec<_>, E>>()?;
             let len = fields.unnamed.len();
             Ok(quote! {
-                let mut arr = brec::csharp_feature::new_array(#len);
+                let mut arr = brec::csharp_feat::new_array(#len);
                 #(#setters)*
-                Ok(brec::CSharpValue::Array(arr))
+                Ok(brec::csharp_feat::CSharpValue::Array(arr))
             })
         }
         Fields::Unit => Ok(quote! {
-            let obj = brec::csharp_feature::new_object();
-            Ok(brec::CSharpValue::Object(obj))
+            let obj = brec::csharp_feat::new_object();
+            Ok(brec::csharp_feat::CSharpValue::Object(obj))
         }),
     }
 }
@@ -85,9 +85,9 @@ fn gen_struct_from_csharp(name: &Ident, fields: &Fields) -> Result<TokenStream, 
                     let field_name = ident.to_string();
                     let ty = &field.ty;
                     Ok(quote! {
-                        let raw = brec::csharp_feature::map_take(&mut obj, #field_name)
-                            .map_err(|err| brec::CSharpError::invalid_field_name(#field_name, err))?;
-                        let #ident: #ty = <#ty as brec::CSharpConvert>::from_csharp_value(raw)?;
+                        let raw = brec::csharp_feat::map_take(&mut obj, #field_name)
+                            .map_err(|err| brec::csharp_feat::CSharpError::invalid_field_name(#field_name, err))?;
+                        let #ident: #ty = <#ty as brec::csharp_feat::CSharpConvert>::from_csharp_value(raw)?;
                     })
                 })
                 .collect::<Result<Vec<_>, E>>()?;
@@ -100,7 +100,7 @@ fn gen_struct_from_csharp(name: &Ident, fields: &Fields) -> Result<TokenStream, 
                 })
                 .collect::<Result<Vec<_>, E>>()?;
             Ok(quote! {
-                let mut obj: brec::CSharpObjectMap = brec::csharp_feature::from_value_name("object", value)?;
+                let mut obj: brec::csharp_feat::CSharpObjectMap = brec::csharp_feat::from_value_name("object", value)?;
                 #(#getters)*
                 Ok(#name { #(#ctor_fields)* })
             })
@@ -117,12 +117,12 @@ fn gen_struct_from_csharp(name: &Ident, fields: &Fields) -> Result<TokenStream, 
                     let ty = &field.ty;
                     Ok(quote! {
                         let raw = arr_iter.next().ok_or_else(|| {
-                            brec::CSharpError::invalid_field_name(
+                            brec::csharp_feat::CSharpError::invalid_field_name(
                                 #idx.to_string(),
                                 format!("missing element at index {}", #idx),
                             )
                         })?;
-                        let #ident: #ty = <#ty as brec::CSharpConvert>::from_csharp_value(raw)?;
+                        let #ident: #ty = <#ty as brec::csharp_feat::CSharpConvert>::from_csharp_value(raw)?;
                     })
                 })
                 .collect::<Result<Vec<_>, E>>()?;
@@ -130,11 +130,11 @@ fn gen_struct_from_csharp(name: &Ident, fields: &Fields) -> Result<TokenStream, 
                 .map(|idx| syn::Ident::new(&format!("v{}", idx), proc_macro2::Span::call_site()))
                 .collect::<Vec<_>>();
             Ok(quote! {
-                let arr: Vec<brec::CSharpValue> = brec::csharp_feature::from_value_name("array", value)?;
+                let arr: Vec<brec::csharp_feat::CSharpValue> = brec::csharp_feat::from_value_name("array", value)?;
                 if arr.len() != #len {
-                    return Err(brec::Error::CSharp(brec::CSharpError::InvalidAggregatorShape(
+                    return Err(brec::csharp_feat::CSharpError::InvalidAggregatorShape(
                         format!("expected array with {} elements, got {}", #len, arr.len()),
-                    )));
+                    ));
                 }
                 let mut arr_iter = arr.into_iter();
                 #(#getters)*
@@ -142,7 +142,7 @@ fn gen_struct_from_csharp(name: &Ident, fields: &Fields) -> Result<TokenStream, 
             })
         }
         Fields::Unit => Ok(quote! {
-            let _obj: brec::CSharpObjectMap = brec::csharp_feature::from_value_name("object", value)?;
+            let _obj: brec::csharp_feat::CSharpObjectMap = brec::csharp_feat::from_value_name("object", value)?;
             Ok(#name)
         }),
     }
@@ -154,17 +154,17 @@ fn gen_variant_to_csharp(enum_name: &Ident, variant: &Variant) -> Result<TokenSt
     match &variant.fields {
         Fields::Unit => Ok(quote! {
             #enum_name::#vname => {
-                brec::csharp_feature::map_put(&mut obj, #key, brec::CSharpValue::Null)
-                    .map_err(|err| brec::CSharpError::invalid_field_name(#key, err))?;
+                brec::csharp_feat::map_put(&mut obj, #key, brec::csharp_feat::CSharpValue::Null)
+                    .map_err(|err| brec::csharp_feat::CSharpError::invalid_field_name(#key, err))?;
             }
         }),
         Fields::Unnamed(fields) => {
             if fields.unnamed.len() == 1 {
                 Ok(quote! {
                     #enum_name::#vname(inner) => {
-                        let value = brec::CSharpConvert::to_csharp_value(inner)?;
-                        brec::csharp_feature::map_put(&mut obj, #key, value)
-                            .map_err(|err| brec::CSharpError::invalid_field_name(#key, err))?;
+                        let value = brec::csharp_feat::CSharpConvert::to_csharp_value(inner)?;
+                        brec::csharp_feat::map_put(&mut obj, #key, value)
+                            .map_err(|err| brec::csharp_feat::CSharpError::invalid_field_name(#key, err))?;
                     }
                 })
             } else {
@@ -177,19 +177,19 @@ fn gen_variant_to_csharp(enum_name: &Ident, variant: &Variant) -> Result<TokenSt
                     .iter()
                     .map(|ident| {
                         quote! {
-                            let value = brec::CSharpConvert::to_csharp_value(#ident)?;
-                            brec::csharp_feature::list_add(&mut arr, value)
-                                .map_err(|err| brec::CSharpError::invalid_field_name(#key, err))?;
+                            let value = brec::csharp_feat::CSharpConvert::to_csharp_value(#ident)?;
+                            brec::csharp_feat::list_add(&mut arr, value)
+                                .map_err(|err| brec::csharp_feat::CSharpError::invalid_field_name(#key, err))?;
                         }
                     })
                     .collect::<Vec<_>>();
                 let len = bindings.len();
                 Ok(quote! {
                     #enum_name::#vname(#(#bindings),*) => {
-                        let mut arr = brec::csharp_feature::new_array(#len);
+                        let mut arr = brec::csharp_feat::new_array(#len);
                         #(#set_elems)*
-                        brec::csharp_feature::map_put(&mut obj, #key, brec::CSharpValue::Array(arr))
-                            .map_err(|err| brec::CSharpError::invalid_field_name(#key, err))?;
+                        brec::csharp_feat::map_put(&mut obj, #key, brec::csharp_feat::CSharpValue::Array(arr))
+                            .map_err(|err| brec::csharp_feat::CSharpError::invalid_field_name(#key, err))?;
                     }
                 })
             }
@@ -202,9 +202,9 @@ fn gen_variant_to_csharp(enum_name: &Ident, variant: &Variant) -> Result<TokenSt
                     let ident = get_named_field_ident(field)?;
                     let fname = ident.to_string();
                     Ok(quote! {
-                        let value = brec::CSharpConvert::to_csharp_value(#ident)?;
-                        brec::csharp_feature::map_put(&mut inner, #fname, value)
-                            .map_err(|err| brec::CSharpError::invalid_field_name(#key, err))?;
+                        let value = brec::csharp_feat::CSharpConvert::to_csharp_value(#ident)?;
+                        brec::csharp_feat::map_put(&mut inner, #fname, value)
+                            .map_err(|err| brec::csharp_feat::CSharpError::invalid_field_name(#key, err))?;
                     })
                 })
                 .collect::<Result<Vec<_>, E>>()?;
@@ -215,10 +215,10 @@ fn gen_variant_to_csharp(enum_name: &Ident, variant: &Variant) -> Result<TokenSt
                 .collect::<Result<Vec<_>, E>>()?;
             Ok(quote! {
                 #enum_name::#vname { #(#bindings),* } => {
-                    let mut inner = brec::csharp_feature::new_object();
+                    let mut inner = brec::csharp_feat::new_object();
                     #(#setters)*
-                    brec::csharp_feature::map_put(&mut obj, #key, brec::CSharpValue::Object(inner))
-                        .map_err(|err| brec::CSharpError::invalid_field_name(#key, err))?;
+                    brec::csharp_feat::map_put(&mut obj, #key, brec::csharp_feat::CSharpValue::Object(inner))
+                        .map_err(|err| brec::csharp_feat::CSharpError::invalid_field_name(#key, err))?;
                 }
             })
         }
@@ -235,7 +235,7 @@ fn gen_variant_from_csharp(variant: &Variant) -> Result<TokenStream, E> {
                 let ty = get_first_unnamed_ty(fields)?;
                 Ok(quote! {
                     #key => {
-                        let value: #ty = <#ty as brec::CSharpConvert>::from_csharp_value(inner)?;
+                        let value: #ty = <#ty as brec::csharp_feat::CSharpConvert>::from_csharp_value(inner)?;
                         Ok(Self::#vname(value))
                     }
                 })
@@ -251,12 +251,12 @@ fn gen_variant_from_csharp(variant: &Variant) -> Result<TokenStream, E> {
                         let ty = &field.ty;
                         quote! {
                             let raw = arr_iter.next().ok_or_else(|| {
-                                brec::CSharpError::invalid_field_name(
+                                brec::csharp_feat::CSharpError::invalid_field_name(
                                     #key,
                                     format!("missing tuple element at index {}", #idx),
                                 )
                             })?;
-                            let #ident: #ty = <#ty as brec::CSharpConvert>::from_csharp_value(raw)?;
+                            let #ident: #ty = <#ty as brec::csharp_feat::CSharpConvert>::from_csharp_value(raw)?;
                         }
                     })
                     .collect::<Vec<_>>();
@@ -267,9 +267,9 @@ fn gen_variant_from_csharp(variant: &Variant) -> Result<TokenStream, E> {
                     .collect::<Vec<_>>();
                 Ok(quote! {
                     #key => {
-                        let arr: Vec<brec::CSharpValue> = brec::csharp_feature::from_value_name(#key, inner)?;
+                        let arr: Vec<brec::csharp_feat::CSharpValue> = brec::csharp_feat::from_value_name(#key, inner)?;
                         if arr.len() != #len {
-                            return Err(brec::CSharpError::invalid_field_name(
+                            return Err(brec::csharp_feat::CSharpError::invalid_field_name(
                                 #key,
                                 format!("expected tuple array with {} elements, got {}", #len, arr.len()),
                             ));
@@ -290,9 +290,9 @@ fn gen_variant_from_csharp(variant: &Variant) -> Result<TokenStream, E> {
                     let fname = ident.to_string();
                     let ty = &field.ty;
                     Ok(quote! {
-                        let raw = brec::csharp_feature::map_take(&mut obj, #fname)
-                            .map_err(|err| brec::CSharpError::invalid_field_name(#key, err))?;
-                        let #ident: #ty = <#ty as brec::CSharpConvert>::from_csharp_value(raw)?;
+                        let raw = brec::csharp_feat::map_take(&mut obj, #fname)
+                            .map_err(|err| brec::csharp_feat::CSharpError::invalid_field_name(#key, err))?;
+                        let #ident: #ty = <#ty as brec::csharp_feat::CSharpConvert>::from_csharp_value(raw)?;
                     })
                 })
                 .collect::<Result<Vec<_>, E>>()?;
@@ -306,7 +306,7 @@ fn gen_variant_from_csharp(variant: &Variant) -> Result<TokenStream, E> {
                 .collect::<Result<Vec<_>, E>>()?;
             Ok(quote! {
                 #key => {
-                    let mut obj: brec::CSharpObjectMap = brec::csharp_feature::from_value_name(#key, inner)?;
+                    let mut obj: brec::csharp_feat::CSharpObjectMap = brec::csharp_feat::from_value_name(#key, inner)?;
                     #(#reads)*
                     Ok(Self::#vname { #(#ctor)* })
                 }
@@ -321,12 +321,12 @@ pub fn generate_impl(name: &Ident, data: &Data) -> Result<TokenStream, E> {
             let to_csharp = gen_struct_to_csharp(&data.fields)?;
             let from_csharp = gen_struct_from_csharp(name, &data.fields)?;
             Ok(quote! {
-                impl brec::CSharpConvert for #name {
-                    fn to_csharp_value(&self) -> Result<brec::CSharpValue, brec::Error> {
+                impl brec::csharp_feat::CSharpConvert for #name {
+                    fn to_csharp_value(&self) -> Result<brec::csharp_feat::CSharpValue, brec::csharp_feat::CSharpError> {
                         #to_csharp
                     }
 
-                    fn from_csharp_value(value: brec::CSharpValue) -> Result<Self, brec::Error> {
+                    fn from_csharp_value(value: brec::csharp_feat::CSharpValue) -> Result<Self, brec::csharp_feat::CSharpError> {
                         #from_csharp
                     }
                 }
@@ -344,33 +344,33 @@ pub fn generate_impl(name: &Ident, data: &Data) -> Result<TokenStream, E> {
                 .map(gen_variant_from_csharp)
                 .collect::<Result<Vec<_>, _>>()?;
             Ok(quote! {
-                impl brec::CSharpConvert for #name {
-                    fn to_csharp_value(&self) -> Result<brec::CSharpValue, brec::Error> {
-                        let mut obj = brec::csharp_feature::new_object();
+                impl brec::csharp_feat::CSharpConvert for #name {
+                    fn to_csharp_value(&self) -> Result<brec::csharp_feat::CSharpValue, brec::csharp_feat::CSharpError> {
+                        let mut obj = brec::csharp_feat::new_object();
                         match self {
                             #(#to_arms)*
                         }
-                        Ok(brec::CSharpValue::Object(obj))
+                        Ok(brec::csharp_feat::CSharpValue::Object(obj))
                     }
 
-                    fn from_csharp_value(value: brec::CSharpValue) -> Result<Self, brec::Error> {
-                        let obj: brec::CSharpObjectMap = brec::csharp_feature::from_value_name("object", value)?;
+                    fn from_csharp_value(value: brec::csharp_feat::CSharpValue) -> Result<Self, brec::csharp_feat::CSharpError> {
+                        let obj: brec::csharp_feat::CSharpObjectMap = brec::csharp_feat::from_value_name("object", value)?;
                         let keys_len = obj.len();
                         if keys_len != 1 {
-                            return Err(brec::Error::CSharp(brec::CSharpError::InvalidAggregatorShape(
+                            return Err(brec::csharp_feat::CSharpError::InvalidAggregatorShape(
                                 format!("expected object with exactly 1 field, got {}", keys_len),
-                            )));
+                            ));
                         }
                         let (key, inner) = obj.into_iter().next().ok_or_else(|| {
-                            brec::Error::CSharp(brec::CSharpError::InvalidAggregatorShape(
+                            brec::csharp_feat::CSharpError::InvalidAggregatorShape(
                                 "expected object key to be a string".to_owned(),
-                            ))
+                            )
                         })?;
                         match key.as_str() {
                             #(#from_arms)*
-                            _ => Err(brec::Error::CSharp(brec::CSharpError::InvalidAggregatorShape(
+                            _ => Err(brec::csharp_feat::CSharpError::InvalidAggregatorShape(
                                 format!("unknown enum variant key {}", key),
-                            ))),
+                            )),
                         }
                     }
                 }
