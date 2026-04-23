@@ -20,7 +20,7 @@ fn to_napi_field_set(field: &Field) -> Result<TokenStream, E> {
     };
     Ok(quote! {
         obj.set_named_property(#js_field, #value)
-            .map_err(|err| brec::NapiError::invalid_field_name(#js_field, err))?;
+            .map_err(|err| brec::napi_feat::NapiError::invalid_field_name(#js_field, err))?;
     })
 }
 
@@ -31,23 +31,23 @@ fn from_napi_field_get(field: &Field, ty: TokenStream) -> Result<TokenStream, E>
         Ty::F32 => quote! {
             let #rust_field: u32 = obj
                 .get_named_property(#js_field)
-                .map_err(|err| brec::NapiError::invalid_field_name(#js_field, err))?;
+                .map_err(|err| brec::napi_feat::NapiError::invalid_field_name(#js_field, err))?;
             let #rust_field = f32::from_bits(#rust_field);
         },
         Ty::F64 => quote! {
             let raw: napi::Unknown<'_> = obj
                 .get_named_property(#js_field)
-                .map_err(|err| brec::NapiError::invalid_field_name(#js_field, err))?;
+                .map_err(|err| brec::napi_feat::NapiError::invalid_field_name(#js_field, err))?;
             let bits: u64 = match raw
                 .get_type()
-                .map_err(|err| brec::NapiError::invalid_field_name(#js_field, err))?
+                .map_err(|err| brec::napi_feat::NapiError::invalid_field_name(#js_field, err))?
             {
                 napi::ValueType::BigInt => {
                     let raw_big: napi::bindgen_prelude::BigInt =
-                        brec::napi_feature::from_unknown_name(#js_field, raw)?;
+                        brec::napi_feat::from_unknown_name(#js_field, raw)?;
                     let (sign, bits, lossless) = raw_big.get_u64();
                     if sign || !lossless {
-                        return Err(brec::NapiError::invalid_field_name(
+                        return Err(brec::napi_feat::NapiError::invalid_field_name(
                             #js_field,
                             "BigInt is out of range for f64",
                         ));
@@ -55,7 +55,7 @@ fn from_napi_field_get(field: &Field, ty: TokenStream) -> Result<TokenStream, E>
                     bits
                 }
                 other => {
-                    return Err(brec::NapiError::invalid_field_name(
+                    return Err(brec::napi_feat::NapiError::invalid_field_name(
                         #js_field,
                         format!("expected BigInt, got {:?}", other),
                     ));
@@ -66,17 +66,17 @@ fn from_napi_field_get(field: &Field, ty: TokenStream) -> Result<TokenStream, E>
         Ty::I64 => quote! {
             let raw: napi::Unknown<'_> = obj
                 .get_named_property(#js_field)
-                .map_err(|err| brec::NapiError::invalid_field_name(#js_field, err))?;
+                .map_err(|err| brec::napi_feat::NapiError::invalid_field_name(#js_field, err))?;
             let #rust_field: #ty = match raw
                 .get_type()
-                .map_err(|err| brec::NapiError::invalid_field_name(#js_field, err))?
+                .map_err(|err| brec::napi_feat::NapiError::invalid_field_name(#js_field, err))?
             {
                 napi::ValueType::BigInt => {
                     let raw_big: napi::bindgen_prelude::BigInt =
-                        brec::napi_feature::from_unknown_name(#js_field, raw)?;
+                        brec::napi_feat::from_unknown_name(#js_field, raw)?;
                     let (value, lossless) = raw_big.get_i64();
                     if !lossless {
-                        return Err(brec::NapiError::invalid_field_name(
+                        return Err(brec::napi_feat::NapiError::invalid_field_name(
                             #js_field,
                             "BigInt is out of range for i64",
                         ));
@@ -84,7 +84,7 @@ fn from_napi_field_get(field: &Field, ty: TokenStream) -> Result<TokenStream, E>
                     value
                 }
                 other => {
-                    return Err(brec::NapiError::invalid_field_name(
+                    return Err(brec::napi_feat::NapiError::invalid_field_name(
                         #js_field,
                         format!("expected BigInt, got {:?}", other),
                     ));
@@ -94,17 +94,17 @@ fn from_napi_field_get(field: &Field, ty: TokenStream) -> Result<TokenStream, E>
         Ty::U64 => quote! {
             let raw: napi::Unknown<'_> = obj
                 .get_named_property(#js_field)
-                .map_err(|err| brec::NapiError::invalid_field_name(#js_field, err))?;
+                .map_err(|err| brec::napi_feat::NapiError::invalid_field_name(#js_field, err))?;
             let #rust_field: #ty = match raw
                 .get_type()
-                .map_err(|err| brec::NapiError::invalid_field_name(#js_field, err))?
+                .map_err(|err| brec::napi_feat::NapiError::invalid_field_name(#js_field, err))?
             {
                 napi::ValueType::BigInt => {
                     let raw_big: napi::bindgen_prelude::BigInt =
-                        brec::napi_feature::from_unknown_name(#js_field, raw)?;
+                        brec::napi_feat::from_unknown_name(#js_field, raw)?;
                     let (sign, value, lossless) = raw_big.get_u64();
                     if sign || !lossless {
-                        return Err(brec::NapiError::invalid_field_name(
+                        return Err(brec::napi_feat::NapiError::invalid_field_name(
                             #js_field,
                             "BigInt is out of range for u64",
                         ));
@@ -112,7 +112,7 @@ fn from_napi_field_get(field: &Field, ty: TokenStream) -> Result<TokenStream, E>
                     value
                 }
                 other => {
-                    return Err(brec::NapiError::invalid_field_name(
+                    return Err(brec::napi_feat::NapiError::invalid_field_name(
                         #js_field,
                         format!("expected BigInt, got {:?}", other),
                     ));
@@ -122,17 +122,17 @@ fn from_napi_field_get(field: &Field, ty: TokenStream) -> Result<TokenStream, E>
         Ty::I128 => quote! {
             let raw: napi::Unknown<'_> = obj
                 .get_named_property(#js_field)
-                .map_err(|err| brec::NapiError::invalid_field_name(#js_field, err))?;
+                .map_err(|err| brec::napi_feat::NapiError::invalid_field_name(#js_field, err))?;
             let #rust_field: #ty = match raw
                 .get_type()
-                .map_err(|err| brec::NapiError::invalid_field_name(#js_field, err))?
+                .map_err(|err| brec::napi_feat::NapiError::invalid_field_name(#js_field, err))?
             {
                 napi::ValueType::BigInt => {
                     let raw_big: napi::bindgen_prelude::BigInt =
-                        brec::napi_feature::from_unknown_name(#js_field, raw)?;
+                        brec::napi_feat::from_unknown_name(#js_field, raw)?;
                     let (value, lossless) = raw_big.get_i128();
                     if !lossless {
-                        return Err(brec::NapiError::invalid_field_name(
+                        return Err(brec::napi_feat::NapiError::invalid_field_name(
                             #js_field,
                             "BigInt is out of range for i128",
                         ));
@@ -140,7 +140,7 @@ fn from_napi_field_get(field: &Field, ty: TokenStream) -> Result<TokenStream, E>
                     value
                 }
                 other => {
-                    return Err(brec::NapiError::invalid_field_name(
+                    return Err(brec::napi_feat::NapiError::invalid_field_name(
                         #js_field,
                         format!("expected BigInt, got {:?}", other),
                     ));
@@ -150,17 +150,17 @@ fn from_napi_field_get(field: &Field, ty: TokenStream) -> Result<TokenStream, E>
         Ty::U128 => quote! {
             let raw: napi::Unknown<'_> = obj
                 .get_named_property(#js_field)
-                .map_err(|err| brec::NapiError::invalid_field_name(#js_field, err))?;
+                .map_err(|err| brec::napi_feat::NapiError::invalid_field_name(#js_field, err))?;
             let #rust_field: #ty = match raw
                 .get_type()
-                .map_err(|err| brec::NapiError::invalid_field_name(#js_field, err))?
+                .map_err(|err| brec::napi_feat::NapiError::invalid_field_name(#js_field, err))?
             {
                 napi::ValueType::BigInt => {
                     let raw_big: napi::bindgen_prelude::BigInt =
-                        brec::napi_feature::from_unknown_name(#js_field, raw)?;
+                        brec::napi_feat::from_unknown_name(#js_field, raw)?;
                     let (sign, value, lossless) = raw_big.get_u128();
                     if sign || !lossless {
-                        return Err(brec::NapiError::invalid_field_name(
+                        return Err(brec::napi_feat::NapiError::invalid_field_name(
                             #js_field,
                             "BigInt is out of range for u128",
                         ));
@@ -168,7 +168,7 @@ fn from_napi_field_get(field: &Field, ty: TokenStream) -> Result<TokenStream, E>
                     value
                 }
                 other => {
-                    return Err(brec::NapiError::invalid_field_name(
+                    return Err(brec::napi_feat::NapiError::invalid_field_name(
                         #js_field,
                         format!("expected BigInt, got {:?}", other),
                     ));
@@ -178,25 +178,25 @@ fn from_napi_field_get(field: &Field, ty: TokenStream) -> Result<TokenStream, E>
         Ty::Blob(len) => quote! {
             let raw: Vec<u8> = obj
                 .get_named_property(#js_field)
-                .map_err(|err| brec::NapiError::invalid_field_name(#js_field, err))?;
+                .map_err(|err| brec::napi_feat::NapiError::invalid_field_name(#js_field, err))?;
             let #rust_field: [u8; #len] = raw.try_into().map_err(|bytes: Vec<u8>| {
-                brec::NapiError::invalid_field_name(
+                brec::napi_feat::NapiError::invalid_field_name(
                     #js_field,
                     format!("expected {} bytes, got {}", #len, bytes.len()),
                 )
             })?;
         },
-        Ty::LinkedToU8(enum_name) => quote! {
+        Ty::LinkedToU8(_) => quote! {
             let raw: u8 = obj
                 .get_named_property(#js_field)
-                .map_err(|err| brec::NapiError::invalid_field_name(#js_field, err))?;
+                .map_err(|err| brec::napi_feat::NapiError::invalid_field_name(#js_field, err))?;
             let #rust_field = #ty::try_from(raw)
-                .map_err(|err| brec::Error::FailedConverting(#enum_name.to_owned(), err))?;
+                .map_err(|err| brec::napi_feat::NapiError::invalid_field_name(#js_field, err))?;
         },
         _ => quote! {
             let #rust_field: #ty = obj
                 .get_named_property(#js_field)
-                .map_err(|err| brec::NapiError::invalid_field_name(#js_field, err))?;
+                .map_err(|err| brec::napi_feat::NapiError::invalid_field_name(#js_field, err))?;
         },
     })
 }
@@ -223,19 +223,19 @@ pub fn generate(name: &Ident, fields: &[Field]) -> Result<TokenStream, E> {
 
     Ok(quote! {
         impl #name {
-            fn to_napi_object<'env>(&self, env: &'env napi::Env) -> Result<napi::Unknown<'env>, brec::Error> {
+            fn to_napi_object<'env>(&self, env: &'env napi::Env) -> Result<napi::Unknown<'env>, brec::napi_feat::NapiError> {
                 use napi::bindgen_prelude::{JsObjectValue, JsValue, Object};
                 let mut obj: Object<'env> = Object::new(env)
-                    .map_err(|err| brec::Error::Napi(brec::NapiError::InvalidObject(err.to_string())))?;
+                    .map_err(|err| brec::napi_feat::NapiError::InvalidObject(err.to_string()))?;
                 #(#to_napi)*
                 Ok(obj.to_unknown())
             }
 
-            fn from_napi_object(value: napi::Unknown<'_>) -> Result<Self, brec::Error> {
+            fn from_napi_object(value: napi::Unknown<'_>) -> Result<Self, brec::napi_feat::NapiError> {
                 use napi::bindgen_prelude::{JsObjectValue, JsValue};
                 let obj: napi::bindgen_prelude::Object<'_> =
-                    brec::napi_feature::from_unknown_name("object", value)
-                        .map_err(|err| brec::Error::Napi(brec::NapiError::InvalidObject(err.to_string())))?;
+                    brec::napi_feat::from_unknown_name("object", value)
+                        .map_err(|err| brec::napi_feat::NapiError::InvalidObject(err.to_string()))?;
                 #(#from_napi)*
                 Ok(Self {
                     #(#ctor_fields)*
@@ -248,7 +248,7 @@ pub fn generate(name: &Ident, fields: &[Field]) -> Result<TokenStream, E> {
             ) -> Result<napi::Unknown<'env>, brec::Error> {
                 let mut src = bytes.as_ref();
                 let block = <#name as brec::ReadBlockFrom>::read(&mut src, false)?;
-                block.to_napi_object(env)
+                Ok(block.to_napi_object(env)?)
             }
 
             pub fn encode_napi(value: napi::Unknown<'_>, out: &mut Vec<u8>) -> Result<(), brec::Error> {
@@ -258,12 +258,12 @@ pub fn generate(name: &Ident, fields: &[Field]) -> Result<TokenStream, E> {
             }
         }
 
-        impl brec::NapiObject for #name {
-            fn to_napi_object<'env>(&self, env: &'env napi::Env) -> Result<napi::Unknown<'env>, brec::Error> {
+        impl brec::napi_feat::NapiObject for #name {
+            fn to_napi_object<'env>(&self, env: &'env napi::Env) -> Result<napi::Unknown<'env>, brec::napi_feat::NapiError> {
                 #name::to_napi_object(self, env)
             }
 
-            fn from_napi_object(_env: &napi::Env, value: napi::Unknown<'_>) -> Result<Self, brec::Error> {
+            fn from_napi_object(_env: &napi::Env, value: napi::Unknown<'_>) -> Result<Self, brec::napi_feat::NapiError> {
                 #name::from_napi_object(value)
             }
         }

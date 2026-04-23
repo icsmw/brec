@@ -85,10 +85,10 @@ dependencies = [
  "bincode",
  "brec_consts",
  "brec_in_node_gen_macro",
+ "brec_in_node_lib",
  "brec_macros",
  "crc32fast",
  "enum_ids",
- "napi",
  "thiserror",
 ]
 
@@ -116,6 +116,16 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn",
+]
+
+[[package]]
+name = "brec_in_node_lib"
+version = "0.1.0"
+dependencies = [
+ "brec_consts",
+ "enum_ids",
+ "napi",
+ "thiserror",
 ]
 
 [[package]]

@@ -8,12 +8,12 @@ pub fn generate(name: &Ident, attrs: &PayloadAttrs) -> Result<TokenStream, E> {
     }
     Ok(quote! {
         impl #name {
-            fn to_napi_object<'env>(&self, env: &'env napi::Env) -> Result<napi::Unknown<'env>, brec::Error> {
-                <#name as brec::NapiConvert>::to_napi_value(self, env)
+            fn to_napi_object<'env>(&self, env: &'env napi::Env) -> Result<napi::Unknown<'env>, brec::napi_feat::NapiError> {
+                <#name as brec::napi_feat::NapiConvert>::to_napi_value(self, env)
             }
 
-            fn from_napi_object(env: &napi::Env, value: napi::Unknown<'_>) -> Result<Self, brec::Error> {
-                <#name as brec::NapiConvert>::from_napi_value(env, value)
+            fn from_napi_object(env: &napi::Env, value: napi::Unknown<'_>) -> Result<Self, brec::napi_feat::NapiError> {
+                <#name as brec::napi_feat::NapiConvert>::from_napi_value(env, value)
             }
 
             pub fn decode_napi<'env>(
@@ -28,7 +28,7 @@ pub fn generate(name: &Ident, attrs: &PayloadAttrs) -> Result<TokenStream, E> {
                     &header,
                     ctx,
                 )?;
-                payload.to_napi_object(env)
+                Ok(payload.to_napi_object(env)?)
             }
 
             pub fn encode_napi(
@@ -43,12 +43,12 @@ pub fn generate(name: &Ident, attrs: &PayloadAttrs) -> Result<TokenStream, E> {
             }
         }
 
-        impl brec::NapiObject for #name {
-            fn to_napi_object<'env>(&self, env: &'env napi::Env) -> Result<napi::Unknown<'env>, brec::Error> {
+        impl brec::napi_feat::NapiObject for #name {
+            fn to_napi_object<'env>(&self, env: &'env napi::Env) -> Result<napi::Unknown<'env>, brec::napi_feat::NapiError> {
                 #name::to_napi_object(self, env)
             }
 
-            fn from_napi_object(env: &napi::Env, value: napi::Unknown<'_>) -> Result<Self, brec::Error> {
+            fn from_napi_object(env: &napi::Env, value: napi::Unknown<'_>) -> Result<Self, brec::napi_feat::NapiError> {
                 #name::from_napi_object(env, value)
             }
         }

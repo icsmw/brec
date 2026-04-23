@@ -34,6 +34,8 @@ pub mod traits;
 pub use brec_in_java_gen_macro::Java;
 #[cfg(feature = "napi")]
 pub use brec_in_node_gen_macro::Napi;
+#[cfg(feature = "napi")]
+pub use brec_in_node_lib as napi_feat;
 #[cfg(feature = "wasm")]
 pub use brec_in_wasm_gen_macro::Wasm;
 pub use brec_macros::*;
@@ -51,10 +53,6 @@ pub use integrations::csharp_feature::{
 pub use integrations::java_feature;
 #[cfg(feature = "java")]
 pub use integrations::java_feature::*;
-#[cfg(feature = "napi")]
-pub use integrations::napi_feature;
-#[cfg(feature = "napi")]
-pub use integrations::napi_feature::*;
 #[cfg(feature = "wasm")]
 pub use integrations::wasm_feature;
 #[cfg(feature = "wasm")]

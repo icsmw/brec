@@ -7,12 +7,12 @@ use crate::crypt::CryptError;
 use crate::integrations::csharp_feature::CSharpError;
 #[cfg(feature = "java")]
 use crate::integrations::java_feature::JavaError;
-#[cfg(feature = "napi")]
-use crate::integrations::napi_feature::NapiError;
 #[cfg(feature = "wasm")]
 use crate::integrations::wasm_feature::WasmError;
 #[cfg(feature = "observer")]
 use crate::storage::SensorError;
+#[cfg(feature = "napi")]
+use brec_in_node_lib::NapiError;
 
 /// Signature bytes that were read but did not match known block/payload signatures.
 #[derive(Debug, Clone, PartialEq, Eq)]

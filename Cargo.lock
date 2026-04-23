@@ -150,6 +150,7 @@ dependencies = [
  "brec_consts",
  "brec_in_java_gen_macro",
  "brec_in_node_gen_macro",
+ "brec_in_node_lib",
  "brec_in_wasm_gen_macro",
  "brec_macros",
  "chacha20poly1305",
@@ -158,7 +159,6 @@ dependencies = [
  "fs4",
  "jni",
  "js-sys",
- "napi",
  "notify",
  "pem",
  "rsa",
@@ -235,6 +235,17 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn",
+]
+
+[[package]]
+name = "brec_in_node_lib"
+version = "0.1.0"
+dependencies = [
+ "brec_consts",
+ "enum_ids",
+ "js-sys",
+ "napi",
+ "thiserror 2.0.18",
 ]
 
 [[package]]

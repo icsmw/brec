@@ -1,8 +1,8 @@
 mod error;
 mod packet;
 
-use crate::Error;
 pub use error::*;
+pub use napi;
 use napi::{Unknown, bindgen_prelude::FromNapiValue};
 pub use packet::*;
 
@@ -31,7 +31,10 @@ pub enum NapiFieldHint {
 }
 
 #[inline]
-pub fn from_unknown<T: FromNapiValue>(hint: NapiFieldHint, value: Unknown<'_>) -> Result<T, Error> {
+pub fn from_unknown<T: FromNapiValue>(
+    hint: NapiFieldHint,
+    value: Unknown<'_>,
+) -> Result<T, NapiError> {
     FromNapiValue::from_unknown(value).map_err(|err| NapiError::invalid_field(hint, err))
 }
 
@@ -39,6 +42,6 @@ pub fn from_unknown<T: FromNapiValue>(hint: NapiFieldHint, value: Unknown<'_>) -
 pub fn from_unknown_name<T: FromNapiValue>(
     name: impl Into<String>,
     value: Unknown<'_>,
-) -> Result<T, Error> {
+) -> Result<T, NapiError> {
     FromNapiValue::from_unknown(value).map_err(|err| NapiError::invalid_field_name(name, err))
 }
