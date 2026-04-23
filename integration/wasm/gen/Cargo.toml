@@ -3,21 +3,15 @@ name        = "brec_in_wasm_gen"
 version     = "0.1.0"
 edition     = "2024"
 authors     = ["d.astafyev@outlook.com"]
-description = "Brec integration with wasm"
+description = "Code generation backend for Brec WASM integration."
 license     = "Apache-2.0"
 repository  = "https://github.com/icsmw/brec.git"
-homepage    = "https://github.com/icsmw/brec"
+homepage    = "https://icsmw.github.io/brec/integrations/wasm/"
 readme      = "README.md"
 
-keywords = ["binary", "packet", "storage", "logging", "streaming"]
+keywords = ["brec", "wasm", "webassembly", "codegen", "ffi"]
 
-categories = [
-    "encoding",
-    "data-structures",
-    "filesystem",
-    "development-tools",
-    "parser-implementations",
-]
+categories = ["development-tools::ffi", "encoding"]
 
 [lib]
 path = "src/lib.rs"
