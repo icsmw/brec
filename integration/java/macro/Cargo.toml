@@ -3,22 +3,16 @@ name        = "brec_in_java_gen_macro"
 version     = "0.1.0"
 edition     = "2024"
 authors     = ["d.astafyev@outlook.com"]
-description = "Code generator for brec. Implements java derive macro."
+description = "Proc-macro derives for Brec Java/JNI conversion types."
 license     = "Apache-2.0"
 resolver    = "2"
 repository  = "https://github.com/icsmw/brec.git"
-homepage    = "https://github.com/icsmw/brec"
+homepage    = "https://icsmw.github.io/brec/integrations/java/"
 readme      = "README.md"
 
-keywords = ["binary", "packet", "storage", "logging", "streaming"]
+keywords = ["brec", "java", "jni", "derive", "proc-macro"]
 
-categories = [
-    "encoding",
-    "data-structures",
-    "filesystem",
-    "development-tools",
-    "parser-implementations",
-]
+categories = ["development-tools::procedural-macro-helpers", "encoding"]
 
 [lib]
 proc-macro = true
