@@ -1,25 +1,20 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
-cd ./lib/core
-cargo +nightly clippy --tests --all --all-features -- -D warnings
-cargo fmt --all --check
-cd ../..
+set -euo pipefail
 
-cd ./lib/consts
-cargo +nightly clippy --tests --all --all-features -- -D warnings
-cargo fmt --all --check
-cd ../..
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$SCRIPT_DIR"
 
-cd ./generator/macros
-cargo +nightly clippy --tests --all --all-features -- -D warnings
-cargo fmt --all --check
-cd ../..
+paths=(
+    "lib"
+    "generator"
+    "integration"
+)
 
-cd ./generator/parser
-cargo +nightly clippy --tests --all --all-features -- -D warnings
-cargo fmt --all --check
-cd ../..
-
-cd ./integration
-sh lint.sh
-cd ../..
+for path in "${paths[@]}"; do
+    echo "==> $path/lint.sh"
+    (
+        cd "$path"
+        bash lint.sh
+    )
+done
