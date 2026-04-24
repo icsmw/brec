@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-ROOT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
-BREC_DIR="${ROOT_DIR}/brec"
-OUT_DIR="${BREC_DIR}/coverage_results"
+CORE_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+ROOT_DIR="$(cd -- "${CORE_DIR}/../.." && pwd)"
+OUT_DIR="${ROOT_DIR}/coverage_results"
 LCOV_OUT="${OUT_DIR}/wasm.lcov.info"
 WORKSPACE_MANIFEST="${ROOT_DIR}/Cargo.toml"
 TOOLCHAIN="${TOOLCHAIN:-nightly}"

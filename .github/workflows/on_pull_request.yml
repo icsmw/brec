@@ -33,10 +33,8 @@ jobs:
         run: rustup update
       - name: Make scripts executable
         run: chmod +x ./test.sh
-        working-directory: ./brec
       - name: Tests
         run: bash ./test.sh
-        working-directory: ./brec
 
   tests:
     runs-on: ubuntu-latest
