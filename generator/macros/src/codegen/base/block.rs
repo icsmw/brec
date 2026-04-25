@@ -1,0 +1,143 @@
+use crate::*;
+use proc_macro2::TokenStream;
+use quote::{format_ident, quote};
+
+impl Base for Block {
+    fn generate(&self) -> Result<TokenStream, E> {
+        let referred_name = self.referred_name();
+        let block_name = self.name();
+        let mut struct_fields: Vec<TokenStream> = Vec::new();
+        for field in self.fields.iter() {
+            let visibility = field.vis_token()?;
+            let inner = if matches!(field.ty, Ty::Blob(..)) {
+                field.referenced_ty()
+            } else {
+                field.direct_ty()
+            };
+            struct_fields.push(quote! {
+                #visibility #inner
+            });
+        }
+        let derefed = self
+            .fields
+            .iter()
+            .filter(|f| !f.injected)
+            .map(|f| {
+                let field = format_ident!("{}", f.name);
+                let field_path = if matches!(f.ty, Ty::Blob(..)) {
+                    quote! {
+                        *block.#field
+                    }
+                } else {
+                    quote! {
+                        block.#field
+                    }
+                };
+                quote! {
+                    #field: #field_path,
+                }
+            })
+            .collect::<Vec<TokenStream>>();
+        let const_sig = self.const_sig_name();
+        let sig = self.sig();
+        let sig_len = self.sig_len();
+        let vis = self.vis_token()?;
+        Ok(quote! {
+
+            #[repr(C)]
+            #[derive(Debug)]
+            #vis struct #referred_name <'a>
+                where Self: Sized
+            {
+                #(#struct_fields)*
+            }
+
+            impl<'a> From<#referred_name <'a>> for #block_name {
+                fn from(block: #referred_name <'a>) -> Self {
+                    #block_name {
+                        #(#derefed)*
+                    }
+                }
+            }
+
+            const #const_sig: [u8; #sig_len] = #sig;
+
+            impl brec::SignatureU32 for #referred_name <'_> {
+
+                fn sig() -> &'static [u8; #sig_len] {
+                    &#const_sig
+                }
+
+            }
+        })
+    }
+}
+
+impl Gen for Block {
+    fn generate(&self) -> Result<TokenStream, E> {
+        let base = Base::generate(self)?;
+        let read = Read::generate(self)?;
+        let read_slice = ReadFromSlice::generate(self)?;
+        let try_read = TryRead::generate(self)?;
+        let try_read_buffered = TryReadBuffered::generate(self)?;
+        let crc = Crc::generate(self)?;
+        let size = Size::generate(self);
+        let write = Write::generate(self)?;
+        let write_vec = WriteVectored::generate(self)?;
+        let napi = {
+            #[cfg(feature = "napi")]
+            {
+                brec_in_node_gen::codegen::base::block::generate(&self.name(), &self.fields)?
+            }
+            #[cfg(not(feature = "napi"))]
+            {
+                quote! {}
+            }
+        };
+        let wasm = {
+            #[cfg(feature = "wasm")]
+            {
+                brec_in_wasm_gen::codegen::base::block::generate(&self.name(), &self.fields)?
+            }
+            #[cfg(not(feature = "wasm"))]
+            {
+                quote! {}
+            }
+        };
+        let java = {
+            #[cfg(feature = "java")]
+            {
+                brec_in_java_gen::codegen::base::block::generate(&self.name(), &self.fields)?
+            }
+            #[cfg(not(feature = "java"))]
+            {
+                quote! {}
+            }
+        };
+        let csharp = {
+            #[cfg(feature = "csharp")]
+            {
+                brec_in_csharp_gen::codegen::base::block::generate(&self.name(), &self.fields)?
+            }
+            #[cfg(not(feature = "csharp"))]
+            {
+                quote! {}
+            }
+        };
+        Ok(quote! {
+            #base
+            #crc
+            #size
+            #read
+            #read_slice
+            #try_read
+            #try_read_buffered
+            #write
+            #write_vec
+            #napi
+            #wasm
+            #java
+            #csharp
+        })
+    }
+}

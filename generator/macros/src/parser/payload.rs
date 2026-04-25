@@ -1,0 +1,107 @@
+use proc_macro2::TokenStream;
+use quote::quote;
+
+use crate::*;
+use std::convert::TryFrom;
+
+pub fn parse(attrs: PayloadAttrs, mut input: DeriveInput) -> TokenStream {
+    #[cfg(any(
+        feature = "napi",
+        feature = "wasm",
+        feature = "java",
+        feature = "csharp"
+    ))]
+    let payload_data = input.data.clone();
+    #[cfg(any(
+        feature = "napi",
+        feature = "wasm",
+        feature = "java",
+        feature = "csharp"
+    ))]
+    let payload_name = input.ident.clone();
+    let payload = match Payload::try_from((attrs.clone(), &mut input)) {
+        Ok(p) => p,
+        Err(err) => return err.to_compile_error(),
+    };
+    if payload.attrs.is_ctx() {
+        return quote! { #input };
+    }
+    let reflected = match codegen::Gen::generate(&payload) {
+        Ok(p) => p,
+        Err(err) => {
+            return syn::Error::new_spanned(&input, err).to_compile_error();
+        }
+    };
+    if let Err(err) = modificators::attrs::inject_repr_c(&mut input) {
+        return syn::Error::new_spanned(&input, err).to_compile_error();
+    }
+    let napi_convert_impl = {
+        #[cfg(feature = "napi")]
+        {
+            match brec_in_node_gen::codegen::generate_impl(&payload_name, &payload_data) {
+                Ok(tokens) => tokens,
+                Err(err) => {
+                    return syn::Error::new_spanned(&input, err).to_compile_error();
+                }
+            }
+        }
+        #[cfg(not(feature = "napi"))]
+        {
+            quote! {}
+        }
+    };
+    let wasm_convert_impl = {
+        #[cfg(feature = "wasm")]
+        {
+            match brec_in_wasm_gen::codegen::generate_impl(&payload_name, &payload_data) {
+                Ok(tokens) => tokens,
+                Err(err) => {
+                    return syn::Error::new_spanned(&input, err).to_compile_error();
+                }
+            }
+        }
+        #[cfg(not(feature = "wasm"))]
+        {
+            quote! {}
+        }
+    };
+    let java_convert_impl = {
+        #[cfg(feature = "java")]
+        {
+            match brec_in_java_gen::codegen::generate_impl(&payload_name, &payload_data) {
+                Ok(tokens) => tokens,
+                Err(err) => {
+                    return syn::Error::new_spanned(&input, err).to_compile_error();
+                }
+            }
+        }
+        #[cfg(not(feature = "java"))]
+        {
+            quote! {}
+        }
+    };
+    let csharp_convert_impl = {
+        #[cfg(feature = "csharp")]
+        {
+            match brec_in_csharp_gen::codegen::generate_impl(&payload_name, &payload_data) {
+                Ok(tokens) => tokens,
+                Err(err) => {
+                    return syn::Error::new_spanned(&input, err).to_compile_error();
+                }
+            }
+        }
+        #[cfg(not(feature = "csharp"))]
+        {
+            quote! {}
+        }
+    };
+    quote! {
+        #input
+
+        #napi_convert_impl
+        #wasm_convert_impl
+        #java_convert_impl
+        #csharp_convert_impl
+        #reflected
+    }
+}

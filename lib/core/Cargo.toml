@@ -1,0 +1,96 @@
+[package]
+name        = "brec"
+version     = "0.3.0"
+edition     = "2024"
+authors     = ["d.astafyev@outlook.com"]
+description = "A flexible binary format for storing and streaming structured data as packets with CRC protection and recoverability from corruption. Built for extensibility and robustness."
+license     = "Apache-2.0"
+repository  = "https://github.com/icsmw/brec.git"
+homepage    = "https://github.com/icsmw/brec"
+readme      = "README.md"
+
+keywords = ["binary", "packet", "storage", "logging", "streaming"]
+
+categories = [
+    "encoding",
+    "data-structures",
+    "filesystem",
+    "development-tools",
+    "parser-implementations",
+]
+
+[features]
+bincode = ["dep:bincode"]
+napi = [
+    "dep:brec_in_node_gen_macro",
+    "dep:brec_in_node_lib",
+    "brec_macros/napi",
+]
+wasm = [
+    "dep:brec_in_wasm_lib",
+    "dep:brec_in_wasm_gen_macro",
+    "brec_macros/wasm",
+]
+java = [
+    "dep:brec_in_java_lib",
+    "dep:brec_in_java_gen_macro",
+    "brec_macros/java",
+]
+csharp = [
+    "dep:brec_in_csharp_lib",
+    "brec_macros/csharp",
+]
+locked_storage = ["fs4", "brec_macros/locked_storage"]
+observer = [
+    "dep:notify",
+    "dep:tokio",
+    "dep:tokio-util",
+    "dep:tokio-stream",
+    "dep:tracing",
+    "brec_macros/observer",
+]
+crypt = [
+    "dep:bincode",
+    "dep:serde",
+    "dep:chacha20poly1305",
+    "dep:rsa",
+    "dep:sha2",
+    "dep:secrecy",
+    "dep:zeroize",
+    "dep:x509-parser",
+    "dep:pem",
+]
+resilient = ["brec_macros/resilient"]
+
+
+[dependencies]
+thiserror.workspace    = true
+crc32fast.workspace    = true
+enum_ids.workspace     = true
+brec_macros.workspace  = true
+brec_in_node_gen_macro = { workspace = true, optional = true }
+brec_in_node_lib       = { workspace = true, optional = true }
+brec_in_java_gen_macro = { workspace = true, optional = true }
+brec_in_java_lib       = { workspace = true, optional = true }
+brec_in_wasm_gen_macro = { workspace = true, optional = true }
+brec_in_wasm_lib       = { workspace = true, optional = true }
+brec_in_csharp_lib     = { workspace = true, optional = true }
+brec_consts.workspace  = true
+bincode                = { workspace = true, optional = true }
+serde                  = { workspace = true, optional = true }
+notify                 = { workspace = true, optional = true }
+tracing                = { workspace = true, optional = true }
+fs4                    = { workspace = true, optional = true }
+tokio                  = { workspace = true, features = ["full"], optional = true }
+tokio-util             = { workspace = true, optional = true }
+tokio-stream           = { workspace = true, optional = true }
+chacha20poly1305       = { workspace = true, optional = true }
+rsa                    = { workspace = true, optional = true }
+sha2                   = { workspace = true, optional = true }
+secrecy                = { workspace = true, optional = true }
+zeroize                = { workspace = true, optional = true }
+x509-parser            = { workspace = true, optional = true }
+pem                    = { workspace = true, optional = true }
+
+[dev-dependencies]
+tempfile.workspace = true

@@ -1,6 +1,7 @@
 coverage:
   paths:
     - coverage_results/brec.lcov
+    - coverage_results/integration_libs.lcov
   badge:
     path: .github/artifacts/coverage.svg
 

@@ -1,0 +1,23 @@
+[package]
+name        = "brec_consts"
+version     = "0.3.0"
+edition     = "2024"
+authors     = ["d.astafyev@outlook.com"]
+description = "Shared constants for brec."
+license     = "Apache-2.0"
+repository  = "https://github.com/icsmw/brec.git"
+homepage    = "https://github.com/icsmw/brec"
+readme      = "README.md"
+
+keywords = ["binary", "packet", "storage", "logging", "streaming"]
+
+categories = [
+    "encoding",
+    "data-structures",
+    "filesystem",
+    "development-tools",
+    "parser-implementations",
+]
+
+[lib]
+path = "src/lib.rs"

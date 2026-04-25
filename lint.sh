@@ -1,16 +1,20 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
-cd ./brec
-cargo +nightly clippy --tests --all --all-features -- -D warnings
-cargo fmt --all --check
-cd ..
+set -euo pipefail
 
-cd ./brec_macros
-cargo +nightly clippy --tests --all --all-features -- -D warnings
-cargo fmt --all --check
-cd ..
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$SCRIPT_DIR"
 
-cd ./brec_common
-cargo +nightly clippy --tests --all --all-features -- -D warnings
-cargo fmt --all --check
-cd ..
+paths=(
+    "lib"
+    "generator"
+    "integration"
+)
+
+for path in "${paths[@]}"; do
+    echo "==> $path/lint.sh"
+    (
+        cd "$path"
+        bash lint.sh
+    )
+done

@@ -1,0 +1,25 @@
+[package]
+name        = "brec_in_node_gen"
+version     = "0.1.0"
+edition     = "2024"
+authors     = ["d.astafyev@outlook.com"]
+description = "Code generation backend for Brec N-API integration."
+license     = "Apache-2.0"
+repository  = "https://github.com/icsmw/brec.git"
+homepage    = "https://icsmw.github.io/brec/integrations/napi/"
+readme      = "README.md"
+
+keywords = ["brec", "napi", "nodejs", "codegen", "ffi"]
+
+categories = ["development-tools::ffi", "encoding"]
+
+[lib]
+path = "src/lib.rs"
+
+[dependencies]
+syn.workspace                = true
+quote.workspace              = true
+proc-macro2.workspace        = true
+enum_ids.workspace           = true
+brec_consts.workspace        = true
+brec_macros_parser.workspace = true
