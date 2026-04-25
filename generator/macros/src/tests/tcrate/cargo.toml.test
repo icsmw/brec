@@ -4,7 +4,7 @@ version = "0.0.0"
 edition = "2024"
 
 [dependencies]
-brec = { path = "../../brec", features=["bincode"] }
+brec = { path = "../../../lib/core", features=["bincode"] }
 serde = { version = "1.0", features = ["derive"] }
 
 [workspace]

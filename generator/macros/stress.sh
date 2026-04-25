@@ -1,6 +1,8 @@
-#!/bin/bash
+#!/usr/bin/env bash
+set -euo pipefail
 
-TESTS_DIR="../gen_tests"
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+TESTS_DIR="${SCRIPT_DIR}/../gen_tests"
 
 if [ -d "$TESTS_DIR" ]; then
     echo "Removing previous tests"
@@ -16,7 +18,10 @@ fi
 
 echo "Generate tests"
 
-cargo test --release --features generate_macro_test -- --nocapture 
+(
+    cd "${SCRIPT_DIR}"
+    cargo test --release --features generate_macro_test -- --nocapture
+)
 
 for folder in "$TESTS_DIR"/*/; do
     if [ -d "$folder" ]; then
