@@ -72,7 +72,7 @@ version = "0.0.0"
 edition = "2024"
 
 [dependencies]
-brec = { path = "../../brec"}
+brec = { path = "../../../lib/core"}
 "#
         .to_string()
     }
