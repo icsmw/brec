@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-CORE_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
-ROOT_DIR="$(cd -- "${CORE_DIR}/../.." && pwd)"
+WASM_LIB_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+ROOT_DIR="$(cd -- "${WASM_LIB_DIR}/../../.." && pwd)"
 OUT_DIR="${ROOT_DIR}/coverage_results"
 LCOV_OUT="${OUT_DIR}/wasm.lcov.info"
 WORKSPACE_MANIFEST="${ROOT_DIR}/Cargo.toml"
@@ -15,6 +15,8 @@ export CARGO_TARGET_DIR="${CARGO_LLVM_COV_TARGET_DIR}"
 
 mkdir -p "${OUT_DIR}"
 rm -f "${LCOV_OUT}"
+mkdir -p "${CARGO_LLVM_COV_TARGET_DIR}"
+printf 'Signature: 8a477f597d28d172789f06886806bc55\n' > "${CARGO_LLVM_COV_TARGET_DIR}/CACHEDIR.TAG"
 
 if ! command -v wasm-bindgen-test-runner >/dev/null 2>&1; then
   echo "wasm-bindgen-test-runner is required for wasm coverage." >&2
@@ -38,8 +40,7 @@ cargo +"${TOOLCHAIN}" llvm-cov clean --workspace --manifest-path "${WORKSPACE_MA
 echo "Running wasm32 tests with coverage instrumentation..."
 cargo +"${TOOLCHAIN}" llvm-cov test \
   --manifest-path "${WORKSPACE_MANIFEST}" \
-  -p brec \
-  --features wasm \
+  -p brec_in_wasm_lib \
   --target "${WASM_TARGET}" \
   --coverage-target-only \
   --lcov \
@@ -47,6 +48,6 @@ cargo +"${TOOLCHAIN}" llvm-cov test \
   --ignore-filename-regex '/rustc/|/\.cargo/(registry|git)/|/\.rustup/toolchains/' \
   -- --nocapture
 
-echo "wasm-focused brec coverage report generated:"
+echo "wasm-focused brec_in_wasm_lib coverage report generated:"
 echo "  LCOV: ${LCOV_OUT}"
 echo "  Target dir: ${CARGO_TARGET_DIR}"

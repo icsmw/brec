@@ -172,7 +172,6 @@ dependencies = [
  "tokio-stream",
  "tokio-util",
  "tracing",
- "wasm-bindgen-test",
  "x509-parser",
  "zeroize",
 ]
@@ -298,6 +297,7 @@ dependencies = [
  "js-sys",
  "thiserror 2.0.18",
  "wasm-bindgen",
+ "wasm-bindgen-test",
 ]
 
 [[package]]

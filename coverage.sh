@@ -26,7 +26,7 @@ export COVERAGE_TARGET="brec_macros"
 export COVERAGE_TARGET_DIR="${ROOT_DIR}/generator/macros"
 bash "${SCRIPTS_DIR}/coverage.sh"
 
-bash "${ROOT_DIR}/lib/core/coverage_wasm.sh"
+bash "${ROOT_DIR}/integration/wasm/lib/coverage.sh"
 
 bash "${SCRIPTS_DIR}/merge.sh"
 bash "${SCRIPTS_DIR}/report.sh"
