@@ -14,6 +14,7 @@ REPORT_NAMES=(
   "brec_in_java_lib"
   "brec_in_csharp_lib"
   "brec_in_wasm_lib"
+  "integration_libs"
   "integrations"
 )
 
@@ -24,6 +25,7 @@ REPORT_PATTERNS=(
   "${ROOT_DIR}/integration/java/lib/*"
   "${ROOT_DIR}/integration/csharp/lib/*"
   "${ROOT_DIR}/integration/wasm/lib/*"
+  "${ROOT_DIR}/integration/node/lib/* ${ROOT_DIR}/integration/java/lib/* ${ROOT_DIR}/integration/csharp/lib/* ${ROOT_DIR}/integration/wasm/lib/*"
   "${ROOT_DIR}/integration/*/gen/* ${ROOT_DIR}/integration/*/lib/* ${ROOT_DIR}/integration/*/macro/*"
 )
 
