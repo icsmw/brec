@@ -5,6 +5,6 @@ cd ./tests
 sh stress.sh
 cd ..
 
-cd ./brec_macros
+cd ./generator/macros
 sh stress.sh 
-cd ..
+cd ../..

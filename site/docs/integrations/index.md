@@ -16,7 +16,7 @@ For developers, this means the integration layer is primarily about object conve
 
 ## Architectural Split
 
-After the refactoring, `brec` is intentionally split into two layers.
+`brec` is intentionally split into two layers.
 
 ### `lib/core`: the thin public entry layer
 
@@ -26,7 +26,7 @@ The `brec` crate in `lib/core` keeps the stable protocol model and the user-faci
 - common traits such as `BlockDef`, `PayloadDef`, `PayloadEncode`, `PayloadDecode`, and packet readers/writers
 - the main macros users invoke from their protocol crate
 - feature-gated reexports of integration derives and helper crates
-- thin wrapper methods such as `Packet::decode_wasm`, `Packet::encode_napi`, and `Packet::decode_java`
+- thin wrapper methods such as `Packet::decode_csharp`, `Packet::decode_wasm`, `Packet::encode_napi`, and `Packet::decode_java`
 
 This layer should stay small. It defines the protocol engine and exposes integration entry points, but it does not contain the full language-specific implementation.
 
@@ -45,7 +45,7 @@ Examples from the current workspace:
 - `integration/java/{lib,gen,macro}` for JNI / Java
 - `integration/csharp/{lib,gen}` for the C# bridge
 
-Not every integration needs exactly the same crate set. For example, C# is currently wired through dedicated `lib` and `gen` crates, while the pages in this section focus on the integrations that already have end-user documentation.
+Not every integration needs exactly the same crate set. For example, C# is currently wired through dedicated `lib` and `gen` crates, while Node.js, WASM, and Java also need dedicated derive-macro crates.
 
 In practice, `lib/core` enables these crates through feature flags and reexports only what protocol authors need at the call site.
 
@@ -58,6 +58,7 @@ Typical flow:
 1. Rust reads packet bytes using the normal `brec` packet reader.
 2. Rust decodes blocks and payload using the same Rust-side traits and codecs as everywhere else.
 3. The integration crate converts the resulting Rust representation into a platform object:
+   - `CSharpValue` for C# / PInvoke-style integrations
    - `JsValue` for wasm
    - N-API values for Node.js
    - JNI objects for Java

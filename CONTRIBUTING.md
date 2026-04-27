@@ -30,8 +30,8 @@ If your changes affect core logic (reading, writing, parsing, or streaming), you
 To measure this, run the existing benchmark test before and after your changes:
 
 ```bash
-cd tests/measurements
-cargo test --release -- --nocapture
+cd measurements
+./test.sh
 ```
 
 1. Run this test **on the unmodified main branch**, and note the results.
@@ -72,6 +72,8 @@ Run it manually before submitting PRs that:
 ```bash
 ./stress.sh
 ```
+
+This script fans out into the workspace stress suites under `tests/` and `generator/macros/`.
 
 This is the **final gate** for acceptance of changes.
 

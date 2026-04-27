@@ -1,0 +1,3 @@
+`brec` is a Rust toolkit for building custom binary packet protocols with CRC protection, stream recovery from corrupted or mixed data, flexible payload definitions, and optional bridges to other runtimes. The main project documentation, usage guides, and integration notes live at <https://icsmw.github.io/brec/>.
+
+This crate, `brec_in_wasm_lib`, is part of the WASM integration toolchain for `brec` and provides the Rust-side runtime conversion layer used by `wasm-bindgen`-based integrations. For end-user usage, architecture overview, and WASM integration details, see the main repository at <https://github.com/icsmw/brec> and the documentation section at <https://icsmw.github.io/brec/integrations/wasm/>.
