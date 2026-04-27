@@ -234,3 +234,4 @@ For packet and payload paths, context is passed explicitly (`ctx`) exactly like 
 - [Packets](../parts/packets.md)
 - [NAPI (Rust <-> JS)](./napi.md)
 - [WASM (Rust <-> JS)](./wasm.md)
+- [C# (Rust <-> C#)](./csharp.md)

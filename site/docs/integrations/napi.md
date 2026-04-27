@@ -245,3 +245,4 @@ For packet and payload paths, context is passed explicitly (`ctx`) exactly like 
 
 - [WASM (Rust <-> JS)](./wasm.md)
 - [Java (Rust <-> Java)](./java.md)
+- [C# (Rust <-> C#)](./csharp.md)

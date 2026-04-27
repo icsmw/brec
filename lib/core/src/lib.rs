@@ -18,6 +18,7 @@ pub const MAX_BLOCKS_COUNT: u8 = u8::MAX;
 
 /// Shared error types used across the crate.
 pub mod error;
+/// Feature-gated integration helpers for C#, Node.js, WASM, and Java bridges.
 pub mod integrations;
 /// Packet types, readers, rules, and related helpers (including resilient-mode parsing paths).
 pub mod packet;

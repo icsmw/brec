@@ -2,12 +2,21 @@
 
 ### Added
 
+- Rust feature flag `csharp`: direct Rust <-> C# object conversion for generated `Block`, `Payload`, and `PacketDef` protocol types through the `CSharpValue` ABI.
 - Rust feature flag `napi`: direct Rust <-> JavaScript object conversion for generated `Block`, `Payload`, and `PacketDef` protocol types.
 - Rust feature flag `wasm`: direct Rust <-> JavaScript object conversion for generated `Block`, `Payload`, and `PacketDef` protocol types in `wasm-bindgen` runtimes.
 - Rust feature flag `java`: direct Rust <-> Java object conversion for generated `Block`, `Payload`, and `PacketDef` protocol types in JNI-based runtimes.
+- Dedicated documentation section for C# usage, reflection model, and FFI integration shape.
 - Dedicated documentation section for N-API usage, JS reflection model, and nested payload requirements.
 - Dedicated documentation section for WASM usage, JS reflection model, and nested payload requirements.
 - Dedicated documentation section for Java usage, object reflection model, and nested payload requirements.
+
+### Changes
+
+- Workspace layout was refactored into dedicated `lib`, `generator`, and `integration` crates instead of keeping integration code inside the main crate and macro crate.
+- Language-specific generation/runtime logic for Node.js, WASM, Java, and C# now lives in `integration/<lang>/*` crates.
+- The public `brec` crate in `lib/core` now acts as the thin entry layer that reexports feature-gated integration helpers.
+- Root scripts, contributing notes, and repository documentation were updated to the new workspace paths.
 
 ## 0.3.0 (20.03.2026)
 

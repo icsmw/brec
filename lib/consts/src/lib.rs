@@ -1,4 +1,4 @@
-//! Shared wire-format constants used by both `brec` and `brec_macros`.
+//! Shared wire-format constants used across the public crate and generator crates.
 
 /// Fixed size of a block signature in bytes.
 pub const BLOCK_SIG_LEN: usize = 4;

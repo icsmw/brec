@@ -31,6 +31,7 @@
 - **Optional Node.js bridge (N-API)** - With the `napi` feature, protocol objects can be converted directly between Rust and JavaScript without JSON conversion as an intermediate transport.
 - **Optional WASM bridge (`wasm-bindgen`)** - With the `wasm` feature, protocol objects can be converted directly between Rust and JavaScript in browser/wasm runtimes, without JSON as an intermediate transport.
 - **Optional Java bridge (JNI)** - With the `java` feature, protocol objects can be converted directly between Rust and Java runtime objects without JSON conversion as an intermediate transport.
+- **Optional C# bridge (PInvoke / C ABI)** - With the `csharp` feature, protocol objects can be converted directly between Rust packet models and a stable Rust-side value ABI for .NET-facing integrations.
 - **High performance** - Parsing performance is on par with the most optimized binary parsers (see the Performance section in [documentation](https://icsmw.github.io/brec/)).
 - **Simple to use** - Just annotate your structs with #[block] or #[payload], and brec takes care of the rest - your protocol is ready to go.
 
@@ -89,6 +90,8 @@ The main documentation for this crate lives in [documentation](https://icsmw.git
 
 Useful entry points:
 
+- [Integrations Overview](https://icsmw.github.io/brec/integrations/)
+- [C# (Rust <-> C#)](https://icsmw.github.io/brec/integrations/csharp/)
 - [Getting Started](https://icsmw.github.io/brec/getting_started/)
 - [Payloads](https://icsmw.github.io/brec/parts/payloads/)
 - [Payload Context](https://icsmw.github.io/brec/parts/context/)
@@ -97,6 +100,23 @@ Useful entry points:
 - [NAPI (Rust <-> JS)](https://icsmw.github.io/brec/integrations/napi/)
 - [WASM (Rust <-> JS)](https://icsmw.github.io/brec/integrations/wasm/)
 - [Java (Rust <-> Java)](https://icsmw.github.io/brec/integrations/java/)
+
+## Workspace Layout
+
+The repository is organized by responsibility:
+
+- `lib/core` - the public `brec` crate and the protocol/runtime API
+- `lib/consts` - shared wire-format constants
+- `generator/*` - parsing and proc-macro code generation
+- `integration/*` - language-specific runtime bridges and generators
+- `tests/*` - CI-oriented test suites covering the core functionality; the same areas also have stress runs where the total generated data volume can reach roughly 40 GB
+- `scripts/*` - helper scripts for coverage collection, reporting, and other repository maintenance tasks
+- `examples/*` - real usage examples for common `brec` scenarios
+- `e2e/*` - end-to-end examples of real integration with other languages and runtimes such as Node.js, WASM, Java, and C#
+- `site/*` - project documentation source
+- `measurements/*` - performance evaluation and comparison against major alternatives
+
+This keeps the public crate small while allowing integration-specific logic to evolve independently.
 
 ## Contributing
 

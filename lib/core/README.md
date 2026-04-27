@@ -23,6 +23,7 @@
 - **Optional Node.js bridge (N-API)** - With the `napi` feature, protocol objects can be converted directly between Rust and JavaScript without JSON conversion as an intermediate transport.
 - **Optional WASM bridge (`wasm-bindgen`)** - With the `wasm` feature, protocol objects can be converted directly between Rust and JavaScript in browser/wasm runtimes without JSON as an intermediate transport.
 - **Optional Java bridge (JNI)** - With the `java` feature, protocol objects can be converted directly between Rust and Java runtime objects without JSON as an intermediate transport.
+- **Optional C# bridge (PInvoke / C ABI)** - With the `csharp` feature, protocol objects can be converted directly between Rust packet models and a stable Rust-side value ABI for .NET-facing integrations.
 - **High performance** - Parsing performance is on par with the most optimized binary parsers (see the Performance section).
 - **Simple to use** - Just annotate your structs with #[block] or #[payload], and brec takes care of the rest - your protocol is ready to go.
 
@@ -143,6 +144,59 @@ If your payload needs runtime state during encoding or decoding, see the `Payloa
 If your payload should also be encrypted transparently, the recommended path is `#[payload(bincode, crypt)]` with the `crypt` feature enabled.
 
 With `brec`, defining protocol types (blocks and payloads) is reduced to simply defining structures and annotating them with the `block` and `payload` macros.
+
+## Workspace Layout
+
+The repository is organized by responsibility:
+
+- `lib/core` - the public `brec` crate and the protocol/runtime API
+- `lib/consts` - shared wire-format constants
+- `generator/*` - parsing and proc-macro code generation
+- `integration/*` - language-specific runtime bridges and generators
+- `tests/*` - CI-oriented test suites covering the core functionality; the same areas also have stress runs where the total generated data volume can reach roughly 40 GB
+- `scripts/*` - helper scripts for coverage collection, reporting, and other repository maintenance tasks
+- `examples/*` - real usage examples for common `brec` scenarios
+- `e2e/*` - end-to-end examples of real integration with other languages and runtimes such as Node.js, WASM, Java, and C#
+- `site/*` - project documentation source
+- `measurements/*` - performance evaluation and comparison against major alternatives
+
+This keeps the public crate small while allowing integration-specific logic to evolve independently.
+
+## C# (Rust <-> C#)
+
+When the `csharp` feature is enabled, `brec` adds direct Rust <-> C# conversion for generated protocol types through a Rust-side value ABI.
+
+This is useful for PInvoke / C ABI integrations where you want to avoid extra conversion layers like:
+
+1. Rust values -> JSON string
+2. JSON string -> C# values
+
+and the reverse path on encode.
+
+### Enabling
+
+```toml
+[dependencies]
+brec = { version = "...", features = ["csharp", "bincode"] }
+```
+
+### Nested Payload Types
+
+For payload C# conversion, nested custom Rust types should derive `brec::CSharp`:
+
+```ignore
+#[derive(serde::Serialize, serde::Deserialize, brec::CSharp)]
+pub struct MyNestedType { ... }
+```
+
+### Conversion Contract
+
+- generated helpers exchange `brec::csharp_feat::CSharpValue`
+- float values preserve exact IEEE-754 bit patterns
+- field names and variant names are preserved exactly from the Rust protocol model
+
+For complete usage, reflection rules, and packet/object shapes in C#, see:
+https://icsmw.github.io/brec/integrations/csharp/
 
 ## NAPI (Rust <-> JS)
 

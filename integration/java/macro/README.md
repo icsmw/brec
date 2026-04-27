@@ -1,0 +1,3 @@
+`brec` is a Rust toolkit for building custom binary packet protocols with CRC protection, stream recovery from corrupted or mixed data, flexible payload definitions, and optional bridges to other runtimes. The main project documentation, usage guides, and integration notes live at <https://icsmw.github.io/brec/>.
+
+This crate, `brec_in_java_gen_macro`, is part of the Java integration toolchain for `brec` and provides proc-macro derives for Rust types that participate in JNI-oriented conversion. For end-user usage, architecture overview, and Java integration details, see the main repository at <https://github.com/icsmw/brec> and the documentation section at <https://icsmw.github.io/brec/integrations/java/>.

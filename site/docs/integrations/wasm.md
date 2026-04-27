@@ -296,3 +296,4 @@ Common causes:
 - [Packets](../parts/packets.md)
 - [NAPI (Rust <-> JS)](./napi.md)
 - [Java (Rust <-> Java)](./java.md)
+- [C# (Rust <-> C#)](./csharp.md)
