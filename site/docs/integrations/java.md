@@ -3,6 +3,7 @@
 The `java` feature adds direct Rust <-> Java conversion for generated protocol types.
 
 This is intended for JNI-based integrations where you want to work with protocol objects directly on the Java side without JSON as an intermediate layer.
+The Java layer is a JNI-facing binding over the Rust packet engine, not a Java-side reimplementation of packet codecs. For the shared architectural model behind this split, see [Integrations](index.md).
 
 ## Motivation
 

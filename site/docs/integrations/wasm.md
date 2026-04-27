@@ -3,6 +3,7 @@
 The `wasm` feature adds direct Rust <-> JavaScript conversion for generated protocol types.
 
 This is intended for `wasm-bindgen` targets (browser and other JS runtimes) where you want to work with protocol objects in JS without JSON as a transport layer.
+The wasm layer is a binding over the Rust packet engine, not a separate implementation of packet codecs in JavaScript. For the shared architectural model behind this split, see [Integrations](index.md).
 
 ## Motivation
 
