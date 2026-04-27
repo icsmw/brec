@@ -16,6 +16,7 @@ nav:
       - Resilient Compatibility: features/resilient.md
       - Crypt: features/crypt.md
   - Integrations:
+      - C# (Rust <-> C#): integrations/csharp.md
       - NAPI (Rust <-> JS): integrations/napi.md
       - WASM (Rust <-> JS): integrations/wasm.md
       - Java (Rust <-> Java): integrations/java.md

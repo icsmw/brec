@@ -3,6 +3,7 @@
 The `napi` feature adds direct Rust <-> JavaScript conversion for generated protocol types.
 
 This is intended for Node.js bindings where you want to work with protocol objects in JS without going through JSON payload conversion.
+The integration exposes a JavaScript-facing binding surface, while packet reading, writing, validation, and payload codecs remain in the Rust core. For the shared architectural model behind this split, see [Integrations](index.md).
 
 ## Motivation
 
