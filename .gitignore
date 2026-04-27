@@ -3,3 +3,4 @@
 gen_tests
 /not_public
 **/coverage_results
+**/pr.md
