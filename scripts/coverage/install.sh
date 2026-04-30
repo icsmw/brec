@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+ROOT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)"
+LOCK_FILE="${ROOT_DIR}/Cargo.lock"
+
 if ! command -v cargo >/dev/null 2>&1; then
   echo "cargo not found in PATH" >&2
   exit 1
@@ -26,10 +29,25 @@ rustup component add llvm-tools-preview --toolchain nightly
 echo "Ensuring wasm32 target is installed for nightly..."
 rustup target add wasm32-unknown-unknown --toolchain nightly
 
-if ! command -v wasm-bindgen-test-runner >/dev/null 2>&1; then
-  echo "Installing wasm-bindgen CLI (includes wasm-bindgen-test-runner)..."
-  cargo install wasm-bindgen-cli --locked
+WASM_BINDGEN_VERSION="$(
+  awk '
+    $0 == "[[package]]" { in_pkg = 0 }
+    $0 == "name = \"wasm-bindgen\"" { in_pkg = 1; next }
+    in_pkg && /^version = / {
+      gsub(/"/, "", $3)
+      print $3
+      exit
+    }
+  ' "${LOCK_FILE}"
+)"
+
+if [[ -z "${WASM_BINDGEN_VERSION}" ]]; then
+  echo "Unable to determine wasm-bindgen version from ${LOCK_FILE}" >&2
+  exit 1
 fi
+
+echo "Installing wasm-bindgen CLI ${WASM_BINDGEN_VERSION} (includes wasm-bindgen-test-runner)..."
+cargo install wasm-bindgen-cli --locked --version "${WASM_BINDGEN_VERSION}"
 
 if ! command -v lcov >/dev/null 2>&1; then
   echo "lcov not found in PATH, installing..."
