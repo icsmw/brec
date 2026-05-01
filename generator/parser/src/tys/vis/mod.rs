@@ -1,10 +1,11 @@
 use proc_macro2::TokenStream;
 use quote::{ToTokens, quote};
+use serde::{Deserialize, Serialize};
 use syn::{DeriveInput, Visibility, token};
 
 use crate::*;
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Vis {
     Public,
     #[default]

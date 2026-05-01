@@ -3,11 +3,11 @@ use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
 use syn::{Ident, LitStr};
 
-fn to_wasm_field_set(field: &Field) -> Result<TokenStream, E> {
+fn to_wasm_field_set(field: &BlockField) -> Result<TokenStream, E> {
     let rust_field = format_ident!("{}", field.name);
     let js_field = LitStr::new(&field.name, proc_macro2::Span::call_site());
     let value = match &field.ty {
-        Ty::LinkedToU8(_) => quote! {{
+        BlockTy::LinkedToU8(_) => quote! {{
             let value: u8 = (&self.#rust_field).into();
             <u8 as brec::wasm_feat::WasmConvert>::to_wasm_value(&value)?
         }},
@@ -22,12 +22,12 @@ fn to_wasm_field_set(field: &Field) -> Result<TokenStream, E> {
     })
 }
 
-fn from_wasm_field_get(field: &Field) -> Result<TokenStream, E> {
+fn from_wasm_field_get(field: &BlockField) -> Result<TokenStream, E> {
     let rust_field = format_ident!("{}", field.name);
     let js_field = LitStr::new(&field.name, proc_macro2::Span::call_site());
     let ty = field.ty.direct();
     Ok(match &field.ty {
-        Ty::LinkedToU8(enum_name) => quote! {
+        BlockTy::LinkedToU8(enum_name) => quote! {
             let raw = js_sys::Reflect::get(&obj, &wasm_bindgen::JsValue::from_str(#js_field))
                 .map_err(|err| brec::wasm_feat::WasmError::invalid_field_name(#js_field, format!("{err:?}")))?;
             let raw: u8 = <u8 as brec::wasm_feat::WasmConvert>::from_wasm_value(raw)?;
@@ -42,7 +42,7 @@ fn from_wasm_field_get(field: &Field) -> Result<TokenStream, E> {
     })
 }
 
-pub fn generate(block_name: &Ident, fields: &[Field]) -> Result<TokenStream, E> {
+pub fn generate(block_name: &Ident, fields: &[BlockField]) -> Result<TokenStream, E> {
     let to_wasm = fields
         .iter()
         .filter(|field| !field.injected)

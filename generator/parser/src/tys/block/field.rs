@@ -6,15 +6,15 @@ pub const FIELD_SIG: &str = "__sig";
 pub const FIELD_CRC: &str = "__crc";
 
 #[derive(Debug, Clone)]
-pub struct Field {
+pub struct BlockField {
     pub name: String,
-    pub ty: Ty,
+    pub ty: BlockTy,
     pub injected: bool,
     pub vis: Vis,
 }
 
-impl Field {
-    pub fn injected<S: AsRef<str>>(name: S, ty: Ty) -> Self {
+impl BlockField {
+    pub fn injected<S: AsRef<str>>(name: S, ty: BlockTy) -> Self {
         Self {
             name: name.as_ref().to_string(),
             ty,

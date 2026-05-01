@@ -1,12 +1,13 @@
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
+use serde::{Deserialize, Serialize};
 use std::fmt;
 
 /// f16 and f128 are unstable
 #[enum_ids::enum_ids(display_variant)]
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
 #[allow(dead_code)]
-pub enum Ty {
+pub enum BlockTy {
     U8,
     U16,
     U32,
@@ -24,7 +25,7 @@ pub enum Ty {
     LinkedToU8(String),
 }
 
-impl Ty {
+impl BlockTy {
     pub fn size(&self) -> usize {
         match self {
             Self::U8 => std::mem::size_of::<u8>(),
@@ -100,33 +101,31 @@ impl Ty {
     }
 }
 
-impl fmt::Display for Ty {
+impl fmt::Display for BlockTy {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
             "{}",
             match self {
-                Self::U8 => TyId::U8.to_string().to_ascii_lowercase(),
-                Self::U16 => TyId::U16.to_string().to_ascii_lowercase(),
-                Self::U32 => TyId::U32.to_string().to_ascii_lowercase(),
-                Self::U64 => TyId::U64.to_string().to_ascii_lowercase(),
-                Self::U128 => TyId::U128.to_string().to_ascii_lowercase(),
-                Self::I8 => TyId::I8.to_string().to_ascii_lowercase(),
-                Self::I16 => TyId::I16.to_string().to_ascii_lowercase(),
-                Self::I32 => TyId::I32.to_string().to_ascii_lowercase(),
-                Self::I64 => TyId::I64.to_string().to_ascii_lowercase(),
-                Self::I128 => TyId::I128.to_string().to_ascii_lowercase(),
-                Self::F32 => TyId::F32.to_string().to_ascii_lowercase(),
-                Self::F64 => TyId::F64.to_string().to_ascii_lowercase(),
-                Self::Bool => TyId::Bool.to_string().to_ascii_lowercase(),
+                Self::U8 => BlockTyId::U8.to_string().to_ascii_lowercase(),
+                Self::U16 => BlockTyId::U16.to_string().to_ascii_lowercase(),
+                Self::U32 => BlockTyId::U32.to_string().to_ascii_lowercase(),
+                Self::U64 => BlockTyId::U64.to_string().to_ascii_lowercase(),
+                Self::U128 => BlockTyId::U128.to_string().to_ascii_lowercase(),
+                Self::I8 => BlockTyId::I8.to_string().to_ascii_lowercase(),
+                Self::I16 => BlockTyId::I16.to_string().to_ascii_lowercase(),
+                Self::I32 => BlockTyId::I32.to_string().to_ascii_lowercase(),
+                Self::I64 => BlockTyId::I64.to_string().to_ascii_lowercase(),
+                Self::I128 => BlockTyId::I128.to_string().to_ascii_lowercase(),
+                Self::F32 => BlockTyId::F32.to_string().to_ascii_lowercase(),
+                Self::F64 => BlockTyId::F64.to_string().to_ascii_lowercase(),
+                Self::Bool => BlockTyId::Bool.to_string().to_ascii_lowercase(),
                 Self::Blob(len) => {
-                    // Just to avoid rust warning "never constructed" for TyId::Blob
-                    let _ = TyId::Blob.to_string();
+                    let _ = BlockTyId::Blob.to_string();
                     format!("[u8;{len}]")
                 }
                 Self::LinkedToU8(ident) => {
-                    // Just to avoid rust warning "never constructed" for TyId::LinkedToU8
-                    let _ = TyId::LinkedToU8.to_string();
+                    let _ = BlockTyId::LinkedToU8.to_string();
                     ident.to_string()
                 }
             }

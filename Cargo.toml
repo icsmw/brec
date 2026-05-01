@@ -5,6 +5,7 @@ members = [
     "lib/core",
     "generator/macros",
     "generator/parser",
+    "generator/scheme",
     "integration/node/gen",
     "integration/node/macro",
     "integration/node/lib",
@@ -36,6 +37,7 @@ bincode                = { version = "2.0", features = ["serde"] }
 brec_macros            = { version = "0.3.0", path = "./generator/macros" }
 brec_consts            = { version = "0.3.0", path = "./lib/consts" }
 brec_macros_parser     = { version = "0.1.0", path = "./generator/parser" }
+brec_scheme            = { version = "0.1.0", path = "./generator/scheme" }
 brec_in_node_gen       = { version = "0.1.0", path = "./integration/node/gen" }
 brec_in_node_gen_macro = { version = "0.1.0", path = "./integration/node/macro" }
 brec_in_node_lib       = { version = "0.1.0", path = "./integration/node/lib" }
