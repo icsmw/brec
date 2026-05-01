@@ -2,7 +2,7 @@ use crate::*;
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
 
-impl Assignation for Field {
+impl Assignation for BlockField {
     fn referenced_ty(&self) -> TokenStream {
         let name = format_ident!("{}", self.name);
         let ty = self.ty.referenced();

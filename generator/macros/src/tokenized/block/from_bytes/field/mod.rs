@@ -4,7 +4,7 @@ use syn::Ident;
 
 use crate::*;
 
-impl FromBytes for Field {
+impl FromBytes for BlockField {
     fn safe(&self, src: &Ident, from: usize, to: usize) -> TokenStream {
         let name = format_ident!("{}", self.name);
         let ty = self.ty.safe(src, from, to);

@@ -3,16 +3,16 @@ use proc_macro2::{Ident, TokenStream};
 use quote::{format_ident, quote};
 use syn::LitStr;
 
-fn to_napi_field_set(field: &Field) -> Result<TokenStream, E> {
+fn to_napi_field_set(field: &BlockField) -> Result<TokenStream, E> {
     let rust_field = format_ident!("{}", field.name);
     let js_field = LitStr::new(&field.name, proc_macro2::Span::call_site());
     let value = match &field.ty {
-        Ty::F32 => quote! { self.#rust_field.to_bits() },
-        Ty::F64 => quote! { napi::bindgen_prelude::BigInt::from(self.#rust_field.to_bits()) },
-        Ty::I64 | Ty::U64 | Ty::I128 | Ty::U128 => {
+        BlockTy::F32 => quote! { self.#rust_field.to_bits() },
+        BlockTy::F64 => quote! { napi::bindgen_prelude::BigInt::from(self.#rust_field.to_bits()) },
+        BlockTy::I64 | BlockTy::U64 | BlockTy::I128 | BlockTy::U128 => {
             quote! { napi::bindgen_prelude::BigInt::from(self.#rust_field) }
         }
-        Ty::LinkedToU8(_) => quote! {{
+        BlockTy::LinkedToU8(_) => quote! {{
             let value: u8 = (&self.#rust_field).into();
             value
         }},
@@ -24,17 +24,17 @@ fn to_napi_field_set(field: &Field) -> Result<TokenStream, E> {
     })
 }
 
-fn from_napi_field_get(field: &Field, ty: TokenStream) -> Result<TokenStream, E> {
+fn from_napi_field_get(field: &BlockField, ty: TokenStream) -> Result<TokenStream, E> {
     let rust_field = format_ident!("{}", field.name);
     let js_field = LitStr::new(&field.name, proc_macro2::Span::call_site());
     Ok(match &field.ty {
-        Ty::F32 => quote! {
+        BlockTy::F32 => quote! {
             let #rust_field: u32 = obj
                 .get_named_property(#js_field)
                 .map_err(|err| brec::napi_feat::NapiError::invalid_field_name(#js_field, err))?;
             let #rust_field = f32::from_bits(#rust_field);
         },
-        Ty::F64 => quote! {
+        BlockTy::F64 => quote! {
             let raw: napi::Unknown<'_> = obj
                 .get_named_property(#js_field)
                 .map_err(|err| brec::napi_feat::NapiError::invalid_field_name(#js_field, err))?;
@@ -63,7 +63,7 @@ fn from_napi_field_get(field: &Field, ty: TokenStream) -> Result<TokenStream, E>
             };
             let #rust_field = f64::from_bits(bits);
         },
-        Ty::I64 => quote! {
+        BlockTy::I64 => quote! {
             let raw: napi::Unknown<'_> = obj
                 .get_named_property(#js_field)
                 .map_err(|err| brec::napi_feat::NapiError::invalid_field_name(#js_field, err))?;
@@ -91,7 +91,7 @@ fn from_napi_field_get(field: &Field, ty: TokenStream) -> Result<TokenStream, E>
                 }
             };
         },
-        Ty::U64 => quote! {
+        BlockTy::U64 => quote! {
             let raw: napi::Unknown<'_> = obj
                 .get_named_property(#js_field)
                 .map_err(|err| brec::napi_feat::NapiError::invalid_field_name(#js_field, err))?;
@@ -119,7 +119,7 @@ fn from_napi_field_get(field: &Field, ty: TokenStream) -> Result<TokenStream, E>
                 }
             };
         },
-        Ty::I128 => quote! {
+        BlockTy::I128 => quote! {
             let raw: napi::Unknown<'_> = obj
                 .get_named_property(#js_field)
                 .map_err(|err| brec::napi_feat::NapiError::invalid_field_name(#js_field, err))?;
@@ -147,7 +147,7 @@ fn from_napi_field_get(field: &Field, ty: TokenStream) -> Result<TokenStream, E>
                 }
             };
         },
-        Ty::U128 => quote! {
+        BlockTy::U128 => quote! {
             let raw: napi::Unknown<'_> = obj
                 .get_named_property(#js_field)
                 .map_err(|err| brec::napi_feat::NapiError::invalid_field_name(#js_field, err))?;
@@ -175,7 +175,7 @@ fn from_napi_field_get(field: &Field, ty: TokenStream) -> Result<TokenStream, E>
                 }
             };
         },
-        Ty::Blob(len) => quote! {
+        BlockTy::Blob(len) => quote! {
             let raw: Vec<u8> = obj
                 .get_named_property(#js_field)
                 .map_err(|err| brec::napi_feat::NapiError::invalid_field_name(#js_field, err))?;
@@ -186,7 +186,7 @@ fn from_napi_field_get(field: &Field, ty: TokenStream) -> Result<TokenStream, E>
                 )
             })?;
         },
-        Ty::LinkedToU8(_) => quote! {
+        BlockTy::LinkedToU8(_) => quote! {
             let raw: u8 = obj
                 .get_named_property(#js_field)
                 .map_err(|err| brec::napi_feat::NapiError::invalid_field_name(#js_field, err))?;
@@ -201,7 +201,7 @@ fn from_napi_field_get(field: &Field, ty: TokenStream) -> Result<TokenStream, E>
     })
 }
 
-pub fn generate(name: &Ident, fields: &[Field]) -> Result<TokenStream, E> {
+pub fn generate(name: &Ident, fields: &[BlockField]) -> Result<TokenStream, E> {
     let to_napi = fields
         .iter()
         .filter(|field| !field.injected)

@@ -118,11 +118,14 @@ dependencies = [
  "brec_consts",
  "brec_in_csharp_gen",
  "brec_macros_parser",
+ "brec_scheme",
  "crc32fast",
  "enum_ids",
  "lazy_static",
  "proc-macro2",
  "quote",
+ "serde",
+ "serde_json",
  "syn",
  "thiserror",
 ]
@@ -137,8 +140,17 @@ dependencies = [
  "lazy_static",
  "proc-macro2",
  "quote",
+ "serde",
  "syn",
  "thiserror",
+]
+
+[[package]]
+name = "brec_scheme"
+version = "0.1.0"
+dependencies = [
+ "brec_macros_parser",
+ "serde",
 ]
 
 [[package]]
@@ -183,9 +195,9 @@ dependencies = [
 
 [[package]]
 name = "data-encoding"
-version = "2.10.0"
+version = "2.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d7a1e2f27636f116493b8b860f5546edb47c8d8f8ea73e1d2a20be88e28d1fea"
+checksum = "a4ae5f15dda3c708c0ade84bfee31ccab44a3da4f88015ed22f63732abe300c8"
 
 [[package]]
 name = "digest"

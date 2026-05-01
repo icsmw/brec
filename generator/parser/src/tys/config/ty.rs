@@ -7,6 +7,7 @@ use syn::Path;
 #[derive(Debug, Clone)]
 pub enum Setting {
     NoDefaultPayload,
+    Scheme,
     PayloadsDerive(String),
 }
 
@@ -17,6 +18,9 @@ impl Config {
         self.0
             .iter()
             .any(|attr| matches!(attr, Setting::NoDefaultPayload))
+    }
+    pub fn is_scheme(&self) -> bool {
+        self.0.iter().any(|attr| matches!(attr, Setting::Scheme))
     }
     pub fn get_payload_derive(&self) -> Result<Vec<TokenStream>, E> {
         let Some(Setting::PayloadsDerive(derives)) = self

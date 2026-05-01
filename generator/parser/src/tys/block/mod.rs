@@ -1,6 +1,10 @@
 mod attr;
+mod field;
+mod ty;
 
 pub use attr::*;
+pub use field::*;
+pub use ty::*;
 
 use crate::*;
 use brec_consts::*;
@@ -12,7 +16,7 @@ use syn::{Ident, LitInt};
 #[derive(Debug, Clone)]
 pub struct Block {
     pub name: String,
-    pub fields: Vec<Field>,
+    pub fields: Vec<BlockField>,
     pub attrs: BlockAttrs,
     pub derives: Derives,
     pub vis: Vis,
@@ -21,7 +25,7 @@ pub struct Block {
 impl Block {
     pub fn new(
         name: String,
-        fields: Vec<Field>,
+        fields: Vec<BlockField>,
         attrs: BlockAttrs,
         derives: Derives,
         vis: Vis,
