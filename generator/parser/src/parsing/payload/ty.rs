@@ -63,6 +63,7 @@ impl TryFrom<&Ident> for PayloadTy {
 
     fn try_from(ident: &Ident) -> Result<Self, Self::Error> {
         match ident.to_string().as_str() {
+            "String" => Ok(PayloadTy::String),
             "u8" => Ok(PayloadTy::U8),
             "u16" => Ok(PayloadTy::U16),
             "u32" => Ok(PayloadTy::U32),
