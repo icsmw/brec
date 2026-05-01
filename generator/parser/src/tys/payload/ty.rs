@@ -3,6 +3,7 @@ use std::fmt;
 
 #[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
 pub enum PayloadTy {
+    String,
     U8,
     U16,
     U32,
@@ -35,6 +36,7 @@ impl fmt::Display for PayloadTy {
             f,
             "{}",
             match self {
+                Self::String => "String".to_owned(),
                 Self::U8 => "u8".to_owned(),
                 Self::U16 => "u16".to_owned(),
                 Self::U32 => "u32".to_owned(),
