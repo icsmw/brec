@@ -3,7 +3,10 @@ pub mod base;
 use brec_macros_parser::*;
 use proc_macro2::TokenStream;
 use quote::quote;
-use syn::{Data, Fields, Ident, Variant};
+use syn::{
+    AngleBracketedGenericArguments, Data, Fields, GenericArgument, Ident, PathArguments, Type,
+    TypePath, Variant,
+};
 
 fn get_named_field_ident(field: &syn::Field) -> Result<&Ident, E> {
     field
@@ -20,6 +23,28 @@ fn get_first_unnamed_ty(fields: &syn::FieldsUnnamed) -> Result<&syn::Type, E> {
         .ok_or_else(|| E::NotSupportedBy("Napi codegen expected one unnamed field".to_owned()))
 }
 
+fn get_option_inner_ty(ty: &Type) -> Option<&Type> {
+    let Type::Path(TypePath { qself: None, path }) = ty else {
+        return None;
+    };
+    let segment = path.segments.last()?;
+    if segment.ident != "Option" {
+        return None;
+    }
+    let PathArguments::AngleBracketed(AngleBracketedGenericArguments { args, .. }) =
+        &segment.arguments
+    else {
+        return None;
+    };
+    if args.len() != 1 {
+        return None;
+    }
+    let GenericArgument::Type(inner) = args.first()? else {
+        return None;
+    };
+    Some(inner)
+}
+
 fn gen_struct_to_napi(fields: &Fields) -> Result<TokenStream, E> {
     match fields {
         Fields::Named(fields) => {
@@ -30,13 +55,26 @@ fn gen_struct_to_napi(fields: &Fields) -> Result<TokenStream, E> {
                     let ident = get_named_field_ident(field)?;
                     let name = ident.to_string();
                     let ty = &field.ty;
-                    Ok(quote! {
-                        {
-                            let value = <#ty as brec::napi_feat::NapiConvert>::to_napi_value(&self.#ident, env)?;
-                            obj.set_named_property(#name, value)
-                                .map_err(|err| brec::napi_feat::NapiError::invalid_field_name(#name, err))?;
-                        }
-                    })
+                    let setter = get_option_inner_ty(ty)
+                        .map(|inner| {
+                            quote! {
+                            if let Some(value) = self.#ident.as_ref() {
+                                let value = <#inner as brec::napi_feat::NapiConvert>::to_napi_value(value, env)?;
+                                obj.set_named_property(#name, value)
+                                    .map_err(|err| brec::napi_feat::NapiError::invalid_field_name(#name, err))?;
+                            }
+                            }
+                        })
+                        .unwrap_or_else(|| {
+                            quote! {
+                                {
+                                    let value = <#ty as brec::napi_feat::NapiConvert>::to_napi_value(&self.#ident, env)?;
+                                    obj.set_named_property(#name, value)
+                                        .map_err(|err| brec::napi_feat::NapiError::invalid_field_name(#name, err))?;
+                                }
+                            }
+                        });
+                    Ok(setter)
                 })
                 .collect::<Result<Vec<_>, E>>()?;
             Ok(quote! {
@@ -216,12 +254,27 @@ fn gen_variant_to_napi(enum_name: &Ident, variant: &Variant) -> Result<TokenStre
                 .map(|field| {
                     let ident = get_named_field_ident(field)?;
                     let fname = ident.to_string();
-                    Ok(quote! {
-                        let value = brec::napi_feat::NapiConvert::to_napi_value(#ident, env)?;
-                        inner.set_named_property(#fname, value).map_err(|err| {
-                            brec::napi_feat::NapiError::invalid_field_name(#key, err)
-                        })?;
-                    })
+                    let ty = &field.ty;
+                    let setter = get_option_inner_ty(ty)
+                        .map(|inner_ty| {
+                            quote! {
+                            if let Some(value) = #ident.as_ref() {
+                                let value = <#inner_ty as brec::napi_feat::NapiConvert>::to_napi_value(value, env)?;
+                                inner.set_named_property(#fname, value).map_err(|err| {
+                                    brec::napi_feat::NapiError::invalid_field_name(#key, err)
+                                })?;
+                            }
+                            }
+                        })
+                        .unwrap_or_else(|| {
+                            quote! {
+                                let value = brec::napi_feat::NapiConvert::to_napi_value(#ident, env)?;
+                                inner.set_named_property(#fname, value).map_err(|err| {
+                                    brec::napi_feat::NapiError::invalid_field_name(#key, err)
+                                })?;
+                            }
+                        });
+                    Ok(setter)
                 })
                 .collect::<Result<Vec<_>, E>>()?;
             let bindings = fields

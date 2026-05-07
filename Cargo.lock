@@ -234,6 +234,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "brec_in_node_cli"
+version = "0.1.0"
+dependencies = [
+ "brec_scheme",
+ "napi",
+ "serde_json",
+ "thiserror 2.0.18",
+]
+
+[[package]]
 name = "brec_in_node_gen"
 version = "0.1.0"
 dependencies = [

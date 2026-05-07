@@ -1,5 +1,6 @@
 use brec::prelude::*;
 
+#[payload(include)]
 #[derive(serde::Deserialize, serde::Serialize, PartialEq, PartialOrd, Debug, Clone, brec::Napi)]
 pub struct NestedStructCA {
     pub field_u8: u8,
@@ -31,6 +32,7 @@ impl Arbitrary for NestedStructCA {
     }
 }
 
+#[payload(include)]
 #[derive(serde::Deserialize, serde::Serialize, PartialEq, PartialOrd, Debug, Clone, brec::Napi)]
 pub struct NestedStructCB {
     pub field_i8: i8,
@@ -59,6 +61,7 @@ impl Arbitrary for NestedStructCB {
     }
 }
 
+#[payload(include)]
 #[derive(serde::Deserialize, serde::Serialize, PartialEq, PartialOrd, Debug, Clone, brec::Napi)]
 pub struct NestedStructCC {
     pub field_bool: bool,
@@ -87,6 +90,7 @@ impl Arbitrary for NestedStructCC {
     }
 }
 
+#[payload(include)]
 #[derive(serde::Deserialize, serde::Serialize, PartialEq, PartialOrd, Debug, Clone, brec::Napi)]
 pub enum NestedEnumC {
     One(String),

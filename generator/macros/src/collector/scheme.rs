@@ -1,7 +1,7 @@
 use crate::*;
 use brec_scheme::{
     SchemeBlock, SchemeBlockField, SchemeConfig, SchemeFieldType, SchemeFile, SchemePayload,
-    SchemePayloadField, SchemePayloadVariant,
+    SchemePayloadField, SchemePayloadVariant, SchemeType,
 };
 use std::{
     env, fs,
@@ -26,11 +26,12 @@ impl<'a> Scheme<'a> {
 
     fn write(&self) -> Result<(), E> {
         let output = SchemeFile {
-            version: 1,
+            version: brec_scheme::VERSION.to_owned(),
             package: self.package.clone(),
             config: self.config(),
             blocks: self.blocks()?,
             payloads: self.payloads()?,
+            types: self.types()?,
         };
         let content = serde_json::to_vec_pretty(&output).map_err(std::io::Error::other)?;
         let path = self.resolve_target_path()?;
@@ -89,6 +90,7 @@ impl<'a> Scheme<'a> {
             .get(&package)
             .into_iter()
             .flat_map(|payloads| payloads.values())
+            .filter(|payload| !payload.attrs.is_include())
             .map(|payload| {
                 Ok(SchemePayload {
                     name: payload.name.clone(),
@@ -108,6 +110,29 @@ impl<'a> Scheme<'a> {
             .collect::<Result<Vec<_>, E>>()?;
         payloads.sort_by(|a, b| a.fullname.cmp(&b.fullname));
         Ok(payloads)
+    }
+
+    fn types(&self) -> Result<Vec<SchemeType>, E> {
+        let package = self.package.clone();
+        let mut types = self
+            .collector
+            .payloads
+            .get(&package)
+            .into_iter()
+            .flat_map(|payloads| payloads.values())
+            .filter(|payload| payload.attrs.is_include())
+            .map(|payload| {
+                Ok(SchemeType {
+                    name: payload.name.clone(),
+                    fullname: payload.fullname()?.to_string(),
+                    fullpath: payload.fullpath()?.to_string(),
+                    fields: Self::payload_fields(&payload.kind),
+                    variants: Self::payload_variants(&payload.kind),
+                })
+            })
+            .collect::<Result<Vec<_>, E>>()?;
+        types.sort_by(|a, b| a.fullname.cmp(&b.fullname));
+        Ok(types)
     }
 
     fn field_to_scheme(field: &BlockField) -> SchemeBlockField {

@@ -26,7 +26,7 @@ pub fn generate(
     let payloads = payloads
         .iter()
         .copied()
-        .filter(|pl| !pl.attrs.is_ctx())
+        .filter(|pl| !pl.attrs.is_ctx() && !pl.attrs.is_include())
         .collect::<Vec<_>>();
     let mut variants = Vec::new();
     for pl in payloads.iter() {

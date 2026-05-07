@@ -2,13 +2,17 @@ use serde::{Deserialize, Serialize};
 
 pub use brec_macros_parser::{BlockField, BlockTy, PayloadField, PayloadTy, Vis};
 
+pub const VERSION: &str = env!("CARGO_PKG_VERSION");
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct SchemeFile {
-    pub version: u32,
+    pub version: String,
     pub package: String,
     pub config: SchemeConfig,
     pub blocks: Vec<SchemeBlock>,
     pub payloads: Vec<SchemePayload>,
+    #[serde(default)]
+    pub types: Vec<SchemeType>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -39,6 +43,15 @@ pub struct SchemePayload {
     pub no_auto_crc: bool,
     pub no_default_sig: bool,
     pub hooks: bool,
+    pub fields: Vec<SchemePayloadField>,
+    pub variants: Vec<SchemePayloadVariant>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct SchemeType {
+    pub name: String,
+    pub fullname: String,
+    pub fullpath: String,
     pub fields: Vec<SchemePayloadField>,
     pub variants: Vec<SchemePayloadVariant>,
 }
