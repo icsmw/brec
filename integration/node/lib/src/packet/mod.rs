@@ -5,7 +5,7 @@ use super::{NapiError, NapiFieldHint, NapiFieldHintId, from_unknown as napi_from
 use brec_consts::*;
 use napi::{
     Env, Unknown, ValueType,
-    bindgen_prelude::{Array, BigInt, JsObjectValue, JsValue, Null, Object, ToNapiValue},
+    bindgen_prelude::{Array, BigInt, JsObjectValue, JsValue, Object, ToNapiValue},
 };
 
 /// Rust <-> JS object conversion contract used by `napi` helpers.
@@ -125,7 +125,7 @@ impl<T: NapiConvert> NapiConvert for Option<T> {
     fn to_napi_value<'env>(&self, env: &'env Env) -> Result<Unknown<'env>, NapiError> {
         match self {
             Some(v) => T::to_napi_value(v, env),
-            None => Null
+            None => ()
                 .into_unknown(env)
                 .map_err(|err| NapiError::invalid_field(NapiFieldHint::Option, err)),
         }
@@ -159,7 +159,7 @@ impl<const N: usize> NapiConvert for [u8; N] {
     }
 }
 
-/// Converts packet into `{ blocks: Array<{}>, payload: {} | null }`.
+/// Converts packet into `{ blocks: Array<{}>, payload?: {} }`.
 pub fn to_napi_object<'env, Block: NapiObject, Payload: NapiObject>(
     env: &'env Env,
     blocks: &[Block],
@@ -177,16 +177,15 @@ pub fn to_napi_object<'env, Block: NapiObject, Payload: NapiObject>(
     }
     obj.set_named_property(BLOCKS_FIELD_NAME, js_blocks)
         .map_err(|err| NapiError::invalid_field(NapiFieldHint::Blocks, err))?;
-    let payload = match payload.as_ref() {
-        Some(payload) => Some(payload.to_napi_object(env)?),
-        None => None,
-    };
-    obj.set_named_property(PAYLOAD_FIELD_NAME, payload)
-        .map_err(|err| NapiError::invalid_field(NapiFieldHint::Payload, err))?;
+    if let Some(payload) = payload.as_ref() {
+        let payload = payload.to_napi_object(env)?;
+        obj.set_named_property(PAYLOAD_FIELD_NAME, payload)
+            .map_err(|err| NapiError::invalid_field(NapiFieldHint::Payload, err))?;
+    }
     Ok(obj.to_unknown())
 }
 
-/// Parses packet from `{ blocks: Array<{}>, payload: {} | null | undefined }`.
+/// Parses packet from `{ blocks: Array<{}>, payload?: {} | null | undefined }`.
 pub fn from_napi_object<Block: NapiObject, Payload: NapiObject>(
     env: &Env,
     value: Unknown<'_>,

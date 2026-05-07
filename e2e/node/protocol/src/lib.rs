@@ -4,7 +4,7 @@ mod payloads;
 pub use blocks::*;
 pub use payloads::*;
 
-brec::generate!();
+brec::generate!(scheme);
 
 #[cfg(any(test, feature = "test-utils"))]
 use proptest::arbitrary::any;

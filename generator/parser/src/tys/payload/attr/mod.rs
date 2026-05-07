@@ -62,11 +62,17 @@ impl PayloadAttrs {
     pub fn is_ctx(&self) -> bool {
         self.0.iter().any(|attr| matches!(attr, PayloadAttr::Ctx))
     }
+    pub fn is_include(&self) -> bool {
+        self.0
+            .iter()
+            .any(|attr| matches!(attr, PayloadAttr::Include))
+    }
 }
 #[enum_ids::enum_ids(display_variant_snake)]
 #[derive(Debug, Clone)]
 pub enum PayloadAttr {
     Path(ModulePath),
+    Include,
     Ctx,
     NoDefaultSig,
     Hooks,
@@ -83,6 +89,7 @@ impl fmt::Display for PayloadAttr {
             "{}",
             match self {
                 Self::Path(path) => format!("{}({path})", self.id()),
+                Self::Include => PayloadAttrId::Include.to_string(),
                 Self::Ctx => PayloadAttrId::Ctx.to_string(),
                 Self::NoDefaultSig => PayloadAttrId::NoDefaultSig.to_string(),
                 Self::Hooks => PayloadAttrId::Hooks.to_string(),

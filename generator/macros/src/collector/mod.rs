@@ -21,6 +21,7 @@ pub fn generate(collector: &mut Collector, cfg: &Config) -> Result<TokenStream, 
         .entry(pkg_name.clone())
         .or_default()
         .values()
+        .filter(|payload| !payload.attrs.is_include())
         .cloned()
         .collect::<Vec<_>>();
 
