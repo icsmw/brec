@@ -1,0 +1,11 @@
+target
+**/target
+
+client/node_modules
+bindings
+**/*.log
+.server_e2e.log
+.client_e2e.log
+
+.git
+.gitignore
