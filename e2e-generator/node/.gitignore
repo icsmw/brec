@@ -1,0 +1,8 @@
+**/pkg
+**/target
+**/*.log
+**/test-results
+**/node_modules
+client/dist
+bindings
+generated

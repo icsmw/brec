@@ -20,11 +20,11 @@ impl<'a> FormatterWritable for PacketFile<'a> {
             writer.ln(import.import_statement())?;
         }
         writer.ln("")?;
-        writer.ln("export interface Packet {{")?;
+        writer.ln("export interface Packet {")?;
         writer.tab();
         writer.ln("blocks: Block[];")?;
         writer.ln("payload?: Payload;")?;
         writer.back();
-        writer.ln("}}")
+        writer.ln("}")
     }
 }
