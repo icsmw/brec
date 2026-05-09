@@ -4,13 +4,23 @@ use serde_json::json;
 pub struct TsConfigJson;
 
 impl TsConfigJson {
-    pub const FILE_NAME: &'static str = "tsconfig.json";
-
     pub fn new() -> Self {
         Self
     }
+}
 
-    pub fn render(&self) -> Result<String, Error> {
+impl Default for TsConfigJson {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl FileName for TsConfigJson {
+    const FILE_NAME: &'static str = "tsconfig.json";
+}
+
+impl SourceWritable for TsConfigJson {
+    fn write(&self, writer: &mut SourceWriter) -> Result<(), Error> {
         let config = json!({
             "compilerOptions": {
                 "declaration": true,
@@ -28,6 +38,7 @@ impl TsConfigJson {
             ]
         });
 
-        Ok(format!("{}\n", serde_json::to_string_pretty(&config)?))
+        writer.write(format!("{}\n", serde_json::to_string_pretty(&config)?))?;
+        Ok(())
     }
 }

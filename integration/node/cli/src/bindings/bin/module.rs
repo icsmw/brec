@@ -1,7 +1,21 @@
 use crate::*;
 
-impl<'a> FormattableRust for ApiModule<'a> {
-    fn write_rust(&self, writer: &mut FormatterWriter) -> std::fmt::Result {
+pub struct NativeApiFile;
+
+impl FileName for NativeApiFile {
+    const FILE_NAME: &'static str = "lib.rs";
+}
+
+impl<'a> SourceWritable for ApiFile<'a, NativeApiFile> {
+    fn write(&self, writer: &mut SourceWriter) -> Result<(), Error> {
+        self.write_rust(writer)?;
+        Ok(())
+    }
+}
+
+impl<'a> RustWritable for ApiFile<'a, NativeApiFile> {
+    fn write_rust(&self, writer: &mut SourceWriter) -> Result<(), Error> {
+        FileHeader::new(self.file_name(), self.package()).write(writer)?;
         writer.ln("use napi::bindgen_prelude::{Buffer, Error, Result, Status};")?;
         writer.ln("use napi::{Env, Unknown};")?;
         writer.ln("use napi_derive::napi;")?;
@@ -14,7 +28,7 @@ impl<'a> FormattableRust for ApiModule<'a> {
         writer.back();
         writer.ln("}")?;
         writer.ln("")?;
-        for api in &self.apis {
+        for api in self.apis() {
             api.write_rust(writer)?;
         }
         Ok(())

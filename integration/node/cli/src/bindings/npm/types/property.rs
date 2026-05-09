@@ -1,5 +1,4 @@
-use crate::{Error, FormatterWritable};
-use std::fmt;
+use crate::{Error, SourceWritable};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Property(String);
@@ -15,9 +14,10 @@ impl Property {
     }
 }
 
-impl FormatterWritable for Property {
-    fn write(&self, writer: &mut crate::FormatterWriter) -> fmt::Result {
-        writer.write(&self.0)
+impl SourceWritable for Property {
+    fn write(&self, writer: &mut crate::SourceWriter) -> Result<(), Error> {
+        writer.write(&self.0)?;
+        Ok(())
     }
 }
 

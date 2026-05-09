@@ -1,5 +1,4 @@
 use crate::*;
-use std::fmt;
 
 pub struct BlocksFile<'a> {
     model: &'a Model,
@@ -11,13 +10,16 @@ impl<'a> From<&'a Model> for BlocksFile<'a> {
     }
 }
 
-impl<'a> Module for BlocksFile<'a> {
+impl<'a> FileName for BlocksFile<'a> {
     const FILE_NAME: &'static str = "blocks.ts";
+}
+
+impl<'a> ModuleName for BlocksFile<'a> {
     const MODULE_NAME: &'static str = "Block";
 }
 
-impl<'a> FormatterWritable for BlocksFile<'a> {
-    fn write(&self, writer: &mut FormatterWriter) -> fmt::Result {
+impl<'a> SourceWritable for BlocksFile<'a> {
+    fn write(&self, writer: &mut SourceWriter) -> Result<(), Error> {
         FileHeader::new(Self::FILE_NAME, &self.model.package).write(writer)?;
         for block in &self.model.blocks {
             block.interface().write(writer)?;

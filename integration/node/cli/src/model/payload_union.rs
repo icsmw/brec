@@ -1,6 +1,5 @@
 use crate::*;
 use brec_scheme::SchemeFile;
-use std::fmt;
 
 pub struct PayloadUnion(Vec<Type>);
 
@@ -30,17 +29,11 @@ impl PayloadUnion {
     }
 }
 
-impl FormatterWritable for PayloadUnion {
-    fn write(&self, writer: &mut FormatterWriter) -> fmt::Result {
+impl SourceWritable for PayloadUnion {
+    fn write(&self, writer: &mut SourceWriter) -> Result<(), Error> {
         if self.0.is_empty() {
             return writer.ln("export type Payload = never;");
         }
-        writer.write("export type Payload =")?;
-        for (idx, item) in self.0.iter().enumerate() {
-            let sep = if idx + 1 == self.0.len() { ";" } else { " |" };
-            item.write(writer)?;
-            writer.write(sep)?;
-        }
-        writer.ln("")
+        TypeAlias::new("Payload", Type::Union(self.0.clone())).write(writer)
     }
 }

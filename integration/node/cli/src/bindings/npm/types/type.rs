@@ -1,5 +1,4 @@
 use crate::*;
-use std::fmt;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TypeAlias {
@@ -16,17 +15,18 @@ impl TypeAlias {
     }
 }
 
-impl FormatterWritable for TypeAlias {
-    fn write(&self, writer: &mut crate::FormatterWriter) -> fmt::Result {
+impl SourceWritable for TypeAlias {
+    fn write(&self, writer: &mut crate::SourceWriter) -> Result<(), Error> {
         match &self.ty {
             Type::Union(items) if !items.is_empty() => {
                 writer.write(format!("export type {} = ", self.name))?;
                 for (idx, item) in items.iter().enumerate() {
-                    let sep = if idx + 1 == items.len() { ";" } else { " | " };
+                    if idx > 0 {
+                        writer.write(" | ")?;
+                    }
                     item.write(writer)?;
-                    writer.write(sep)?;
                 }
-                writer.ln("")
+                writer.ln(";")
             }
             _ => {
                 writer.write(format!("export type {} = ", self.name))?;

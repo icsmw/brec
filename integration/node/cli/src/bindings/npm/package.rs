@@ -1,33 +1,32 @@
 use super::TsConfigJson;
 use crate::*;
-use brec_scheme::SchemeFile;
 use serde_json::json;
 use std::fs;
+use std::io::ErrorKind;
 use std::path::PathBuf;
 use std::process::Command;
 
 pub struct NpmPackage<'a> {
     dir: PathBuf,
-    scheme: &'a SchemeFile,
-    generated: &'a GeneratedFiles<'a>,
+    type_files: &'a NpmTypeFiles<'a>,
     binding: PathBuf,
 }
 
-pub struct PackageJson<'a> {
-    scheme: &'a SchemeFile,
+struct PackageJson<'a> {
+    model: &'a Model,
 }
+
+const NATIVE_BINDING_PATH: &str = "native/bindings.node";
 
 impl<'a> NpmPackage<'a> {
     pub fn new(
         dir: impl Into<PathBuf>,
-        scheme: &'a SchemeFile,
-        generated: &'a GeneratedFiles<'a>,
+        type_files: &'a NpmTypeFiles<'a>,
         binding: impl Into<PathBuf>,
     ) -> Self {
         Self {
             dir: dir.into(),
-            scheme,
-            generated,
+            type_files,
             binding: binding.into(),
         }
     }
@@ -36,37 +35,71 @@ impl<'a> NpmPackage<'a> {
         fs::create_dir_all(&self.dir)?;
         fs::create_dir_all(self.dir.join("native"))?;
 
-        self.generated.write_to(&self.dir)?;
-        fs::write(self.dir.join("index.ts"), self.index_ts()?)?;
-        fs::write(self.dir.join(PackageJson::FILE_NAME), self.package_json()?)?;
-        fs::write(
-            self.dir.join(TsConfigJson::FILE_NAME),
-            TsConfigJson::new().render()?,
-        )?;
-        fs::copy(&self.binding, self.dir.join("native").join("bindings.node"))?;
+        self.clean_owned_files()?;
+        self.type_files.write_to(&self.dir)?;
+        self.write_index_ts()?;
+        PackageJson::new(self.type_files.model())
+            .write_to_path(&self.dir.join(PackageJson::FILE_NAME))?;
+        TsConfigJson::new().write_to_path(&self.dir.join(TsConfigJson::FILE_NAME))?;
+        fs::copy(&self.binding, self.dir.join(NATIVE_BINDING_PATH))?;
         self.build()
     }
 
-    fn index_ts(&self) -> Result<String, Error> {
-        let blocks = BlocksFile::from(self.generated.model());
-        let payloads = PayloadFile::from(self.generated.model());
-        let packet = PacketFile::new(self.generated.model(), vec![&blocks, &payloads]);
-        let api_block = ApiBlock;
-        let api_payload = ApiPayload;
-        let api_packet = ApiPacket;
-        let api = ApiModule::new(
-            vec![&api_block, &api_payload, &api_packet],
-            vec![&blocks, &payloads, &packet],
+    fn write_index_ts(&self) -> Result<(), Error> {
+        let model = self.type_files.model();
+        let api = ApiFile::<NpmIndexFile>::new(
+            &model.package,
+            vec![
+                Box::new(ApiBlock),
+                Box::new(ApiPayload),
+                Box::new(ApiPacket),
+            ],
+            vec![
+                Box::new(BlocksFile::from(model)),
+                Box::new(PayloadFile::from(model)),
+                Box::new(PacketFile::new(model)),
+            ],
         );
-        let mut content = String::new();
-        let mut tab = Tab::default();
-        let mut writer = FormatterWriter::new(&mut content, &mut tab);
-        api.write_ts(&mut writer)?;
-        Ok(content)
+        api.write_to_path(&self.dir.join(NpmIndexFile::FILE_NAME))
     }
 
-    fn package_json(&self) -> Result<String, Error> {
-        PackageJson::new(self.scheme).render()
+    fn clean_owned_files(&self) -> Result<(), Error> {
+        for file in self.owned_files() {
+            let path = self.dir.join(file);
+            match fs::symlink_metadata(&path) {
+                Ok(meta) if meta.is_file() || meta.file_type().is_symlink() => {
+                    fs::remove_file(path)?;
+                }
+                Ok(meta) if meta.is_dir() => {
+                    return Err(Error::Cli(format!(
+                        "cannot overwrite generated file {}; path is a directory",
+                        path.display()
+                    )));
+                }
+                Ok(_) => {}
+                Err(err) if err.kind() == ErrorKind::NotFound => {}
+                Err(err) => return Err(err.into()),
+            }
+        }
+        Ok(())
+    }
+
+    fn owned_files(&self) -> Vec<PathBuf> {
+        let mut files = vec![
+            PathBuf::from(NpmIndexFile::FILE_NAME),
+            PathBuf::from(BlocksFile::FILE_NAME),
+            PathBuf::from(PayloadFile::FILE_NAME),
+            PathBuf::from(PacketFile::FILE_NAME),
+            PathBuf::from(PackageJson::FILE_NAME),
+            PathBuf::from(TsConfigJson::FILE_NAME),
+        ];
+        files.extend(
+            PackageJson::new(self.type_files.model())
+                .files()
+                .into_iter()
+                .map(PathBuf::from),
+        );
+        files
     }
 
     fn build(&self) -> Result<(), Error> {
@@ -92,42 +125,57 @@ impl<'a> NpmPackage<'a> {
 }
 
 impl<'a> PackageJson<'a> {
-    pub const FILE_NAME: &'static str = "package.json";
+    const DEV_DEPS: &'static [(&'static str, &'static str)] = &[("typescript", "^5.9.2")];
 
-    const DEV_DEPS: &'static [(&'static str, &'static str)] = &[("typescript", "^5.0.0")];
-
-    pub fn new(scheme: &'a SchemeFile) -> Self {
-        Self { scheme }
+    pub fn new(model: &'a Model) -> Self {
+        Self { model }
     }
+}
 
-    pub fn render(&self) -> Result<String, Error> {
+impl FileName for PackageJson<'_> {
+    const FILE_NAME: &'static str = "package.json";
+}
+
+impl SourceWritable for PackageJson<'_> {
+    fn write(&self, writer: &mut SourceWriter) -> Result<(), Error> {
         let dev_dependencies = Self::DEV_DEPS
             .iter()
             .map(|(name, version)| ((*name).to_owned(), json!(version)))
             .collect::<serde_json::Map<_, _>>();
         let package = json!({
-            "name": self.scheme.package,
-            "version": "0.1.0",
+            "name": self.model.package,
+            "version": self.model.version,
             "private": true,
             "main": "index.js",
             "types": "index.d.ts",
             "scripts": {
                 "build": "tsc -p tsconfig.json"
             },
-            "files": [
-                "index.js",
-                "index.d.ts",
-                "blocks.js",
-                "blocks.d.ts",
-                "payloads.js",
-                "payloads.d.ts",
-                "packet.js",
-                "packet.d.ts",
-                "native/bindings.node"
-            ],
+            "files": self.files(),
             "devDependencies": dev_dependencies
         });
 
-        Ok(format!("{}\n", serde_json::to_string_pretty(&package)?))
+        writer.write(format!("{}\n", serde_json::to_string_pretty(&package)?))?;
+        Ok(())
+    }
+}
+
+impl PackageJson<'_> {
+    fn files(&self) -> Vec<String> {
+        fn compiled_file(source: &str, ext: &str) -> String {
+            let stem = source.strip_suffix(".ts").unwrap_or(source);
+            format!("{stem}.{ext}")
+        }
+        let mut files = vec!["index.js".to_owned(), "index.d.ts".to_owned()];
+        for source in [
+            BlocksFile::FILE_NAME,
+            PayloadFile::FILE_NAME,
+            PacketFile::FILE_NAME,
+        ] {
+            files.push(compiled_file(source, "js"));
+            files.push(compiled_file(source, "d.ts"));
+        }
+        files.push(NATIVE_BINDING_PATH.to_owned());
+        files
     }
 }

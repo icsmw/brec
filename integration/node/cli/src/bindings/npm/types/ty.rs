@@ -1,8 +1,7 @@
-use crate::FormatterWritable;
+use crate::{Error, SourceWritable};
 
 use super::field::Field;
 use brec_scheme::{BlockTy, PayloadTy};
-use std::fmt;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Type {
@@ -96,8 +95,8 @@ impl Type {
     }
 }
 
-impl FormatterWritable for Type {
-    fn write(&self, writer: &mut crate::FormatterWriter) -> fmt::Result {
+impl SourceWritable for Type {
+    fn write(&self, writer: &mut crate::SourceWriter) -> Result<(), Error> {
         match self {
             Self::Number => writer.write("number"),
             Self::BigInt => writer.write("bigint"),
@@ -113,10 +112,10 @@ impl FormatterWritable for Type {
                         writer.write("(")?;
                         inner.write(writer)?;
                         writer.write(")")?;
-                    },
+                    }
                     _ => {
                         inner.write(writer)?;
-                    },
+                    }
                 }
                 writer.write("[]")
             }
@@ -150,18 +149,18 @@ impl FormatterWritable for Type {
                 writer.write("Set<")?;
                 inner.write(writer)?;
                 writer.write(">")
-            },
+            }
             Self::Object(fields) => {
                 if fields.is_empty() {
                     return writer.write("Record<string, never>");
                 }
                 writer.ln("{")?;
                 writer.tab();
-                for (_idx, field) in fields.iter().enumerate() {
+                for field in fields {
                     field.write(writer)?;
                 }
                 writer.back();
-                writer.ln("}")
+                writer.write("}")
             }
         }
     }

@@ -3,12 +3,12 @@ use brec_scheme::{PayloadTy, SchemeFieldType, SchemeFile};
 use std::collections::{BTreeSet, HashMap};
 
 #[derive(Default)]
-pub struct TypeNames {
+pub(super) struct TypeNames {
     by_raw: HashMap<String, String>,
 }
 
 impl TypeNames {
-    pub fn resolve<'a>(&'a self, raw: &'a str) -> &'a str {
+    pub(super) fn resolve<'a>(&'a self, raw: &'a str) -> &'a str {
         self.by_raw
             .get(raw)
             .or_else(|| self.by_raw.get(&Self::normalize(raw)))

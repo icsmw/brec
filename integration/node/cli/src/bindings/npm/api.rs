@@ -1,7 +1,7 @@
 use crate::*;
 
-impl FormattableTs for ApiBlock {
-    fn write_ts(&self, writer: &mut FormatterWriter) -> std::fmt::Result {
+impl TsWritable for ApiBlock {
+    fn write_ts(&self, writer: &mut SourceWriter) -> Result<(), Error> {
         writer.ln(format!(
             "export const {} = pick('{}', '{}') as (bytes: Uint8Array) => Block;",
             Self::camel_case_decode_method_name(),
@@ -17,8 +17,8 @@ impl FormattableTs for ApiBlock {
     }
 }
 
-impl FormattableTs for ApiPayload {
-    fn write_ts(&self, writer: &mut FormatterWriter) -> std::fmt::Result {
+impl TsWritable for ApiPayload {
+    fn write_ts(&self, writer: &mut SourceWriter) -> Result<(), Error> {
         writer.ln(format!(
             "export const {} = pick('{}', '{}') as (bytes: Uint8Array) => Payload;",
             Self::camel_case_decode_method_name(),
@@ -34,8 +34,8 @@ impl FormattableTs for ApiPayload {
     }
 }
 
-impl FormattableTs for ApiPacket {
-    fn write_ts(&self, writer: &mut FormatterWriter) -> std::fmt::Result {
+impl TsWritable for ApiPacket {
+    fn write_ts(&self, writer: &mut SourceWriter) -> Result<(), Error> {
         writer.ln(format!(
             "export const {} = pick('{}', '{}') as (bytes: Uint8Array) => Packet;",
             Self::camel_case_decode_method_name(),
