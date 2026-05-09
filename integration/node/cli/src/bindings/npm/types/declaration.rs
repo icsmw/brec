@@ -1,7 +1,6 @@
-use crate::FormatterWritable;
+use crate::{Error, SourceWritable};
 
 use super::{Interface, TypeAlias};
-use std::fmt;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Declaration {
@@ -9,8 +8,8 @@ pub enum Declaration {
     Type(TypeAlias),
 }
 
-impl FormatterWritable for Declaration {
-    fn write(&self, writer: &mut crate::FormatterWriter) -> fmt::Result {
+impl SourceWritable for Declaration {
+    fn write(&self, writer: &mut crate::SourceWriter) -> Result<(), Error> {
         match self {
             Self::Interface(interface) => interface.write(writer),
             Self::Type(alias) => alias.write(writer),

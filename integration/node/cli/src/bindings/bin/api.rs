@@ -1,7 +1,7 @@
 use crate::*;
 
-impl FormattableRust for ApiBlock {
-    fn write_rust(&self, writer: &mut FormatterWriter) -> std::fmt::Result {
+impl RustWritable for ApiBlock {
+    fn write_rust(&self, writer: &mut SourceWriter) -> Result<(), Error> {
         writer.ln("#[napi]")?;
         writer.ln(format!(
             "pub fn {}<'env>(env: &'env Env, buf: Buffer) -> Result<Unknown<'env>> {{",
@@ -30,8 +30,8 @@ impl FormattableRust for ApiBlock {
     }
 }
 
-impl FormattableRust for ApiPayload {
-    fn write_rust(&self, writer: &mut FormatterWriter) -> std::fmt::Result {
+impl RustWritable for ApiPayload {
+    fn write_rust(&self, writer: &mut SourceWriter) -> Result<(), Error> {
         writer.ln("#[napi]")?;
         writer.ln(format!(
             "pub fn {}<'env>(env: &'env Env, buf: Buffer) -> Result<Unknown<'env>> {{",
@@ -62,8 +62,8 @@ impl FormattableRust for ApiPayload {
     }
 }
 
-impl FormattableRust for ApiPacket {
-    fn write_rust(&self, writer: &mut FormatterWriter) -> std::fmt::Result {
+impl RustWritable for ApiPacket {
+    fn write_rust(&self, writer: &mut SourceWriter) -> Result<(), Error> {
         writer.ln("#[napi]")?;
         writer.ln(format!(
             "pub fn {}<'env>(env: &'env Env, buf: Buffer) -> Result<Unknown<'env>> {{",

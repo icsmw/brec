@@ -1,27 +1,26 @@
 use super::resolver::Resolver;
 use crate::*;
 use brec_scheme::{SchemePayload, SchemePayloadField, SchemePayloadVariant, SchemeType};
-use std::fmt;
 
 pub struct TypeDef {
     name: String,
     body: TypeBody,
 }
 
-pub enum TypeBody {
+enum TypeBody {
     Empty,
     Struct(StructFields),
     Enum(Vec<EnumVariant>),
 }
 
-pub enum StructFields {
+enum StructFields {
     Named(Vec<Field>),
     Tuple(Vec<Type>),
 }
 
-pub struct EnumVariant(Type);
+struct EnumVariant(Type);
 
-pub enum VariantBody {
+enum VariantBody {
     Unit,
     Named(Vec<Field>),
     Single(Type),
@@ -29,7 +28,10 @@ pub enum VariantBody {
 }
 
 impl TypeDef {
-    pub fn from_payload(payload: &SchemePayload, resolver: &Resolver<'_>) -> Result<Self, Error> {
+    pub(super) fn from_payload(
+        payload: &SchemePayload,
+        resolver: &Resolver<'_>,
+    ) -> Result<Self, Error> {
         Self::from_parts(
             &payload.fullname,
             &payload.fields,
@@ -38,7 +40,7 @@ impl TypeDef {
         )
     }
 
-    pub fn from_scheme_type(
+    pub(super) fn from_scheme_type(
         scheme_type: &SchemeType,
         resolver: &Resolver<'_>,
     ) -> Result<Self, Error> {
@@ -98,8 +100,8 @@ impl TypeDef {
     }
 }
 
-impl FormatterWritable for TypeDef {
-    fn write(&self, writer: &mut FormatterWriter) -> fmt::Result {
+impl SourceWritable for TypeDef {
+    fn write(&self, writer: &mut SourceWriter) -> Result<(), Error> {
         self.declaration().write(writer)
     }
 }

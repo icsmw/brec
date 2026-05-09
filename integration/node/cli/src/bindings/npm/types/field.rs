@@ -1,7 +1,6 @@
 use super::property::Property;
 use super::ty::Type;
-use crate::{Error, FormatterWritable};
-use std::fmt;
+use crate::{Error, SourceWritable};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Field {
@@ -28,8 +27,8 @@ impl Field {
     }
 }
 
-impl FormatterWritable for Field {
-    fn write(&self, writer: &mut crate::FormatterWriter) -> fmt::Result {
+impl SourceWritable for Field {
+    fn write(&self, writer: &mut crate::SourceWriter) -> Result<(), Error> {
         let optional = if self.optional { "?" } else { "" };
         self.name.write(writer)?;
         writer.write(format!("{}: ", optional))?;

@@ -1,25 +1,32 @@
 use crate::*;
-use std::fmt;
 
 pub struct PacketFile<'a> {
     model: &'a Model,
-    imports: Vec<&'a dyn Importable>,
+    imports: Vec<Box<dyn Importable + 'a>>,
 }
 
 impl<'a> PacketFile<'a> {
-    pub const FILE_NAME: &'static str = "packet.ts";
-    pub fn new(model: &'a Model, imports: Vec<&'a dyn Importable>) -> Self {
-        Self { model, imports }
+    pub fn new(model: &'a Model) -> Self {
+        Self {
+            model,
+            imports: vec![
+                Box::new(BlocksFile::from(model)),
+                Box::new(PayloadFile::from(model)),
+            ],
+        }
     }
 }
 
-impl<'a> Module for PacketFile<'a> {
+impl<'a> FileName for PacketFile<'a> {
     const FILE_NAME: &'static str = "packet.ts";
+}
+
+impl<'a> ModuleName for PacketFile<'a> {
     const MODULE_NAME: &'static str = "Packet";
 }
 
-impl<'a> FormatterWritable for PacketFile<'a> {
-    fn write(&self, writer: &mut FormatterWriter) -> fmt::Result {
+impl<'a> SourceWritable for PacketFile<'a> {
+    fn write(&self, writer: &mut SourceWriter) -> Result<(), Error> {
         FileHeader::new(Self::FILE_NAME, &self.model.package).write(writer)?;
         for import in &self.imports {
             writer.ln(import.import_statement())?;

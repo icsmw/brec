@@ -1,13 +1,27 @@
 use crate::*;
 
-impl<'a> FormattableTs for ApiModule<'a> {
-    fn write_ts(&self, writer: &mut FormatterWriter) -> std::fmt::Result {
+pub struct NpmIndexFile;
+
+impl FileName for NpmIndexFile {
+    const FILE_NAME: &'static str = "index.ts";
+}
+
+impl<'a> SourceWritable for ApiFile<'a, NpmIndexFile> {
+    fn write(&self, writer: &mut SourceWriter) -> Result<(), Error> {
+        self.write_ts(writer)?;
+        Ok(())
+    }
+}
+
+impl<'a> TsWritable for ApiFile<'a, NpmIndexFile> {
+    fn write_ts(&self, writer: &mut SourceWriter) -> Result<(), Error> {
+        FileHeader::new(self.file_name(), self.package()).write(writer)?;
         writer.ln("declare const require: any;")?;
-        for import in &self.mods {
+        for import in self.modules() {
             writer.ln(import.import_statement())?;
         }
         writer.ln("")?;
-        for import in &self.mods {
+        for import in self.modules() {
             writer.ln(import.export_statement())?;
         }
         writer.ln("const native = require('./native/bindings.node');")?;
@@ -24,7 +38,7 @@ impl<'a> FormattableTs for ApiModule<'a> {
         writer.back();
         writer.ln("}")?;
         writer.ln("")?;
-        for api in &self.apis {
+        for api in self.apis() {
             api.write_ts(writer)?;
         }
         Ok(())

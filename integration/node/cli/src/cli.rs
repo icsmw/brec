@@ -1,4 +1,4 @@
-use crate::{BindingsCrate, Error, GeneratedFiles, Model, NpmPackage, error::SCHEME_FILE_NAME};
+use crate::{BindingsCrate, Error, Model, NpmPackage, NpmTypeFiles, error::SCHEME_FILE_NAME};
 use brec_scheme::SchemeFile;
 use std::env;
 use std::fs;
@@ -28,12 +28,12 @@ pub fn run() -> Result<(), Error> {
 
     fs::create_dir_all(&package_dir)?;
 
-    let generated = GeneratedFiles::new(&model);
+    let type_files = NpmTypeFiles::new(&model);
     let bindings = BindingsCrate::new(&bindings_dir, &protocol_dir)?;
     bindings.write()?;
     let binding_artifact = bindings.build_release()?;
 
-    NpmPackage::new(&package_dir, &scheme, &generated, binding_artifact).write()?;
+    NpmPackage::new(&package_dir, &type_files, binding_artifact).write()?;
 
     println!(
         "generated Node package from {} into {}",

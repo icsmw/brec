@@ -1,31 +1,58 @@
 use crate::*;
-use std::fmt;
+use std::marker::PhantomData;
 
 pub struct ApiBlock;
 pub struct ApiPayload;
 pub struct ApiPacket;
 
-pub trait Api: FormattableTs + FormattableRust {}
+pub trait Api: TsWritable + RustWritable {}
 
-impl<T: FormattableTs + FormattableRust> Api for T {}
+impl<T: TsWritable + RustWritable> Api for T {}
 
-pub struct ApiModule<'a> {
-    pub apis: Vec<&'a dyn Api>,
-    pub mods: Vec<&'a dyn ImportableExportable>,
+pub struct ApiFile<'a, F: FileName> {
+    package: &'a str,
+    apis: Vec<Box<dyn Api + 'a>>,
+    modules: Vec<Box<dyn PackageModule + 'a>>,
+    file: PhantomData<F>,
 }
 
-impl<'a> ApiModule<'a> {
-    pub fn new(apis: Vec<&'a dyn Api>, mods: Vec<&'a dyn ImportableExportable>) -> Self {
-        Self { apis, mods }
+impl<'a, F: FileName> ApiFile<'a, F> {
+    pub fn new(
+        package: &'a str,
+        apis: Vec<Box<dyn Api + 'a>>,
+        modules: Vec<Box<dyn PackageModule + 'a>>,
+    ) -> Self {
+        Self {
+            package,
+            apis,
+            modules,
+            file: PhantomData,
+        }
+    }
+
+    pub fn package(&self) -> &'a str {
+        self.package
+    }
+
+    pub fn apis(&self) -> &[Box<dyn Api + 'a>] {
+        &self.apis
+    }
+
+    pub fn modules(&self) -> &[Box<dyn PackageModule + 'a>] {
+        &self.modules
+    }
+
+    pub fn file_name(&self) -> &'static str {
+        F::FILE_NAME
     }
 }
 
-pub trait FormattableTs {
-    fn write_ts(&self, writer: &mut FormatterWriter) -> fmt::Result;
+pub trait TsWritable {
+    fn write_ts(&self, writer: &mut SourceWriter) -> Result<(), Error>;
 }
 
-pub trait FormattableRust {
-    fn write_rust(&self, writer: &mut FormatterWriter) -> fmt::Result;
+pub trait RustWritable {
+    fn write_rust(&self, writer: &mut SourceWriter) -> Result<(), Error>;
 }
 
 pub trait ApiMethods {
@@ -53,12 +80,9 @@ fn to_lower_camel_case(value: &str) -> String {
     let mut out = first.to_owned();
     for part in parts {
         let mut chars = part.chars();
-        match chars.next() {
-            Some(first) => {
-                out.push_str(&first.to_uppercase().collect::<String>());
-                out.push_str(chars.as_str());
-            }
-            None => {}
+        if let Some(first) = chars.next() {
+            out.push_str(&first.to_uppercase().collect::<String>());
+            out.push_str(chars.as_str());
         }
     }
     out

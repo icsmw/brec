@@ -1,9 +1,12 @@
 mod api;
 mod bin;
 mod npm;
+mod source;
 
 pub use api::*;
-pub use npm::NpmPackage;
+pub use bin::NativeApiFile;
+pub use npm::*;
+pub use source::*;
 
 use crate::*;
 use std::fs;
@@ -45,7 +48,8 @@ impl BindingsCrate {
     pub fn write(&self) -> Result<(), Error> {
         fs::create_dir_all(self.dir.join("src"))?;
         fs::write(self.dir.join("Cargo.toml"), self.package.cargo_toml()?)?;
-        fs::write(self.dir.join("src").join("lib.rs"), self.package.lib_rs()?)?;
+        self.package
+            .write_lib_rs(&self.dir.join("src").join(NativeApiFile::FILE_NAME))?;
         Ok(())
     }
 
@@ -117,21 +121,18 @@ napi-derive = "3.5"
         ))
     }
 
-    fn lib_rs(&self) -> Result<String, Error> {
-        let api_block = ApiBlock;
-        let api_payload = ApiPayload;
-        let api_packet = ApiPacket;
-        let module = ApiModule::new(vec![&api_block, &api_payload, &api_packet], Vec::new());
-        render_rust(&module)
+    fn write_lib_rs(&self, path: &Path) -> Result<(), Error> {
+        let module = ApiFile::<NativeApiFile>::new(
+            &self.protocol_package,
+            vec![
+                Box::new(ApiBlock),
+                Box::new(ApiPayload),
+                Box::new(ApiPacket),
+            ],
+            Vec::new(),
+        );
+        module.write_to_path(path)
     }
-}
-
-fn render_rust(module: &dyn FormattableRust) -> Result<String, Error> {
-    let mut content = String::new();
-    let mut tab = Tab::default();
-    let mut writer = FormatterWriter::new(&mut content, &mut tab);
-    module.write_rust(&mut writer)?;
-    Ok(content)
 }
 
 impl WorkspaceDependencies {

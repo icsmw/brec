@@ -14,6 +14,7 @@ use names::TypeNames;
 use resolver::Resolver;
 
 pub struct Model {
+    pub version: String,
     pub package: String,
     pub blocks: Vec<Block>,
     pub block_union: BlockUnion,
@@ -35,6 +36,7 @@ impl TryFrom<&SchemeFile> for Model {
             .collect::<Result<Vec<_>, _>>()?;
 
         Ok(Self {
+            version: scheme.version.clone(),
             package: scheme.package.clone(),
             block_union: BlockUnion::from_blocks(&blocks)?,
             blocks,

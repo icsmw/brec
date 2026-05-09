@@ -1,6 +1,5 @@
 use crate::*;
 use brec_scheme::{SchemeBlock, SchemeFieldType};
-use std::fmt;
 
 pub struct Block {
     name: String,
@@ -37,18 +36,12 @@ impl BlockUnion {
     }
 }
 
-impl FormatterWritable for BlockUnion {
-    fn write(&self, writer: &mut FormatterWriter) -> fmt::Result {
+impl SourceWritable for BlockUnion {
+    fn write(&self, writer: &mut SourceWriter) -> Result<(), Error> {
         if self.0.is_empty() {
             return writer.ln("export type Block = never;");
         }
-        writer.write("export type Block =")?;
-        for (idx, item) in self.0.iter().enumerate() {
-            let sep = if idx + 1 == self.0.len() { ";" } else { " |" };
-            item.write(writer)?;
-            writer.write(sep)?;
-        }
-        writer.ln("")
+        TypeAlias::new("Block", Type::Union(self.0.clone())).write(writer)
     }
 }
 

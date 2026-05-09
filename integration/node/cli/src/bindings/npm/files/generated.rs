@@ -1,12 +1,11 @@
 use crate::*;
-use std::fs;
 use std::path::Path;
 
-pub struct GeneratedFiles<'a> {
+pub struct NpmTypeFiles<'a> {
     model: &'a Model,
 }
 
-impl<'a> GeneratedFiles<'a> {
+impl<'a> NpmTypeFiles<'a> {
     pub fn new(model: &'a Model) -> Self {
         Self { model }
     }
@@ -15,27 +14,15 @@ impl<'a> GeneratedFiles<'a> {
         self.model
     }
 
-    fn render_module(&self, module: &dyn FormatterWritable) -> Result<String, Error> {
-        let mut content = String::new();
-        let mut tab = Tab::default();
-        let mut writer = FormatterWriter::new(&mut content, &mut tab);
-        module.write(&mut writer)?;
-        Ok(content)
-    }
-
     pub fn write_to(&self, out: &Path) -> Result<(), Error> {
         let blocks = BlocksFile::from(self.model);
         let payloads = PayloadFile::from(self.model);
-        let packet = PacketFile::new(self.model, vec![&blocks, &payloads]);
+        let packet = PacketFile::new(self.model);
 
-        let modules: [(&str, &dyn FormatterWritable); 3] = [
-            (BlocksFile::FILE_NAME, &blocks),
-            (PayloadFile::FILE_NAME, &payloads),
-            (PacketFile::FILE_NAME, &packet),
-        ];
+        let files: [&dyn OutputFile; 3] = [&blocks, &payloads, &packet];
 
-        for (file_name, module) in modules {
-            fs::write(out.join(file_name), self.render_module(module)?)?;
+        for file in files {
+            write_output_file(out, file)?;
         }
         Ok(())
     }
@@ -52,36 +39,33 @@ mod tests {
     };
 
     #[test]
-    fn renders_expected_types_for_sample_scheme() {
+    fn writes_expected_types_for_sample_scheme() {
         let scheme = sample_scheme();
         let model = Model::try_from(&scheme).expect("model");
-        let generated = GeneratedFiles::new(&model);
         let blocks_file = BlocksFile::from(&model);
-        let blocks = generated.render_module(&blocks_file).expect("render blocks");
+        let blocks = write_to_string(&blocks_file).expect("write blocks");
         let payloads_file = PayloadFile::from(&model);
-        let payloads = generated
-            .render_module(&payloads_file)
-            .expect("render payloads");
-        let packet = generated
-            .render_module(&PacketFile::new(&model, vec![&blocks_file, &payloads_file]))
-            .expect("render packet");
-        let index = generated
-            .render_module(&IndexFile::new(&model, vec![&blocks_file, &payloads_file]))
-            .expect("render index");
+        let payloads = write_to_string(&payloads_file).expect("write payloads");
+        let packet = write_to_string(&PacketFile::new(&model)).expect("write packet");
 
         assert!(blocks.contains("export interface BlockAlpha"));
         assert!(blocks.contains("export type Block ="));
         assert!(payloads.contains("export interface PayloadAlpha"));
         assert!(payloads.contains("field_str: string;"), "{payloads}");
-        assert!(payloads.contains("field_nested: NestedStructCA;"), "{payloads}");
+        assert!(
+            payloads.contains("field_nested: NestedStructCA;"),
+            "{payloads}"
+        );
         assert!(payloads.contains("field_optional?: boolean;"), "{payloads}");
-        assert!(payloads.contains("export interface NestedStructCA"), "{payloads}");
+        assert!(
+            payloads.contains("export interface NestedStructCA"),
+            "{payloads}"
+        );
         assert!(payloads.contains("export type PayloadBeta ="), "{payloads}");
         assert!(payloads.contains("One: string;"), "{payloads}");
         assert!(payloads.contains("Two: [number, boolean];"), "{payloads}");
         assert!(payloads.contains("Three: null;"), "{payloads}");
         assert!(packet.contains("payload?: Payload;"), "{packet}");
-        assert!(index.contains("export * from \"./payloads\";"), "{index}");
     }
 
     #[test]

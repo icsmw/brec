@@ -1,7 +1,6 @@
-use crate::FormatterWritable;
+use crate::{Error, SourceWritable};
 
 use super::field::Field;
-use std::fmt;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Interface {
@@ -18,8 +17,8 @@ impl Interface {
     }
 }
 
-impl FormatterWritable for Interface {
-    fn write(&self, writer: &mut crate::FormatterWriter) -> fmt::Result {
+impl SourceWritable for Interface {
+    fn write(&self, writer: &mut crate::SourceWriter) -> Result<(), Error> {
         writer.ln(format!("export interface {} {{", self.name))?;
         writer.tab();
         for field in &self.fields {
