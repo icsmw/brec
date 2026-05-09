@@ -1,7 +1,7 @@
 import WebSocket, { type RawData } from 'ws';
 import {
   decodePacket,
-  encodePacketObject,
+  encodePacket,
 } from 'protocol';
 import { findDiff } from './diff';
 import { rawDataToBuffer } from './frames';
@@ -88,7 +88,7 @@ class Test {
 
   private verifyRoundtrip(input: Buffer): Buffer {
     const packet = decodePacket(input);
-    const output = Buffer.from(encodePacketObject(packet));
+    const output = Buffer.from(encodePacket(packet));
     const packetAfter = decodePacket(output);
     const diff = findDiff(packet, packetAfter);
 

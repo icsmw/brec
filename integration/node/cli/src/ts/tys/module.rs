@@ -42,3 +42,7 @@ pub trait Exportable: ModuleDyn {
 impl<T: ModuleDyn> Importable for T {}
 
 impl<T: ModuleDyn> Exportable for T {}
+
+pub trait ImportableExportable: Importable + Exportable {}
+
+impl<T: Importable + Exportable> ImportableExportable for T {}

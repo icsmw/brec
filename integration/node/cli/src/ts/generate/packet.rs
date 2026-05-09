@@ -13,6 +13,11 @@ impl<'a> PacketFile<'a> {
     }
 }
 
+impl<'a> Module for PacketFile<'a> {
+    const FILE_NAME: &'static str = "packet.ts";
+    const MODULE_NAME: &'static str = "Packet";
+}
+
 impl<'a> FormatterWritable for PacketFile<'a> {
     fn write(&self, writer: &mut FormatterWriter) -> fmt::Result {
         FileHeader::new(Self::FILE_NAME, &self.model.package).write(writer)?;

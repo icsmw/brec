@@ -1,15 +1,13 @@
 mod bindings;
 mod cli;
-mod desc;
 mod error;
 mod model;
-mod npm;
+mod ts;
 
 pub use bindings::*;
-pub use desc::*;
 pub use error::*;
 pub use model::*;
-pub use npm::NpmPackage;
+pub use ts::*;
 
 fn main() {
     if let Err(err) = cli::run() {

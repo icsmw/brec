@@ -1,4 +1,11 @@
-use crate::Error;
+mod api;
+mod bin;
+mod npm;
+
+pub use api::*;
+pub use npm::NpmPackage;
+
+use crate::*;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -38,7 +45,7 @@ impl BindingsCrate {
     pub fn write(&self) -> Result<(), Error> {
         fs::create_dir_all(self.dir.join("src"))?;
         fs::write(self.dir.join("Cargo.toml"), self.package.cargo_toml()?)?;
-        fs::write(self.dir.join("src").join("lib.rs"), self.package.lib_rs())?;
+        fs::write(self.dir.join("src").join("lib.rs"), self.package.lib_rs()?)?;
         Ok(())
     }
 
@@ -98,8 +105,6 @@ name = "bindings"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-serde = {{ version = "1.0", features = ["derive"] }}
-serde_json = "1.0"
 protocol = {{ package = {}, path = {} }}
 brec = {{ path = {}, features = ["bincode"] }}
 napi = {{ version = "3.8", features = ["serde-json", "napi6"] }}
@@ -112,98 +117,21 @@ napi-derive = "3.5"
         ))
     }
 
-    fn lib_rs(&self) -> &'static str {
-        r#"use napi::bindgen_prelude::{Buffer, Error, Result, Status};
-use napi::{Env, Unknown};
-use napi_derive::napi;
-use protocol::{Block, Packet, Payload};
-use serde::{Deserialize, Serialize};
-
-fn to_napi_error(prefix: &'static str, err: impl std::fmt::Display) -> Error {
-    Error::new(Status::GenericFailure, format!("{prefix}: {err}"))
-}
-
-#[napi]
-pub fn decode_block<'env>(env: &'env Env, buf: Buffer) -> Result<Unknown<'env>> {
-    Block::decode_napi(env, buf).map_err(|e| to_napi_error("Decode block", e))
-}
-
-#[napi]
-pub fn encode_block(_env: Env, val: Unknown<'_>) -> Result<Buffer> {
-    let mut buf: Vec<u8> = Vec::new();
-    Block::encode_napi(val, &mut buf).map_err(|e| to_napi_error("Encode block", e))?;
-    Ok(buf.into())
-}
-
-#[napi]
-pub fn decode_payload<'env>(env: &'env Env, buf: Buffer) -> Result<Unknown<'env>> {
-    let mut ctx = ();
-    Payload::decode_napi(env, buf, &mut ctx).map_err(|e| to_napi_error("Decode payload", e))
-}
-
-#[napi]
-pub fn encode_payload(env: Env, val: Unknown<'_>) -> Result<Buffer> {
-    let mut buf: Vec<u8> = Vec::new();
-    let mut ctx = ();
-    Payload::encode_napi(&env, val, &mut buf, &mut ctx)
-        .map_err(|e| to_napi_error("Encode payload", e))?;
-    Ok(buf.into())
-}
-
-#[derive(Deserialize, Serialize)]
-struct JsPacket {
-    blocks: Vec<Block>,
-    payload: Option<Payload>,
-}
-
-#[napi]
-pub fn decode_packet<'env>(env: &'env Env, buf: Buffer) -> Result<Unknown<'env>> {
-    let mut ctx = ();
-    Packet::decode_napi(env, buf, &mut ctx).map_err(|e| to_napi_error("Decode packet", e))
-}
-
-#[napi]
-pub fn encode_packet(env: Env, blocks: Unknown<'_>, payload: Unknown<'_>) -> Result<Buffer> {
-    let mut buf: Vec<u8> = Vec::new();
-    let mut ctx = ();
-    let blocks = env
-        .from_js_value::<Vec<Block>, _>(blocks)
-        .map_err(|e| to_napi_error("Deserialize blocks", e))?;
-    let payload = env
-        .from_js_value::<Option<Payload>, _>(payload)
-        .map_err(|e| to_napi_error("Deserialize payload", e))?;
-    let packet_js = env
-        .to_js_value(&JsPacket { blocks, payload })
-        .map_err(|e| to_napi_error("Serialize packet", e))?;
-    Packet::encode_napi(&env, packet_js, &mut buf, &mut ctx)
-        .map_err(|e| to_napi_error("Encode packet", e))?;
-    Ok(buf.into())
-}
-
-#[napi]
-pub fn encode_packet_object(env: Env, packet: Unknown<'_>) -> Result<Buffer> {
-    let mut buf: Vec<u8> = Vec::new();
-    let mut ctx = ();
-    Packet::encode_napi(&env, packet, &mut buf, &mut ctx)
-        .map_err(|e| to_napi_error("Encode packet object", e))?;
-    Ok(buf.into())
-}
-
-#[napi]
-pub fn encode_packet_from_json(env: Env, packet_json: String) -> Result<Buffer> {
-    let mut buf: Vec<u8> = Vec::new();
-    let mut ctx = ();
-    let packet: JsPacket = serde_json::from_str(&packet_json)
-        .map_err(|e| to_napi_error("Deserialize packet json", e))?;
-    let packet_js = env
-        .to_js_value(&packet)
-        .map_err(|e| to_napi_error("Serialize packet", e))?;
-    Packet::encode_napi(&env, packet_js, &mut buf, &mut ctx)
-        .map_err(|e| to_napi_error("Encode packet", e))?;
-    Ok(buf.into())
-}
-"#
+    fn lib_rs(&self) -> Result<String, Error> {
+        let api_block = ApiBlock;
+        let api_payload = ApiPayload;
+        let api_packet = ApiPacket;
+        let module = ApiModule::new(vec![&api_block, &api_payload, &api_packet], Vec::new());
+        render_rust(&module)
     }
+}
+
+fn render_rust(module: &dyn FormattableRust) -> Result<String, Error> {
+    let mut content = String::new();
+    let mut tab = Tab::default();
+    let mut writer = FormatterWriter::new(&mut content, &mut tab);
+    module.write_rust(&mut writer)?;
+    Ok(content)
 }
 
 impl WorkspaceDependencies {
