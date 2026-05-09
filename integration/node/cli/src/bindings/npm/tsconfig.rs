@@ -27,7 +27,6 @@ impl SourceWritable for TsConfigJson {
                 "esModuleInterop": true,
                 "forceConsistentCasingInFileNames": true,
                 "module": "CommonJS",
-                "moduleResolution": "Node",
                 "noEmitOnError": true,
                 "skipLibCheck": false,
                 "strict": true,

@@ -1,4 +1,7 @@
 mod api;
-mod module;
+mod bindings_crate;
+mod cargo_toml;
+mod lib_rs;
+mod workspace;
 
-pub use module::NativeApiFile;
+pub use bindings_crate::BindingsCrate;
