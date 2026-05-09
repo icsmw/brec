@@ -1,19 +1,19 @@
 use crate::*;
 
-pub struct NativeApiFile;
+pub struct BindingsLibFile;
 
-impl FileName for NativeApiFile {
+impl FileName for BindingsLibFile {
     const FILE_NAME: &'static str = "lib.rs";
 }
 
-impl<'a> SourceWritable for ApiFile<'a, NativeApiFile> {
+impl<'a> SourceWritable for ApiFile<'a, BindingsLibFile> {
     fn write(&self, writer: &mut SourceWriter) -> Result<(), Error> {
         self.write_rust(writer)?;
         Ok(())
     }
 }
 
-impl<'a> RustWritable for ApiFile<'a, NativeApiFile> {
+impl<'a> RustWritable for ApiFile<'a, BindingsLibFile> {
     fn write_rust(&self, writer: &mut SourceWriter) -> Result<(), Error> {
         FileHeader::new(self.file_name(), self.package()).write(writer)?;
         writer.ln("use napi::bindgen_prelude::{Buffer, Error, Result, Status};")?;

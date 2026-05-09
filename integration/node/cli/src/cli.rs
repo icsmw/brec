@@ -29,7 +29,7 @@ pub fn run() -> Result<(), Error> {
     fs::create_dir_all(&package_dir)?;
 
     let type_files = NpmTypeFiles::new(&model);
-    let bindings = BindingsCrate::new(&bindings_dir, &protocol_dir)?;
+    let bindings = BindingsCrate::new(&bindings_dir, &model, &protocol_dir)?;
     bindings.write()?;
     let binding_artifact = bindings.build_release()?;
 
