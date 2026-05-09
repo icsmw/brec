@@ -11,6 +11,10 @@ impl<'a> GeneratedFiles<'a> {
         Self { model }
     }
 
+    pub fn model(&self) -> &'a Model {
+        self.model
+    }
+
     fn render_module(&self, module: &dyn FormatterWritable) -> Result<String, Error> {
         let mut content = String::new();
         let mut tab = Tab::default();
@@ -23,13 +27,11 @@ impl<'a> GeneratedFiles<'a> {
         let blocks = BlocksFile::from(self.model);
         let payloads = PayloadFile::from(self.model);
         let packet = PacketFile::new(self.model, vec![&blocks, &payloads]);
-        let index = IndexFile::new(self.model, vec![&blocks, &payloads]);
 
-        let modules: [(&str, &dyn FormatterWritable); 4] = [
+        let modules: [(&str, &dyn FormatterWritable); 3] = [
             (BlocksFile::FILE_NAME, &blocks),
             (PayloadFile::FILE_NAME, &payloads),
             (PacketFile::FILE_NAME, &packet),
-            (IndexFile::FILE_NAME, &index),
         ];
 
         for (file_name, module) in modules {
