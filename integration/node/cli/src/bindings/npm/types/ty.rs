@@ -3,6 +3,7 @@ use crate::{Error, SourceWritable};
 use super::field::Field;
 use brec_scheme::{BlockTy, PayloadTy};
 
+/// TypeScript type expression used by generated declarations.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Type {
     Number,
@@ -62,10 +63,13 @@ impl Type {
         }
     }
 
+    /// Converts a Rust `Option<T>` to the TypeScript value shape used in tuple
+    /// and enum payload positions.
     pub fn optional_value(inner: Type) -> Self {
         Self::union([inner, Self::Undefined])
     }
 
+    /// Rewrites named Rust payload references to exported TypeScript names.
     pub fn resolve_named<F>(self, resolver: &F) -> Self
     where
         F: Fn(&str) -> String,
@@ -230,5 +234,50 @@ impl From<&PayloadTy> for Type {
 impl From<PayloadTy> for Type {
     fn from(value: PayloadTy) -> Self {
         Self::from(&value)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::write_to_string;
+
+    #[test]
+    fn union_flattens_and_deduplicates_items() {
+        let ty = Type::union([
+            Type::String,
+            Type::Union(vec![Type::Number, Type::String]),
+            Type::Boolean,
+        ]);
+
+        assert_eq!(
+            write_to_string(&ty).expect("write"),
+            "string | number | boolean"
+        );
+    }
+
+    #[test]
+    fn array_of_union_is_parenthesized() {
+        let ty = Type::array(Type::Union(vec![Type::String, Type::Number]));
+
+        assert_eq!(write_to_string(&ty).expect("write"), "(string | number)[]");
+    }
+
+    #[test]
+    fn resolves_nested_named_types() {
+        let ty = Type::Tuple(vec![
+            Type::Named("raw::Name".to_owned()),
+            Type::array(Type::Named("Other".to_owned())),
+        ])
+        .resolve_named(&|name| match name {
+            "raw::Name" => "Name".to_owned(),
+            "Other" => "ResolvedOther".to_owned(),
+            other => other.to_owned(),
+        });
+
+        assert_eq!(
+            write_to_string(&ty).expect("write"),
+            "[Name, ResolvedOther[]]"
+        );
     }
 }

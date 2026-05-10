@@ -22,7 +22,7 @@ pub fn generate(
     let napi_impl = {
         #[cfg(feature = "napi")]
         {
-            brec_in_node_gen::collector::block::generate_impl(blocks)?
+            brec_node_gen::collector::block::generate_impl(blocks)?
         }
         #[cfg(not(feature = "napi"))]
         {
@@ -32,7 +32,7 @@ pub fn generate(
     let wasm_impl = {
         #[cfg(feature = "wasm")]
         {
-            brec_in_wasm_gen::collector::block::generate_impl(blocks)?
+            brec_wasm_gen::collector::block::generate_impl(blocks)?
         }
         #[cfg(not(feature = "wasm"))]
         {
@@ -42,7 +42,7 @@ pub fn generate(
     let java_impl = {
         #[cfg(feature = "java")]
         {
-            brec_in_java_gen::collector::block::generate_impl(blocks)?
+            brec_java_gen::collector::block::generate_impl(blocks)?
         }
         #[cfg(not(feature = "java"))]
         {
@@ -52,7 +52,7 @@ pub fn generate(
     let csharp_impl = {
         #[cfg(feature = "csharp")]
         {
-            brec_in_csharp_gen::collector::block::generate_impl(blocks)?
+            brec_csharp_gen::collector::block::generate_impl(blocks)?
         }
         #[cfg(not(feature = "csharp"))]
         {

@@ -1,6 +1,10 @@
 use crate::*;
 use std::path::Path;
 
+/// Collection of TypeScript type files generated for the npm package.
+///
+/// This object keeps the file set explicit and ordered so `package.ts`,
+/// `index.ts`, and cleanup logic agree on the same generated artifacts.
 pub struct NpmTypeFiles<'a> {
     model: &'a Model,
 }

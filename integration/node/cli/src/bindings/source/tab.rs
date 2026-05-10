@@ -1,5 +1,9 @@
 use std::fmt;
 
+/// Current indentation depth for generated source files.
+///
+/// `SourceWriter` owns line handling while `Tab` keeps indentation state small
+/// and explicit for nested Rust and TypeScript code blocks.
 pub struct Tab {
     size: u8,
     offset: u8,

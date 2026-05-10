@@ -1,5 +1,5 @@
 [package]
-name        = "brec_in_wasm_gen"
+name        = "brec_wasm_gen"
 version     = "0.1.0"
 edition     = "2024"
 authors     = ["d.astafyev@outlook.com"]

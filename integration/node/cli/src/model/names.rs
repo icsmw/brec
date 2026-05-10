@@ -2,12 +2,22 @@ use crate::Error;
 use brec_scheme::{PayloadTy, SchemeFieldType, SchemeFile};
 use std::collections::{BTreeSet, HashMap};
 
+/// Registry of scheme type names that can be referenced from payload fields.
+///
+/// Rust macros can report short names, full names, or module paths depending on
+/// where a type appears. `TypeNames` normalizes those spellings and also
+/// validates that every named reference has been exported into `scheme.types`.
 #[derive(Default)]
 pub(super) struct TypeNames {
     by_raw: HashMap<String, String>,
 }
 
 impl TypeNames {
+    /// Returns the exported name for a raw Rust path from the scheme.
+    ///
+    /// The scheme can reference included types by short name, full name, or
+    /// full Rust path. The generator emits only full TypeScript names, so every
+    /// known spelling is collapsed to that single exported identifier.
     pub(super) fn resolve<'a>(&'a self, raw: &'a str) -> &'a str {
         self.by_raw
             .get(raw)
@@ -40,6 +50,10 @@ impl TypeNames {
         by_raw
     }
 
+    /// Collects named payload references that must be present in `scheme.types`.
+    ///
+    /// Without this validation a missing `#[payload(include)]` would produce a
+    /// TypeScript reference to a type that is never declared.
     fn referenced_names(scheme: &SchemeFile) -> Vec<String> {
         let mut refs = BTreeSet::new();
 

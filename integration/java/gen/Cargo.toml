@@ -1,5 +1,5 @@
 [package]
-name        = "brec_in_java_gen"
+name        = "brec_java_gen"
 version     = "0.1.0"
 edition     = "2024"
 authors     = ["d.astafyev@outlook.com"]

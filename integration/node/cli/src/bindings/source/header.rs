@@ -1,5 +1,9 @@
 use crate::*;
 
+/// Standard header placed at the top of generated Rust and TypeScript files.
+///
+/// It records both the generator version and the source protocol package so
+/// stale generated files are easy to identify during debugging.
 pub struct FileHeader<'a> {
     file_name: String,
     model: &'a Model,

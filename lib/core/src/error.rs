@@ -12,7 +12,7 @@ use crate::storage::SensorError;
 #[cfg(feature = "wasm")]
 use crate::wasm_feat::WasmError;
 #[cfg(feature = "napi")]
-use brec_in_node_lib::NapiError;
+use brec_node_lib::NapiError;
 
 /// Signature bytes that were read but did not match known block/payload signatures.
 #[derive(Debug, Clone, PartialEq, Eq)]

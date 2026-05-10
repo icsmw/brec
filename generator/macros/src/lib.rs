@@ -305,7 +305,7 @@ pub fn derive_csharp(input: TokenStream) -> TokenStream {
     let name = &input.ident;
     #[cfg(feature = "csharp")]
     {
-        match brec_in_csharp_gen::codegen::generate_impl(name, &input.data) {
+        match brec_csharp_gen::codegen::generate_impl(name, &input.data) {
             Ok(tokens) => tokens.into(),
             Err(err) => syn::Error::new_spanned(&input, err)
                 .to_compile_error()

@@ -2,24 +2,33 @@ use super::resolver::Resolver;
 use crate::*;
 use brec_scheme::{SchemePayload, SchemePayloadField, SchemePayloadVariant, SchemeType};
 
+/// A Rust payload or included helper type expressed as a TypeScript declaration.
+///
+/// Struct-like Rust types become interfaces or tuples; enum-like Rust types
+/// become discriminated unions shaped the same way napi serializes them.
 pub struct TypeDef {
     name: String,
     body: TypeBody,
 }
 
+/// Top-level declaration shape of a payload or included type.
 enum TypeBody {
     Empty,
     Struct(StructFields),
     Enum(Vec<EnumVariant>),
 }
 
+/// Rust supports both named structs and tuple structs; TypeScript needs a
+/// distinct output shape for each.
 enum StructFields {
     Named(Vec<Field>),
     Tuple(Vec<Type>),
 }
 
+/// One generated TypeScript union item for a Rust enum variant.
 struct EnumVariant(Type);
 
+/// Payload carried by a Rust enum variant.
 enum VariantBody {
     Unit,
     Named(Vec<Field>),

@@ -56,7 +56,7 @@ fi
 echo "Generating Node bindings crate and npm package..."
 (
   cd "${ROOT_DIR}"
-  cargo run --manifest-path "${ROOT_DIR}/../../Cargo.toml" -p brec_in_node_cli -- \
+  cargo run --manifest-path "${ROOT_DIR}/../../Cargo.toml" -p brec_node_cli -- \
     --scheme "${SCHEME_PATH}" \
     --protocol "${ROOT_DIR}/protocol" \
     --bindings-out "${ROOT_DIR}/bindings" \

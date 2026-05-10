@@ -1,6 +1,7 @@
 use crate::*;
 use brec_scheme::{SchemeBlock, SchemeFieldType};
 
+/// TypeScript representation of one exported Brec block.
 pub struct Block {
     name: String,
     fields: Vec<Field>,
@@ -23,6 +24,7 @@ impl Block {
     }
 }
 
+/// Union of all generated block interfaces.
 pub struct BlockUnion(Vec<Type>);
 
 impl BlockUnion {

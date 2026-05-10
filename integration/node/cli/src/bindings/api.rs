@@ -1,14 +1,25 @@
 use crate::*;
 use std::marker::PhantomData;
 
+/// Generated encode/decode functions for Brec blocks.
 pub struct ApiBlock;
+/// Generated encode/decode functions for Brec payloads.
 pub struct ApiPayload;
+/// Generated encode/decode functions for full Brec packets.
 pub struct ApiPacket;
 
+/// API surface emitted to both Rust and TypeScript.
+///
+/// Each API object knows how to render its native napi function and the matching
+/// TypeScript wrapper, which keeps method names and signatures in one place.
 pub trait Api: TsWritable + RustWritable {}
 
 impl<T: TsWritable + RustWritable> Api for T {}
 
+/// A generated entry file parameterized by its output file kind.
+///
+/// `ApiFile` is reused for Rust `lib.rs` and npm `index.ts`: both need the same
+/// API set, but they render imports, wrappers, and exports differently.
 pub struct ApiFile<'a, F: FileName> {
     apis: Vec<Box<dyn Api + 'a>>,
     modules: Vec<Box<dyn PackageModule + 'a>>,
@@ -43,14 +54,17 @@ impl<'a, F: FileName> ApiFile<'a, F> {
     }
 }
 
+/// Writes TypeScript glue for one API function group.
 pub trait TsWritable {
     fn write_ts(&self, writer: &mut SourceWriter) -> Result<(), Error>;
 }
 
+/// Writes napi Rust glue for one API function group.
 pub trait RustWritable {
     fn write_rust(&self, writer: &mut SourceWriter) -> Result<(), Error>;
 }
 
+/// Shared method names for a generated encode/decode API pair.
 pub trait ApiMethods {
     const ENCODE_METHOD_NAME: &'static str;
     const DECODE_METHOD_NAME: &'static str;
