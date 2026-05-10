@@ -34,7 +34,144 @@ brec = { version = "...", features = ["wasm", "bincode"] }
 
 `bincode` is typically used because payload support in generated WASM aggregators expects payload variants to be `#[payload(bincode)]`.
 
-## Quick Start (wasm-bindgen Module)
+## Quick Start (Generated Npm Package)
+
+For most JavaScript integrations, use `brec_wasm_cli`. It generates both the `wasm-bindgen` Rust bindings crate and the TypeScript npm package from `brec.scheme.json`.
+
+### 1. Export A Protocol Scheme
+
+The CLI reads `brec.scheme.json`, so the protocol crate must explicitly enable scheme generation:
+
+```rust
+brec::generate!(scheme);
+```
+
+A plain `brec::generate!()` call does not write `brec.scheme.json`.
+
+Custom Rust types used inside payload fields must also be exported into the scheme:
+
+```rust
+#[payload(include)]
+#[derive(serde::Serialize, serde::Deserialize, brec::Wasm)]
+pub struct Inner {
+    pub tag: String,
+}
+
+#[payload(bincode)]
+#[derive(serde::Serialize, serde::Deserialize)]
+pub struct MyPayload {
+    pub inner: Inner,
+}
+
+brec::generate!(scheme);
+```
+
+Run Cargo for the protocol crate so the macro writes the scheme file:
+
+```bash
+cargo check -p your_protocol_crate
+```
+
+By default, the scheme is written to `target/brec.scheme.json` for that crate.
+
+### 2. Install The CLI
+
+```bash
+cargo install brec_wasm_cli
+```
+
+After installation:
+
+```bash
+brec_wasm_cli --help
+```
+
+### 3. Generate The WASM Package
+
+Node.js target:
+
+```bash
+brec_wasm_cli \
+  --target node \
+  --scheme path/to/protocol/target/brec.scheme.json \
+  --protocol path/to/protocol \
+  --bindings-out path/to/generated/bindings \
+  --npm-out path/to/generated/npm
+```
+
+Browser target:
+
+```bash
+brec_wasm_cli \
+  --target browser \
+  --scheme path/to/protocol/target/brec.scheme.json \
+  --protocol path/to/protocol \
+  --bindings-out path/to/generated/bindings \
+  --npm-out path/to/generated/npm
+```
+
+The Node.js package can be imported without explicit WASM initialization:
+
+```ts
+import { decodePacket, encodePacket } from "protocol";
+
+const packet = decodePacket(bytes);
+const encoded = encodePacket(packet);
+```
+
+The browser package exports `initWasm`; call it before using encode/decode functions:
+
+```ts
+import { decodePacket, encodePacket, initWasm } from "protocol";
+
+await initWasm();
+const packet = decodePacket(bytes);
+const encoded = encodePacket(packet);
+```
+
+### CLI Options
+
+`--target node|browser`
+
+Required. Selects the JavaScript runtime target.
+
+`node` calls `wasm-pack build --target nodejs` and generates a CommonJS `index.ts` entry point. Use it for Node.js clients.
+
+`browser` calls `wasm-pack build --target web` and generates an ESM `index.ts` entry point that imports wasm-pack's async initializer and re-exports it as `initWasm`. Use it for browser clients and bundlers.
+
+`--scheme <PATH>`
+
+Path to `brec.scheme.json`. This file is emitted only when the protocol crate calls `brec::generate!(scheme)` and is built or checked. If omitted, the CLI searches from the current directory: first `./target/brec.scheme.json`, then recursively under the working directory.
+
+`--protocol <DIR>`
+
+Path to the Rust protocol crate used as the `protocol` dependency of the generated bindings crate. If omitted, the CLI infers it from the scheme path. For `target/brec.scheme.json`, the protocol directory is the parent of `target`; otherwise it is the scheme file directory.
+
+`--bindings-out <DIR>`
+
+Output directory for the generated Rust `wasm-bindgen` bindings crate. Defaults to `bindings` next to the scheme file.
+
+`--out <DIR>`
+
+Output directory for the generated npm package. Defaults to `npm` next to the scheme file.
+
+`--npm-out <DIR>`
+
+Alias for `--out`.
+
+`--cargo-deps <PATH>`
+
+Optional TOML file that overrides Cargo dependencies for the generated bindings crate. Most users do not need this option; it is mainly for local development and repository tests where the generated crate must link to local Rust crates instead of published versions.
+
+`--npm-deps <PATH>`
+
+Optional TOML file that overrides npm dependencies for the generated package. Most users do not need this option; it is mainly for local development and repository tests where the generated package must link to local npm packages instead of registry versions.
+
+`-h`, `--help`
+
+Prints CLI usage.
+
+## Manual Quick Start (wasm-bindgen Module)
 
 If you want to expose your protocol as a wasm module and use protocol objects directly in JS:
 
@@ -105,6 +242,7 @@ Reference implementation in this repository:
 - Binding crate: `e2e/wasm/binding`
 - Browser client: `e2e/wasm/clients/browser`
 - Node client: `e2e/wasm/clients/node`
+- Generated package e2e workspace: `e2e-generator/wasm/`
 - End-to-end scripts: `e2e/wasm/clients/browser/test.sh`, `e2e/wasm/clients/node/test.sh`, `e2e/wasm/test.sh`
 
 Direct links:
@@ -115,19 +253,25 @@ Direct links:
 - <https://github.com/icsmw/brec/blob/main/e2e/wasm/clients/browser/src/main.js>
 - <https://github.com/icsmw/brec/blob/main/e2e/wasm/clients/node/src/main.js>
 - <https://github.com/icsmw/brec/blob/main/e2e/wasm/test.sh>
+- <https://github.com/icsmw/brec/tree/main/e2e-generator/wasm>
+- <https://github.com/icsmw/brec/blob/main/e2e-generator/wasm/clients/browser/src/main.ts>
+- <https://github.com/icsmw/brec/blob/main/e2e-generator/wasm/clients/node/src/main.ts>
 
 ## Required Macros For Payload Types
 
 For payload WASM conversion, nested custom Rust types must implement `brec::WasmConvert`.
+For CLI-generated TypeScript declarations, those same nested types must also be present in `brec.scheme.json`.
 
 Use:
 
 - `#[derive(brec::Wasm)]` for nested structs/enums used inside payload fields
+- `#[payload(include)]` for nested structs/enums that should be exported into `scheme.types`
 - `#[payload(bincode)]` for payloads supported by the generated Payload WASM aggregator
 
 Example:
 
 ```rust
+#[payload(include)]
 #[derive(serde::Serialize, serde::Deserialize, brec::Wasm, Clone, Debug)]
 pub struct Inner {
     pub id: u32,
@@ -142,6 +286,7 @@ pub struct MyPayload {
 ```
 
 If a payload variant is not `#[payload(bincode)]`, the generated WASM payload aggregator returns an error for that variant.
+If a nested custom type is used in a payload field but is not marked with `#[payload(include)]`, `brec_wasm_cli` cannot emit the matching TypeScript declaration and fails with a missing included type error.
 
 ## Rust -> JS Reflection
 
@@ -195,12 +340,13 @@ What `brec` guarantees:
 What `brec` does not do for you:
 
 - It does not generate runtime validators in JS.
-- It does not enforce TypeScript compile-time typing by itself.
+- It does not validate your application-level invariants in JS.
 
 Responsibility split:
 
 - `brec` validates protocol data while decoding and produces protocol-shaped objects.
-- Your application is responsible for additional business-level validation and optional static typing wrappers.
+- The generated npm package provides TypeScript declarations for protocol-shaped values.
+- Your application is responsible for additional business-level validation.
 
 How to read these objects in JS:
 
@@ -245,7 +391,7 @@ For packet and payload paths, context is passed explicitly (`ctx`) exactly like 
 
 ## JavaScript Usage Pattern
 
-Typical browser-side flow:
+Typical browser-side flow when using `wasm-pack` output directly:
 
 ```js
 import init, { decode_packet, encode_packet } from 'wasmjs';
@@ -254,6 +400,26 @@ await init();
 
 const packet = decode_packet(inBytes); // JS object
 const outBytes = encode_packet(packet); // Uint8Array-compatible bytes
+```
+
+With `brec_wasm_cli --target browser`, use the generated wrapper instead:
+
+```ts
+import { decodePacket, encodePacket, initWasm } from "protocol";
+
+await initWasm();
+
+const packet = decodePacket(inBytes);
+const outBytes = encodePacket(packet);
+```
+
+With `brec_wasm_cli --target node`, no initialization call is required:
+
+```ts
+import { decodePacket, encodePacket } from "protocol";
+
+const packet = decodePacket(inBytes);
+const outBytes = encodePacket(packet);
 ```
 
 For large integer fields (`i64/u64/i128/u128`), provide `BigInt` values from JS:
