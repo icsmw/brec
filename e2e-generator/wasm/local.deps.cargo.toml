@@ -1,0 +1,3 @@
+[dependencies]
+brec         = { path = "../../lib/core", features = ["bincode"] }
+wasm-bindgen = { version = "0.2" }

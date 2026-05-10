@@ -1,0 +1,3 @@
+[dependencies]
+brec         = { version = "0.3", features = ["bincode"] }
+wasm-bindgen = "0.2"
