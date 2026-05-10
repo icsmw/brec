@@ -15,7 +15,7 @@ impl<'a> SourceWritable for ApiFile<'a, NpmIndexFile> {
 
 impl<'a> TsWritable for ApiFile<'a, NpmIndexFile> {
     fn write_ts(&self, writer: &mut SourceWriter) -> Result<(), Error> {
-        FileHeader::new(self.file_name(), self.package()).write(writer)?;
+        FileHeader::new(self.file_name(), self.model).write(writer)?;
         writer.ln("declare const require: any;")?;
         for import in self.modules() {
             writer.ln(import.import_statement())?;

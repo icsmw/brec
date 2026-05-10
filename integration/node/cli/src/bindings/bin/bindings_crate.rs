@@ -7,6 +7,7 @@ use std::process::Command;
 pub struct BindingsCrate<'a> {
     dir: PathBuf,
     cargo_toml: CargoToml<'a>,
+    model: &'a Model,
 }
 
 impl<'a> BindingsCrate<'a> {
@@ -22,6 +23,7 @@ impl<'a> BindingsCrate<'a> {
         Ok(Self {
             cargo_toml: CargoToml::new(model, &dir, protocol_dir, deps),
             dir,
+            model,
         })
     }
 
@@ -57,7 +59,7 @@ impl<'a> BindingsCrate<'a> {
 
     fn write_lib_rs(&self, path: &Path) -> Result<(), Error> {
         let module = ApiFile::<BindingsLibFile>::new(
-            self.cargo_toml.source_package(),
+            self.model,
             vec![
                 Box::new(ApiBlock),
                 Box::new(ApiPayload),
