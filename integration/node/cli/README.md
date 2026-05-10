@@ -36,12 +36,41 @@ After generation, the npm package is built with `npm install --package-lock=fals
 
 The CLI expects:
 
-- a protocol crate that generated `brec.scheme.json`;
+- a protocol crate that generates `brec.scheme.json`;
 - `cargo` available in `PATH`;
 - `npm` available in `PATH`;
 - Node dependencies resolvable from the generated npm package directory.
 
-The protocol crate normally enables Brec Node/N-API support through the relevant Brec features and derives required conversion traits for nested payload types. The e2e reference is `e2e-generator/node`.
+The protocol crate must explicitly enable scheme generation with `brec::generate!(scheme)`. A plain `brec::generate!()` call does not create `brec.scheme.json`, so this CLI has nothing to read.
+
+Custom Rust types used inside payload fields must be exported into the scheme with `#[payload(include)]`. If such a type is referenced by a payload but not included, the CLI cannot generate the matching TypeScript declaration.
+
+For Node/N-API conversion, nested payload types also normally derive the required Brec conversion trait. See the main N-API documentation for the full protocol-side setup. The e2e reference is `e2e-generator/node`.
+
+Minimal protocol-side shape:
+
+```rust
+#[payload(include)]
+#[derive(serde::Serialize, serde::Deserialize, brec::Napi)]
+pub struct InnerPayloadType {
+    pub value: String,
+}
+
+#[payload(bincode)]
+#[derive(serde::Serialize, serde::Deserialize)]
+pub struct MyPayload {
+    pub inner: InnerPayloadType,
+}
+
+// The `scheme` flag is required for this CLI.
+brec::generate!(scheme);
+```
+
+Build or check the protocol crate first so Cargo runs the macro and writes `target/brec.scheme.json`:
+
+```bash
+cargo check -p your_protocol_crate
+```
 
 ## Installation
 
@@ -74,6 +103,8 @@ If `--scheme` is omitted, the CLI searches for `brec.scheme.json` from the curre
 `--scheme <PATH>`
 
 Path to `brec.scheme.json`. This is the scheme file emitted by the protocol crate.
+
+The file is emitted only when the protocol crate calls `brec::generate!(scheme)` and the crate is built or checked.
 
 `--protocol <DIR>`
 
