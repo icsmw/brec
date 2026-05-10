@@ -10,28 +10,24 @@ pub trait Api: TsWritable + RustWritable {}
 impl<T: TsWritable + RustWritable> Api for T {}
 
 pub struct ApiFile<'a, F: FileName> {
-    package: &'a str,
     apis: Vec<Box<dyn Api + 'a>>,
     modules: Vec<Box<dyn PackageModule + 'a>>,
     file: PhantomData<F>,
+    pub model: &'a Model,
 }
 
 impl<'a, F: FileName> ApiFile<'a, F> {
     pub fn new(
-        package: &'a str,
+        model: &'a Model,
         apis: Vec<Box<dyn Api + 'a>>,
         modules: Vec<Box<dyn PackageModule + 'a>>,
     ) -> Self {
         Self {
-            package,
+            model,
             apis,
             modules,
             file: PhantomData,
         }
-    }
-
-    pub fn package(&self) -> &'a str {
-        self.package
     }
 
     pub fn apis(&self) -> &[Box<dyn Api + 'a>] {

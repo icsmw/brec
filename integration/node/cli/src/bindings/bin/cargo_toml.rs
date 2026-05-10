@@ -31,10 +31,6 @@ impl<'a> CargoToml<'a> {
         }
     }
 
-    pub(super) fn source_package(&self) -> &str {
-        &self.model.package
-    }
-
     fn crate_types() -> Result<String, Error> {
         Self::toml_array(Self::LIB_CRATE_TYPES)
     }

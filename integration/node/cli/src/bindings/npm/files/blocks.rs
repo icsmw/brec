@@ -20,7 +20,7 @@ impl<'a> ModuleName for BlocksFile<'a> {
 
 impl<'a> SourceWritable for BlocksFile<'a> {
     fn write(&self, writer: &mut SourceWriter) -> Result<(), Error> {
-        FileHeader::new(Self::FILE_NAME, &self.model.package).write(writer)?;
+        FileHeader::new(Self::FILE_NAME, &self.model).write(writer)?;
         for block in &self.model.blocks {
             block.interface().write(writer)?;
         }

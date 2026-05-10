@@ -15,7 +15,7 @@ impl<'a> SourceWritable for ApiFile<'a, BindingsLibFile> {
 
 impl<'a> RustWritable for ApiFile<'a, BindingsLibFile> {
     fn write_rust(&self, writer: &mut SourceWriter) -> Result<(), Error> {
-        FileHeader::new(self.file_name(), self.package()).write(writer)?;
+        FileHeader::new(self.file_name(), self.model).write(writer)?;
         writer.ln("use napi::bindgen_prelude::{Buffer, Error, Result, Status};")?;
         writer.ln("use napi::{Env, Unknown};")?;
         writer.ln("use napi_derive::napi;")?;

@@ -53,7 +53,7 @@ impl<'a> NpmPackage<'a> {
     fn write_index_ts(&self) -> Result<(), Error> {
         let model = self.type_files.model();
         let api = ApiFile::<NpmIndexFile>::new(
-            &model.package,
+            &model,
             vec![
                 Box::new(ApiBlock),
                 Box::new(ApiPayload),

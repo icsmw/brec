@@ -27,7 +27,7 @@ impl<'a> ModuleName for PacketFile<'a> {
 
 impl<'a> SourceWritable for PacketFile<'a> {
     fn write(&self, writer: &mut SourceWriter) -> Result<(), Error> {
-        FileHeader::new(Self::FILE_NAME, &self.model.package).write(writer)?;
+        FileHeader::new(Self::FILE_NAME, &self.model).write(writer)?;
         for import in &self.imports {
             writer.ln(import.import_statement())?;
         }

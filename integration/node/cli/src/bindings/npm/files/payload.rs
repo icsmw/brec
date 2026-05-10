@@ -20,7 +20,7 @@ impl<'a> ModuleName for PayloadFile<'a> {
 
 impl<'a> SourceWritable for PayloadFile<'a> {
     fn write(&self, writer: &mut SourceWriter) -> Result<(), Error> {
-        FileHeader::new(Self::FILE_NAME, &self.model.package).write(writer)?;
+        FileHeader::new(Self::FILE_NAME, &self.model).write(writer)?;
         for included in &self.model.included_types {
             included.write(writer)?;
         }
