@@ -1,4 +1,3 @@
-use super::workspace::WorkspaceDependencies;
 use crate::*;
 use std::path::{Path, PathBuf};
 
@@ -6,7 +5,6 @@ pub(super) struct CargoToml<'a> {
     model: &'a Model,
     protocol_dir: PathBuf,
     brec_dir: PathBuf,
-    workspace_dependencies: WorkspaceDependencies,
 }
 
 struct Dependency<'a> {
@@ -45,12 +43,9 @@ impl<'a> CargoToml<'a> {
     ];
 
     pub(super) fn new(model: &'a Model, protocol_dir: impl Into<PathBuf>) -> Result<Self, Error> {
-        let protocol_dir = protocol_dir.into();
-
         Ok(Self {
             model,
-            workspace_dependencies: WorkspaceDependencies::from_protocol(&protocol_dir)?,
-            protocol_dir,
+            protocol_dir: protocol_dir.into(),
             brec_dir: Self::brec_core_dir()?,
         })
     }
@@ -73,7 +68,7 @@ impl<'a> CargoToml<'a> {
         Ok(root.join("lib").join("core"))
     }
 
-    pub(super) fn toml_path(path: &Path) -> Result<String, Error> {
+    fn toml_path(path: &Path) -> Result<String, Error> {
         Self::toml_string(&path.display().to_string())
     }
 
@@ -104,7 +99,6 @@ impl<'a> CargoToml<'a> {
 impl SourceWritable for CargoToml<'_> {
     fn write(&self, writer: &mut SourceWriter) -> Result<(), Error> {
         writer.ln("[workspace]")?;
-        self.workspace_dependencies.write(writer)?;
         writer.ln("")?;
         writer.ln("[package]")?;
         writer.ln(format!("name = {}", Self::toml_string(Self::PACKAGE_NAME)?))?;
