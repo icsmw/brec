@@ -2,6 +2,11 @@ use super::deps;
 use crate::*;
 use std::path::PathBuf;
 
+/// Writer for the generated napi crate manifest.
+///
+/// The manifest is derived from the protocol model, a path to the user's
+/// protocol crate, and optional dependency overrides used by local examples or
+/// release jobs.
 pub(super) struct CargoToml<'a> {
     model: &'a Model,
     dir: PathBuf,
@@ -65,6 +70,10 @@ impl<'a> CargoToml<'a> {
 }
 
 impl SourceWritable for CargoToml<'_> {
+    /// Writes the standalone Cargo manifest for the generated napi crate.
+    ///
+    /// The generated crate is its own tiny workspace so it does not inherit
+    /// unrelated root workspace settings from the protocol repository.
     fn write(&self, writer: &mut SourceWriter) -> Result<(), Error> {
         writer.ln("[workspace]")?;
         writer.ln("")?;

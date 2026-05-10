@@ -2,12 +2,22 @@ use crate::*;
 use std::ffi::OsString;
 use std::path::{Component, Path, PathBuf};
 
+/// Dependency path preserving the user's intent from a config file.
+///
+/// Absolute dependency paths are written back as absolute paths. Relative paths
+/// are resolved against the dependency config file and then rendered relative
+/// to the generated output directory, which keeps generated manifests portable.
 pub(crate) enum RelativePath {
     Absolute(PathBuf),
     Relative(PathBuf),
 }
 
 impl RelativePath {
+    /// Resolves a dependency path from a TOML config file.
+    ///
+    /// Relative config paths stay relative when rendered into generated output,
+    /// but they are first normalized to an absolute path so `..` and `.` are
+    /// handled consistently.
     pub(crate) fn from_config(path: impl AsRef<Path>, config_dir: &Path) -> Result<Self, Error> {
         let path = path.as_ref();
         let resolved = if path.is_absolute() {
@@ -39,6 +49,8 @@ impl RelativePath {
     }
 }
 
+/// Computes a relative path from one directory to another without requiring
+/// either path to exist.
 pub(crate) fn relative_path(from_dir: &Path, to: &Path) -> Result<PathBuf, Error> {
     let from = absolute_normalized(from_dir)?;
     let to = absolute_normalized(to)?;
@@ -99,4 +111,43 @@ fn comparable_components(path: &Path) -> Vec<OsString> {
             Component::CurDir | Component::ParentDir => None,
         })
         .collect()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn builds_relative_path_between_sibling_dirs() {
+        let from = Path::new("/repo/generated/npm");
+        let to = Path::new("/repo/protocol");
+
+        assert_eq!(
+            relative_path(from, to).expect("relative"),
+            PathBuf::from("../../protocol")
+        );
+    }
+
+    #[test]
+    fn returns_dot_for_same_dir() {
+        let dir = Path::new("/repo/protocol");
+
+        assert_eq!(
+            relative_path(dir, dir).expect("relative"),
+            PathBuf::from(".")
+        );
+    }
+
+    #[test]
+    fn keeps_absolute_path_when_roots_do_not_match() {
+        let from = Path::new("C:/repo/generated");
+        let to = Path::new("D:/deps/protocol");
+
+        if cfg!(windows) {
+            assert_eq!(
+                relative_path(from, to).expect("relative"),
+                PathBuf::from("D:/deps/protocol")
+            );
+        }
+    }
 }

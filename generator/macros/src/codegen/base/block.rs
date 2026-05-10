@@ -87,7 +87,7 @@ impl Gen for Block {
         let napi = {
             #[cfg(feature = "napi")]
             {
-                brec_in_node_gen::codegen::base::block::generate(&self.name(), &self.fields)?
+                brec_node_gen::codegen::base::block::generate(&self.name(), &self.fields)?
             }
             #[cfg(not(feature = "napi"))]
             {
@@ -97,7 +97,7 @@ impl Gen for Block {
         let wasm = {
             #[cfg(feature = "wasm")]
             {
-                brec_in_wasm_gen::codegen::base::block::generate(&self.name(), &self.fields)?
+                brec_wasm_gen::codegen::base::block::generate(&self.name(), &self.fields)?
             }
             #[cfg(not(feature = "wasm"))]
             {
@@ -107,7 +107,7 @@ impl Gen for Block {
         let java = {
             #[cfg(feature = "java")]
             {
-                brec_in_java_gen::codegen::base::block::generate(&self.name(), &self.fields)?
+                brec_java_gen::codegen::base::block::generate(&self.name(), &self.fields)?
             }
             #[cfg(not(feature = "java"))]
             {
@@ -117,7 +117,7 @@ impl Gen for Block {
         let csharp = {
             #[cfg(feature = "csharp")]
             {
-                brec_in_csharp_gen::codegen::base::block::generate(&self.name(), &self.fields)?
+                brec_csharp_gen::codegen::base::block::generate(&self.name(), &self.fields)?
             }
             #[cfg(not(feature = "csharp"))]
             {

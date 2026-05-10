@@ -23,6 +23,11 @@ enum NpmDependency {
     Local { path: String },
 }
 
+/// Writer for the generated package manifest.
+///
+/// It owns package metadata, dependency resolution, and the `files` whitelist
+/// used by npm consumers. Local dependency overrides are resolved before
+/// writing so generated examples can run from Docker build contexts.
 pub(super) struct PackageJson<'a> {
     model: &'a Model,
     dir: PathBuf,
@@ -42,6 +47,10 @@ impl<'a> PackageJson<'a> {
         self.dependencies().map(|_| ())
     }
 
+    /// Files produced by TypeScript compilation plus the native binding.
+    ///
+    /// The list is reused by `NpmPackage` to clean stale generated files before
+    /// writing a new package.
     pub fn files(&self) -> Vec<String> {
         fn compiled_file(source: &str, ext: &str) -> String {
             let stem = source.strip_suffix(".ts").unwrap_or(source);
@@ -100,6 +109,11 @@ impl SourceWritable for PackageJson<'_> {
 }
 
 impl PackageJson<'_> {
+    /// Loads built-in npm dependencies and applies optional user overrides.
+    ///
+    /// Local `path` dependencies become `file:` package specs relative to the
+    /// generated package directory, which makes the package portable inside the
+    /// e2e Docker build context.
     fn dependencies(&self) -> Result<NpmDeps, Error> {
         let mut deps = toml::from_str::<NpmDeps>(NPM_DEPS)?;
         let built_in_dir = Path::new(env!("CARGO_MANIFEST_DIR"));
@@ -145,5 +159,53 @@ impl NpmDependency {
             Self::Version(version) => Ok(version.clone()),
             Self::Local { path } => Ok(format!("file:{path}")),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::fs;
+
+    #[test]
+    fn renders_version_dependency_as_plain_package_spec() {
+        let dep = NpmDependency::Version("^1.0.0".to_owned());
+
+        assert_eq!(dep.package_spec().expect("spec"), "^1.0.0");
+    }
+
+    #[test]
+    fn resolves_local_dependency_relative_to_output_dir() {
+        let root = unique_temp_dir("npm-dep");
+        let config_dir = root.join("config");
+        let output_dir = root.join("generated").join("npm");
+        let package_dir = root.join("packages").join("runtime");
+        fs::create_dir_all(&config_dir).expect("config dir");
+        fs::create_dir_all(&output_dir).expect("output dir");
+        fs::create_dir_all(&package_dir).expect("package dir");
+
+        let mut dep = NpmDependency::Local {
+            path: "../packages/runtime".to_owned(),
+        };
+        dep.resolve_path(&config_dir, &output_dir)
+            .expect("resolve path");
+
+        assert_eq!(
+            dep.package_spec().expect("spec"),
+            "file:../../packages/runtime"
+        );
+
+        fs::remove_dir_all(root).expect("cleanup");
+    }
+
+    fn unique_temp_dir(name: &str) -> PathBuf {
+        let nanos = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .expect("time")
+            .as_nanos();
+        std::env::temp_dir().join(format!(
+            "brec-node-cli-{name}-{}-{nanos}",
+            std::process::id(),
+        ))
     }
 }

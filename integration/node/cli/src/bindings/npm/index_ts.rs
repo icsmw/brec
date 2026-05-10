@@ -1,5 +1,9 @@
 use crate::*;
 
+/// Marker for the generated npm `index.ts` barrel and native-binding wrapper.
+///
+/// It imports generated type modules, re-exports them, loads
+/// `native/bindings.node`, and exposes the typed encode/decode functions.
 pub struct NpmIndexFile;
 
 impl FileName for NpmIndexFile {

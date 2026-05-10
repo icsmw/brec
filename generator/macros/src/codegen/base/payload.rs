@@ -119,7 +119,7 @@ impl Base for Payload {
         let napi_impl = {
             #[cfg(feature = "napi")]
             {
-                brec_in_node_gen::codegen::base::payload::generate(&self.name(), &self.attrs)?
+                brec_node_gen::codegen::base::payload::generate(&self.name(), &self.attrs)?
             }
             #[cfg(not(feature = "napi"))]
             {
@@ -129,7 +129,7 @@ impl Base for Payload {
         let wasm_impl = {
             #[cfg(feature = "wasm")]
             {
-                brec_in_wasm_gen::codegen::base::payload::generate(&self.name(), &self.attrs)?
+                brec_wasm_gen::codegen::base::payload::generate(&self.name(), &self.attrs)?
             }
             #[cfg(not(feature = "wasm"))]
             {
@@ -139,7 +139,7 @@ impl Base for Payload {
         let java_impl = {
             #[cfg(feature = "java")]
             {
-                brec_in_java_gen::codegen::base::payload::generate(&self.name(), &self.attrs)?
+                brec_java_gen::codegen::base::payload::generate(&self.name(), &self.attrs)?
             }
             #[cfg(not(feature = "java"))]
             {
@@ -149,7 +149,7 @@ impl Base for Payload {
         let csharp_impl = {
             #[cfg(feature = "csharp")]
             {
-                brec_in_csharp_gen::codegen::base::payload::generate(&self.name(), &self.attrs)?
+                brec_csharp_gen::codegen::base::payload::generate(&self.name(), &self.attrs)?
             }
             #[cfg(not(feature = "csharp"))]
             {

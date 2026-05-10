@@ -2,6 +2,10 @@ use super::property::Property;
 use super::ty::Type;
 use crate::{Error, SourceWritable};
 
+/// Object field inside a generated TypeScript interface or inline object type.
+///
+/// Field names are stored as `Property` so Rust names that are not legal
+/// TypeScript identifiers are still emitted as quoted object keys.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Field {
     name: Property,

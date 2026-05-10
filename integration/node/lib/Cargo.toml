@@ -1,5 +1,5 @@
 [package]
-name        = "brec_in_node_lib"
+name        = "brec_node_lib"
 version     = "0.1.0"
 edition     = "2024"
 authors     = ["d.astafyev@outlook.com"]
@@ -20,8 +20,8 @@ categories = [
 ]
 
 [dependencies]
-thiserror.workspace    = true
-enum_ids.workspace     = true
+thiserror.workspace   = true
+enum_ids.workspace    = true
 brec_consts.workspace = true
-napi                   = { workspace = true, features = ["serde-json", "napi6"]}
-js-sys                 = { workspace = true, optional = true }
+napi                  = { workspace = true, features = ["serde-json", "napi6"] }
+js-sys                = { workspace = true, optional = true }

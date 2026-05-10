@@ -6,6 +6,12 @@ use std::io::ErrorKind;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
+/// Writable npm package assembled from generated TypeScript files and a native
+/// napi binding artifact.
+///
+/// `NpmPackage` is the final packaging step: it cleans only known generated
+/// files, writes fresh TypeScript declarations and metadata, copies the native
+/// library, then runs the local npm build.
 pub struct NpmPackage<'a> {
     dir: PathBuf,
     type_files: &'a NpmTypeFiles<'a>,
@@ -53,7 +59,7 @@ impl<'a> NpmPackage<'a> {
     fn write_index_ts(&self) -> Result<(), Error> {
         let model = self.type_files.model();
         let api = ApiFile::<NpmIndexFile>::new(
-            &model,
+            model,
             vec![
                 Box::new(ApiBlock),
                 Box::new(ApiPayload),
@@ -68,6 +74,10 @@ impl<'a> NpmPackage<'a> {
         api.write_to_path(&self.dir.join(NpmIndexFile::FILE_NAME))
     }
 
+    /// Removes files owned by the generator before writing fresh output.
+    ///
+    /// User-created files are left intact; only known generated files and the
+    /// native artifact path are touched.
     fn clean_owned_files(&self) -> Result<(), Error> {
         for file in self.owned_files() {
             let path = self.dir.join(file);

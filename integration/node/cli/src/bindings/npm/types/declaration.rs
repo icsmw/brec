@@ -2,6 +2,10 @@ use crate::{Error, SourceWritable};
 
 use super::{Interface, TypeAlias};
 
+/// Top-level TypeScript declaration emitted for a protocol type.
+///
+/// Named Rust structs become interfaces when they have named fields; tuple
+/// structs, empty types, and enums are represented as type aliases.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Declaration {
     Interface(Interface),

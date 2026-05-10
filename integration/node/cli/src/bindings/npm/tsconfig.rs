@@ -1,6 +1,10 @@
 use crate::*;
 use serde_json::json;
 
+/// TypeScript compiler configuration for the generated npm package.
+///
+/// The package compiles only top-level generated `.ts` files and emits
+/// declaration files, because consumers import the package as normal CommonJS.
 pub struct TsConfigJson;
 
 impl TsConfigJson {

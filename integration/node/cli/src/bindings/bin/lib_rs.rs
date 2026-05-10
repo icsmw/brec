@@ -1,5 +1,9 @@
 use crate::*;
 
+/// Marker for the generated Rust `src/lib.rs` binding file.
+///
+/// The actual content is rendered through `ApiFile<BindingsLibFile>` so the
+/// same API list can be shared with the TypeScript entry point.
 pub struct BindingsLibFile;
 
 impl FileName for BindingsLibFile {

@@ -38,7 +38,7 @@ pub fn parse(attrs: PayloadAttrs, mut input: DeriveInput) -> TokenStream {
     let napi_convert_impl = {
         #[cfg(feature = "napi")]
         {
-            match brec_in_node_gen::codegen::generate_impl(&payload_name, &payload_data) {
+            match brec_node_gen::codegen::generate_impl(&payload_name, &payload_data) {
                 Ok(tokens) => tokens,
                 Err(err) => {
                     return syn::Error::new_spanned(&input, err).to_compile_error();
@@ -53,7 +53,7 @@ pub fn parse(attrs: PayloadAttrs, mut input: DeriveInput) -> TokenStream {
     let wasm_convert_impl = {
         #[cfg(feature = "wasm")]
         {
-            match brec_in_wasm_gen::codegen::generate_impl(&payload_name, &payload_data) {
+            match brec_wasm_gen::codegen::generate_impl(&payload_name, &payload_data) {
                 Ok(tokens) => tokens,
                 Err(err) => {
                     return syn::Error::new_spanned(&input, err).to_compile_error();
@@ -68,7 +68,7 @@ pub fn parse(attrs: PayloadAttrs, mut input: DeriveInput) -> TokenStream {
     let java_convert_impl = {
         #[cfg(feature = "java")]
         {
-            match brec_in_java_gen::codegen::generate_impl(&payload_name, &payload_data) {
+            match brec_java_gen::codegen::generate_impl(&payload_name, &payload_data) {
                 Ok(tokens) => tokens,
                 Err(err) => {
                     return syn::Error::new_spanned(&input, err).to_compile_error();
@@ -83,7 +83,7 @@ pub fn parse(attrs: PayloadAttrs, mut input: DeriveInput) -> TokenStream {
     let csharp_convert_impl = {
         #[cfg(feature = "csharp")]
         {
-            match brec_in_csharp_gen::codegen::generate_impl(&payload_name, &payload_data) {
+            match brec_csharp_gen::codegen::generate_impl(&payload_name, &payload_data) {
                 Ok(tokens) => tokens,
                 Err(err) => {
                     return syn::Error::new_spanned(&input, err).to_compile_error();

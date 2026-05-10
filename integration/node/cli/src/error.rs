@@ -4,6 +4,11 @@ use thiserror::Error;
 
 pub const SCHEME_FILE_NAME: &str = "brec.scheme.json";
 
+/// Error type for the Node package generator.
+///
+/// Variants are intentionally user-facing: this binary is normally run from
+/// shell scripts and e2e jobs, so each error should explain which input,
+/// generated path, or external command failed without requiring a backtrace.
 #[derive(Debug, Error)]
 pub enum Error {
     #[error("{0}")]

@@ -2,6 +2,10 @@ use crate::*;
 use std::fmt;
 use std::path::Path;
 
+/// Small indentation-aware source writer used by every generated file.
+///
+/// The generator builds code directly instead of using templates because most
+/// files are assembled from protocol-specific model objects.
 pub struct SourceWriter<'a> {
     dest: &'a mut dyn fmt::Write,
     tab: &'a mut Tab,
@@ -47,6 +51,7 @@ impl<'a> SourceWriter<'a> {
     }
 }
 
+/// Object that can render itself into a generated source file.
 pub trait SourceWritable {
     fn write(&self, writer: &mut SourceWriter) -> Result<(), Error>;
 

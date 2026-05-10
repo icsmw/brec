@@ -22,38 +22,38 @@ members = [
 exclude = ["gen_tests/*", "measurements/*", "examples/*", "tests/*"]
 
 [workspace.dependencies]
-notify                 = "8.2"
-thiserror              = "2.0"
-uuid                   = "1.23"
-proptest               = "1.11"
-paste                  = "1.0"
-syn                    = { version = "2.0", features = ["full"] }
-quote                  = "1.0"
-proc-macro2            = "1.0"
-enum_ids               = "0.7"
-crc32fast              = "1.4"
-lazy_static            = "1.5"
-serde                  = { version = "1.0", features = ["derive"] }
-serde_json             = "1.0"
-toml                   = "1.1"
-bincode                = { version = "2.0", features = ["serde"] }
-brec_macros            = { version = "0.3.0", path = "./generator/macros" }
-brec_consts            = { version = "0.3.0", path = "./lib/consts" }
-brec                   = { version = "0.3.0", path = "./lib/core" }
-brec_macros_parser     = { version = "0.1.0", path = "./generator/parser" }
-brec_scheme            = { version = "0.1.0", path = "./generator/scheme" }
-brec_in_node_cli       = { version = "0.1.0", path = "./integration/node/cli" }
-brec_in_node_gen       = { version = "0.1.0", path = "./integration/node/gen" }
-brec_in_node_gen_macro = { version = "0.1.0", path = "./integration/node/macro" }
-brec_in_node_lib       = { version = "0.1.0", path = "./integration/node/lib" }
-brec_in_csharp_gen     = { version = "0.1.0", path = "./integration/csharp/gen" }
-brec_in_csharp_lib     = { version = "0.1.0", path = "./integration/csharp/lib" }
-brec_in_java_gen       = { version = "0.1.0", path = "./integration/java/gen" }
-brec_in_java_lib       = { version = "0.1.0", path = "./integration/java/lib" }
-brec_in_java_gen_macro = { version = "0.1.0", path = "./integration/java/macro" }
-brec_in_wasm_gen       = { version = "0.1.0", path = "./integration/wasm/gen" }
-brec_in_wasm_lib       = { version = "0.1.0", path = "./integration/wasm/lib" }
-brec_in_wasm_gen_macro = { version = "0.1.0", path = "./integration/wasm/macro" }
+notify              = "8.2"
+thiserror           = "2.0"
+uuid                = "1.23"
+proptest            = "1.11"
+paste               = "1.0"
+syn                 = { version = "2.0", features = ["full"] }
+quote               = "1.0"
+proc-macro2         = "1.0"
+enum_ids            = "0.7"
+crc32fast           = "1.4"
+lazy_static         = "1.5"
+serde               = { version = "1.0", features = ["derive"] }
+serde_json          = "1.0"
+toml                = "1.1"
+bincode             = { version = "2.0", features = ["serde"] }
+brec_macros         = { version = "0.3.0", path = "./generator/macros" }
+brec_consts         = { version = "0.3.0", path = "./lib/consts" }
+brec                = { version = "0.3.0", path = "./lib/core" }
+brec_macros_parser  = { version = "0.1.0", path = "./generator/parser" }
+brec_scheme         = { version = "0.1.0", path = "./generator/scheme" }
+brec_node_cli       = { version = "0.1.0", path = "./integration/node/cli" }
+brec_node_gen       = { version = "0.1.0", path = "./integration/node/gen" }
+brec_node_gen_macro = { version = "0.1.0", path = "./integration/node/macro" }
+brec_node_lib       = { version = "0.1.0", path = "./integration/node/lib" }
+brec_csharp_gen     = { version = "0.1.0", path = "./integration/csharp/gen" }
+brec_csharp_lib     = { version = "0.1.0", path = "./integration/csharp/lib" }
+brec_java_gen       = { version = "0.1.0", path = "./integration/java/gen" }
+brec_java_lib       = { version = "0.1.0", path = "./integration/java/lib" }
+brec_java_gen_macro = { version = "0.1.0", path = "./integration/java/macro" }
+brec_wasm_gen       = { version = "0.1.0", path = "./integration/wasm/gen" }
+brec_wasm_lib       = { version = "0.1.0", path = "./integration/wasm/lib" }
+brec_wasm_gen_macro = { version = "0.1.0", path = "./integration/wasm/macro" }
 
 fs4               = { version = "0.13", features = ["sync"] }
 tracing           = "0.1"

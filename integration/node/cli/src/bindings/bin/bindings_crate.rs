@@ -4,6 +4,10 @@ use crate::*;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
+/// Generated Rust crate that exposes protocol encode/decode functions to Node.
+///
+/// The crate is written next to the scheme by default, depends on the user's
+/// protocol crate, and builds a native `bindings.node`-compatible cdylib.
 pub struct BindingsCrate<'a> {
     dir: PathBuf,
     cargo_toml: CargoToml<'a>,
@@ -35,6 +39,7 @@ impl<'a> BindingsCrate<'a> {
         self.write_lib_rs(&src.join(BindingsLibFile::FILE_NAME))
     }
 
+    /// Builds the generated crate and returns the produced native library.
     pub fn build_release(&self) -> Result<PathBuf, Error> {
         let manifest = self.dir.join(CargoToml::FILE_NAME);
         let status = Command::new("cargo")
@@ -71,13 +76,20 @@ impl<'a> BindingsCrate<'a> {
     }
 
     fn find_release_artifact(&self) -> Result<PathBuf, Error> {
-        let release = self.dir.join("target").join("release");
+        let release = self.target_dir().join("release");
         let artifact = release.join(Self::artifact_name());
 
         artifact
             .is_file()
             .then_some(artifact)
             .ok_or(Error::BindingArtifactNotFound(release))
+    }
+
+    fn target_dir(&self) -> PathBuf {
+        match std::env::var_os("CARGO_TARGET_DIR") {
+            Some(path) => PathBuf::from(path),
+            None => self.dir.join("target"),
+        }
     }
 
     fn artifact_name() -> String {

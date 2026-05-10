@@ -1,5 +1,5 @@
 [package]
-name        = "brec_in_node_gen_macro"
+name        = "brec_node_gen_macro"
 version     = "0.1.0"
 edition     = "2024"
 authors     = ["d.astafyev@outlook.com"]
@@ -21,4 +21,4 @@ proc-macro = true
 syn.workspace         = true
 quote.workspace       = true
 proc-macro2.workspace = true
-brec_in_node_gen      = { workspace = true }
+brec_node_gen         = { workspace = true }

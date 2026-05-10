@@ -2,6 +2,10 @@ use crate::{Error, SourceWritable};
 
 use super::field::Field;
 
+/// Generated TypeScript interface declaration.
+///
+/// Interfaces are used only for named Rust struct shapes, which gives
+/// downstream TypeScript consumers readable property completions.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Interface {
     name: String,

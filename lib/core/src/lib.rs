@@ -32,20 +32,20 @@ pub mod storage;
 pub mod traits;
 
 #[cfg(feature = "csharp")]
-pub use brec_in_csharp_lib as csharp_feat;
+pub use brec_csharp_lib as csharp_feat;
 #[cfg(feature = "java")]
-pub use brec_in_java_gen_macro::Java;
+pub use brec_java_gen_macro::Java;
 #[cfg(feature = "java")]
-pub use brec_in_java_lib as java_feat;
-#[cfg(feature = "napi")]
-pub use brec_in_node_gen_macro::Napi;
-#[cfg(feature = "napi")]
-pub use brec_in_node_lib as napi_feat;
-#[cfg(feature = "wasm")]
-pub use brec_in_wasm_gen_macro::Wasm;
-#[cfg(feature = "wasm")]
-pub use brec_in_wasm_lib as wasm_feat;
+pub use brec_java_lib as java_feat;
 pub use brec_macros::*;
+#[cfg(feature = "napi")]
+pub use brec_node_gen_macro::Napi;
+#[cfg(feature = "napi")]
+pub use brec_node_lib as napi_feat;
+#[cfg(feature = "wasm")]
+pub use brec_wasm_gen_macro::Wasm;
+#[cfg(feature = "wasm")]
+pub use brec_wasm_lib as wasm_feat;
 pub use crc32fast;
 #[cfg(feature = "crypt")]
 pub use crypt::{BricCryptCodec, CryptAlgorithm, CryptEnvelopeRecord};

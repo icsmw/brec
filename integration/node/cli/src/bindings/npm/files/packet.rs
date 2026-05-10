@@ -1,5 +1,10 @@
 use crate::*;
 
+/// Generated `packet.ts` file.
+///
+/// The packet shape is intentionally small: ordered blocks plus an optional
+/// payload, matching the Rust `Packet::new(blocks, payload)` constructor used
+/// by the protocol crate.
 pub struct PacketFile<'a> {
     model: &'a Model,
     imports: Vec<Box<dyn Importable + 'a>>,
@@ -27,7 +32,7 @@ impl<'a> ModuleName for PacketFile<'a> {
 
 impl<'a> SourceWritable for PacketFile<'a> {
     fn write(&self, writer: &mut SourceWriter) -> Result<(), Error> {
-        FileHeader::new(Self::FILE_NAME, &self.model).write(writer)?;
+        FileHeader::new(Self::FILE_NAME, self.model).write(writer)?;
         for import in &self.imports {
             writer.ln(import.import_statement())?;
         }

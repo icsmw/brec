@@ -1,5 +1,5 @@
 [package]
-name        = "brec_in_node_cli"
+name        = "brec_node_cli"
 version     = "0.1.0"
 edition     = "2024"
 authors     = ["d.astafyev@outlook.com"]
@@ -18,7 +18,7 @@ categories = [
 ]
 
 [[bin]]
-name = "brec-node-types"
+name = "brec_node_cli"
 path = "src/main.rs"
 
 [dependencies]

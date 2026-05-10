@@ -3,6 +3,11 @@ use std::env;
 use std::fs;
 use std::path::{Path, PathBuf};
 
+/// Runs the generator from process arguments.
+///
+/// The command is intentionally small: it reads the exported Brec scheme,
+/// prepares a temporary Rust crate with napi bindings, builds the native
+/// artifact, and writes the npm package that consumes that artifact.
 pub fn run() -> Result<(), Error> {
     let cli = Cli::parse(env::args().skip(1))?;
     let model = Model::try_from(cli.scheme)?;
@@ -35,6 +40,10 @@ pub fn run() -> Result<(), Error> {
     Ok(())
 }
 
+/// Parsed command line options.
+///
+/// Paths are kept as the user provided them until the concrete generator
+/// object needs to resolve them against the scheme, protocol, or config file.
 #[derive(Debug)]
 struct Cli {
     scheme: Option<PathBuf>,
@@ -54,7 +63,7 @@ impl Cli {
         let mut cargo_deps = None;
         let mut npm_deps = None;
 
-        let mut args = args.peekable();
+        let mut args = args;
         while let Some(arg) = args.next() {
             match arg.as_str() {
                 "-h" | "--help" => {
@@ -62,45 +71,31 @@ impl Cli {
                     std::process::exit(0);
                 }
                 "--scheme" => {
-                    let value = args
-                        .next()
-                        .ok_or_else(|| Error::Cli("missing value for --scheme".to_owned()))?;
+                    let value = next_value(&mut args, "--scheme")?;
                     scheme = Some(PathBuf::from(value));
                 }
                 "--out" => {
-                    let value = args
-                        .next()
-                        .ok_or_else(|| Error::Cli("missing value for --out".to_owned()))?;
+                    let value = next_value(&mut args, "--out")?;
                     out = Some(PathBuf::from(value));
                 }
                 "--npm-out" => {
-                    let value = args
-                        .next()
-                        .ok_or_else(|| Error::Cli("missing value for --npm-out".to_owned()))?;
+                    let value = next_value(&mut args, "--npm-out")?;
                     out = Some(PathBuf::from(value));
                 }
                 "--bindings-out" => {
-                    let value = args
-                        .next()
-                        .ok_or_else(|| Error::Cli("missing value for --bindings-out".to_owned()))?;
+                    let value = next_value(&mut args, "--bindings-out")?;
                     bindings_out = Some(PathBuf::from(value));
                 }
                 "--protocol" => {
-                    let value = args
-                        .next()
-                        .ok_or_else(|| Error::Cli("missing value for --protocol".to_owned()))?;
+                    let value = next_value(&mut args, "--protocol")?;
                     protocol = Some(PathBuf::from(value));
                 }
                 "--cargo-deps" => {
-                    let value = args
-                        .next()
-                        .ok_or_else(|| Error::Cli("missing value for --cargo-deps".to_owned()))?;
+                    let value = next_value(&mut args, "--cargo-deps")?;
                     cargo_deps = Some(PathBuf::from(value));
                 }
                 "--npm-deps" => {
-                    let value = args
-                        .next()
-                        .ok_or_else(|| Error::Cli("missing value for --npm-deps".to_owned()))?;
+                    let value = next_value(&mut args, "--npm-deps")?;
                     npm_deps = Some(PathBuf::from(value));
                 }
                 other => {
@@ -122,7 +117,7 @@ impl Cli {
 
 fn print_usage() {
     println!(
-        "Usage: brec-node-types [--scheme <PATH>] [--out <DIR>] [--bindings-out <DIR>] [--protocol <DIR>] [--cargo-deps <PATH>] [--npm-deps <PATH>]
+        "Usage: brec_node_cli [--scheme <PATH>] [--out <DIR>] [--bindings-out <DIR>] [--protocol <DIR>] [--cargo-deps <PATH>] [--npm-deps <PATH>]
 
 If --scheme is omitted, the CLI searches for brec.scheme.json in the current
 directory. It first checks ./target/brec.scheme.json and then recursively scans
@@ -133,6 +128,11 @@ By default, the generated bindings crate and npm package are written next to
 the scheme file. --out and --npm-out are aliases for the npm package directory.
 --cargo-deps and --npm-deps override built-in dependency versions by name."
     );
+}
+
+fn next_value(args: &mut impl Iterator<Item = String>, flag: &str) -> Result<String, Error> {
+    args.next()
+        .ok_or_else(|| Error::Cli(format!("missing value for {flag}")))
 }
 
 fn infer_protocol_dir(scheme_path: &Path) -> Result<PathBuf, Error> {
@@ -146,4 +146,67 @@ fn infer_protocol_dir(scheme_path: &Path) -> Result<PathBuf, Error> {
             .ok_or_else(|| Error::MissingParent(scheme_dir.to_path_buf()));
     }
     Ok(scheme_dir.to_path_buf())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn parses_all_paths() {
+        let cli = Cli::parse(
+            [
+                "--scheme",
+                "target/brec.scheme.json",
+                "--npm-out",
+                "generated/npm",
+                "--bindings-out",
+                "bindings",
+                "--protocol",
+                "protocol",
+                "--cargo-deps",
+                "deps.cargo.toml",
+                "--npm-deps",
+                "deps.npm.toml",
+            ]
+            .into_iter()
+            .map(str::to_owned),
+        )
+        .expect("cli");
+
+        assert_eq!(cli.scheme, Some(PathBuf::from("target/brec.scheme.json")));
+        assert_eq!(cli.out, Some(PathBuf::from("generated/npm")));
+        assert_eq!(cli.bindings_out, Some(PathBuf::from("bindings")));
+        assert_eq!(cli.protocol, Some(PathBuf::from("protocol")));
+        assert_eq!(cli.cargo_deps, Some(PathBuf::from("deps.cargo.toml")));
+        assert_eq!(cli.npm_deps, Some(PathBuf::from("deps.npm.toml")));
+    }
+
+    #[test]
+    fn reports_missing_flag_value() {
+        let err = Cli::parse(["--scheme"].into_iter().map(str::to_owned))
+            .expect_err("missing value should fail");
+
+        assert!(err.to_string().contains("missing value for --scheme"));
+    }
+
+    #[test]
+    fn infers_protocol_dir_next_to_non_target_scheme() {
+        let path = Path::new("/repo/protocol/brec.scheme.json");
+
+        assert_eq!(
+            infer_protocol_dir(path).expect("protocol dir"),
+            PathBuf::from("/repo/protocol")
+        );
+    }
+
+    #[test]
+    fn infers_protocol_dir_from_target_scheme() {
+        let path = Path::new("/repo/protocol/target/brec.scheme.json");
+
+        assert_eq!(
+            infer_protocol_dir(path).expect("protocol dir"),
+            PathBuf::from("/repo/protocol")
+        );
+    }
 }

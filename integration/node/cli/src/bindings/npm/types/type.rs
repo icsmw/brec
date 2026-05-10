@@ -1,5 +1,9 @@
 use crate::*;
 
+/// TypeScript type alias declaration.
+///
+/// The generator uses aliases for unions, tuples, empty object shapes, and
+/// other expressions that are not naturally represented as interfaces.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TypeAlias {
     name: String,
