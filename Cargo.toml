@@ -35,6 +35,7 @@ crc32fast              = "1.4"
 lazy_static            = "1.5"
 serde                  = { version = "1.0", features = ["derive"] }
 serde_json             = "1.0"
+toml                   = "1.1"
 bincode                = { version = "2.0", features = ["serde"] }
 brec_macros            = { version = "0.3.0", path = "./generator/macros" }
 brec_consts            = { version = "0.3.0", path = "./lib/consts" }
