@@ -9,6 +9,7 @@ TAIL_PID=""
 IMAGE_TAG="node-e2e:local"
 SCHEME_PATH="${ROOT_DIR}/protocol/target/brec.scheme.json"
 GENERATED_NPM_DIR="${ROOT_DIR}/generated/npm"
+LOCAL_CARGO_DEPS="${ROOT_DIR}/local.deps.cargo.toml"
 
 if ! command -v docker >/dev/null 2>&1; then
   echo "docker is required but not found in PATH" >&2
@@ -59,7 +60,8 @@ echo "Generating Node bindings crate and npm package..."
     --scheme "${SCHEME_PATH}" \
     --protocol "${ROOT_DIR}/protocol" \
     --bindings-out "${ROOT_DIR}/bindings" \
-    --npm-out "${GENERATED_NPM_DIR}"
+    --npm-out "${GENERATED_NPM_DIR}" \
+    --cargo-deps "${LOCAL_CARGO_DEPS}"
 )
 
 echo "Checking local rust compilation before e2e..."

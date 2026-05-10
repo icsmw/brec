@@ -1,24 +1,12 @@
+use super::deps;
 use crate::*;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 pub(super) struct CargoToml<'a> {
     model: &'a Model,
+    dir: PathBuf,
     protocol_dir: PathBuf,
-    brec_dir: PathBuf,
-}
-
-struct Dependency<'a> {
-    name: &'static str,
-    package: Option<&'a str>,
-    path: Option<String>,
-    version: Option<&'static str>,
-    features: &'static [&'static str],
-}
-
-struct RegistryDependency {
-    name: &'static str,
-    version: &'static str,
-    features: &'static [&'static str],
+    deps: Option<PathBuf>,
 }
 
 impl<'a> CargoToml<'a> {
@@ -28,26 +16,19 @@ impl<'a> CargoToml<'a> {
     const PACKAGE_EDITION: &'static str = "2024";
     const LIB_NAME: &'static str = "bindings";
     const LIB_CRATE_TYPES: &'static [&'static str] = &["cdylib", "rlib"];
-    const BREC_FEATURES: &'static [&'static str] = &["bincode"];
-    const DEPS: &'static [RegistryDependency] = &[
-        RegistryDependency {
-            name: "napi",
-            version: "3.8",
-            features: &["serde-json", "napi6"],
-        },
-        RegistryDependency {
-            name: "napi-derive",
-            version: "3.5",
-            features: &[],
-        },
-    ];
 
-    pub(super) fn new(model: &'a Model, protocol_dir: impl Into<PathBuf>) -> Result<Self, Error> {
-        Ok(Self {
+    pub(super) fn new(
+        model: &'a Model,
+        dir: impl Into<PathBuf>,
+        protocol_dir: impl Into<PathBuf>,
+        deps: Option<PathBuf>,
+    ) -> Self {
+        Self {
             model,
+            dir: dir.into(),
             protocol_dir: protocol_dir.into(),
-            brec_dir: Self::brec_core_dir()?,
-        })
+            deps,
+        }
     }
 
     pub(super) fn source_package(&self) -> &str {
@@ -56,20 +37,6 @@ impl<'a> CargoToml<'a> {
 
     fn crate_types() -> Result<String, Error> {
         Self::toml_array(Self::LIB_CRATE_TYPES)
-    }
-
-    fn brec_core_dir() -> Result<PathBuf, Error> {
-        let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        let root = manifest_dir
-            .parent()
-            .and_then(Path::parent)
-            .and_then(Path::parent)
-            .ok_or_else(|| Error::MissingParent(manifest_dir.clone()))?;
-        Ok(root.join("lib").join("core"))
-    }
-
-    fn toml_path(path: &Path) -> Result<String, Error> {
-        Self::toml_string(&path.display().to_string())
     }
 
     fn toml_string(value: &str) -> Result<String, Error> {
@@ -84,15 +51,20 @@ impl<'a> CargoToml<'a> {
         Ok(format!("[{}]", values.join(", ")))
     }
 
-    fn dependencies(&self) -> Result<Vec<Dependency<'_>>, Error> {
-        let mut deps = vec![
-            Dependency::path("protocol", &self.protocol_dir)?.with_package(&self.model.package),
-            Dependency::path("brec", &self.brec_dir)?.with_features(Self::BREC_FEATURES),
-        ];
-        for dep in Self::DEPS {
-            deps.push(dep.dependency());
+    fn dependencies(&self) -> Result<Vec<deps::Dependency>, Error> {
+        if !self.protocol_dir.is_dir() {
+            return Err(Error::Cli(format!(
+                "protocol path does not point to an existing directory: {}",
+                self.protocol_dir.display()
+            )));
         }
-        Ok(deps)
+        let mut dependencies = vec![deps::Dependency::path(
+            "protocol",
+            &self.model.package,
+            relative_path(&self.dir, &self.protocol_dir)?,
+        )];
+        dependencies.extend(deps::dependencies(&self.dir, self.deps.as_deref())?);
+        Ok(dependencies)
     }
 }
 
@@ -120,80 +92,5 @@ impl SourceWritable for CargoToml<'_> {
             dep.write(writer)?;
         }
         Ok(())
-    }
-}
-
-impl<'a> Dependency<'a> {
-    fn path(name: &'static str, path: &Path) -> Result<Self, Error> {
-        Ok(Self {
-            name,
-            package: None,
-            path: Some(CargoToml::toml_path(path)?),
-            version: None,
-            features: &[],
-        })
-    }
-
-    fn with_package(mut self, package: &'a str) -> Self {
-        self.package = Some(package);
-        self
-    }
-
-    fn with_features(mut self, features: &'static [&'static str]) -> Self {
-        self.features = features;
-        self
-    }
-
-    fn write(&self, writer: &mut SourceWriter) -> Result<(), Error> {
-        if let Some(version) = self.plain_version() {
-            return writer.ln(format!(
-                "{} = {}",
-                self.name,
-                CargoToml::toml_string(version)?
-            ));
-        }
-
-        let inline = self.inline_table()?;
-        writer.ln(format!("{} = {{ {} }}", self.name, inline.join(", ")))
-    }
-
-    fn plain_version(&self) -> Option<&'static str> {
-        if self.package.is_none() && self.path.is_none() && self.features.is_empty() {
-            return self.version;
-        }
-        None
-    }
-
-    fn inline_table(&self) -> Result<Vec<String>, Error> {
-        let mut fields = Vec::new();
-        if let Some(package) = &self.package {
-            fields.push(format!("package = {}", CargoToml::toml_string(package)?));
-        }
-        if let Some(path) = &self.path {
-            fields.push(format!("path = {path}"));
-        }
-        if let Some(version) = self.version {
-            fields.push(format!("version = {}", CargoToml::toml_string(version)?));
-        }
-        if !self.features.is_empty() {
-            fields.push(format!(
-                "features = {}",
-                CargoToml::toml_array(self.features)?
-            ));
-        }
-
-        Ok(fields)
-    }
-}
-
-impl RegistryDependency {
-    fn dependency<'a>(&self) -> Dependency<'a> {
-        Dependency {
-            name: self.name,
-            package: None,
-            path: None,
-            version: Some(self.version),
-            features: self.features,
-        }
     }
 }

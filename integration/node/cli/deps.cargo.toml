@@ -1,0 +1,4 @@
+[dependencies]
+brec        = { version = "0.3", features = ["bincode"] }
+napi        = { version = "3.8", features = ["serde-json", "napi6"] }
+napi-derive = "3.5"

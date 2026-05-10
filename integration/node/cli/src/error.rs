@@ -14,6 +14,8 @@ pub enum Error {
     Io(#[from] std::io::Error),
     #[error("failed to parse scheme json: {0}")]
     Json(#[from] serde_json::Error),
+    #[error("failed to parse dependency config: {0}")]
+    Toml(#[from] toml::de::Error),
     #[error("no {SCHEME_FILE_NAME} found under {}", .0.display())]
     SchemeNotFound(PathBuf),
     #[error(

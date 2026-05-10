@@ -1,0 +1,4 @@
+# Local e2e runs must build against the current workspace library instead of
+# the published crate version.
+[dependencies]
+brec = { path = "../../lib/core", features = ["bincode"] }

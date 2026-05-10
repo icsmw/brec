@@ -10,14 +10,18 @@ pub struct BindingsCrate<'a> {
 }
 
 impl<'a> BindingsCrate<'a> {
+    pub const DIR_NAME: &'static str = "bindings";
+
     pub fn new(
         dir: impl Into<PathBuf>,
         model: &'a Model,
         protocol_dir: impl Into<PathBuf>,
+        deps: Option<PathBuf>,
     ) -> Result<Self, Error> {
+        let dir = dir.into();
         Ok(Self {
-            dir: dir.into(),
-            cargo_toml: CargoToml::new(model, protocol_dir)?,
+            cargo_toml: CargoToml::new(model, &dir, protocol_dir, deps),
+            dir,
         })
     }
 
@@ -66,18 +70,20 @@ impl<'a> BindingsCrate<'a> {
 
     fn find_release_artifact(&self) -> Result<PathBuf, Error> {
         let release = self.dir.join("target").join("release");
-        let candidates = [
-            release.join(format!(
-                "{}bindings{}",
-                std::env::consts::DLL_PREFIX,
-                std::env::consts::DLL_SUFFIX
-            )),
-            release.join("bindings.dll"),
-        ];
+        let artifact = release.join(Self::artifact_name());
 
-        candidates
-            .into_iter()
-            .find(|path| path.is_file())
+        artifact
+            .is_file()
+            .then_some(artifact)
             .ok_or(Error::BindingArtifactNotFound(release))
+    }
+
+    fn artifact_name() -> String {
+        format!(
+            "{}{}{}",
+            std::env::consts::DLL_PREFIX,
+            Self::DIR_NAME,
+            std::env::consts::DLL_SUFFIX
+        )
     }
 }
