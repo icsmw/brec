@@ -196,6 +196,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "brec_java_cli"
+version = "0.1.0"
+dependencies = [
+ "brec_scheme",
+ "jni",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.18",
+ "toml",
+]
+
+[[package]]
 name = "brec_java_gen"
 version = "0.1.0"
 dependencies = [

@@ -1,0 +1,32 @@
+[package]
+name        = "brec_java_cli"
+version     = "0.1.0"
+edition     = "2024"
+authors     = ["d.astafyev@outlook.com"]
+description = "Java bindings generator for Brec protocols."
+license     = "Apache-2.0"
+repository  = "https://github.com/icsmw/brec.git"
+homepage    = "https://icsmw.github.io/brec/integrations/java/"
+readme      = "README.md"
+
+keywords = ["brec", "java", "jni", "schema", "codegen"]
+
+categories = [
+    "command-line-utilities",
+    "development-tools::code-generators",
+    "encoding",
+]
+
+[[bin]]
+name = "brec_java_cli"
+path = "src/main.rs"
+
+[dependencies]
+thiserror.workspace   = true
+serde.workspace       = true
+serde_json.workspace  = true
+brec_scheme.workspace = true
+toml.workspace        = true
+jni.workspace         = true
+
+[features]

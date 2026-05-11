@@ -1,0 +1,14 @@
+[package]
+name        = "server"
+version     = "0.1.0"
+edition     = "2024"
+authors     = ["d.astafyev@outlook.com"]
+description = "WebSocket server skeleton for java cross-platform example"
+license     = "Apache-2.0"
+
+[dependencies]
+protocol          = { path = "../protocol", features = ["test-utils"] }
+brec              = { workspace = true, features = ["bincode"] }
+tokio             = { workspace = true, features = ["macros", "rt-multi-thread", "net", "signal"] }
+tokio-tungstenite = { workspace = true }
+futures-util      = { workspace = true }
