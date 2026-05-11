@@ -13,6 +13,7 @@ members = [
     "integration/csharp/gen",
     "integration/csharp/lib",
     "integration/java/gen",
+    "integration/java/cli",
     "integration/java/lib",
     "integration/java/macro",
     "integration/wasm/gen",
@@ -50,6 +51,7 @@ brec_node_lib       = { version = "0.1.0", path = "./integration/node/lib" }
 brec_csharp_gen     = { version = "0.1.0", path = "./integration/csharp/gen" }
 brec_csharp_lib     = { version = "0.1.0", path = "./integration/csharp/lib" }
 brec_java_gen       = { version = "0.1.0", path = "./integration/java/gen" }
+brec_java_cli       = { version = "0.1.0", path = "./integration/java/cli" }
 brec_java_lib       = { version = "0.1.0", path = "./integration/java/lib" }
 brec_java_gen_macro = { version = "0.1.0", path = "./integration/java/macro" }
 brec_wasm_gen       = { version = "0.1.0", path = "./integration/wasm/gen" }

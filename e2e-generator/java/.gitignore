@@ -1,0 +1,7 @@
+**/target
+**/*.log
+client/native/libbindings.so
+client/native/libbindings.dylib
+client/native/bindings.dll
+bindings
+generated
