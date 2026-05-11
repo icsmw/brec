@@ -101,10 +101,7 @@ impl<'a> BlockFile<'a> {
             JavaPackage::Block,
             format!("{class_name}.java"),
             |writer| {
-                write_imports(
-                    writer,
-                    &["java.math.BigInteger", "java.util.HashMap", "java.util.Map"],
-                )?;
+                write_imports(writer, &block_imports(&fields))?;
                 writer.ln(format!(
                     "public final class {class_name} implements Block {{"
                 ))?;
@@ -181,4 +178,12 @@ pub(super) fn write_fields_class_body(
     writer.back();
     writer.ln("}")?;
     Ok(())
+}
+
+fn block_imports(fields: &[JavaField]) -> Vec<&'static str> {
+    let mut imports = vec!["java.util.HashMap", "java.util.Map"];
+    for field in fields {
+        field.collect_imports(&mut imports);
+    }
+    imports
 }

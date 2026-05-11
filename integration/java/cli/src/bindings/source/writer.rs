@@ -30,7 +30,10 @@ impl<'a> SourceWriter<'a> {
     }
 
     pub fn ln(&mut self, line: impl AsRef<str>) -> Result<(), Error> {
-        self.write(line)?;
+        let line = line.as_ref();
+        if !line.is_empty() {
+            self.write(line)?;
+        }
         writeln!(self.dest)?;
         self.line_start = true;
         Ok(())
