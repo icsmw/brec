@@ -25,14 +25,14 @@ impl<'a> PacketFile<'a> {
             )?;
             writer.ln("public final class Packet {")?;
             writer.tab();
-            writer.ln("public List<Block> blocks;")?;
+            writer.ln("public List<Block> blocks = new ArrayList<>();")?;
             writer.ln("public Payload payload;")?;
             writer.ln("")?;
             writer.ln("public Packet() {}")?;
             writer.ln("")?;
             writer.ln("public Packet(List<Block> blocks, Payload payload) {")?;
             writer.tab();
-            writer.ln("this.blocks = blocks;")?;
+            writer.ln("this.blocks = blocks == null ? new ArrayList<>() : blocks;")?;
             writer.ln("this.payload = payload;")?;
             writer.back();
             writer.ln("}")?;
