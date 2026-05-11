@@ -137,6 +137,12 @@ pub(super) fn write_fields_class_body(
     writer.back();
     writer.ln("}")?;
     writer.ln("")?;
+    if fields
+        .iter()
+        .any(JavaField::needs_unchecked_cast_suppression)
+    {
+        writer.ln(r#"@SuppressWarnings("unchecked")"#)?;
+    }
     writer.ln(format!(
         "static {class_name} fromBrecObject(Object value) {{"
     ))?;
