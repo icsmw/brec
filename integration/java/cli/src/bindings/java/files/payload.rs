@@ -292,6 +292,9 @@ fn write_enum_class(
         writer.ln("}")?;
     }
     writer.ln("")?;
+    if needs_enum_unchecked_cast_suppression(variants)? {
+        writer.ln(r#"@SuppressWarnings("unchecked")"#)?;
+    }
     writer.ln(format!(
         "static {class_name} fromBrecObject(Object value) {{"
     ))?;
@@ -338,6 +341,18 @@ fn enum_imports(variants: &[SchemePayloadVariant]) -> Result<Vec<&'static str>, 
         }
     }
     Ok(imports)
+}
+
+fn needs_enum_unchecked_cast_suppression(variants: &[SchemePayloadVariant]) -> Result<bool, Error> {
+    for variant in variants {
+        if collect_payload_fields(&variant.fields)?
+            .iter()
+            .any(JavaField::needs_unchecked_cast_suppression)
+        {
+            return Ok(true);
+        }
+    }
+    Ok(false)
 }
 
 fn variant_body_expr(fields: &[JavaField]) -> Result<String, Error> {

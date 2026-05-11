@@ -68,6 +68,10 @@ impl JavaField {
             imports.push("java.util.Set");
         }
     }
+
+    pub fn needs_unchecked_cast_suppression(&self) -> bool {
+        self.ty.contains('<')
+    }
 }
 
 pub fn java_block_ty(ty: &BlockTy) -> &'static str {
