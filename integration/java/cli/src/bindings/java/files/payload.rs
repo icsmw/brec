@@ -62,8 +62,9 @@ impl<'a> PayloadSupportFile<'a> {
                 writer
                     .ln("static <T> List<T> mapList(Object value, Function<Object, T> mapper) {")?;
                 writer.tab();
-                writer.ln("ArrayList<T> out = new ArrayList<>();")?;
-                writer.ln("for (Object item : (List<?>) value) {")?;
+                writer.ln("List<?> source = (List<?>) value;")?;
+                writer.ln("ArrayList<T> out = new ArrayList<>(source.size());")?;
+                writer.ln("for (Object item : source) {")?;
                 writer.tab();
                 writer.ln("out.add(mapper.apply(item));")?;
                 writer.back();
@@ -138,7 +139,11 @@ impl<'a> DefaultPayloadFile<'a> {
             JavaPackage::Payload,
             format!("{}.java", self.class_name),
             |writer| {
-                write_imports(writer, &["java.util.HashMap", "java.util.Map"])?;
+                let mut imports = vec!["java.util.HashMap", "java.util.Map", "java.util.Objects"];
+                if self.ty.ends_with("[]") {
+                    imports.push("java.util.Arrays");
+                }
+                write_imports(writer, &imports)?;
                 writer.ln(format!(
                     "public final class {} implements Payload {{",
                     self.class_name
@@ -156,9 +161,40 @@ impl<'a> DefaultPayloadFile<'a> {
                 writer.ln("")?;
                 writer.ln("public Map<String, Object> toBrecObject() {")?;
                 writer.tab();
-                writer.ln("HashMap<String, Object> out = new HashMap<>();")?;
+                writer.ln("HashMap<String, Object> out = new HashMap<>(1);")?;
                 writer.ln(format!(r#"out.put("{}", value);"#, self.variant))?;
                 writer.ln("return out;")?;
+                writer.back();
+                writer.ln("}")?;
+                writer.ln("")?;
+                writer.ln("@Override")?;
+                writer.ln("public boolean equals(Object other) {")?;
+                writer.tab();
+                writer.ln(format!("if (!(other instanceof {})) {{", self.class_name))?;
+                writer.tab();
+                writer.ln("return false;")?;
+                writer.back();
+                writer.ln("}")?;
+                writer.ln(format!(
+                    "{} that = ({}) other;",
+                    self.class_name, self.class_name
+                ))?;
+                if self.ty.ends_with("[]") {
+                    writer.ln("return Arrays.equals(value, that.value);")?;
+                } else {
+                    writer.ln("return Objects.equals(value, that.value);")?;
+                }
+                writer.back();
+                writer.ln("}")?;
+                writer.ln("")?;
+                writer.ln("@Override")?;
+                writer.ln("public int hashCode() {")?;
+                writer.tab();
+                if self.ty.ends_with("[]") {
+                    writer.ln("return Arrays.hashCode(value);")?;
+                } else {
+                    writer.ln("return Objects.hashCode(value);")?;
+                }
                 writer.back();
                 writer.ln("}")?;
                 writer.back();
@@ -309,15 +345,38 @@ fn write_enum_class(
     writer.ln("")?;
     writer.ln("public Map<String, Object> toBrecObject() {")?;
     writer.tab();
-    writer.ln("HashMap<String, Object> body = new HashMap<>();")?;
+    writer.ln("HashMap<String, Object> body = new HashMap<>(1);")?;
     writer.ln("body.put(variant, value);")?;
     if let Some(variant) = variant_wrapper {
-        writer.ln("HashMap<String, Object> out = new HashMap<>();")?;
+        writer.ln("HashMap<String, Object> out = new HashMap<>(1);")?;
         writer.ln(format!(r#"out.put("{variant}", body);"#))?;
         writer.ln("return out;")?;
     } else {
         writer.ln("return body;")?;
     }
+    writer.back();
+    writer.ln("}")?;
+    writer.ln("")?;
+    writer.ln("@Override")?;
+    writer.ln("public boolean equals(Object other) {")?;
+    writer.tab();
+    writer.ln(format!("if (!(other instanceof {class_name})) {{"))?;
+    writer.tab();
+    writer.ln("return false;")?;
+    writer.back();
+    writer.ln("}")?;
+    writer.ln(format!("{class_name} that = ({class_name}) other;"))?;
+    writer.ln(
+        "return Objects.equals(variant, that.variant) && Objects.deepEquals(value, that.value);",
+    )?;
+    writer.back();
+    writer.ln("}")?;
+    writer.ln("")?;
+    writer.ln("@Override")?;
+    writer.ln("public int hashCode() {")?;
+    writer.tab();
+    writer.ln("int valueHash = value instanceof byte[] ? Arrays.hashCode((byte[]) value) : Objects.hashCode(value);")?;
+    writer.ln("return 31 * Objects.hashCode(variant) + valueHash;")?;
     writer.back();
     writer.ln("}")?;
     writer.back();
@@ -326,15 +385,23 @@ fn write_enum_class(
 }
 
 fn payload_imports(fields: &[JavaField]) -> Vec<&'static str> {
-    let mut imports = vec!["java.util.HashMap", "java.util.Map"];
+    let mut imports = vec!["java.util.HashMap", "java.util.Map", "java.util.Objects"];
     for field in fields {
         field.collect_imports(&mut imports);
+        if field.needs_array_helpers() {
+            imports.push("java.util.Arrays");
+        }
     }
     imports
 }
 
 fn enum_imports(variants: &[SchemePayloadVariant]) -> Result<Vec<&'static str>, Error> {
-    let mut imports = vec!["java.util.HashMap", "java.util.Map"];
+    let mut imports = vec![
+        "java.util.Arrays",
+        "java.util.HashMap",
+        "java.util.Map",
+        "java.util.Objects",
+    ];
     for variant in variants {
         for field in collect_payload_fields(&variant.fields)? {
             field.collect_imports(&mut imports);

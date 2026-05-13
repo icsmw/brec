@@ -1,8 +1,7 @@
-use super::{JavaError, JavaFieldHint, map_get, map_has, map_put, new_array_list, new_hash_map};
+use super::{JavaError, JavaFieldHint, map_get, map_put, new_array_list, new_hash_map};
 use jni::{
     JNIEnv,
-    objects::{JByteArray, JObject, JString, JValue},
-    sys::jboolean,
+    objects::{JByteArray, JObject, JString},
 };
 
 const PAYLOAD_FIELD_NAME: &str = "payload";
@@ -37,15 +36,7 @@ fn new_java_long<'local>(
     env: &mut JNIEnv<'local>,
     value: i64,
 ) -> Result<JObject<'local>, JavaError> {
-    env.call_static_method(
-        "java/lang/Long",
-        "valueOf",
-        "(J)Ljava/lang/Long;",
-        &[JValue::Long(value)],
-    )
-    .map_err(|err| JavaError::invalid_field(JavaFieldHint::Object, err))?
-    .l()
-    .map_err(|err| JavaError::invalid_field(JavaFieldHint::Object, err))
+    super::new_java_long(env, value)
 }
 
 #[inline]
@@ -54,10 +45,7 @@ fn from_java_long<'local>(
     value: &JObject<'local>,
     hint: JavaFieldHint,
 ) -> Result<i64, JavaError> {
-    env.call_method(value, "longValue", "()J", &[])
-        .map_err(|err| JavaError::invalid_field(hint, err))?
-        .j()
-        .map_err(|err| JavaError::invalid_field(hint, err))
+    super::java_long_value(env, value, hint)
 }
 
 #[inline]
@@ -65,16 +53,7 @@ fn new_java_bool<'local>(
     env: &mut JNIEnv<'local>,
     value: bool,
 ) -> Result<JObject<'local>, JavaError> {
-    let raw: jboolean = if value { 1 } else { 0 };
-    env.call_static_method(
-        "java/lang/Boolean",
-        "valueOf",
-        "(Z)Ljava/lang/Boolean;",
-        &[JValue::Bool(raw)],
-    )
-    .map_err(|err| JavaError::invalid_field(JavaFieldHint::Bool, err))?
-    .l()
-    .map_err(|err| JavaError::invalid_field(JavaFieldHint::Bool, err))
+    super::new_java_bool(env, value)
 }
 
 #[inline]
@@ -82,10 +61,7 @@ fn from_java_bool<'local>(
     env: &mut JNIEnv<'local>,
     value: &JObject<'local>,
 ) -> Result<bool, JavaError> {
-    env.call_method(value, "booleanValue", "()Z", &[])
-        .map_err(|err| JavaError::invalid_field(JavaFieldHint::Bool, err))?
-        .z()
-        .map_err(|err| JavaError::invalid_field(JavaFieldHint::Bool, err))
+    super::java_bool_value(env, value)
 }
 
 #[inline]
@@ -93,16 +69,7 @@ fn new_big_integer<'local>(
     env: &mut JNIEnv<'local>,
     text: &str,
 ) -> Result<JObject<'local>, JavaError> {
-    let jstr: JObject<'local> = env
-        .new_string(text)
-        .map(JObject::from)
-        .map_err(|err| JavaError::invalid_field(JavaFieldHint::Object, err))?;
-    env.new_object(
-        "java/math/BigInteger",
-        "(Ljava/lang/String;)V",
-        &[JValue::Object(&jstr)],
-    )
-    .map_err(|err| JavaError::invalid_field(JavaFieldHint::Object, err))
+    super::new_big_integer(env, text)
 }
 
 #[inline]
@@ -111,16 +78,7 @@ fn parse_big_integer<'local, T: std::str::FromStr>(
     value: &JObject<'local>,
     hint: JavaFieldHint,
 ) -> Result<T, JavaError> {
-    let text_obj = env
-        .call_method(value, "toString", "()Ljava/lang/String;", &[])
-        .map_err(|err| JavaError::invalid_field(hint, err))?
-        .l()
-        .map_err(|err| JavaError::invalid_field(hint, err))?;
-    let text = env
-        .get_string(&JString::from(text_obj))
-        .map_err(|err| JavaError::invalid_field(hint, err))?
-        .to_string_lossy()
-        .to_string();
+    let text = super::java_to_string(env, value, hint)?;
     text.parse::<T>()
         .map_err(|_| JavaError::invalid_field(hint, "value is out of range"))
 }
@@ -463,15 +421,12 @@ pub fn from_java_object<'local, Block: JavaObject, Payload: JavaObject>(
         })?);
     }
 
-    let payload = if map_has(env, &value, PAYLOAD_FIELD_NAME)? {
-        let raw = map_get(env, &value, PAYLOAD_FIELD_NAME)?;
-        if raw.is_null() {
-            None
-        } else {
-            Some(Payload::from_java_object(env, raw)?)
-        }
-    } else {
-        None
+    let payload = Some(map_get(env, &value, PAYLOAD_FIELD_NAME)?);
+
+    let payload = match payload {
+        Some(raw) if raw.is_null() => None,
+        Some(raw) => Some(Payload::from_java_object(env, raw)?),
+        None => None,
     };
 
     Ok((blocks, payload))
