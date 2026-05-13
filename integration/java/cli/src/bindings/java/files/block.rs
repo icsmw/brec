@@ -158,7 +158,10 @@ pub(super) fn write_fields_class_body(
     writer.ln("")?;
     writer.ln("public Map<String, Object> toBrecObject() {")?;
     writer.tab();
-    writer.ln("HashMap<String, Object> body = new HashMap<>();")?;
+    writer.ln(format!(
+        "HashMap<String, Object> body = new HashMap<>({});",
+        fields.len()
+    ))?;
     for field in fields {
         writer.ln(format!(
             r#"body.put("{}", {});"#,
@@ -167,7 +170,7 @@ pub(super) fn write_fields_class_body(
         ))?;
     }
     if let Some(variant) = variant_wrapper {
-        writer.ln("HashMap<String, Object> out = new HashMap<>();")?;
+        writer.ln("HashMap<String, Object> out = new HashMap<>(1);")?;
         writer.ln(format!(r#"out.put("{variant}", body);"#))?;
         writer.ln("return out;")?;
     } else {
@@ -175,15 +178,62 @@ pub(super) fn write_fields_class_body(
     }
     writer.back();
     writer.ln("}")?;
+    writer.ln("")?;
+    write_equals_hash_code(writer, class_name, fields)?;
     writer.back();
     writer.ln("}")?;
     Ok(())
 }
 
 fn block_imports(fields: &[JavaField]) -> Vec<&'static str> {
-    let mut imports = vec!["java.util.HashMap", "java.util.Map"];
+    let mut imports = vec!["java.util.HashMap", "java.util.Map", "java.util.Objects"];
     for field in fields {
         field.collect_imports(&mut imports);
+        if field.needs_array_helpers() {
+            imports.push("java.util.Arrays");
+        }
     }
     imports
+}
+
+pub(super) fn write_equals_hash_code(
+    writer: &mut SourceWriter,
+    class_name: &str,
+    fields: &[JavaField],
+) -> Result<(), Error> {
+    writer.ln("@Override")?;
+    writer.ln("public boolean equals(Object other) {")?;
+    writer.tab();
+    writer.ln(format!("if (!(other instanceof {class_name})) {{"))?;
+    writer.tab();
+    writer.ln("return false;")?;
+    writer.back();
+    writer.ln("}")?;
+    writer.ln(format!("{class_name} that = ({class_name}) other;"))?;
+    if fields.is_empty() {
+        writer.ln("return true;")?;
+    } else {
+        writer.write("return ")?;
+        for (idx, field) in fields.iter().enumerate() {
+            if idx > 0 {
+                writer.write(" && ")?;
+            }
+            writer.write(field.equals_expr("that"))?;
+        }
+        writer.ln(";")?;
+    }
+    writer.back();
+    writer.ln("}")?;
+    writer.ln("")?;
+    writer.ln("@Override")?;
+    writer.ln("public int hashCode() {")?;
+    writer.tab();
+    writer.ln("int result = 1;")?;
+    for field in fields {
+        writer.ln(format!("result = 31 * result + {};", field.hash_expr()))?;
+    }
+    writer.ln("return result;")?;
+    writer.back();
+    writer.ln("}")?;
+    Ok(())
 }

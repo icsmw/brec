@@ -72,6 +72,26 @@ impl JavaField {
     pub fn needs_unchecked_cast_suppression(&self) -> bool {
         self.ty.contains('<')
     }
+
+    pub fn needs_array_helpers(&self) -> bool {
+        self.ty.ends_with("[]")
+    }
+
+    pub fn equals_expr(&self, other: &str) -> String {
+        if self.needs_array_helpers() {
+            format!("Arrays.equals({}, {}.{})", self.name, other, self.name)
+        } else {
+            format!("Objects.equals({}, {}.{})", self.name, other, self.name)
+        }
+    }
+
+    pub fn hash_expr(&self) -> String {
+        if self.needs_array_helpers() {
+            format!("Arrays.hashCode({})", self.name)
+        } else {
+            format!("Objects.hashCode({})", self.name)
+        }
+    }
 }
 
 pub fn java_block_ty(ty: &BlockTy) -> &'static str {
