@@ -35,3 +35,4 @@ enum_ids.workspace    = true
 crc32fast.workspace   = true
 brec_consts.workspace = true
 lazy_static.workspace = true
+serde.workspace       = true

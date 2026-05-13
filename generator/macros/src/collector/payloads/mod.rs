@@ -12,7 +12,7 @@ pub fn generate(payloads: Vec<&Payload>, cfg: &Config) -> Result<TokenStream, E>
     let ordinary_payloads = payloads
         .iter()
         .copied()
-        .filter(|p| !p.attrs.is_ctx())
+        .filter(|p| !p.attrs.is_ctx() && !p.attrs.is_include())
         .collect::<Vec<_>>();
     let derives = Derives::common(ordinary_payloads.iter().map(|p| &p.derives).collect())?;
     let payload = enums::generate(&payloads, derives, cfg)?;

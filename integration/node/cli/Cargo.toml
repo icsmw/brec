@@ -1,0 +1,33 @@
+[package]
+name        = "brec_node_cli"
+version     = "0.1.0"
+edition     = "2024"
+authors     = ["d.astafyev@outlook.com"]
+description = "Node package generator for Brec protocols."
+license     = "Apache-2.0"
+repository  = "https://github.com/icsmw/brec.git"
+homepage    = "https://icsmw.github.io/brec/integrations/napi/"
+readme      = "README.md"
+
+keywords = ["brec", "nodejs", "typescript", "schema", "codegen"]
+
+categories = [
+    "command-line-utilities",
+    "development-tools::code-generators",
+    "encoding",
+]
+
+[[bin]]
+name = "brec_node_cli"
+path = "src/main.rs"
+
+[dependencies]
+thiserror.workspace   = true
+serde.workspace       = true
+serde_json.workspace  = true
+brec_scheme.workspace = true
+toml.workspace        = true
+napi                  = { workspace = true, optional = true }
+
+[features]
+napi = ["dep:napi"]

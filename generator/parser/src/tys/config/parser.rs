@@ -40,6 +40,9 @@ impl Parse for Config {
                         if as_str == SettingId::NoDefaultPayload.to_string() {
                             settings.push(Setting::NoDefaultPayload);
                             continue;
+                        } else if as_str == SettingId::Scheme.to_string() {
+                            settings.push(Setting::Scheme);
+                            continue;
                         }
                     }
                     return Err(syn::Error::new_spanned(expr, E::UnsupportedAttr));

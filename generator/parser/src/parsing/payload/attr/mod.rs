@@ -33,7 +33,9 @@ impl Parse for PayloadAttrs {
                 Expr::Path(expr) => {
                     if let Some(ident) = expr.path.clone().get_ident() {
                         let as_str = ident.to_string();
-                        if as_str == PayloadAttrId::Ctx.to_string() {
+                        if as_str == PayloadAttrId::Include.to_string() {
+                            attrs.push(PayloadAttr::Include)
+                        } else if as_str == PayloadAttrId::Ctx.to_string() {
                             attrs.push(PayloadAttr::Ctx)
                         } else if as_str == PayloadAttrId::NoDefaultSig.to_string() {
                             attrs.push(PayloadAttr::NoDefaultSig)

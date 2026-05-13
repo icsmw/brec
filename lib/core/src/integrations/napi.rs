@@ -1,5 +1,5 @@
 use crate::*;
-use brec_in_node_lib::{
+use brec_node_lib::{
     NapiObject, from_napi_object,
     napi::{Env, Unknown, bindgen_prelude::Buffer},
     to_napi_object,

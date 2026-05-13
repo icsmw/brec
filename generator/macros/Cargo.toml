@@ -28,10 +28,10 @@ generate_macro_test = []
 locked_storage      = []
 observer            = []
 resilient           = []
-napi                = ["dep:brec_in_node_gen"]
-wasm                = ["dep:brec_in_wasm_gen"]
-java                = ["dep:brec_in_java_gen"]
-csharp              = ["dep:brec_in_csharp_gen"]
+napi                = ["dep:brec_node_gen"]
+wasm                = ["dep:brec_wasm_gen"]
+java                = ["dep:brec_java_gen"]
+csharp              = ["dep:brec_csharp_gen"]
 
 [dependencies]
 thiserror.workspace          = true
@@ -41,12 +41,15 @@ proc-macro2.workspace        = true
 enum_ids.workspace           = true
 crc32fast.workspace          = true
 lazy_static.workspace        = true
+serde.workspace              = true
 brec_consts.workspace        = true
 brec_macros_parser.workspace = true
-brec_in_node_gen             = { workspace = true, optional = true }
-brec_in_wasm_gen             = { workspace = true, optional = true }
-brec_in_java_gen             = { workspace = true, optional = true }
-brec_in_csharp_gen           = { workspace = true, optional = true }
+brec_scheme.workspace        = true
+brec_node_gen                = { workspace = true, optional = true }
+brec_wasm_gen                = { workspace = true, optional = true }
+brec_java_gen                = { workspace = true, optional = true }
+brec_csharp_gen              = { workspace = true, optional = true }
+serde_json                   = "1.0"
 
 [dev-dependencies]
 proptest.workspace    = true

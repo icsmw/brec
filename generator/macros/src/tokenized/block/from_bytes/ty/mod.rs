@@ -4,35 +4,35 @@ use syn::Ident;
 
 use crate::*;
 
-impl FromBytes for Ty {
+impl FromBytes for BlockTy {
     fn safe(&self, src: &Ident, from: usize, to: usize) -> TokenStream {
         match self {
-            Ty::U8
-            | Ty::U16
-            | Ty::U32
-            | Ty::U64
-            | Ty::U128
-            | Ty::I8
-            | Ty::I16
-            | Ty::I32
-            | Ty::I64
-            | Ty::I128
-            | Ty::F32
-            | Ty::F64 => {
+            BlockTy::U8
+            | BlockTy::U16
+            | BlockTy::U32
+            | BlockTy::U64
+            | BlockTy::U128
+            | BlockTy::I8
+            | BlockTy::I16
+            | BlockTy::I32
+            | BlockTy::I64
+            | BlockTy::I128
+            | BlockTy::F32
+            | BlockTy::F64 => {
                 let ty = self.direct();
                 quote! {
                    #ty::from_le_bytes(#src[#from..#to].try_into()?)
                 }
             }
-            Ty::Bool => {
+            BlockTy::Bool => {
                 quote! {
                    u8::from_le_bytes(#src[#from..#to].try_into()?) == 1
                 }
             }
-            Ty::Blob(len) => quote! {
+            BlockTy::Blob(len) => quote! {
                 <&[u8; #len]>::try_from(&#src[#from..#to])?
             },
-            Ty::LinkedToU8(enum_name) => {
+            BlockTy::LinkedToU8(enum_name) => {
                 let ident = self.direct();
                 quote! {
                     #ident::try_from(u8::from_le_bytes(#src[#from..#to].try_into()?))

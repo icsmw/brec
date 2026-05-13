@@ -1,0 +1,33 @@
+[package]
+name        = "brec_wasm_cli"
+version     = "0.1.0"
+edition     = "2024"
+authors     = ["d.astafyev@outlook.com"]
+description = "WASM npm package generator for Brec protocols."
+license     = "Apache-2.0"
+repository  = "https://github.com/icsmw/brec.git"
+homepage    = "https://icsmw.github.io/brec/integrations/wasm/"
+readme      = "README.md"
+
+keywords = ["brec", "wasm", "typescript", "schema", "codegen"]
+
+categories = [
+    "command-line-utilities",
+    "development-tools::code-generators",
+    "encoding",
+]
+
+[[bin]]
+name = "brec_wasm_cli"
+path = "src/main.rs"
+
+[dependencies]
+thiserror.workspace   = true
+serde.workspace       = true
+serde_json.workspace  = true
+brec_scheme.workspace = true
+toml.workspace        = true
+wasm-bindgen          = { workspace = true, optional = true }
+
+[features]
+wasm = ["dep:wasm-bindgen"]

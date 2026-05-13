@@ -9,7 +9,7 @@ impl Base for Block {
         let mut struct_fields: Vec<TokenStream> = Vec::new();
         for field in self.fields.iter() {
             let visibility = field.vis_token()?;
-            let inner = if matches!(field.ty, Ty::Blob(..)) {
+            let inner = if matches!(field.ty, BlockTy::Blob(..)) {
                 field.referenced_ty()
             } else {
                 field.direct_ty()
@@ -24,7 +24,7 @@ impl Base for Block {
             .filter(|f| !f.injected)
             .map(|f| {
                 let field = format_ident!("{}", f.name);
-                let field_path = if matches!(f.ty, Ty::Blob(..)) {
+                let field_path = if matches!(f.ty, BlockTy::Blob(..)) {
                     quote! {
                         *block.#field
                     }
@@ -87,7 +87,7 @@ impl Gen for Block {
         let napi = {
             #[cfg(feature = "napi")]
             {
-                brec_in_node_gen::codegen::base::block::generate(&self.name(), &self.fields)?
+                brec_node_gen::codegen::base::block::generate(&self.name(), &self.fields)?
             }
             #[cfg(not(feature = "napi"))]
             {
@@ -97,7 +97,7 @@ impl Gen for Block {
         let wasm = {
             #[cfg(feature = "wasm")]
             {
-                brec_in_wasm_gen::codegen::base::block::generate(&self.name(), &self.fields)?
+                brec_wasm_gen::codegen::base::block::generate(&self.name(), &self.fields)?
             }
             #[cfg(not(feature = "wasm"))]
             {
@@ -107,7 +107,7 @@ impl Gen for Block {
         let java = {
             #[cfg(feature = "java")]
             {
-                brec_in_java_gen::codegen::base::block::generate(&self.name(), &self.fields)?
+                brec_java_gen::codegen::base::block::generate(&self.name(), &self.fields)?
             }
             #[cfg(not(feature = "java"))]
             {
@@ -117,7 +117,7 @@ impl Gen for Block {
         let csharp = {
             #[cfg(feature = "csharp")]
             {
-                brec_in_csharp_gen::codegen::base::block::generate(&self.name(), &self.fields)?
+                brec_csharp_gen::codegen::base::block::generate(&self.name(), &self.fields)?
             }
             #[cfg(not(feature = "csharp"))]
             {

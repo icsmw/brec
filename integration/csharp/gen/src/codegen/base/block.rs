@@ -3,11 +3,11 @@ use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
 use syn::{Ident, LitStr};
 
-fn to_csharp_field_set(field: &Field) -> Result<TokenStream, E> {
+fn to_csharp_field_set(field: &BlockField) -> Result<TokenStream, E> {
     let rust_field = format_ident!("{}", field.name);
     let field_name = LitStr::new(&field.name, proc_macro2::Span::call_site());
     let value = match &field.ty {
-        Ty::LinkedToU8(_) => quote! {{
+        BlockTy::LinkedToU8(_) => quote! {{
             let value: u8 = (&self.#rust_field).into();
             <u8 as brec::csharp_feat::CSharpConvert>::to_csharp_value(&value)?
         }},
@@ -23,12 +23,12 @@ fn to_csharp_field_set(field: &Field) -> Result<TokenStream, E> {
     })
 }
 
-fn from_csharp_field_get(field: &Field) -> Result<TokenStream, E> {
+fn from_csharp_field_get(field: &BlockField) -> Result<TokenStream, E> {
     let rust_field = format_ident!("{}", field.name);
     let field_name = LitStr::new(&field.name, proc_macro2::Span::call_site());
     let ty = field.ty.direct();
     Ok(match &field.ty {
-        Ty::LinkedToU8(enum_name) => quote! {
+        BlockTy::LinkedToU8(enum_name) => quote! {
             let raw = brec::csharp_feat::map_take(&mut obj, #field_name)
                 .map_err(|err| brec::csharp_feat::CSharpError::invalid_field_name(#field_name, err))?;
             let raw: u8 = <u8 as brec::csharp_feat::CSharpConvert>::from_csharp_value(raw)?;
@@ -43,7 +43,7 @@ fn from_csharp_field_get(field: &Field) -> Result<TokenStream, E> {
     })
 }
 
-pub fn generate(block_name: &Ident, fields: &[Field]) -> Result<TokenStream, E> {
+pub fn generate(block_name: &Ident, fields: &[BlockField]) -> Result<TokenStream, E> {
     let to_csharp = fields
         .iter()
         .filter(|field| !field.injected)

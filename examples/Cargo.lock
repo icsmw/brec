@@ -136,11 +136,14 @@ version = "0.3.0"
 dependencies = [
  "brec_consts",
  "brec_macros_parser",
+ "brec_scheme",
  "crc32fast",
  "enum_ids",
  "lazy_static",
  "proc-macro2",
  "quote",
+ "serde",
+ "serde_json",
  "syn",
  "thiserror",
 ]
@@ -155,8 +158,17 @@ dependencies = [
  "lazy_static",
  "proc-macro2",
  "quote",
+ "serde",
  "syn",
  "thiserror",
+]
+
+[[package]]
+name = "brec_scheme"
+version = "0.1.0"
+dependencies = [
+ "brec_macros_parser",
+ "serde",
 ]
 
 [[package]]
@@ -254,9 +266,9 @@ dependencies = [
 
 [[package]]
 name = "data-encoding"
-version = "2.10.0"
+version = "2.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d7a1e2f27636f116493b8b860f5546edb47c8d8f8ea73e1d2a20be88e28d1fea"
+checksum = "a4ae5f15dda3c708c0ade84bfee31ccab44a3da4f88015ed22f63732abe300c8"
 
 [[package]]
 name = "der"
@@ -362,9 +374,9 @@ checksum = "0cc23270f6e1808e30a928bdc84dea0b9b4136a8bc82338574f23baf47bbd280"
 
 [[package]]
 name = "hashbrown"
-version = "0.17.0"
+version = "0.17.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4f467dd6dccf739c208452f8014c75c18bb8301b050ad1cfb27153803edb0f51"
+checksum = "ed5909b6e89a2db4456e54cd5f673791d7eca6732202bbf2a9cc504fe2f9b84a"
 
 [[package]]
 name = "indexmap"

@@ -40,7 +40,7 @@ cargo +"${TOOLCHAIN}" llvm-cov clean --workspace --manifest-path "${WORKSPACE_MA
 echo "Running wasm32 tests with coverage instrumentation..."
 cargo +"${TOOLCHAIN}" llvm-cov test \
   --manifest-path "${WORKSPACE_MANIFEST}" \
-  -p brec_in_wasm_lib \
+  -p brec_wasm_lib \
   --target "${WASM_TARGET}" \
   --coverage-target-only \
   --lcov \
@@ -48,6 +48,6 @@ cargo +"${TOOLCHAIN}" llvm-cov test \
   --ignore-filename-regex '/rustc/|/\.cargo/(registry|git)/|/\.rustup/toolchains/' \
   -- --nocapture
 
-echo "wasm-focused brec_in_wasm_lib coverage report generated:"
+echo "wasm-focused brec_wasm_lib coverage report generated:"
 echo "  LCOV: ${LCOV_OUT}"
 echo "  Target dir: ${CARGO_TARGET_DIR}"

@@ -305,7 +305,7 @@ pub fn derive_csharp(input: TokenStream) -> TokenStream {
     let name = &input.ident;
     #[cfg(feature = "csharp")]
     {
-        match brec_in_csharp_gen::codegen::generate_impl(name, &input.data) {
+        match brec_csharp_gen::codegen::generate_impl(name, &input.data) {
             Ok(tokens) => tokens.into(),
             Err(err) => syn::Error::new_spanned(&input, err)
                 .to_compile_error()
@@ -412,6 +412,12 @@ pub fn derive_csharp(input: TokenStream) -> TokenStream {
 ///   This parameter allows you to **manually** specify additional derives for the `Payload` enum-useful if you are
 ///   only using the built-in payloads (`String`, `Vec<u8>`) and do not define custom ones.
 ///
+/// - `scheme` -
+///   Enables generation of `brec.scheme.json` into the crate target directory. By default, schema generation is disabled.
+///
+/// Parameters can be combined:
+/// `brec::generate!(scheme, payloads_derive = "Debug, Clone")`
+///
 /// #### Examples
 ///
 /// ```ignore
@@ -426,6 +432,14 @@ pub fn derive_csharp(input: TokenStream) -> TokenStream {
 ///
 /// // You don't define any payloads and explicitly disable the built-in ones
 /// brec::generate!(no_default_payload);
+/// ```
+///
+/// ```ignore
+/// pub use blocks::*;
+/// pub use payloads::*;
+///
+/// // Generate runtime code and export protocol schema into target/brec.scheme.json
+/// brec::generate!(scheme);
 /// ```
 ///
 /// If the user **fully disables** payload support (as in the example above),
