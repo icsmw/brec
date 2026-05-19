@@ -1,0 +1,125 @@
+mod block;
+mod field;
+mod ident;
+mod names;
+mod resolver;
+mod r#type;
+mod type_def;
+
+use std::fs;
+use std::path::{Path, PathBuf};
+
+pub use block::BlockDef;
+pub use field::FieldDef;
+pub use ident::{csharp_property_name, csharp_type_name};
+pub use r#type::CSharpType;
+pub use type_def::{TypeBody, TypeDef, VariantBody, VariantDef};
+
+use crate::{Error, error::SCHEME_FILE_NAME};
+use brec_scheme::SchemeFile;
+use names::TypeNames;
+
+pub struct Model {
+    scheme_path: PathBuf,
+    pub version: String,
+    pub package: String,
+    pub blocks: Vec<BlockDef>,
+    pub included_types: Vec<TypeDef>,
+    pub payloads: Vec<TypeDef>,
+    pub default_payloads: bool,
+}
+
+impl TryFrom<Option<PathBuf>> for Model {
+    type Error = Error;
+
+    fn try_from(value: Option<PathBuf>) -> Result<Self, Self::Error> {
+        let scheme_path = match value {
+            Some(path) => path,
+            None => find_scheme_path(&std::env::current_dir()?)?,
+        };
+        let content = fs::read_to_string(&scheme_path)?;
+        let scheme: SchemeFile = serde_json::from_str(&content)?;
+        Self::from_scheme_file(scheme_path, &scheme)
+    }
+}
+
+impl Model {
+    pub fn scheme_path(&self) -> &Path {
+        &self.scheme_path
+    }
+
+    pub fn scheme_parent_path(&self) -> Result<&Path, Error> {
+        self.scheme_path
+            .parent()
+            .ok_or_else(|| Error::MissingParent(self.scheme_path.clone()))
+    }
+
+    fn from_scheme_file(scheme_path: PathBuf, scheme: &SchemeFile) -> Result<Self, Error> {
+        let names = TypeNames::try_from(scheme)?;
+        Ok(Self {
+            scheme_path,
+            version: scheme.version.clone(),
+            package: scheme.package.clone(),
+            blocks: scheme
+                .blocks
+                .iter()
+                .map(BlockDef::try_from)
+                .collect::<Result<Vec<_>, _>>()?,
+            included_types: scheme
+                .types
+                .iter()
+                .map(|ty| TypeDef::from_scheme_type(ty, &names))
+                .collect::<Result<Vec<_>, _>>()?,
+            payloads: scheme
+                .payloads
+                .iter()
+                .filter(|payload| !payload.is_ctx && payload.is_bincode)
+                .map(|payload| TypeDef::from_payload(payload, &names))
+                .collect::<Result<Vec<_>, _>>()?,
+            default_payloads: !scheme.config.no_default_payloads,
+        })
+    }
+}
+
+impl TryFrom<&SchemeFile> for Model {
+    type Error = Error;
+
+    fn try_from(scheme: &SchemeFile) -> Result<Self, Self::Error> {
+        Self::from_scheme_file(PathBuf::new(), scheme)
+    }
+}
+
+fn find_scheme_path(start: &Path) -> Result<PathBuf, Error> {
+    let direct = start.join("target").join(SCHEME_FILE_NAME);
+    if direct.is_file() {
+        return Ok(direct);
+    }
+
+    let mut dirs = vec![start.to_path_buf()];
+    let mut matches = Vec::new();
+
+    while let Some(dir) = dirs.pop() {
+        for entry in fs::read_dir(&dir)? {
+            let entry = entry?;
+            let path = entry.path();
+            let fty = entry.file_type()?;
+            if fty.is_dir() {
+                dirs.push(path);
+                continue;
+            }
+            if fty.is_file()
+                && path
+                    .file_name()
+                    .is_some_and(|name| name == SCHEME_FILE_NAME)
+            {
+                matches.push(path);
+            }
+        }
+    }
+
+    match matches.len() {
+        0 => Err(Error::SchemeNotFound(start.to_path_buf())),
+        1 => Ok(matches.remove(0)),
+        _ => Err(Error::MultipleSchemes(matches)),
+    }
+}

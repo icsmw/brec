@@ -10,6 +10,7 @@ members = [
     "integration/node/gen",
     "integration/node/macro",
     "integration/node/lib",
+    "integration/csharp/cli",
     "integration/csharp/gen",
     "integration/csharp/lib",
     "integration/java/gen",
@@ -48,6 +49,7 @@ brec_node_cli       = { version = "0.1.0", path = "./integration/node/cli" }
 brec_node_gen       = { version = "0.1.0", path = "./integration/node/gen" }
 brec_node_gen_macro = { version = "0.1.0", path = "./integration/node/macro" }
 brec_node_lib       = { version = "0.1.0", path = "./integration/node/lib" }
+brec_csharp_cli     = { version = "0.1.0", path = "./integration/csharp/cli" }
 brec_csharp_gen     = { version = "0.1.0", path = "./integration/csharp/gen" }
 brec_csharp_lib     = { version = "0.1.0", path = "./integration/csharp/lib" }
 brec_java_gen       = { version = "0.1.0", path = "./integration/java/gen" }

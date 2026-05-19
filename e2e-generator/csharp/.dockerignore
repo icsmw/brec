@@ -1,0 +1,9 @@
+target
+**/target
+
+**/*.log
+.server_e2e.log
+.client_e2e.log
+
+.git
+.gitignore

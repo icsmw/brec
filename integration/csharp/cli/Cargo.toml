@@ -1,0 +1,29 @@
+[package]
+name        = "brec_csharp_cli"
+version     = "0.1.0"
+edition     = "2024"
+authors     = ["d.astafyev@outlook.com"]
+description = "C# package generator for Brec protocols."
+license     = "Apache-2.0"
+repository  = "https://github.com/icsmw/brec.git"
+homepage    = "https://icsmw.github.io/brec/integrations/csharp/"
+readme      = "README.md"
+
+keywords = ["brec", "csharp", "dotnet", "schema", "codegen"]
+
+categories = [
+    "command-line-utilities",
+    "development-tools::code-generators",
+    "encoding",
+]
+
+[[bin]]
+name = "brec_csharp_cli"
+path = "src/main.rs"
+
+[dependencies]
+thiserror.workspace   = true
+serde.workspace       = true
+serde_json.workspace  = true
+brec_scheme.workspace = true
+toml.workspace        = true
