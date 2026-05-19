@@ -175,6 +175,17 @@ name = "brec_consts"
 version = "0.3.0"
 
 [[package]]
+name = "brec_csharp_cli"
+version = "0.1.0"
+dependencies = [
+ "brec_scheme",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.18",
+ "toml",
+]
+
+[[package]]
 name = "brec_csharp_gen"
 version = "0.1.0"
 dependencies = [

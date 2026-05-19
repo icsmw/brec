@@ -1,0 +1,2 @@
+[dependencies]
+brec = { path = "../../lib/core", features = ["bincode", "csharp"] }
