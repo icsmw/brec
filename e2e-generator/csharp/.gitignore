@@ -2,3 +2,4 @@
 **/*.log
 **/native
 **/generated
+**/bindings
