@@ -351,17 +351,17 @@ Responsibility split:
 
 Reference implementation in this repository:
 
-- Generated C# e2e workspace: `e2e-generator/csharp/`
-- Protocol crate: `e2e-generator/csharp/protocol`
-- C# client: `e2e-generator/csharp/client`
-- End-to-end script: `e2e-generator/csharp/test.sh`
+- Generated C# e2e workspace: `e2e-gen/csharp/`
+- Protocol crate: `e2e-gen/csharp/protocol`
+- C# client: `e2e-gen/csharp/client`
+- End-to-end script: `e2e-gen/csharp/test.sh`
 
 Direct links:
 
-- <https://github.com/icsmw/brec/tree/main/e2e-generator/csharp>
-- <https://github.com/icsmw/brec/blob/main/e2e-generator/csharp/protocol/src/lib.rs>
-- <https://github.com/icsmw/brec/blob/main/e2e-generator/csharp/client/Program.cs>
-- <https://github.com/icsmw/brec/blob/main/e2e-generator/csharp/test.sh>
+- <https://github.com/icsmw/brec/tree/main/e2e-gen/csharp>
+- <https://github.com/icsmw/brec/blob/main/e2e-gen/csharp/protocol/src/lib.rs>
+- <https://github.com/icsmw/brec/blob/main/e2e-gen/csharp/client/Program.cs>
+- <https://github.com/icsmw/brec/blob/main/e2e-gen/csharp/test.sh>
 
 ## See Also
 

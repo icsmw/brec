@@ -242,7 +242,7 @@ Reference implementation in this repository:
 - Binding crate: `e2e/wasm/binding`
 - Browser client: `e2e/wasm/clients/browser`
 - Node client: `e2e/wasm/clients/node`
-- Generated package e2e workspace: `e2e-generator/wasm/`
+- Generated package e2e workspace: `e2e-gen/wasm/`
 - End-to-end scripts: `e2e/wasm/clients/browser/test.sh`, `e2e/wasm/clients/node/test.sh`, `e2e/wasm/test.sh`
 
 Direct links:
@@ -253,9 +253,9 @@ Direct links:
 - <https://github.com/icsmw/brec/blob/main/e2e/wasm/clients/browser/src/main.js>
 - <https://github.com/icsmw/brec/blob/main/e2e/wasm/clients/node/src/main.js>
 - <https://github.com/icsmw/brec/blob/main/e2e/wasm/test.sh>
-- <https://github.com/icsmw/brec/tree/main/e2e-generator/wasm>
-- <https://github.com/icsmw/brec/blob/main/e2e-generator/wasm/clients/browser/src/main.ts>
-- <https://github.com/icsmw/brec/blob/main/e2e-generator/wasm/clients/node/src/main.ts>
+- <https://github.com/icsmw/brec/tree/main/e2e-gen/wasm>
+- <https://github.com/icsmw/brec/blob/main/e2e-gen/wasm/clients/browser/src/main.ts>
+- <https://github.com/icsmw/brec/blob/main/e2e-gen/wasm/clients/node/src/main.ts>
 
 ## Required Macros For Payload Types
 

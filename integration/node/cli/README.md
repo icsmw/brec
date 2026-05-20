@@ -45,7 +45,7 @@ The protocol crate must explicitly enable scheme generation with `brec::generate
 
 Custom Rust types used inside payload fields must be exported into the scheme with `#[payload(include)]`. If such a type is referenced by a payload but not included, the CLI cannot generate the matching TypeScript declaration.
 
-For Node/N-API conversion, nested payload types also normally derive the required Brec conversion trait. See the main N-API documentation for the full protocol-side setup. The e2e reference is `e2e-generator/node`.
+For Node/N-API conversion, nested payload types also normally derive the required Brec conversion trait. See the main N-API documentation for the full protocol-side setup. The e2e reference is `e2e-gen/node`.
 
 Minimal protocol-side shape:
 
@@ -160,7 +160,7 @@ Registry versions can also be overridden, but production users should usually re
 
 ## Example From This Repository
 
-The Node generator e2e workspace uses this CLI from `e2e-generator/node/test.sh`:
+The Node generator e2e workspace uses this CLI from `e2e-gen/node/test.sh`:
 
 ```bash
 cargo run --manifest-path "${ROOT_DIR}/../../Cargo.toml" -p brec_node_cli -- \
