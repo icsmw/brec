@@ -347,17 +347,17 @@ if (payloadObj != null) {
 
 Reference implementation in this repository:
 
-- Generated Java e2e workspace: `e2e-generator/java/`
-- Protocol crate: `e2e-generator/java/protocol`
-- Java client: `e2e-generator/java/client`
-- End-to-end script: `e2e-generator/java/test.sh`
+- Generated Java e2e workspace: `e2e-gen/java/`
+- Protocol crate: `e2e-gen/java/protocol`
+- Java client: `e2e-gen/java/client`
+- End-to-end script: `e2e-gen/java/test.sh`
 
 Direct links:
 
-- <https://github.com/icsmw/brec/tree/main/e2e-generator/java>
-- <https://github.com/icsmw/brec/blob/main/e2e-generator/java/protocol/src/lib.rs>
-- <https://github.com/icsmw/brec/blob/main/e2e-generator/java/client/src/com/icsmw/brec/Main.java>
-- <https://github.com/icsmw/brec/blob/main/e2e-generator/java/test.sh>
+- <https://github.com/icsmw/brec/tree/main/e2e-gen/java>
+- <https://github.com/icsmw/brec/blob/main/e2e-gen/java/protocol/src/lib.rs>
+- <https://github.com/icsmw/brec/blob/main/e2e-gen/java/client/src/com/icsmw/brec/Main.java>
+- <https://github.com/icsmw/brec/blob/main/e2e-gen/java/test.sh>
 
 ## See Also
 

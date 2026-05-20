@@ -78,3 +78,18 @@ jobs:
         run: chmod +x ./e2e.sh
       - name: Tests
         run: bash ./e2e.sh
+  e2e-gen-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Update rust
+        run: rustup update
+      - name: Add wasm target
+        run: rustup target add wasm32-unknown-unknown
+      - name: Install wasm-pack
+        run: cargo install wasm-pack --locked
+      - name: Make scripts executable
+        run: chmod +x ./e2e-gen.sh
+      - name: Tests
+        run: bash ./e2e-gen.sh

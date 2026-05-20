@@ -23,4 +23,4 @@ brec_csharp_cli \
   --csharp-out path/to/generated/csharp
 ```
 
-For a repository-local reference, see `e2e-generator/csharp/test.sh`.
+For a repository-local reference, see `e2e-gen/csharp/test.sh`.
