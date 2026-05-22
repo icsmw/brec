@@ -159,11 +159,10 @@ impl SourceWritable for Type {
                     return writer.write("Record<string, never>");
                 }
                 writer.ln("{")?;
-                writer.tab();
                 for field in fields {
+                    writer.write("\t")?;
                     field.write(writer)?;
                 }
-                writer.back();
                 writer.write("}")
             }
         }

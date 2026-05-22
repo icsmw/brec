@@ -18,30 +18,24 @@ impl FileName for ProjectFile<'_> {
 
 impl SourceWritable for ProjectFile<'_> {
     fn write(&self, writer: &mut SourceWriter) -> Result<(), Error> {
-        writer.ln("<Project Sdk=\"Microsoft.NET.Sdk\">")?;
-        writer.tab();
-        writer.ln("<PropertyGroup>")?;
-        writer.tab();
-        writer.ln("<TargetFramework>net8.0</TargetFramework>")?;
-        writer.ln("<ImplicitUsings>enable</ImplicitUsings>")?;
-        writer.ln("<Nullable>enable</Nullable>")?;
-        writer.ln(format!(
-            "<AssemblyName>{}</AssemblyName>",
-            self.model.package
-        ))?;
-        writer.ln(format!(
-            "<RootNamespace>{}</RootNamespace>",
+        writer.block(format!(
+            r#"
+<Project Sdk="Microsoft.NET.Sdk">
+	<PropertyGroup>
+		<TargetFramework>net8.0</TargetFramework>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+		<AssemblyName>{}</AssemblyName>
+		<RootNamespace>{}</RootNamespace>
+	</PropertyGroup>
+	<ItemGroup>
+		<None Include="native/*" CopyToOutputDirectory="PreserveNewest" Link="%(Filename)%(Extension)" />
+	</ItemGroup>
+</Project>
+"#,
+            self.model.package,
             namespace_name(&self.model.package)
-        ))?;
-        writer.back();
-        writer.ln("</PropertyGroup>")?;
-        writer.ln("<ItemGroup>")?;
-        writer.tab();
-        writer.ln("<None Include=\"native/*\" CopyToOutputDirectory=\"PreserveNewest\" Link=\"%(Filename)%(Extension)\" />")?;
-        writer.back();
-        writer.ln("</ItemGroup>")?;
-        writer.back();
-        writer.ln("</Project>")
+        ))
     }
 }
 

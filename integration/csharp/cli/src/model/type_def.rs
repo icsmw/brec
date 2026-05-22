@@ -92,84 +92,71 @@ impl TypeDef {
         let inherits = parent
             .map(|parent| format!(" : {parent}"))
             .unwrap_or_default();
-        writer.ln(format!("public abstract class {}{}", self.name, inherits))?;
-        writer.ln("{")?;
-        writer.tab();
-        writer.ln(format!("private protected {}() {{ }}", self.name))?;
-        writer.ln("")?;
-        writer.ln("public enum Kind")?;
-        writer.ln("{")?;
-        writer.tab();
-        for variant in variants {
-            writer.ln(format!("{},", variant.name))?;
-        }
-        writer.back();
-        writer.ln("}")?;
-        writer.ln("")?;
-        writer.ln("public abstract Kind Variant { get; }")?;
-        writer.ln("private protected abstract string NativeKey { get; }")?;
-        writer.ln("internal abstract ValueHandle ToNativeElement();")?;
-        writer.ln(format!(
-            "internal {}ValueHandle ToNativeObject()",
-            if parent.is_some() { "override " } else { "" }
+        writer.block(format!(
+            r#"
+public abstract class {}{}
+{{
+	private protected {}() {{ }}
+
+	public enum Kind
+	{{
+"#,
+            self.name, inherits, self.name
         ))?;
-        writer.ln("{")?;
-        writer.tab();
-        writer.ln("var obj = NativeValue.NewObject();")?;
-        writer.ln("try")?;
-        writer.ln("{")?;
-        writer.tab();
-        writer.ln("using var value = ToNativeElement();")?;
-        writer.ln("NativeValue.PutField(obj, NativeKey, value);")?;
-        writer.ln("return obj;")?;
-        writer.back();
-        writer.ln("}")?;
-        writer.ln("catch")?;
-        writer.ln("{")?;
-        writer.tab();
-        writer.ln("obj.Dispose();")?;
-        writer.ln("throw;")?;
-        writer.back();
-        writer.ln("}")?;
-        writer.back();
-        writer.ln("}")?;
-        writer.ln("")?;
-        writer.ln(format!(
-            "internal static {} FromNativeObject(ValueHandle handle)",
+        for variant in variants {
+            writer.ln(format!("\t\t{},", variant.name))?;
+        }
+        writer.block(format!(
+            r#"
+	}}
+
+	public abstract Kind Variant {{ get; }}
+	private protected abstract string NativeKey {{ get; }}
+	internal abstract ValueHandle ToNativeElement();
+	internal {}ValueHandle ToNativeObject()
+	{{
+		var obj = NativeValue.NewObject();
+		try
+		{{
+			using var value = ToNativeElement();
+			NativeValue.PutField(obj, NativeKey, value);
+			return obj;
+		}}
+		catch
+		{{
+			obj.Dispose();
+			throw;
+		}}
+	}}
+
+	internal static {} FromNativeObject(ValueHandle handle)
+	{{
+"#,
+            if parent.is_some() { "override " } else { "" },
             self.name
         ))?;
-        writer.ln("{")?;
-        writer.tab();
         for variant in variants {
-            writer.ln(format!(
-                "if (NativeValue.HasField(handle, \"{}\"))",
-                variant.key
+            writer.block(format!(
+                r#"
+		if (NativeValue.HasField(handle, "{}"))
+		{{
+			using var inner = NativeValue.GetField(handle, "{}");
+			return Element{}.FromNativeElement(inner);
+		}}
+"#,
+                variant.key, variant.key, variant.name
             ))?;
-            writer.ln("{")?;
-            writer.tab();
-            writer.ln(format!(
-                "using var inner = NativeValue.GetField(handle, \"{}\");",
-                variant.key
-            ))?;
-            writer.ln(format!(
-                "return Element{}.FromNativeElement(inner);",
-                variant.name
-            ))?;
-            writer.back();
-            writer.ln("}")?;
         }
         writer.ln(format!(
-            "throw new InvalidOperationException(\"Unknown {} variant\");",
+            "\t\tthrow new InvalidOperationException(\"Unknown {} variant\");",
             self.name
         ))?;
-        writer.back();
-        writer.ln("}")?;
+        writer.ln("\t}")?;
         writer.ln("")?;
         for variant in variants {
             variant.write_nested_class(writer, &self.name)?;
             writer.ln("")?;
         }
-        writer.back();
         writer.ln("}")
     }
 }
@@ -225,20 +212,18 @@ impl VariantDef {
     ) -> Result<(), Error> {
         let class_name = format!("Element{}", self.name);
         let fields = self.fields();
-        writer.ln(format!("public sealed class {class_name} : {parent}"))?;
-        writer.ln("{")?;
-        writer.tab();
-        writer.ln(format!(
-            "public override Kind Variant => Kind.{};",
-            self.name
-        ))?;
-        writer.ln(format!(
-            "private protected override string NativeKey => \"{}\";",
-            self.key
+        writer.block(format!(
+            r#"
+	public sealed class {class_name} : {parent}
+	{{
+		public override Kind Variant => Kind.{};
+		private protected override string NativeKey => "{}";
+"#,
+            self.name, self.key
         ))?;
         for field in &fields {
             writer.ln(format!(
-                "public {}{} {} {{ get; }}",
+                "\t\tpublic {}{} {} {{ get; }}",
                 field.ty.write_ref(),
                 if field.nullable { "?" } else { "" },
                 field.name
@@ -247,7 +232,7 @@ impl VariantDef {
         if !fields.is_empty() {
             writer.ln("")?;
         }
-        writer.write(format!("public {class_name}("))?;
+        writer.write(format!("\t\tpublic {class_name}("))?;
         for (idx, field) in fields.iter().enumerate() {
             if idx > 0 {
                 writer.write(", ")?;
@@ -260,23 +245,20 @@ impl VariantDef {
             ))?;
         }
         writer.ln(")")?;
-        writer.ln("{")?;
-        writer.tab();
+        writer.ln("\t\t{")?;
         for field in &fields {
             writer.ln(format!(
-                "{} = {};",
+                "\t\t\t{} = {};",
                 field.name,
                 constructor_arg_name(&field.name)
             ))?;
         }
-        writer.back();
-        writer.ln("}")?;
+        writer.ln("\t\t}")?;
         writer.ln("")?;
         self.write_variant_from_native(writer, &class_name, &fields)?;
         writer.ln("")?;
         self.write_variant_to_native(writer, &fields)?;
-        writer.back();
-        writer.ln("}")
+        writer.ln("\t}")
     }
 
     fn fields(&self) -> Vec<FieldDef> {
@@ -308,25 +290,29 @@ impl VariantDef {
         class_name: &str,
         fields: &[FieldDef],
     ) -> Result<(), Error> {
-        writer.ln(format!(
-            "internal static {class_name} FromNativeElement(ValueHandle handle)"
+        writer.block(format!(
+            r#"
+		internal static {class_name} FromNativeElement(ValueHandle handle)
+		{{
+"#
         ))?;
-        writer.ln("{")?;
-        writer.tab();
         match &self.body {
             VariantBody::Unit => {}
             VariantBody::Single(ty) => {
-                writer.ln(format!("var value = {};", ty.from_native_expr("handle")))?;
+                writer.ln(format!(
+                    "\t\t\tvar value = {};",
+                    ty.from_native_expr("handle")
+                ))?;
             }
             VariantBody::Named(_) => {
                 for field in fields {
                     writer.ln(format!(
-                        "using var {}Value = NativeValue.GetField(handle, \"{}\");",
+                        "\t\t\tusing var {}Value = NativeValue.GetField(handle, \"{}\");",
                         constructor_arg_name(&field.name),
                         field.key
                     ))?;
                     writer.ln(format!(
-                        "var {} = {};",
+                        "\t\t\tvar {} = {};",
                         constructor_arg_name(&field.name),
                         field.ty.from_native_expr(&format!(
                             "{}Value",
@@ -338,12 +324,12 @@ impl VariantDef {
             VariantBody::Tuple(_) => {
                 for field in fields {
                     writer.ln(format!(
-                        "using var {}Value = NativeValue.GetField(handle, \"{}\");",
+                        "\t\t\tusing var {}Value = NativeValue.GetField(handle, \"{}\");",
                         constructor_arg_name(&field.name),
                         field.key
                     ))?;
                     writer.ln(format!(
-                        "var {} = {};",
+                        "\t\t\tvar {} = {};",
                         constructor_arg_name(&field.name),
                         field.ty.from_native_expr(&format!(
                             "{}Value",
@@ -354,15 +340,14 @@ impl VariantDef {
             }
         }
         writer.ln(format!(
-            "return new {class_name}({});",
+            "\t\t\treturn new {class_name}({});",
             fields
                 .iter()
                 .map(|field| constructor_arg_name(&field.name))
                 .collect::<Vec<_>>()
                 .join(", ")
         ))?;
-        writer.back();
-        writer.ln("}")
+        writer.ln("\t\t}")
     }
 
     fn write_variant_to_native(
@@ -370,47 +355,53 @@ impl VariantDef {
         writer: &mut crate::SourceWriter,
         fields: &[FieldDef],
     ) -> Result<(), Error> {
-        writer.ln("internal override ValueHandle ToNativeElement()")?;
-        writer.ln("{")?;
-        writer.tab();
+        writer.block(
+            r#"
+		internal override ValueHandle ToNativeElement()
+		{
+"#,
+        )?;
         match &self.body {
-            VariantBody::Unit => writer.ln("return NativeValue.Null();")?,
+            VariantBody::Unit => writer.ln("\t\t\treturn NativeValue.Null();")?,
             VariantBody::Single(ty) => {
-                writer.ln(format!("return {};", ty.to_native_expr("Value")))?
+                writer.ln(format!("\t\t\treturn {};", ty.to_native_expr("Value")))?
             }
             VariantBody::Named(_) | VariantBody::Tuple(_) => {
-                writer.ln("var obj = NativeValue.NewObject();")?;
-                writer.ln("try")?;
-                writer.ln("{")?;
-                writer.tab();
+                writer.block(
+                    r#"
+			var obj = NativeValue.NewObject();
+			try
+			{
+"#,
+                )?;
                 for field in fields {
-                    writer.ln(format!(
-                        "using (var value = {})",
+                    writer.block(format!(
+                        r#"
+				using (var value = {})
+				{{
+"#,
                         field.ty.to_native_expr(&field.name)
                     ))?;
-                    writer.ln("{")?;
-                    writer.tab();
                     writer.ln(format!(
-                        "NativeValue.PutField(obj, \"{}\", value);",
+                        "\t\t\t\t\tNativeValue.PutField(obj, \"{}\", value);",
                         field.key
                     ))?;
-                    writer.back();
-                    writer.ln("}")?;
+                    writer.ln("\t\t\t\t}")?;
                 }
-                writer.ln("return obj;")?;
-                writer.back();
-                writer.ln("}")?;
-                writer.ln("catch")?;
-                writer.ln("{")?;
-                writer.tab();
-                writer.ln("obj.Dispose();")?;
-                writer.ln("throw;")?;
-                writer.back();
-                writer.ln("}")?;
+                writer.block(
+                    r#"
+				return obj;
+			}
+			catch
+			{
+				obj.Dispose();
+				throw;
+			}
+"#,
+                )?;
             }
         }
-        writer.back();
-        writer.ln("}")
+        writer.ln("\t\t}")
     }
 }
 

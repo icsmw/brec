@@ -37,20 +37,19 @@ impl<'a> TsWritable for ApiFile<'a, NpmIndexFile> {
         if self.target == WasmTarget::Node {
             writer.ln("const wasm = require('./wasmjs.js');")?;
         }
-        writer.ln("const wasmApi = wasm as Record<string, unknown>;")?;
-        writer.ln("")?;
-        writer.ln("function pick(camel: string, snake: string): any {")?;
-        writer.tab();
-        writer.ln("const value = wasmApi[camel] || wasmApi[snake];")?;
-        writer.ln("if (typeof value !== 'function') {")?;
-        writer.tab();
-        writer.ln("throw new Error(`wasm package does not export ${camel}/${snake}`);")?;
-        writer.back();
-        writer.ln("}")?;
-        writer.ln("return value;")?;
-        writer.back();
-        writer.ln("}")?;
-        writer.ln("")?;
+        writer.block(
+            r#"
+const wasmApi = wasm as Record<string, unknown>;
+
+function pick(camel: string, snake: string): any {
+	const value = wasmApi[camel] || wasmApi[snake];
+	if (typeof value !== 'function') {
+		throw new Error(`wasm package does not export ${camel}/${snake}`);
+	}
+	return value;
+}
+"#,
+        )?;
         for api in self.apis() {
             api.write_ts_browser(writer)?
         }

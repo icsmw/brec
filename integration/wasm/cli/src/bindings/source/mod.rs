@@ -1,9 +1,10 @@
 mod file;
 mod header;
-mod tab;
+mod writable;
 mod writer;
 
+pub use brec_inter_tools::Tab;
 pub use file::*;
 pub use header::*;
-pub use tab::*;
+pub use writable::*;
 pub use writer::*;

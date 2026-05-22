@@ -24,81 +24,63 @@ impl<'a> PacketFile<'a> {
                     "java.util.Objects",
                 ],
             )?;
-            writer.ln("public final class Packet {")?;
-            writer.tab();
-            writer.ln("public List<Block> blocks = new ArrayList<>(0);")?;
-            writer.ln("public Payload payload;")?;
-            writer.ln("")?;
-            writer.ln("public Packet() {}")?;
-            writer.ln("")?;
-            writer.ln("public Packet(List<Block> blocks, Payload payload) {")?;
-            writer.tab();
-            writer.ln("this.blocks = blocks == null ? new ArrayList<>(0) : blocks;")?;
-            writer.ln("this.payload = payload;")?;
-            writer.back();
-            writer.ln("}")?;
-            writer.ln("")?;
-            writer.ln("public static Packet withoutPayload(List<Block> blocks) {")?;
-            writer.tab();
-            writer.ln("return new Packet(blocks, null);")?;
-            writer.back();
-            writer.ln("}")?;
-            writer.ln("")?;
-            writer.ln("static Packet fromBrecObject(Object value) {")?;
-            writer.tab();
-            writer.ln("Map<?, ?> map = (Map<?, ?>) value;")?;
-            writer.ln(r#"List<?> rawBlocks = (List<?>) map.get("blocks");"#)?;
-            writer.ln("List<Block> blocks = new ArrayList<>(rawBlocks.size());")?;
-            writer.ln("for (Object block : rawBlocks) {")?;
-            writer.tab();
-            writer.ln("blocks.add(Block.fromBrecObject(block));")?;
-            writer.back();
-            writer.ln("}")?;
-            writer.ln(r#"Object payload = map.get("payload");"#)?;
-            writer.ln(
-                "return new Packet(blocks, payload == null ? null : Payload.fromBrecObject(payload));",
-            )?;
-            writer.back();
-            writer.ln("}")?;
-            writer.ln("")?;
-            writer.ln("Map<String, Object> toBrecObject() {")?;
-            writer.tab();
-            writer.ln("HashMap<String, Object> out = new HashMap<>(2);")?;
-            writer.ln("ArrayList<Object> encodedBlocks = new ArrayList<>(blocks.size());")?;
-            writer.ln("for (Block block : blocks) {")?;
-            writer.tab();
-            writer.ln("encodedBlocks.add(block.toBrecObject());")?;
-            writer.back();
-            writer.ln("}")?;
-            writer.ln(r#"out.put("blocks", encodedBlocks);"#)?;
-            writer.ln(r#"out.put("payload", payload == null ? null : payload.toBrecObject());"#)?;
-            writer.ln("return out;")?;
-            writer.back();
-            writer.ln("}")?;
-            writer.ln("")?;
-            writer.ln("@Override")?;
-            writer.ln("public boolean equals(Object other) {")?;
-            writer.tab();
-            writer.ln("if (!(other instanceof Packet)) {")?;
-            writer.tab();
-            writer.ln("return false;")?;
-            writer.back();
-            writer.ln("}")?;
-            writer.ln("Packet that = (Packet) other;")?;
-            writer.ln("return Objects.equals(blocks, that.blocks) && Objects.equals(payload, that.payload);")?;
-            writer.back();
-            writer.ln("}")?;
-            writer.ln("")?;
-            writer.ln("@Override")?;
-            writer.ln("public int hashCode() {")?;
-            writer.tab();
-            writer.ln("int result = Objects.hashCode(blocks);")?;
-            writer.ln("result = 31 * result + Objects.hashCode(payload);")?;
-            writer.ln("return result;")?;
-            writer.back();
-            writer.ln("}")?;
-            writer.back();
-            writer.ln("}")
+            writer.block(
+                r#"
+public final class Packet {
+	public List<Block> blocks = new ArrayList<>(0);
+	public Payload payload;
+
+	public Packet() {}
+
+	public Packet(List<Block> blocks, Payload payload) {
+		this.blocks = blocks == null ? new ArrayList<>(0) : blocks;
+		this.payload = payload;
+	}
+
+	public static Packet withoutPayload(List<Block> blocks) {
+		return new Packet(blocks, null);
+	}
+
+	static Packet fromBrecObject(Object value) {
+		Map<?, ?> map = (Map<?, ?>) value;
+		List<?> rawBlocks = (List<?>) map.get("blocks");
+		List<Block> blocks = new ArrayList<>(rawBlocks.size());
+		for (Object block : rawBlocks) {
+			blocks.add(Block.fromBrecObject(block));
+		}
+		Object payload = map.get("payload");
+		return new Packet(blocks, payload == null ? null : Payload.fromBrecObject(payload));
+	}
+
+	Map<String, Object> toBrecObject() {
+		HashMap<String, Object> out = new HashMap<>(2);
+		ArrayList<Object> encodedBlocks = new ArrayList<>(blocks.size());
+		for (Block block : blocks) {
+			encodedBlocks.add(block.toBrecObject());
+		}
+		out.put("blocks", encodedBlocks);
+		out.put("payload", payload == null ? null : payload.toBrecObject());
+		return out;
+	}
+
+	@Override
+	public boolean equals(Object other) {
+		if (!(other instanceof Packet)) {
+			return false;
+		}
+		Packet that = (Packet) other;
+		return Objects.equals(blocks, that.blocks) && Objects.equals(payload, that.payload);
+	}
+
+	@Override
+	public int hashCode() {
+		int result = Objects.hashCode(blocks);
+		result = 31 * result + Objects.hashCode(payload);
+		return result;
+	}
+}
+"#,
+            )
         })
     }
 }

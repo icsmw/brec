@@ -1,0 +1,11 @@
+[package]
+name        = "brec_inter_tools"
+version     = "0.1.0"
+edition     = "2024"
+authors     = ["d.astafyev@outlook.com"]
+description = "Shared code generation tools for Brec integrations."
+license     = "Apache-2.0"
+repository  = "https://github.com/icsmw/brec.git"
+homepage    = "https://icsmw.github.io/brec/"
+
+[dependencies]

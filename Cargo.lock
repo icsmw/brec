@@ -178,6 +178,7 @@ version = "0.3.0"
 name = "brec_csharp_cli"
 version = "0.1.0"
 dependencies = [
+ "brec_inter_tools",
  "brec_scheme",
  "serde",
  "serde_json",
@@ -207,9 +208,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "brec_inter_tools"
+version = "0.1.0"
+
+[[package]]
 name = "brec_java_cli"
 version = "0.1.0"
 dependencies = [
+ "brec_inter_tools",
  "brec_scheme",
  "jni",
  "serde",
@@ -293,6 +299,7 @@ dependencies = [
 name = "brec_node_cli"
 version = "0.1.0"
 dependencies = [
+ "brec_inter_tools",
  "brec_scheme",
  "napi",
  "serde",
@@ -346,6 +353,7 @@ dependencies = [
 name = "brec_wasm_cli"
 version = "0.1.0"
 dependencies = [
+ "brec_inter_tools",
  "brec_scheme",
  "serde",
  "serde_json",

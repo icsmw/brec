@@ -18,12 +18,15 @@ pub(super) fn write_class(
     let inherits = parent
         .map(|parent| format!(" : {parent}"))
         .unwrap_or_default();
-    writer.ln(format!("public sealed class {name}{inherits}"))?;
-    writer.ln("{")?;
-    writer.tab();
+    writer.block(format!(
+        r#"
+public sealed class {name}{inherits}
+{{
+"#
+    ))?;
     for field in fields {
         writer.ln(format!(
-            "public {}{} {} {{ get; }}",
+            "\tpublic {}{} {} {{ get; }}",
             field.ty.write_ref(),
             if field.nullable { "?" } else { "" },
             field.name
@@ -32,7 +35,7 @@ pub(super) fn write_class(
     if !fields.is_empty() {
         writer.ln("")?;
     }
-    writer.write(format!("public {name}("))?;
+    writer.write(format!("\tpublic {name}("))?;
     for (idx, field) in fields.iter().enumerate() {
         if idx > 0 {
             writer.write(", ")?;
@@ -45,22 +48,19 @@ pub(super) fn write_class(
         ))?;
     }
     writer.ln(")")?;
-    writer.ln("{")?;
-    writer.tab();
+    writer.ln("\t{")?;
     for field in fields {
         writer.ln(format!(
-            "{} = {};",
+            "\t\t{} = {};",
             field.name,
             constructor_arg_name(&field.name)
         ))?;
     }
-    writer.back();
-    writer.ln("}")?;
+    writer.ln("\t}")?;
     writer.ln("")?;
     write_from_native(writer, name, fields)?;
     writer.ln("")?;
     write_to_native(writer, fields, parent.is_some())?;
-    writer.back();
     writer.ln("}")
 }
 
@@ -77,14 +77,15 @@ fn write_from_native(
     name: &str,
     fields: &[FieldDef],
 ) -> Result<(), Error> {
-    writer.ln(format!(
-        "internal static {name} FromNativeObject(ValueHandle handle)"
+    writer.block(format!(
+        r#"
+	internal static {name} FromNativeObject(ValueHandle handle)
+	{{
+"#
     ))?;
-    writer.ln("{")?;
-    writer.tab();
     for field in fields {
         writer.ln(format!(
-            "using var {}Value = NativeValue.GetField(handle, \"{}\");",
+            "\t\tusing var {}Value = NativeValue.GetField(handle, \"{}\");",
             constructor_arg_name(&field.name),
             field.key
         ))?;
@@ -103,21 +104,20 @@ fn write_from_native(
                 .from_native_expr(&format!("{}Value", constructor_arg_name(&field.name)))
         };
         writer.ln(format!(
-            "var {} = {};",
+            "\t\tvar {} = {};",
             constructor_arg_name(&field.name),
             expr
         ))?;
     }
     writer.ln(format!(
-        "return new {name}({});",
+        "\t\treturn new {name}({});",
         fields
             .iter()
             .map(|field| constructor_arg_name(&field.name))
             .collect::<Vec<_>>()
             .join(", ")
     ))?;
-    writer.back();
-    writer.ln("}")
+    writer.ln("\t}")
 }
 
 fn write_to_native(
@@ -125,44 +125,46 @@ fn write_to_native(
     fields: &[FieldDef],
     is_override: bool,
 ) -> Result<(), Error> {
-    writer.ln(format!(
-        "internal {}ValueHandle ToNativeObject()",
+    writer.block(format!(
+        r#"
+	internal {}ValueHandle ToNativeObject()
+	{{
+		var obj = NativeValue.NewObject();
+		try
+		{{
+"#,
         if is_override { "override " } else { "" }
     ))?;
-    writer.ln("{")?;
-    writer.tab();
-    writer.ln("var obj = NativeValue.NewObject();")?;
-    writer.ln("try")?;
-    writer.ln("{")?;
-    writer.tab();
     for field in fields {
         let expr = if field.nullable {
             field.ty.to_native_nullable_expr(&field.name)
         } else {
             field.ty.to_native_expr(&field.name)
         };
-        writer.ln(format!("using (var value = {expr})"))?;
-        writer.ln("{")?;
-        writer.tab();
+        writer.block(format!(
+            r#"
+			using (var value = {expr})
+			{{
+"#
+        ))?;
         writer.ln(format!(
-            "NativeValue.PutField(obj, \"{}\", value);",
+            "\t\t\t\tNativeValue.PutField(obj, \"{}\", value);",
             field.key
         ))?;
-        writer.back();
-        writer.ln("}")?;
+        writer.ln("\t\t\t}")?;
     }
-    writer.ln("return obj;")?;
-    writer.back();
-    writer.ln("}")?;
-    writer.ln("catch")?;
-    writer.ln("{")?;
-    writer.tab();
-    writer.ln("obj.Dispose();")?;
-    writer.ln("throw;")?;
-    writer.back();
-    writer.ln("}")?;
-    writer.back();
-    writer.ln("}")
+    writer.block(
+        r#"
+			return obj;
+		}
+		catch
+		{
+			obj.Dispose();
+			throw;
+		}
+	}
+"#,
+    )
 }
 
 pub(super) fn write_tuple_record(

@@ -20,15 +20,16 @@ impl<'a> SourceWritable for ApiFile<'a, BindingsLibFile> {
 impl<'a> RustWritable for ApiFile<'a, BindingsLibFile> {
     fn write_rust(&self, writer: &mut SourceWriter) -> Result<(), Error> {
         FileHeader::new(self.file_name(), self.model).write(writer)?;
-        writer.ln("use protocol::{Block, Packet, Payload};")?;
-        writer.ln("use wasm_bindgen::prelude::*;")?;
-        writer.ln("")?;
-        writer.ln("fn to_js_error(err: impl std::fmt::Display) -> JsValue {")?;
-        writer.tab();
-        writer.ln("JsValue::from_str(&err.to_string())")?;
-        writer.back();
-        writer.ln("}")?;
-        writer.ln("")?;
+        writer.block(
+            r#"
+use protocol::{Block, Packet, Payload};
+use wasm_bindgen::prelude::*;
+
+fn to_js_error(err: impl std::fmt::Display) -> JsValue {
+	JsValue::from_str(&err.to_string())
+}
+"#,
+        )?;
         for api in self.apis() {
             api.write_rust(writer)?;
         }

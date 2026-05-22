@@ -14,17 +14,17 @@ impl<'a> BlockInterfaceFile<'a> {
     pub(super) fn file(self) -> Result<JavaFile, Error> {
         JavaFile::new(self.model, JavaPackage::Block, "Block.java", |writer| {
             write_imports(writer, &["java.util.Map"])?;
-            writer.ln("public interface Block {")?;
-            writer.tab();
-            writer.ln("Map<String, Object> toBrecObject();")?;
-            writer.ln("")?;
-            writer.ln("static Block fromBrecObject(Object value) {")?;
-            writer.tab();
-            writer.ln("return BlockSupport.fromBrecObject(value);")?;
-            writer.back();
-            writer.ln("}")?;
-            writer.back();
-            writer.ln("}")
+            writer.block(
+                r#"
+public interface Block {
+	Map<String, Object> toBrecObject();
+
+	static Block fromBrecObject(Object value) {
+		return BlockSupport.fromBrecObject(value);
+	}
+}
+"#,
+            )
         })
     }
 }
@@ -46,33 +46,35 @@ impl<'a> BlockSupportFile<'a> {
             "BlockSupport.java",
             |writer| {
                 write_imports(writer, &["java.util.Map"])?;
-                writer.ln("final class BlockSupport {")?;
-                writer.tab();
-                writer.ln("private BlockSupport() {}")?;
-                writer.ln("")?;
-                writer.ln("static Block fromBrecObject(Object value) {")?;
-                writer.tab();
-                writer.ln("Map<?, ?> map = (Map<?, ?>) value;")?;
-                writer.ln("Map.Entry<?, ?> entry = map.entrySet().iterator().next();")?;
-                writer.ln("String variant = (String) entry.getKey();")?;
-                writer.ln("Object inner = entry.getValue();")?;
-                writer.ln("switch (variant) {")?;
-                writer.tab();
+                writer.block(
+                    r#"
+final class BlockSupport {
+	private BlockSupport() {}
+
+	static Block fromBrecObject(Object value) {
+		Map<?, ?> map = (Map<?, ?>) value;
+		Map.Entry<?, ?> entry = map.entrySet().iterator().next();
+		String variant = (String) entry.getKey();
+		Object inner = entry.getValue();
+		switch (variant) {
+"#,
+                )?;
                 for block in &self.scheme.blocks {
                     writer.ln(format!(
-                        r#"case "{}": return {}.fromBrecObject(inner);"#,
+                        "\t\t\tcase \"{}\": return {}.fromBrecObject(inner);",
                         block.fullname, block.fullname
                     ))?;
                 }
                 writer.ln(
-                    r#"default: throw new IllegalArgumentException("unknown block: " + variant);"#,
+                    "\t\t\tdefault: throw new IllegalArgumentException(\"unknown block: \" + variant);",
                 )?;
-                writer.back();
-                writer.ln("}")?;
-                writer.back();
-                writer.ln("}")?;
-                writer.back();
-                writer.ln("}")
+                writer.block(
+                    r#"
+		}
+	}
+}
+"#,
+                )
             },
         )
     }
@@ -117,35 +119,31 @@ pub(super) fn write_fields_class_body(
     fields: &[JavaField],
     variant_wrapper: Option<&str>,
 ) -> Result<(), Error> {
-    writer.tab();
     for field in fields {
-        writer.ln(format!("public {} {};", field.ty, field.name))?;
+        writer.ln(format!("\tpublic {} {};", field.ty, field.name))?;
     }
     writer.ln("")?;
-    writer.ln(format!("public {class_name}() {{}}"))?;
+    writer.ln(format!("\tpublic {class_name}() {{}}"))?;
     writer.ln("")?;
-    writer.write(format!("private {class_name}("))?;
+    writer.write(format!("\tprivate {class_name}("))?;
     write_args(writer, fields)?;
     writer.ln(") {")?;
-    writer.tab();
     for field in fields {
-        writer.ln(format!("this.{0} = {0};", field.name))?;
+        writer.ln(format!("\t\tthis.{0} = {0};", field.name))?;
     }
-    writer.back();
-    writer.ln("}")?;
+    writer.ln("\t}")?;
     writer.ln("")?;
     if fields
         .iter()
         .any(JavaField::needs_unchecked_cast_suppression)
     {
-        writer.ln(r#"@SuppressWarnings("unchecked")"#)?;
+        writer.ln("\t@SuppressWarnings(\"unchecked\")")?;
     }
     writer.ln(format!(
-        "static {class_name} fromBrecObject(Object value) {{"
+        "\tstatic {class_name} fromBrecObject(Object value) {{"
     ))?;
-    writer.tab();
-    writer.ln("Map<?, ?> map = (Map<?, ?>) value;")?;
-    writer.write(format!("return new {class_name}("))?;
+    writer.ln("\t\tMap<?, ?> map = (Map<?, ?>) value;")?;
+    writer.write(format!("\t\treturn new {class_name}("))?;
     for (idx, field) in fields.iter().enumerate() {
         if idx > 0 {
             writer.write(", ")?;
@@ -153,34 +151,30 @@ pub(super) fn write_fields_class_body(
         writer.write(field.from_brec_expr(&format!(r#"map.get("{}")"#, field.name)))?;
     }
     writer.ln(");")?;
-    writer.back();
-    writer.ln("}")?;
+    writer.ln("\t}")?;
     writer.ln("")?;
-    writer.ln("public Map<String, Object> toBrecObject() {")?;
-    writer.tab();
+    writer.ln("\tpublic Map<String, Object> toBrecObject() {")?;
     writer.ln(format!(
-        "HashMap<String, Object> body = new HashMap<>({});",
+        "\t\tHashMap<String, Object> body = new HashMap<>({});",
         fields.len()
     ))?;
     for field in fields {
         writer.ln(format!(
-            r#"body.put("{}", {});"#,
+            "\t\tbody.put(\"{}\", {});",
             field.name,
             field.to_brec_expr()
         ))?;
     }
     if let Some(variant) = variant_wrapper {
-        writer.ln("HashMap<String, Object> out = new HashMap<>(1);")?;
-        writer.ln(format!(r#"out.put("{variant}", body);"#))?;
-        writer.ln("return out;")?;
+        writer.ln("\t\tHashMap<String, Object> out = new HashMap<>(1);")?;
+        writer.ln(format!("\t\tout.put(\"{variant}\", body);"))?;
+        writer.ln("\t\treturn out;")?;
     } else {
-        writer.ln("return body;")?;
+        writer.ln("\t\treturn body;")?;
     }
-    writer.back();
-    writer.ln("}")?;
+    writer.ln("\t}")?;
     writer.ln("")?;
     write_equals_hash_code(writer, class_name, fields)?;
-    writer.back();
     writer.ln("}")?;
     Ok(())
 }
@@ -201,19 +195,16 @@ pub(super) fn write_equals_hash_code(
     class_name: &str,
     fields: &[JavaField],
 ) -> Result<(), Error> {
-    writer.ln("@Override")?;
-    writer.ln("public boolean equals(Object other) {")?;
-    writer.tab();
-    writer.ln(format!("if (!(other instanceof {class_name})) {{"))?;
-    writer.tab();
-    writer.ln("return false;")?;
-    writer.back();
-    writer.ln("}")?;
-    writer.ln(format!("{class_name} that = ({class_name}) other;"))?;
+    writer.ln("\t@Override")?;
+    writer.ln("\tpublic boolean equals(Object other) {")?;
+    writer.ln(format!("\t\tif (!(other instanceof {class_name})) {{"))?;
+    writer.ln("\t\t\treturn false;")?;
+    writer.ln("\t\t}")?;
+    writer.ln(format!("\t\t{class_name} that = ({class_name}) other;"))?;
     if fields.is_empty() {
-        writer.ln("return true;")?;
+        writer.ln("\t\treturn true;")?;
     } else {
-        writer.write("return ")?;
+        writer.write("\t\treturn ")?;
         for (idx, field) in fields.iter().enumerate() {
             if idx > 0 {
                 writer.write(" && ")?;
@@ -222,18 +213,15 @@ pub(super) fn write_equals_hash_code(
         }
         writer.ln(";")?;
     }
-    writer.back();
-    writer.ln("}")?;
+    writer.ln("\t}")?;
     writer.ln("")?;
-    writer.ln("@Override")?;
-    writer.ln("public int hashCode() {")?;
-    writer.tab();
-    writer.ln("int result = 1;")?;
+    writer.ln("\t@Override")?;
+    writer.ln("\tpublic int hashCode() {")?;
+    writer.ln("\t\tint result = 1;")?;
     for field in fields {
-        writer.ln(format!("result = 31 * result + {};", field.hash_expr()))?;
+        writer.ln(format!("\t\tresult = 31 * result + {};", field.hash_expr()))?;
     }
-    writer.ln("return result;")?;
-    writer.back();
-    writer.ln("}")?;
+    writer.ln("\t\treturn result;")?;
+    writer.ln("\t}")?;
     Ok(())
 }
