@@ -12,63 +12,51 @@ impl<'a> ClientFile<'a> {
 
     pub(super) fn file(self) -> Result<JavaFile, Error> {
         JavaFile::new(self.model, JavaPackage::Root, "Client.java", |writer| {
-            writer.ln("import com.icsmw.brec.block.Block;")?;
-            writer.ln("import com.icsmw.brec.payload.Payload;")?;
-            writer.ln("")?;
-            writer.ln("public final class Client {")?;
-            writer.tab();
-            writer.ln("static {")?;
-            writer.tab();
-            writer.ln(r#"System.loadLibrary("bindings");"#)?;
-            writer.back();
-            writer.ln("}")?;
-            writer.ln("")?;
-            writer.ln("private Client() {}")?;
-            writer.ln("")?;
-            writer.ln("private static native Object decodeBlockNative(byte[] bytes);")?;
-            writer.ln("private static native byte[] encodeBlockNative(Object block);")?;
-            writer.ln("private static native Object decodePayloadNative(byte[] bytes);")?;
-            writer.ln("private static native byte[] encodePayloadNative(Object payload);")?;
-            writer.ln("private static native Object decodePacketNative(byte[] bytes);")?;
-            writer.ln("private static native byte[] encodePacketNative(Object packet);")?;
-            writer.ln("")?;
-            writer.ln("public static Block decodeBlock(byte[] bytes) {")?;
-            writer.tab();
-            writer.ln("return Block.fromBrecObject(decodeBlockNative(bytes));")?;
-            writer.back();
-            writer.ln("}")?;
-            writer.ln("")?;
-            writer.ln("public static byte[] encodeBlock(Block block) {")?;
-            writer.tab();
-            writer.ln("return encodeBlockNative(block.toBrecObject());")?;
-            writer.back();
-            writer.ln("}")?;
-            writer.ln("")?;
-            writer.ln("public static Payload decodePayload(byte[] bytes) {")?;
-            writer.tab();
-            writer.ln("return Payload.fromBrecObject(decodePayloadNative(bytes));")?;
-            writer.back();
-            writer.ln("}")?;
-            writer.ln("")?;
-            writer.ln("public static byte[] encodePayload(Payload payload) {")?;
-            writer.tab();
-            writer.ln("return encodePayloadNative(payload.toBrecObject());")?;
-            writer.back();
-            writer.ln("}")?;
-            writer.ln("")?;
-            writer.ln("public static Packet decodePacket(byte[] bytes) {")?;
-            writer.tab();
-            writer.ln("return Packet.fromBrecObject(decodePacketNative(bytes));")?;
-            writer.back();
-            writer.ln("}")?;
-            writer.ln("")?;
-            writer.ln("public static byte[] encodePacket(Packet packet) {")?;
-            writer.tab();
-            writer.ln("return encodePacketNative(packet.toBrecObject());")?;
-            writer.back();
-            writer.ln("}")?;
-            writer.back();
-            writer.ln("}")
+            writer.block(
+                r#"
+import com.icsmw.brec.block.Block;
+import com.icsmw.brec.payload.Payload;
+
+public final class Client {
+	static {
+		System.loadLibrary("bindings");
+	}
+
+	private Client() {}
+
+	private static native Object decodeBlockNative(byte[] bytes);
+	private static native byte[] encodeBlockNative(Object block);
+	private static native Object decodePayloadNative(byte[] bytes);
+	private static native byte[] encodePayloadNative(Object payload);
+	private static native Object decodePacketNative(byte[] bytes);
+	private static native byte[] encodePacketNative(Object packet);
+
+	public static Block decodeBlock(byte[] bytes) {
+		return Block.fromBrecObject(decodeBlockNative(bytes));
+	}
+
+	public static byte[] encodeBlock(Block block) {
+		return encodeBlockNative(block.toBrecObject());
+	}
+
+	public static Payload decodePayload(byte[] bytes) {
+		return Payload.fromBrecObject(decodePayloadNative(bytes));
+	}
+
+	public static byte[] encodePayload(Payload payload) {
+		return encodePayloadNative(payload.toBrecObject());
+	}
+
+	public static Packet decodePacket(byte[] bytes) {
+		return Packet.fromBrecObject(decodePacketNative(bytes));
+	}
+
+	public static byte[] encodePacket(Packet packet) {
+		return encodePacketNative(packet.toBrecObject());
+	}
+}
+"#,
+            )
         })
     }
 }

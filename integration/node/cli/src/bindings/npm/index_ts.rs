@@ -28,20 +28,19 @@ impl<'a> TsWritable for ApiFile<'a, NpmIndexFile> {
         for import in self.modules() {
             writer.ln(import.export_statement())?;
         }
-        writer.ln("const native = require('./native/bindings.node');")?;
-        writer.ln("")?;
-        writer.ln("function pick(camel: string, snake: string): any {")?;
-        writer.tab();
-        writer.ln("const value = native[camel] || native[snake];")?;
-        writer.ln("if (typeof value !== 'function') {")?;
-        writer.tab();
-        writer.ln("throw new Error(`bindings.node does not export ${camel}/${snake}`);")?;
-        writer.back();
-        writer.ln("}")?;
-        writer.ln("return value;")?;
-        writer.back();
-        writer.ln("}")?;
-        writer.ln("")?;
+        writer.block(
+            r#"
+const native = require('./native/bindings.node');
+
+function pick(camel: string, snake: string): any {
+	const value = native[camel] || native[snake];
+	if (typeof value !== 'function') {
+		throw new Error(`bindings.node does not export ${camel}/${snake}`);
+	}
+	return value;
+}
+"#,
+        )?;
         for api in self.apis() {
             api.write_ts(writer)?;
         }

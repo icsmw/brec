@@ -15,17 +15,17 @@ impl<'a> PayloadInterfaceFile<'a> {
     pub(super) fn file(self) -> Result<JavaFile, Error> {
         JavaFile::new(self.model, JavaPackage::Payload, "Payload.java", |writer| {
             write_imports(writer, &["java.util.Map"])?;
-            writer.ln("public interface Payload {")?;
-            writer.tab();
-            writer.ln("Map<String, Object> toBrecObject();")?;
-            writer.ln("")?;
-            writer.ln("static Payload fromBrecObject(Object value) {")?;
-            writer.tab();
-            writer.ln("return PayloadSupport.fromBrecObject(value);")?;
-            writer.back();
-            writer.ln("}")?;
-            writer.back();
-            writer.ln("}")
+            writer.block(
+                r#"
+public interface Payload {
+	Map<String, Object> toBrecObject();
+
+	static Payload fromBrecObject(Object value) {
+		return PayloadSupport.fromBrecObject(value);
+	}
+}
+"#,
+            )
         })
     }
 }
@@ -55,57 +55,55 @@ impl<'a> PayloadSupportFile<'a> {
                         "java.util.function.Function",
                     ],
                 )?;
-                writer.ln("final class PayloadSupport {")?;
-                writer.tab();
-                writer.ln("private PayloadSupport() {}")?;
-                writer.ln("")?;
-                writer
-                    .ln("static <T> List<T> mapList(Object value, Function<Object, T> mapper) {")?;
-                writer.tab();
-                writer.ln("List<?> source = (List<?>) value;")?;
-                writer.ln("ArrayList<T> out = new ArrayList<>(source.size());")?;
-                writer.ln("for (Object item : source) {")?;
-                writer.tab();
-                writer.ln("out.add(mapper.apply(item));")?;
-                writer.back();
-                writer.ln("}")?;
-                writer.ln("return out;")?;
-                writer.back();
-                writer.ln("}")?;
-                writer.ln("")?;
-                writer.ln("static Payload fromBrecObject(Object value) {")?;
-                writer.tab();
-                writer.ln("Map<?, ?> map = (Map<?, ?>) value;")?;
-                writer.ln("Map.Entry<?, ?> entry = map.entrySet().iterator().next();")?;
-                writer.ln("String variant = (String) entry.getKey();")?;
-                writer.ln("Object inner = entry.getValue();")?;
-                writer.ln("switch (variant) {")?;
-                writer.tab();
+                writer.block(
+                    r#"
+final class PayloadSupport {
+	private PayloadSupport() {}
+
+	static <T> List<T> mapList(Object value, Function<Object, T> mapper) {
+		List<?> source = (List<?>) value;
+		ArrayList<T> out = new ArrayList<>(source.size());
+		for (Object item : source) {
+			out.add(mapper.apply(item));
+		}
+		return out;
+	}
+
+	static Payload fromBrecObject(Object value) {
+		Map<?, ?> map = (Map<?, ?>) value;
+		Map.Entry<?, ?> entry = map.entrySet().iterator().next();
+		String variant = (String) entry.getKey();
+		Object inner = entry.getValue();
+		switch (variant) {
+"#,
+                )?;
                 for payload in &self.scheme.config.default_payloads {
                     match payload.as_str() {
                         "Bytes" => {
-                            writer.ln(r#"case "Bytes": return new Bytes((byte[]) inner);"#)?
+                            writer.ln("\t\t\tcase \"Bytes\": return new Bytes((byte[]) inner);")?
                         }
-                        "String" => writer
-                            .ln(r#"case "String": return new StringPayload((String) inner);"#)?,
+                        "String" => writer.ln(
+                            "\t\t\tcase \"String\": return new StringPayload((String) inner);",
+                        )?,
                         _ => {}
                     }
                 }
                 for payload in &self.scheme.payloads {
                     writer.ln(format!(
-                        r#"case "{}": return {}.fromBrecObject(inner);"#,
+                        "\t\t\tcase \"{}\": return {}.fromBrecObject(inner);",
                         payload.fullname, payload.fullname
                     ))?;
                 }
                 writer.ln(
-                r#"default: throw new IllegalArgumentException("unknown payload: " + variant);"#,
+                "\t\t\tdefault: throw new IllegalArgumentException(\"unknown payload: \" + variant);",
             )?;
-                writer.back();
-                writer.ln("}")?;
-                writer.back();
-                writer.ln("}")?;
-                writer.back();
-                writer.ln("}")
+                writer.block(
+                    r#"
+		}
+	}
+}
+"#,
+                )
             },
         )
     }
@@ -144,62 +142,64 @@ impl<'a> DefaultPayloadFile<'a> {
                     imports.push("java.util.Arrays");
                 }
                 write_imports(writer, &imports)?;
-                writer.ln(format!(
-                    "public final class {} implements Payload {{",
+                writer.block(format!(
+                    r#"
+public final class {} implements Payload {{
+	public {} value;
+
+	public {}() {{}}
+
+	{}({} value) {{
+		this.value = value;
+	}}
+
+	public Map<String, Object> toBrecObject() {{
+		HashMap<String, Object> out = new HashMap<>(1);
+		out.put("{}", value);
+		return out;
+	}}
+
+	@Override
+	public boolean equals(Object other) {{
+		if (!(other instanceof {})) {{
+			return false;
+		}}
+		{} that = ({}) other;
+"#,
+                    self.class_name,
+                    self.ty,
+                    self.class_name,
+                    self.class_name,
+                    self.ty,
+                    self.variant,
+                    self.class_name,
+                    self.class_name,
                     self.class_name
                 ))?;
-                writer.tab();
-                writer.ln(format!("public {} value;", self.ty))?;
-                writer.ln("")?;
-                writer.ln(format!("public {}() {{}}", self.class_name))?;
-                writer.ln("")?;
-                writer.ln(format!("{}({} value) {{", self.class_name, self.ty))?;
-                writer.tab();
-                writer.ln("this.value = value;")?;
-                writer.back();
-                writer.ln("}")?;
-                writer.ln("")?;
-                writer.ln("public Map<String, Object> toBrecObject() {")?;
-                writer.tab();
-                writer.ln("HashMap<String, Object> out = new HashMap<>(1);")?;
-                writer.ln(format!(r#"out.put("{}", value);"#, self.variant))?;
-                writer.ln("return out;")?;
-                writer.back();
-                writer.ln("}")?;
-                writer.ln("")?;
-                writer.ln("@Override")?;
-                writer.ln("public boolean equals(Object other) {")?;
-                writer.tab();
-                writer.ln(format!("if (!(other instanceof {})) {{", self.class_name))?;
-                writer.tab();
-                writer.ln("return false;")?;
-                writer.back();
-                writer.ln("}")?;
-                writer.ln(format!(
-                    "{} that = ({}) other;",
-                    self.class_name, self.class_name
-                ))?;
                 if self.ty.ends_with("[]") {
-                    writer.ln("return Arrays.equals(value, that.value);")?;
+                    writer.ln("\t\treturn Arrays.equals(value, that.value);")?;
                 } else {
-                    writer.ln("return Objects.equals(value, that.value);")?;
+                    writer.ln("\t\treturn Objects.equals(value, that.value);")?;
                 }
-                writer.back();
-                writer.ln("}")?;
-                writer.ln("")?;
-                writer.ln("@Override")?;
-                writer.ln("public int hashCode() {")?;
-                writer.tab();
+                writer.block(
+                    r#"
+	}
+
+	@Override
+	public int hashCode() {
+"#,
+                )?;
                 if self.ty.ends_with("[]") {
-                    writer.ln("return Arrays.hashCode(value);")?;
+                    writer.ln("\t\treturn Arrays.hashCode(value);")?;
                 } else {
-                    writer.ln("return Objects.hashCode(value);")?;
+                    writer.ln("\t\treturn Objects.hashCode(value);")?;
                 }
-                writer.back();
-                writer.ln("}")?;
-                writer.back();
-                writer.ln("}")?;
-                Ok(())
+                writer.block(
+                    r#"
+	}
+}
+"#,
+                )
             },
         )
     }
@@ -296,90 +296,76 @@ fn write_enum_class(
     let implements = variant_wrapper
         .map(|_| " implements Payload")
         .unwrap_or_default();
-    writer.ln(format!("public final class {class_name}{implements} {{"))?;
-    writer.tab();
-    writer.ln("private final String variant;")?;
-    writer.ln("private final Object value;")?;
-    writer.ln("")?;
-    writer.ln(format!(
-        "private {class_name}(String variant, Object value) {{"
+    writer.block(format!(
+        r#"
+public final class {class_name}{implements} {{
+	private final String variant;
+	private final Object value;
+
+	private {class_name}(String variant, Object value) {{
+		this.variant = variant;
+		this.value = value;
+	}}
+"#
     ))?;
-    writer.tab();
-    writer.ln("this.variant = variant;")?;
-    writer.ln("this.value = value;")?;
-    writer.back();
-    writer.ln("}")?;
     for variant in variants {
         let fields = collect_payload_fields(&variant.fields)?;
         writer.ln("")?;
         writer.write(format!(
-            "public static {class_name} {}(",
+            "\tpublic static {class_name} {}(",
             lower_camel(&variant.name)
         ))?;
         write_args(writer, &fields)?;
         writer.ln(") {")?;
-        writer.tab();
         writer.ln(format!(
-            r#"return new {class_name}("{}", {});"#,
+            "\t\treturn new {class_name}(\"{}\", {});",
             variant.name,
             variant_body_expr(&fields)?
         ))?;
-        writer.back();
-        writer.ln("}")?;
+        writer.ln("\t}")?;
     }
     writer.ln("")?;
     if needs_enum_unchecked_cast_suppression(variants)? {
-        writer.ln(r#"@SuppressWarnings("unchecked")"#)?;
+        writer.ln("\t@SuppressWarnings(\"unchecked\")")?;
     }
     writer.ln(format!(
-        "static {class_name} fromBrecObject(Object value) {{"
+        "\tstatic {class_name} fromBrecObject(Object value) {{"
     ))?;
-    writer.tab();
-    writer.ln("Map<?, ?> map = (Map<?, ?>) value;")?;
-    writer.ln("Map.Entry<?, ?> entry = map.entrySet().iterator().next();")?;
+    writer.ln("\t\tMap<?, ?> map = (Map<?, ?>) value;")?;
+    writer.ln("\t\tMap.Entry<?, ?> entry = map.entrySet().iterator().next();")?;
     writer.ln(format!(
-        "return new {class_name}((String) entry.getKey(), entry.getValue());"
+        "\t\treturn new {class_name}((String) entry.getKey(), entry.getValue());"
     ))?;
-    writer.back();
-    writer.ln("}")?;
+    writer.ln("\t}")?;
     writer.ln("")?;
-    writer.ln("public Map<String, Object> toBrecObject() {")?;
-    writer.tab();
-    writer.ln("HashMap<String, Object> body = new HashMap<>(1);")?;
-    writer.ln("body.put(variant, value);")?;
+    writer.ln("\tpublic Map<String, Object> toBrecObject() {")?;
+    writer.ln("\t\tHashMap<String, Object> body = new HashMap<>(1);")?;
+    writer.ln("\t\tbody.put(variant, value);")?;
     if let Some(variant) = variant_wrapper {
-        writer.ln("HashMap<String, Object> out = new HashMap<>(1);")?;
-        writer.ln(format!(r#"out.put("{variant}", body);"#))?;
-        writer.ln("return out;")?;
+        writer.ln("\t\tHashMap<String, Object> out = new HashMap<>(1);")?;
+        writer.ln(format!("\t\tout.put(\"{variant}\", body);"))?;
+        writer.ln("\t\treturn out;")?;
     } else {
-        writer.ln("return body;")?;
+        writer.ln("\t\treturn body;")?;
     }
-    writer.back();
-    writer.ln("}")?;
+    writer.ln("\t}")?;
     writer.ln("")?;
-    writer.ln("@Override")?;
-    writer.ln("public boolean equals(Object other) {")?;
-    writer.tab();
-    writer.ln(format!("if (!(other instanceof {class_name})) {{"))?;
-    writer.tab();
-    writer.ln("return false;")?;
-    writer.back();
-    writer.ln("}")?;
-    writer.ln(format!("{class_name} that = ({class_name}) other;"))?;
+    writer.ln("\t@Override")?;
+    writer.ln("\tpublic boolean equals(Object other) {")?;
+    writer.ln(format!("\t\tif (!(other instanceof {class_name})) {{"))?;
+    writer.ln("\t\t\treturn false;")?;
+    writer.ln("\t\t}")?;
+    writer.ln(format!("\t\t{class_name} that = ({class_name}) other;"))?;
     writer.ln(
-        "return Objects.equals(variant, that.variant) && Objects.deepEquals(value, that.value);",
+        "\t\treturn Objects.equals(variant, that.variant) && Objects.deepEquals(value, that.value);",
     )?;
-    writer.back();
-    writer.ln("}")?;
+    writer.ln("\t}")?;
     writer.ln("")?;
-    writer.ln("@Override")?;
-    writer.ln("public int hashCode() {")?;
-    writer.tab();
-    writer.ln("int valueHash = value instanceof byte[] ? Arrays.hashCode((byte[]) value) : Objects.hashCode(value);")?;
-    writer.ln("return 31 * Objects.hashCode(variant) + valueHash;")?;
-    writer.back();
-    writer.ln("}")?;
-    writer.back();
+    writer.ln("\t@Override")?;
+    writer.ln("\tpublic int hashCode() {")?;
+    writer.ln("\t\tint valueHash = value instanceof byte[] ? Arrays.hashCode((byte[]) value) : Objects.hashCode(value);")?;
+    writer.ln("\t\treturn 31 * Objects.hashCode(variant) + valueHash;")?;
+    writer.ln("\t}")?;
     writer.ln("}")?;
     Ok(())
 }

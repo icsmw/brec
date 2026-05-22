@@ -28,5 +28,6 @@ serde_json.workspace  = true
 brec_scheme.workspace = true
 toml.workspace        = true
 jni.workspace         = true
+brec_inter_tools.workspace = true
 
 [features]

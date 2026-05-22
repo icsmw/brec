@@ -42,105 +42,92 @@ impl SourceWritable for BlocksFile<'_> {
 
 impl BlocksFile<'_> {
     fn write_block_base(&self, writer: &mut SourceWriter) -> Result<(), Error> {
-        writer.ln("public abstract class Block")?;
-        writer.ln("{")?;
-        writer.tab();
-        writer.ln("private protected Block() { }")?;
-        writer.ln("internal abstract ValueHandle ToNativeObject();")?;
-        writer.ln("")?;
-        writer.ln("internal ValueHandle ToNative()")?;
-        writer.ln("{")?;
-        writer.tab();
-        writer.ln("var obj = NativeValue.NewObject();")?;
-        writer.ln("try")?;
-        writer.ln("{")?;
-        writer.tab();
-        writer.ln("switch (this)")?;
-        writer.ln("{")?;
-        writer.tab();
-        for block in &self.model.blocks {
-            writer.ln(format!("case {} value:", block.name))?;
-            writer.tab();
-            writer.ln("using (var native = value.ToNativeObject())")?;
-            writer.ln("{")?;
-            writer.tab();
-            writer.ln(format!(
-                "NativeValue.PutField(obj, \"{}\", native);",
-                block.key
-            ))?;
-            writer.back();
-            writer.ln("}")?;
-            writer.ln("return obj;")?;
-            writer.back();
-        }
-        writer.ln("default:")?;
-        writer.tab();
-        writer.ln(
-            "throw new InvalidOperationException($\"Unsupported block type {GetType().Name}\");",
+        writer.block(
+            r#"
+public abstract class Block
+{
+	private protected Block() { }
+	internal abstract ValueHandle ToNativeObject();
+
+	internal ValueHandle ToNative()
+	{
+		var obj = NativeValue.NewObject();
+		try
+		{
+			switch (this)
+			{
+"#,
         )?;
-        writer.back();
-        writer.back();
-        writer.ln("}")?;
-        writer.back();
-        writer.ln("}")?;
-        writer.ln("catch")?;
-        writer.ln("{")?;
-        writer.tab();
-        writer.ln("obj.Dispose();")?;
-        writer.ln("throw;")?;
-        writer.back();
-        writer.ln("}")?;
-        writer.back();
-        writer.ln("}")?;
-        writer.ln("")?;
-        writer.ln("internal static Block FromNative(ValueHandle handle)")?;
-        writer.ln("{")?;
-        writer.tab();
         for block in &self.model.blocks {
-            writer.ln(format!(
-                "if (NativeValue.HasField(handle, \"{}\"))",
-                block.key
+            writer.block(format!(
+                r#"
+			case {} value:
+				using (var native = value.ToNativeObject())
+				{{
+					NativeValue.PutField(obj, "{}", native);
+				}}
+				return obj;
+"#,
+                block.name, block.key
             ))?;
-            writer.ln("{")?;
-            writer.tab();
-            writer.ln(format!(
-                "using var inner = NativeValue.GetField(handle, \"{}\");",
-                block.key
-            ))?;
-            writer.ln(format!("return {}.FromNativeObject(inner);", block.name))?;
-            writer.back();
-            writer.ln("}")?;
         }
-        writer.ln("throw new InvalidOperationException(\"Unknown block variant\");")?;
-        writer.back();
-        writer.ln("}")?;
-        writer.back();
-        writer.ln("}")
+        writer.block(
+            r#"
+			default:
+				throw new InvalidOperationException($"Unsupported block type {GetType().Name}");
+			}
+		}
+		catch
+		{
+			obj.Dispose();
+			throw;
+		}
+	}
+
+	internal static Block FromNative(ValueHandle handle)
+	{
+"#,
+        )?;
+        for block in &self.model.blocks {
+            writer.block(format!(
+                r#"
+		if (NativeValue.HasField(handle, "{}"))
+		{{
+			using var inner = NativeValue.GetField(handle, "{}");
+			return {}.FromNativeObject(inner);
+		}}
+"#,
+                block.key, block.key, block.name
+            ))?;
+        }
+        writer.block(
+            r#"
+		throw new InvalidOperationException("Unknown block variant");
+	}
+}
+"#,
+        )
     }
 
     fn write_bindings(&self, writer: &mut SourceWriter) -> Result<(), Error> {
-        writer.ln("public static class BlockBindings")?;
-        writer.ln("{")?;
-        writer.tab();
-        writer.ln("public static Block DecodeBlock(byte[] bytes)")?;
-        writer.ln("{")?;
-        writer.tab();
-        writer.ln("using var native = NativeValue.FromRaw(NativeBindings.decode_block(bytes, (UIntPtr)bytes.Length), \"decode block failed\");")?;
-        writer.ln("return Block.FromNative(native);")?;
-        writer.back();
-        writer.ln("}")?;
-        writer.ln("")?;
-        writer.ln("public static byte[] EncodeBlock(Block block)")?;
-        writer.ln("{")?;
-        writer.tab();
-        writer.ln("using var native = block.ToNative();")?;
-        writer.ln(
-            "var ptr = NativeBindings.encode_block(native.DangerousGetHandle(), out var outLen);",
-        )?;
-        writer.ln("return BindingBytes.TakeBytes(ptr, outLen, \"encode block failed\");")?;
-        writer.back();
-        writer.ln("}")?;
-        writer.back();
-        writer.ln("}")
+        writer.block(
+            r#"
+public static class BlockBindings
+{
+	public static Block DecodeBlock(byte[] bytes)
+	{
+		using var native = NativeValue.FromRaw(NativeBindings.decode_block(bytes, (UIntPtr)bytes.Length), "decode block failed");
+		return Block.FromNative(native);
+	}
+
+	public static byte[] EncodeBlock(Block block)
+	{
+		using var native = block.ToNative();
+		var ptr = NativeBindings.encode_block(native.DangerousGetHandle(), out var outLen);
+		return BindingBytes.TakeBytes(ptr, outLen, "encode block failed");
+	}
+}
+"#,
+        )
     }
 }

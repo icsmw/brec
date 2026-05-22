@@ -6,6 +6,7 @@ members = [
     "generator/macros",
     "generator/parser",
     "generator/scheme",
+    "integration/tools",
     "integration/node/cli",
     "integration/node/gen",
     "integration/node/macro",
@@ -45,6 +46,7 @@ brec_consts         = { version = "0.3.0", path = "./lib/consts" }
 brec                = { version = "0.3.0", path = "./lib/core" }
 brec_macros_parser  = { version = "0.1.0", path = "./generator/parser" }
 brec_scheme         = { version = "0.1.0", path = "./generator/scheme" }
+brec_inter_tools    = { version = "0.1.0", path = "./integration/tools" }
 brec_node_cli       = { version = "0.1.0", path = "./integration/node/cli" }
 brec_node_gen       = { version = "0.1.0", path = "./integration/node/gen" }
 brec_node_gen_macro = { version = "0.1.0", path = "./integration/node/macro" }

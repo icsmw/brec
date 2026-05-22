@@ -24,11 +24,10 @@ impl Interface {
 impl SourceWritable for Interface {
     fn write(&self, writer: &mut crate::SourceWriter) -> Result<(), Error> {
         writer.ln(format!("export interface {} {{", self.name))?;
-        writer.tab();
         for field in &self.fields {
+            writer.write("\t")?;
             field.write(writer)?;
         }
-        writer.back();
         writer.ln("}")
     }
 }
