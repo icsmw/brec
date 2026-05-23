@@ -90,16 +90,19 @@ The main documentation for this crate lives in [documentation](https://icsmw.git
 
 Useful entry points:
 
-- [Integrations Overview](https://icsmw.github.io/brec/integrations/)
-- [C# (Rust <-> C#)](https://icsmw.github.io/brec/integrations/csharp/)
 - [Getting Started](https://icsmw.github.io/brec/getting_started/)
 - [Payloads](https://icsmw.github.io/brec/parts/payloads/)
 - [Payload Context](https://icsmw.github.io/brec/parts/context/)
 - [Crypt](https://icsmw.github.io/brec/features/crypt/)
 - [Resilient Compatibility](https://icsmw.github.io/brec/features/resilient/)
+
+**Integrations**:
+
+- [Integrations Overview](https://icsmw.github.io/brec/integrations/)
 - [NAPI (Rust <-> JS)](https://icsmw.github.io/brec/integrations/napi/)
 - [WASM (Rust <-> JS)](https://icsmw.github.io/brec/integrations/wasm/)
 - [Java (Rust <-> Java)](https://icsmw.github.io/brec/integrations/java/)
+- [C# (Rust <-> C#)](https://icsmw.github.io/brec/integrations/csharp/)
 
 ## Workspace Layout
 
