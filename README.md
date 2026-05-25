@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="site/docs/assets/logo.png" alt="brec logo" width="64">
+</p>
+
 [![LICENSE](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE.txt)
 [![](https://github.com/icsmw/brec/actions/workflows/on_pull_request.yml/badge.svg)](https://github.com/icsmw/brec/actions/workflows/on_pull_request.yml)
 ![Coverage](.github/artifacts/coverage.svg)

@@ -3,6 +3,7 @@ site_url: https://icsmw.github.io/brec/
 docs_dir: docs
 theme:
   name: material
+  logo: assets/logo.png
 nav:
   - Home: index.md
   - Overview: overview.md
