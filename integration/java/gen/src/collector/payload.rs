@@ -86,7 +86,7 @@ pub fn generate_impl(payloads: &[&Payload], cfg: &Config) -> Result<TokenStream,
 
     Ok(quote! {
         impl Payload {
-            fn to_java_object<'local>(&self, env: &mut jni::JNIEnv<'local>) -> Result<jni::objects::JObject<'local>, brec::java_feat::JavaError> {
+            fn to_java_object<'local>(&self, env: &mut jni::Env<'local>) -> Result<jni::objects::JObject<'local>, brec::java_feat::JavaError> {
                 let obj = brec::java_feat::new_hash_map(env).map_err(|err| {
                     brec::java_feat::JavaError::InvalidAggregatorShape(err.to_string())
                 })?;
@@ -97,7 +97,7 @@ pub fn generate_impl(payloads: &[&Payload], cfg: &Config) -> Result<TokenStream,
                 Ok(obj)
             }
 
-            fn from_java_object<'local>(env: &mut jni::JNIEnv<'local>, value: jni::objects::JObject<'local>) -> Result<Self, brec::java_feat::JavaError> {
+            fn from_java_object<'local>(env: &mut jni::Env<'local>, value: jni::objects::JObject<'local>) -> Result<Self, brec::java_feat::JavaError> {
                 let obj = value;
                 let (keys_len, key_opt) = brec::java_feat::map_keys_len_and_first(env, &obj).map_err(|err| {
                     brec::java_feat::JavaError::InvalidAggregatorShape(err.to_string())
@@ -122,7 +122,7 @@ pub fn generate_impl(payloads: &[&Payload], cfg: &Config) -> Result<TokenStream,
             }
 
             pub fn decode_java<'local>(
-                env: &mut jni::JNIEnv<'local>,
+                env: &mut jni::Env<'local>,
                 bytes: &[u8],
                 ctx: &mut crate::PayloadContext<'_>,
             ) -> Result<jni::objects::JObject<'local>, brec::Error> {
@@ -133,7 +133,7 @@ pub fn generate_impl(payloads: &[&Payload], cfg: &Config) -> Result<TokenStream,
             }
 
             pub fn encode_java<'local>(
-                env: &mut jni::JNIEnv<'local>,
+                env: &mut jni::Env<'local>,
                 value: jni::objects::JObject<'local>,
                 out: &mut Vec<u8>,
                 ctx: &mut crate::PayloadContext<'_>,
@@ -145,11 +145,11 @@ pub fn generate_impl(payloads: &[&Payload], cfg: &Config) -> Result<TokenStream,
         }
 
         impl brec::java_feat::JavaObject for Payload {
-            fn to_java_object<'local>(&self, env: &mut jni::JNIEnv<'local>) -> Result<jni::objects::JObject<'local>, brec::java_feat::JavaError> {
+            fn to_java_object<'local>(&self, env: &mut jni::Env<'local>) -> Result<jni::objects::JObject<'local>, brec::java_feat::JavaError> {
                 Payload::to_java_object(self, env)
             }
 
-            fn from_java_object<'local>(env: &mut jni::JNIEnv<'local>, value: jni::objects::JObject<'local>) -> Result<Self, brec::java_feat::JavaError> {
+            fn from_java_object<'local>(env: &mut jni::Env<'local>, value: jni::objects::JObject<'local>) -> Result<Self, brec::java_feat::JavaError> {
                 Payload::from_java_object(env, value)
             }
         }

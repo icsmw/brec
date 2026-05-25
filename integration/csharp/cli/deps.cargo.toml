@@ -1,2 +1,2 @@
 [dependencies]
-brec = { version = "0.3", features = ["bincode", "csharp"] }
+brec = { version = "0.4", features = ["bincode", "csharp"] }

@@ -65,13 +65,13 @@ pub fn generate(block_name: &Ident, fields: &[BlockField]) -> Result<TokenStream
 
     Ok(quote! {
         impl #block_name {
-            fn to_java_object<'local>(&self, env: &mut jni::JNIEnv<'local>) -> Result<jni::objects::JObject<'local>, brec::java_feat::JavaError> {
+            fn to_java_object<'local>(&self, env: &mut jni::Env<'local>) -> Result<jni::objects::JObject<'local>, brec::java_feat::JavaError> {
                 let obj = brec::java_feat::new_hash_map(env)?;
                 #(#to_java)*
                 Ok(obj)
             }
 
-            fn from_java_object<'local>(env: &mut jni::JNIEnv<'local>, value: jni::objects::JObject<'local>) -> Result<Self, brec::java_feat::JavaError> {
+            fn from_java_object<'local>(env: &mut jni::Env<'local>, value: jni::objects::JObject<'local>) -> Result<Self, brec::java_feat::JavaError> {
                 let obj = value;
                 #(#from_java)*
                 Ok(Self {
@@ -79,13 +79,13 @@ pub fn generate(block_name: &Ident, fields: &[BlockField]) -> Result<TokenStream
                 })
             }
 
-            pub fn decode_java<'local>(env: &mut jni::JNIEnv<'local>, bytes: &[u8]) -> Result<jni::objects::JObject<'local>, brec::Error> {
+            pub fn decode_java<'local>(env: &mut jni::Env<'local>, bytes: &[u8]) -> Result<jni::objects::JObject<'local>, brec::Error> {
                 let mut src = bytes;
                 let block = <#block_name as brec::ReadBlockFrom>::read(&mut src, false)?;
                 Ok(block.to_java_object(env)?)
             }
 
-            pub fn encode_java<'local>(env: &mut jni::JNIEnv<'local>, value: jni::objects::JObject<'local>, out: &mut Vec<u8>) -> Result<(), brec::Error> {
+            pub fn encode_java<'local>(env: &mut jni::Env<'local>, value: jni::objects::JObject<'local>, out: &mut Vec<u8>) -> Result<(), brec::Error> {
                 let block = #block_name::from_java_object(env, value)?;
                 brec::WriteTo::write_all(&block, out)?;
                 Ok(())
@@ -93,11 +93,11 @@ pub fn generate(block_name: &Ident, fields: &[BlockField]) -> Result<TokenStream
         }
 
         impl brec::java_feat::JavaObject for #block_name {
-            fn to_java_object<'local>(&self, env: &mut jni::JNIEnv<'local>) -> Result<jni::objects::JObject<'local>, brec::java_feat::JavaError> {
+            fn to_java_object<'local>(&self, env: &mut jni::Env<'local>) -> Result<jni::objects::JObject<'local>, brec::java_feat::JavaError> {
                 #block_name::to_java_object(self, env)
             }
 
-            fn from_java_object<'local>(env: &mut jni::JNIEnv<'local>, value: jni::objects::JObject<'local>) -> Result<Self, brec::java_feat::JavaError> {
+            fn from_java_object<'local>(env: &mut jni::Env<'local>, value: jni::objects::JObject<'local>) -> Result<Self, brec::java_feat::JavaError> {
                 #block_name::from_java_object(env, value)
             }
         }

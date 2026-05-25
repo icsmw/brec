@@ -10,15 +10,16 @@ fn write_decode(
         r#"
 #[unsafe(no_mangle)]
 pub extern "system" fn Java_com_icsmw_brec_Client_{jni_name}<'local>(
-	mut env: JNIEnv<'local>,
+	mut unowned_env: EnvUnowned<'local>,
 	_class: JClass<'local>,
 	bytes: JByteArray<'local>,
 ) -> jobject {{
+	unowned_env.with_env(|env| -> jni::errors::Result<jobject> {{
 	let bytes = match env.convert_byte_array(bytes) {{
 		Ok(bytes) => bytes,
 		Err(err) => {{
-			throw_runtime(&mut env, format!("{jni_name}: convert input bytes failed: {{err}}"));
-			return JObject::null().into_raw();
+			throw_runtime(env, format!("{jni_name}: convert input bytes failed: {{err}}"));
+			return Ok(JObject::null().into_raw());
 		}}
 	}};
 "#
@@ -26,21 +27,20 @@ pub extern "system" fn Java_com_icsmw_brec_Client_{jni_name}<'local>(
     if ctx {
         writer.ln("\tlet mut ctx = ();")?;
         writer.ln(format!(
-            "\tmatch {rust_ty}::decode_java(&mut env, &bytes, &mut ctx) {{"
+            "\tmatch {rust_ty}::decode_java(env, &bytes, &mut ctx) {{"
         ))?;
     } else {
-        writer.ln(format!(
-            "\tmatch {rust_ty}::decode_java(&mut env, &bytes) {{"
-        ))?;
+        writer.ln(format!("\tmatch {rust_ty}::decode_java(env, &bytes) {{"))?;
     }
     writer.block(format!(
         r#"
-	Ok(obj) => obj.into_raw(),
+	Ok(obj) => Ok(obj.into_raw()),
 	Err(err) => {{
-		throw_runtime(&mut env, format!("{jni_name} failed: {{err}}"));
-		JObject::null().into_raw()
+		throw_runtime(env, format!("{jni_name} failed: {{err}}"));
+		Ok(JObject::null().into_raw())
 	}}
 }}
+}}).resolve::<ThrowRuntimeExAndDefault>()
 }}
 "#
     ))
@@ -57,36 +57,38 @@ fn write_encode(
         r#"
 #[unsafe(no_mangle)]
 pub extern "system" fn Java_com_icsmw_brec_Client_{jni_name}<'local>(
-	mut env: JNIEnv<'local>,
+	mut unowned_env: EnvUnowned<'local>,
 	_class: JClass<'local>,
 	{arg_name}: JObject<'local>,
 ) -> jbyteArray {{
+	unowned_env.with_env(|env| -> jni::errors::Result<jbyteArray> {{
 	let mut out = Vec::new();
 "#
     ))?;
     if ctx {
         writer.ln("\tlet mut ctx = ();")?;
         writer.ln(format!(
-            "\tif let Err(err) = {rust_ty}::encode_java(&mut env, {arg_name}, &mut out, &mut ctx) {{"
+            "\tif let Err(err) = {rust_ty}::encode_java(env, {arg_name}, &mut out, &mut ctx) {{"
         ))?;
     } else {
         writer.ln(format!(
-            "\tif let Err(err) = {rust_ty}::encode_java(&mut env, {arg_name}, &mut out) {{"
+            "\tif let Err(err) = {rust_ty}::encode_java(env, {arg_name}, &mut out) {{"
         ))?;
     }
     writer.block(format!(
         r#"
-	throw_runtime(&mut env, format!("{jni_name} failed: {{err}}"));
-	return JObject::null().into_raw() as jbyteArray;
+	throw_runtime(env, format!("{jni_name} failed: {{err}}"));
+	return Ok(JObject::null().into_raw() as jbyteArray);
 }}
 
 match env.byte_array_from_slice(&out) {{
-	Ok(arr) => arr.into_raw(),
+	Ok(arr) => Ok(arr.into_raw()),
 	Err(err) => {{
-		throw_runtime(&mut env, format!("{jni_name}: output allocation failed: {{err}}"));
-		JObject::null().into_raw() as jbyteArray
+		throw_runtime(env, format!("{jni_name}: output allocation failed: {{err}}"));
+		Ok(JObject::null().into_raw() as jbyteArray)
 	}}
 }}
+}}).resolve::<ThrowRuntimeExAndDefault>()
 }}
 "#
     ))

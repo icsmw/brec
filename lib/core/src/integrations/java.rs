@@ -1,6 +1,6 @@
 use crate::java_feat::{
     JavaObject, from_java_object,
-    jni::{JNIEnv, objects::JObject},
+    jni::{Env, objects::JObject},
     to_java_object,
 };
 use crate::*;
@@ -10,7 +10,7 @@ impl<B: BlockDef + JavaObject, P: PayloadDef<Inner>, Inner: PayloadInnerDef + Ja
 {
     /// Reads packet bytes and converts to Java object.
     pub fn decode_java<'local>(
-        env: &mut JNIEnv<'local>,
+        env: &mut Env<'local>,
         bytes: &[u8],
         ctx: &mut <Inner as PayloadSchema>::Context<'_>,
     ) -> Result<JObject<'local>, Error> {
@@ -25,7 +25,7 @@ impl<B: BlockDef + JavaObject, P: PayloadDef<Inner>, Inner: PayloadInnerDef + Ja
 
     /// Parses Java object packet and encodes into packet bytes.
     pub fn encode_java<'local>(
-        env: &mut JNIEnv<'local>,
+        env: &mut Env<'local>,
         value: JObject<'local>,
         out: &mut Vec<u8>,
         ctx: &mut <Inner as PayloadSchema>::Context<'_>,

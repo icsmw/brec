@@ -1,13 +1,13 @@
 use super::cache::jni_cache;
 use crate::{JavaError, JavaFieldHint};
 use jni::{
-    JNIEnv,
+    Env,
     objects::{JObject, JString, JValue},
     signature::{Primitive, ReturnType},
 };
 
 pub(crate) fn new_java_long<'local>(
-    env: &mut JNIEnv<'local>,
+    env: &mut Env<'local>,
     value: i64,
 ) -> Result<JObject<'local>, JavaError> {
     let cache = jni_cache(env)?;
@@ -27,7 +27,7 @@ pub(crate) fn new_java_long<'local>(
 }
 
 pub(crate) fn java_long_value<'local>(
-    env: &mut JNIEnv<'local>,
+    env: &mut Env<'local>,
     value: &JObject<'local>,
     hint: JavaFieldHint,
 ) -> Result<i64, JavaError> {
@@ -47,12 +47,11 @@ pub(crate) fn java_long_value<'local>(
 }
 
 pub(crate) fn new_java_bool<'local>(
-    env: &mut JNIEnv<'local>,
+    env: &mut Env<'local>,
     value: bool,
 ) -> Result<JObject<'local>, JavaError> {
     let cache = jni_cache(env)?;
-    let raw = if value { 1 } else { 0 };
-    let args = [JValue::Bool(raw).as_jni()];
+    let args = [JValue::Bool(value).as_jni()];
     // SAFETY: `boolean_value_of` is resolved for Boolean.valueOf(boolean):Boolean.
     unsafe {
         env.call_static_method_unchecked(
@@ -68,7 +67,7 @@ pub(crate) fn new_java_bool<'local>(
 }
 
 pub(crate) fn java_bool_value<'local>(
-    env: &mut JNIEnv<'local>,
+    env: &mut Env<'local>,
     value: &JObject<'local>,
 ) -> Result<bool, JavaError> {
     let cache = jni_cache(env)?;
@@ -87,7 +86,7 @@ pub(crate) fn java_bool_value<'local>(
 }
 
 pub(crate) fn new_big_integer<'local>(
-    env: &mut JNIEnv<'local>,
+    env: &mut Env<'local>,
     text: &str,
 ) -> Result<JObject<'local>, JavaError> {
     let cache = jni_cache(env)?;
@@ -108,7 +107,7 @@ pub(crate) fn new_big_integer<'local>(
 }
 
 pub(crate) fn java_to_string<'local>(
-    env: &mut JNIEnv<'local>,
+    env: &mut Env<'local>,
     value: &JObject<'local>,
     hint: JavaFieldHint,
 ) -> Result<String, JavaError> {
@@ -121,9 +120,11 @@ pub(crate) fn java_to_string<'local>(
     .map_err(|err| JavaError::invalid_field(hint, err))?
     .l()
     .map_err(|err| JavaError::invalid_field(hint, err))?;
-    Ok(env
-        .get_string(&JString::from(text_obj))
+    let text = env
+        .cast_local::<JString>(text_obj)
         .map_err(|err| JavaError::invalid_field(hint, err))?
-        .to_string_lossy()
-        .to_string())
+        .mutf8_chars(env)
+        .map_err(|err| JavaError::invalid_field(hint, err))?
+        .to_string();
+    Ok(text)
 }

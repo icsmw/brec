@@ -1,13 +1,13 @@
 use super::cache::jni_cache;
 use crate::{JavaError, JavaFieldHint};
 use jni::{
-    JNIEnv,
+    Env,
     objects::{JObject, JString, JValue},
     signature::{Primitive, ReturnType},
 };
 
 #[inline]
-pub fn new_hash_map<'local>(env: &mut JNIEnv<'local>) -> Result<JObject<'local>, JavaError> {
+pub fn new_hash_map<'local>(env: &mut Env<'local>) -> Result<JObject<'local>, JavaError> {
     let cache = jni_cache(env)?;
     // SAFETY: method id is resolved once from java/util/HashMap.<init>()V and
     // kept alive by a global class reference in `JniCache`.
@@ -17,7 +17,7 @@ pub fn new_hash_map<'local>(env: &mut JNIEnv<'local>) -> Result<JObject<'local>,
 
 #[inline]
 pub fn map_put<'local>(
-    env: &mut JNIEnv<'local>,
+    env: &mut Env<'local>,
     map: &JObject<'local>,
     key: &str,
     value: &JObject<'local>,
@@ -39,7 +39,7 @@ pub fn map_put<'local>(
 
 #[inline]
 pub fn map_get<'local>(
-    env: &mut JNIEnv<'local>,
+    env: &mut Env<'local>,
     map: &JObject<'local>,
     key: &str,
 ) -> Result<JObject<'local>, JavaError> {
@@ -58,7 +58,7 @@ pub fn map_get<'local>(
 
 #[inline]
 pub fn map_has<'local>(
-    env: &mut JNIEnv<'local>,
+    env: &mut Env<'local>,
     map: &JObject<'local>,
     key: &str,
 ) -> Result<bool, JavaError> {
@@ -84,7 +84,7 @@ pub fn map_has<'local>(
 
 #[inline]
 pub fn map_keys_len_and_first<'local>(
-    env: &mut JNIEnv<'local>,
+    env: &mut Env<'local>,
     map: &JObject<'local>,
 ) -> Result<(i32, Option<String>), JavaError> {
     let cache = jni_cache(env)?;
@@ -121,15 +121,17 @@ pub fn map_keys_len_and_first<'local>(
     .l()
     .map_err(|err| JavaError::invalid_field(JavaFieldHint::Object, err))?;
     let rust = env
-        .get_string(&JString::from(first))
+        .cast_local::<JString>(first)
         .map_err(|err| JavaError::invalid_field(JavaFieldHint::Object, err))?
-        .into();
+        .mutf8_chars(env)
+        .map_err(|err| JavaError::invalid_field(JavaFieldHint::Object, err))?
+        .to_string();
     Ok((len, Some(rust)))
 }
 
 #[inline]
 pub fn new_array_list<'local>(
-    env: &mut JNIEnv<'local>,
+    env: &mut Env<'local>,
     cap: i32,
 ) -> Result<JObject<'local>, JavaError> {
     let cache = jni_cache(env)?;
@@ -142,7 +144,7 @@ pub fn new_array_list<'local>(
 
 #[inline]
 pub fn list_add<'local>(
-    env: &mut JNIEnv<'local>,
+    env: &mut Env<'local>,
     list: &JObject<'local>,
     value: &JObject<'local>,
 ) -> Result<(), JavaError> {
@@ -163,7 +165,7 @@ pub fn list_add<'local>(
 
 #[inline]
 pub fn list_get<'local>(
-    env: &mut JNIEnv<'local>,
+    env: &mut Env<'local>,
     list: &JObject<'local>,
     idx: i32,
 ) -> Result<JObject<'local>, JavaError> {
@@ -177,10 +179,7 @@ pub fn list_get<'local>(
 }
 
 #[inline]
-pub fn list_size<'local>(
-    env: &mut JNIEnv<'local>,
-    list: &JObject<'local>,
-) -> Result<i32, JavaError> {
+pub fn list_size<'local>(env: &mut Env<'local>, list: &JObject<'local>) -> Result<i32, JavaError> {
     let cache = jni_cache(env)?;
     // SAFETY: `list_size` is resolved for List.size():int.
     unsafe {

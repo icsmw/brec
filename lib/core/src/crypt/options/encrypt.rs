@@ -3,9 +3,9 @@ use rsa::{
     pkcs1::DecodeRsaPublicKey,
     pkcs8::{DecodePublicKey, EncodePublicKey},
     rand_core::{OsRng, RngCore},
+    sha2::Sha256,
 };
 use secrecy::{ExposeSecret, SecretBox};
-use sha2::Sha256;
 use std::path::Path;
 use x509_parser::prelude::parse_x509_certificate;
 use zeroize::Zeroize;

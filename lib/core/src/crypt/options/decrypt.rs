@@ -1,9 +1,8 @@
 use std::collections::VecDeque;
 use std::path::Path;
 
-use rsa::{Oaep, RsaPrivateKey, pkcs1::DecodeRsaPrivateKey, pkcs8::DecodePrivateKey};
+use rsa::{Oaep, RsaPrivateKey, pkcs1::DecodeRsaPrivateKey, pkcs8::DecodePrivateKey, sha2::Sha256};
 use secrecy::{ExposeSecret, SecretBox};
-use sha2::Sha256;
 use zeroize::Zeroize;
 
 use crate::crypt::{

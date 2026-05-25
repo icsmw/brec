@@ -1,4 +1,4 @@
-use fs4::fs_std::FileExt;
+use fs4::{FileExt, TryLockError};
 use std::{
     fs::{File, OpenOptions},
     path::{Path, PathBuf},
@@ -221,20 +221,11 @@ where
                 .truncate(false)
                 .open(&lock_file)
                 .map_err(Error::FailToLockFile)?;
-            match file.try_lock_exclusive() {
-                Ok(lock) => {
-                    if lock {
-                        break file;
-                    } else {
-                        wait_or_fail()?;
-                    }
-                }
+            match FileExt::try_lock(&file) {
+                Ok(()) => break file,
+                Err(TryLockError::WouldBlock) => wait_or_fail()?,
                 Err(err) => {
-                    if err.kind() == std::io::ErrorKind::WouldBlock {
-                        wait_or_fail()?;
-                    } else {
-                        return Err(Error::FailToLockFile(err));
-                    }
+                    return Err(Error::FailToLockFile(err.into()));
                 }
             };
         };

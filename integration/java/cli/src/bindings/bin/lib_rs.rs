@@ -23,14 +23,19 @@ impl<'a> RustWritable for ApiFile<'a, BindingsLibFile> {
         writer.block(
             r#"
 use jni::{
-	JNIEnv,
+	Env, EnvUnowned,
+	errors::ThrowRuntimeExAndDefault,
 	objects::{JByteArray, JClass, JObject},
+	strings::JNIString,
 	sys::{jbyteArray, jobject},
 };
 use protocol::{Block, Packet, Payload};
 
-fn throw_runtime(env: &mut JNIEnv<'_>, message: impl AsRef<str>) {
-	let _ = env.throw_new("java/lang/RuntimeException", message.as_ref());
+fn throw_runtime(env: &mut Env<'_>, message: impl AsRef<str>) {
+	let _ = env.throw_new(
+		JNIString::new("java/lang/RuntimeException"),
+		JNIString::new(message.as_ref()),
+	);
 }
 "#,
         )?;

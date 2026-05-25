@@ -1,6 +1,6 @@
 [package]
 name        = "brec"
-version     = "0.3.0"
+version     = "0.4.0"
 edition     = "2024"
 authors     = ["d.astafyev@outlook.com"]
 description = "A flexible binary format for storing and streaming structured data as packets with CRC protection and recoverability from corruption. Built for extensibility and robustness."
@@ -39,7 +39,6 @@ crypt = [
     "dep:serde",
     "dep:chacha20poly1305",
     "dep:rsa",
-    "dep:sha2",
     "dep:secrecy",
     "dep:zeroize",
     "dep:x509-parser",
@@ -71,7 +70,6 @@ tokio-util            = { workspace = true, optional = true }
 tokio-stream          = { workspace = true, optional = true }
 chacha20poly1305      = { workspace = true, optional = true }
 rsa                   = { workspace = true, optional = true }
-sha2                  = { workspace = true, optional = true }
 secrecy               = { workspace = true, optional = true }
 zeroize               = { workspace = true, optional = true }
 x509-parser           = { workspace = true, optional = true }

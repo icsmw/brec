@@ -10,9 +10,9 @@ checksum = "7f202df86484c868dbad7eaa557ef785d5c66295e41b460ef922eca0723b842c"
 
 [[package]]
 name = "autocfg"
-version = "1.5.0"
+version = "1.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c08606f8c3cbf4ce6ec8e28fb0014a2c086708fe954eaa885384a6165172e7e8"
+checksum = "f2032f911046de80f0a198e0901378627c33f59ea0ac00e363d481118bd70a53"
 
 [[package]]
 name = "bincode"
@@ -66,7 +66,7 @@ dependencies = [
 
 [[package]]
 name = "brec"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "bincode",
  "brec_consts",
@@ -79,7 +79,7 @@ dependencies = [
 
 [[package]]
 name = "brec_consts"
-version = "0.3.0"
+version = "0.4.0"
 
 [[package]]
 name = "brec_csharp_gen"
@@ -104,7 +104,7 @@ dependencies = [
 
 [[package]]
 name = "brec_macros"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "brec_consts",
  "brec_csharp_gen",
@@ -123,7 +123,7 @@ dependencies = [
 
 [[package]]
 name = "brec_macros_parser"
-version = "0.1.0"
+version = "0.4.0"
 dependencies = [
  "brec_consts",
  "crc32fast",
@@ -138,7 +138,7 @@ dependencies = [
 
 [[package]]
 name = "brec_scheme"
-version = "0.1.0"
+version = "0.4.0"
 dependencies = [
  "brec_macros_parser",
  "serde",
@@ -418,9 +418,9 @@ checksum = "32a66949e030da00e8c7d4434b251670a91556f4144941d37452769c25d58a53"
 
 [[package]]
 name = "log"
-version = "0.4.29"
+version = "0.4.30"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5e5032e24019045c762d3c0f28f5b6b8bbf38563a65908389bf7978758920897"
+checksum = "616ec5685824bcc94416c6d4a7a446eea774a31efd7062c8480ba6fd06d7a6e5"
 
 [[package]]
 name = "memchr"
@@ -651,9 +651,9 @@ dependencies = [
 
 [[package]]
 name = "serde_json"
-version = "1.0.149"
+version = "1.0.150"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "83fc039473c5595ace860d8c4fafa220ff474b3fc6bfdb4293327f1a37e94d86"
+checksum = "e8014e44b4736ed0538adeecded0fce2a272f22dc9578a7eb6b2d9993c74cfb9"
 dependencies = [
  "itoa",
  "memchr",
@@ -1022,9 +1022,9 @@ dependencies = [
 
 [[package]]
 name = "winnow"
-version = "1.0.2"
+version = "1.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2ee1708bef14716a11bae175f579062d4554d95be2c6829f518df847b7b3fdd0"
+checksum = "0592e1c9d151f854e6fd382574c3a0855250e1d9b2f99d9281c6e6391af352f1"
 
 [[package]]
 name = "wit-bindgen"

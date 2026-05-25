@@ -316,11 +316,11 @@ pub fn generate_impl(name: &Ident, data: &Data) -> Result<TokenStream, E> {
             let from_java = gen_struct_from_java(name, &data.fields)?;
             Ok(quote! {
                 impl brec::java_feat::JavaConvert for #name {
-                    fn to_java_value<'local>(&self, env: &mut jni::JNIEnv<'local>) -> Result<jni::objects::JObject<'local>, brec::java_feat::JavaError> {
+                    fn to_java_value<'local>(&self, env: &mut jni::Env<'local>) -> Result<jni::objects::JObject<'local>, brec::java_feat::JavaError> {
                         #to_java
                     }
 
-                    fn from_java_value<'local>(env: &mut jni::JNIEnv<'local>, value: jni::objects::JObject<'local>) -> Result<Self, brec::java_feat::JavaError> {
+                    fn from_java_value<'local>(env: &mut jni::Env<'local>, value: jni::objects::JObject<'local>) -> Result<Self, brec::java_feat::JavaError> {
                         #from_java
                     }
                 }
@@ -339,7 +339,7 @@ pub fn generate_impl(name: &Ident, data: &Data) -> Result<TokenStream, E> {
                 .collect::<Result<Vec<_>, _>>()?;
             Ok(quote! {
                 impl brec::java_feat::JavaConvert for #name {
-                    fn to_java_value<'local>(&self, env: &mut jni::JNIEnv<'local>) -> Result<jni::objects::JObject<'local>, brec::java_feat::JavaError> {
+                    fn to_java_value<'local>(&self, env: &mut jni::Env<'local>) -> Result<jni::objects::JObject<'local>, brec::java_feat::JavaError> {
                         let obj = brec::java_feat::new_hash_map(env)?;
                         match self {
                             #(#to_arms)*
@@ -347,7 +347,7 @@ pub fn generate_impl(name: &Ident, data: &Data) -> Result<TokenStream, E> {
                         Ok(obj)
                     }
 
-                    fn from_java_value<'local>(env: &mut jni::JNIEnv<'local>, value: jni::objects::JObject<'local>) -> Result<Self, brec::java_feat::JavaError> {
+                    fn from_java_value<'local>(env: &mut jni::Env<'local>, value: jni::objects::JObject<'local>) -> Result<Self, brec::java_feat::JavaError> {
                         let obj = value;
                         let (keys_len, key_opt) = brec::java_feat::map_keys_len_and_first(env, &obj)?;
                         if keys_len != 1 {
