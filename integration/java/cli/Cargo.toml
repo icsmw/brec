@@ -13,7 +13,7 @@ keywords = ["brec", "java", "jni", "schema", "codegen"]
 
 categories = [
     "command-line-utilities",
-    "development-tools::code-generators",
+    "development-tools",
     "encoding",
 ]
 
