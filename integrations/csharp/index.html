@@ -1,0 +1,1847 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+        <link rel="canonical" href="https://icsmw.github.io/brec/integrations/csharp/">
+      
+      
+        <link rel="prev" href="../">
+      
+      
+        <link rel="next" href="../napi/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>C# (Rust C#) - BRec (Binary Record)</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    <body dir="ltr">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#c-rust-c" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="BRec (Binary Record)" class="md-header__button md-logo" aria-label="BRec (Binary Record)" data-md-component="logo">
+      
+  <img src="../../assets/logo.png" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            BRec (Binary Record)
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              C# (Rust <-> C#)
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="BRec (Binary Record)" class="md-nav__button md-logo" aria-label="BRec (Binary Record)" data-md-component="logo">
+      
+  <img src="../../assets/logo.png" alt="logo">
+
+    </a>
+    BRec (Binary Record)
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../overview/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting_started/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Protocol Parts
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Protocol Parts
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../parts/blocks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Blocks
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../parts/payloads/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Payloads
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../parts/context/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Protocol Context
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../parts/packets/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Packets
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Features
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Features
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../features/resilient/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Resilient Compatibility
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../features/crypt/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Crypt
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Integrations
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Integrations
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    C# (Rust <-> C#)
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    C# (Rust <-> C#)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#motivation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Motivation
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#enabling-the-feature" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Enabling The Feature
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#quick-start-generated-c-project" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Quick Start (Generated C# Project)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Quick Start (Generated C# Project)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-export-a-protocol-scheme" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Export A Protocol Scheme
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-install-the-cli" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Install The CLI
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-generate-the-c-project" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Generate The C# Project
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cli-options" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CLI Options
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#generated-c-project" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Generated C# Project
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#required-macros-for-payload-types" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Required Macros For Payload Types
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#runtime-reflection-shape" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Runtime Reflection Shape
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Runtime Reflection Shape">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#block-enum-shape" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Block enum shape
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#payload-enum-shape" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Payload enum shape
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#packet-shape" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Packet shape
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#numeric-mapping-rules" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Numeric Mapping Rules
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#manual-quick-start-pinvoke-library" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Manual Quick Start (P/Invoke Library)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Manual Quick Start (P/Invoke Library)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#data-contract-on-the-consumer-side" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Data Contract On The Consumer Side
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#see-also" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        See Also
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../napi/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    NAPI (Rust <-> JS)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../wasm/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    WASM (Rust <-> JS)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../java/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Java (Rust <-> Java)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../code_generation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Code Generation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8" >
+        
+          
+          <label class="md-nav__link" for="__nav_8" id="__nav_8_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Protocol Tools
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_8">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Protocol Tools
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tools/buffer/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Buffer
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tools/storage/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Storage
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../specification/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Specification
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_10" >
+        
+          
+          <label class="md-nav__link" for="__nav_10" id="__nav_10_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Stability & Performance
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_10_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_10">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Stability & Performance
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../stability/tests/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tests
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../stability/performance/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Performance
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#motivation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Motivation
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#enabling-the-feature" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Enabling The Feature
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#quick-start-generated-c-project" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Quick Start (Generated C# Project)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Quick Start (Generated C# Project)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-export-a-protocol-scheme" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Export A Protocol Scheme
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-install-the-cli" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Install The CLI
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-generate-the-c-project" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Generate The C# Project
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cli-options" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CLI Options
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#generated-c-project" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Generated C# Project
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#required-macros-for-payload-types" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Required Macros For Payload Types
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#runtime-reflection-shape" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Runtime Reflection Shape
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Runtime Reflection Shape">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#block-enum-shape" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Block enum shape
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#payload-enum-shape" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Payload enum shape
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#packet-shape" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Packet shape
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#numeric-mapping-rules" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Numeric Mapping Rules
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#manual-quick-start-pinvoke-library" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Manual Quick Start (P/Invoke Library)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Manual Quick Start (P/Invoke Library)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#data-contract-on-the-consumer-side" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Data Contract On The Consumer Side
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#see-also" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        See Also
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+
+<h1 id="c-rust-c">C# (Rust &lt;-&gt; C#)</h1>
+<p>The <code>csharp</code> feature adds direct Rust &lt;-&gt; C# conversion support for generated protocol types.</p>
+<p>This is intended for P/Invoke-based integrations where you want to work with protocol objects directly on the C# side without JSON as an intermediate layer.
+The C# layer is a binding over the Rust packet engine, not a .NET-side reimplementation of packet codecs. For the shared architectural model behind this split, see <a href="../">Integrations</a>.</p>
+<h2 id="motivation">Motivation</h2>
+<p>The main reason to use <code>csharp</code> is to avoid extra conversion layers such as:</p>
+<ol>
+<li>Rust binary -&gt; Rust struct -&gt; JSON string</li>
+<li>JSON string -&gt; C# object</li>
+</ol>
+<p>and then the reverse on encode.</p>
+<p>With <code>csharp</code>, conversion is done through a schema-driven Rust-side value ABI (<code>CSharpValue</code>) and projected into generated C# classes:</p>
+<ul>
+<li>less CPU spent on serialization/parsing glue</li>
+<li>fewer temporary allocations related to JSON strings</li>
+<li>strict integer width preservation</li>
+<li>float bit-exact roundtrips</li>
+</ul>
+<p>As with any optimization, exact speedups depend on workload.</p>
+<h2 id="enabling-the-feature">Enabling The Feature</h2>
+<p>Enable <code>csharp</code> in your protocol crate:</p>
+<pre><code class="language-toml">[dependencies]
+brec = { version = &quot;...&quot;, features = [&quot;csharp&quot;, &quot;bincode&quot;] }
+</code></pre>
+<p><code>bincode</code> is typically used because payload support in generated C# aggregators expects payload variants to be <code>#[payload(bincode)]</code>.</p>
+<h2 id="quick-start-generated-c-project">Quick Start (Generated C# Project)</h2>
+<p>For most C# integrations, use <code>brec_csharp_cli</code>. It generates both the native P/Invoke bindings crate and a C# project from <code>brec.scheme.json</code>.</p>
+<h3 id="1-export-a-protocol-scheme">1. Export A Protocol Scheme</h3>
+<p>The CLI reads <code>brec.scheme.json</code>, so the protocol crate must explicitly enable scheme generation:</p>
+<pre><code class="language-rust">brec::generate!(scheme);
+</code></pre>
+<p>A plain <code>brec::generate!()</code> call does not write <code>brec.scheme.json</code>.</p>
+<p>Custom Rust types used inside payload fields must also be exported into the scheme:</p>
+<pre><code class="language-rust">#[payload(include)]
+#[derive(serde::Serialize, serde::Deserialize, brec::CSharp)]
+pub struct Inner {
+    pub tag: String,
+}
+
+#[payload(bincode)]
+#[derive(serde::Serialize, serde::Deserialize)]
+pub struct MyPayload {
+    pub inner: Inner,
+}
+
+brec::generate!(scheme);
+</code></pre>
+<p>Run Cargo for the protocol crate so the macro writes the scheme file:</p>
+<pre><code class="language-bash">cargo check -p your_protocol_crate
+</code></pre>
+<p>By default, the scheme is written to <code>target/brec.scheme.json</code> for that crate.</p>
+<h3 id="2-install-the-cli">2. Install The CLI</h3>
+<pre><code class="language-bash">cargo install brec_csharp_cli
+</code></pre>
+<p>After installation:</p>
+<pre><code class="language-bash">brec_csharp_cli --help
+</code></pre>
+<h3 id="3-generate-the-c-project">3. Generate The C# Project</h3>
+<pre><code class="language-bash">brec_csharp_cli \
+  --scheme path/to/protocol/target/brec.scheme.json \
+  --protocol path/to/protocol \
+  --bindings-out path/to/generated/bindings \
+  --csharp-out path/to/generated/csharp
+</code></pre>
+<p>The generated C# API is typed:</p>
+<pre><code class="language-csharp">using Protocol;
+
+Packet packet = PacketBindings.DecodePacket(bytes);
+byte[] encoded = PacketBindings.EncodePacket(packet);
+</code></pre>
+<h3 id="cli-options">CLI Options</h3>
+<p><code>--scheme &lt;PATH&gt;</code></p>
+<p>Path to <code>brec.scheme.json</code>. This file is emitted only when the protocol crate calls <code>brec::generate!(scheme)</code> and is built or checked. If omitted, the CLI searches from the current directory: first <code>./target/brec.scheme.json</code>, then recursively under the working directory.</p>
+<p><code>--protocol &lt;DIR&gt;</code></p>
+<p>Path to the Rust protocol crate used as the <code>protocol</code> dependency of the generated native bindings crate. If omitted, the CLI infers it from the scheme path. For <code>target/brec.scheme.json</code>, the protocol directory is the parent of <code>target</code>; otherwise it is the scheme file directory.</p>
+<p><code>--bindings-out &lt;DIR&gt;</code></p>
+<p>Output directory for the generated Rust P/Invoke bindings crate. Defaults to <code>bindings</code> next to the scheme file.</p>
+<p><code>--out &lt;DIR&gt;</code></p>
+<p>Output directory for the generated C# project and native library. Defaults to <code>csharp</code> next to the scheme file.</p>
+<p><code>--csharp-out &lt;DIR&gt;</code></p>
+<p>Alias for <code>--out</code>.</p>
+<p><code>--cargo-deps &lt;PATH&gt;</code></p>
+<p>Optional TOML file that overrides Cargo dependencies for the generated bindings crate. Most users do not need this option; it is mainly for local development and repository tests where the generated crate must link to local Rust crates instead of published versions.</p>
+<p><code>-h</code>, <code>--help</code></p>
+<p>Prints CLI usage.</p>
+<h3 id="generated-c-project">Generated C# Project</h3>
+<p>The generated project is split by responsibility:</p>
+<pre><code class="language-text">Protocol.csproj
+Bindings.cs
+Blocks.cs
+Payloads.cs
+Packet.cs
+native/&lt;platform library&gt;
+</code></pre>
+<p><code>PacketBindings</code>, <code>BlockBindings</code>, and <code>PayloadBindings</code> are the public encode/decode facades:</p>
+<pre><code class="language-csharp">Block block = BlockBindings.DecodeBlock(bytes);
+byte[] blockBytes = BlockBindings.EncodeBlock(block);
+
+Payload payload = PayloadBindings.DecodePayload(bytes);
+byte[] payloadBytes = PayloadBindings.EncodePayload(payload);
+
+Packet packet = PacketBindings.DecodePacket(bytes);
+byte[] packetBytes = PacketBindings.EncodePacket(packet);
+</code></pre>
+<p><code>Packet</code> keeps typed references:</p>
+<pre><code class="language-csharp">public sealed class Packet
+{
+    public IReadOnlyList&lt;Block&gt; Blocks { get; }
+    public Payload? Payload { get; }
+}
+</code></pre>
+<p>Blocks and payloads are generated as immutable <code>abstract</code> / <code>sealed</code> class hierarchies:</p>
+<pre><code class="language-csharp">public abstract class Payload
+{
+    private protected Payload() { }
+}
+
+public sealed class PayloadA : Payload
+{
+    public byte FieldU8 { get; }
+    public string FieldStr { get; }
+}
+</code></pre>
+<p>Rust enums with data are generated as nested element classes because C# <code>enum</code> cannot carry per-variant payload values:</p>
+<pre><code class="language-csharp">public abstract class PayloadD : Payload
+{
+    public enum Kind
+    {
+        U8,
+        String,
+    }
+
+    public abstract Kind Variant { get; }
+
+    public sealed class ElementString : PayloadD
+    {
+        public string Value { get; }
+    }
+}
+</code></pre>
+<p><code>Bindings.cs</code> contains internal P/Invoke declarations, <code>SafeHandle</code> wrappers, and conversion helpers. Public code should use <code>PacketBindings</code>, <code>BlockBindings</code>, <code>PayloadBindings</code>, <code>Packet</code>, <code>Block</code>, <code>Payload</code>, and the generated block/payload classes.</p>
+<h2 id="required-macros-for-payload-types">Required Macros For Payload Types</h2>
+<p>For payload C# conversion, nested custom Rust types must implement <code>brec::CSharpConvert</code>.
+For CLI-generated C# classes, those same nested types must also be present in <code>brec.scheme.json</code>.</p>
+<p>Use:</p>
+<ul>
+<li><code>#[derive(brec::CSharp)]</code> for nested structs/enums used inside payload fields</li>
+<li><code>#[payload(include)]</code> for nested structs/enums that should be exported into <code>scheme.types</code></li>
+<li><code>#[payload(bincode)]</code> for payloads supported by the generated Payload C# aggregator</li>
+</ul>
+<p>Example:</p>
+<pre><code class="language-rust">#[payload(include)]
+#[derive(serde::Serialize, serde::Deserialize, brec::CSharp, Clone, Debug)]
+pub struct Inner {
+    pub id: u32,
+    pub flag: bool,
+}
+
+#[payload(bincode)]
+#[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]
+pub struct MyPayload {
+    pub inner: Inner,
+}
+</code></pre>
+<p>If a payload variant is not <code>#[payload(bincode)]</code>, the generated C# payload aggregator returns an error for that variant.
+If a nested custom type is used in a payload field but is not marked with <code>#[payload(include)]</code>, <code>brec_csharp_cli</code> cannot emit the matching C# class and fails with a missing included type error.</p>
+<h2 id="runtime-reflection-shape">Runtime Reflection Shape</h2>
+<p>Internally, the P/Invoke bridge passes explicit object/list shapes through <code>CSharpValue</code>. The generated C# classes hide that representation behind typed properties.</p>
+<h3 id="block-enum-shape">Block enum shape</h3>
+<p>Each block is represented internally as an object with exactly one key:</p>
+<pre><code class="language-text">{ &quot;MyBlock&quot;: { /* block fields object */ } }
+</code></pre>
+<h3 id="payload-enum-shape">Payload enum shape</h3>
+<p>Each payload is represented internally as an object with exactly one key:</p>
+<pre><code class="language-text">{ &quot;MyPayload&quot;: { /* payload fields object */ } }
+</code></pre>
+<p>Default payloads, when enabled, are:</p>
+<pre><code class="language-text">{ &quot;Bytes&quot;: [/* u8 array */] }
+{ &quot;String&quot;: &quot;...&quot; }
+</code></pre>
+<h3 id="packet-shape">Packet shape</h3>
+<p><code>PacketDef</code> C# conversion uses:</p>
+<pre><code class="language-text">{
+  &quot;blocks&quot;:  Array&lt;object&gt;, // each element is one-key Block object
+  &quot;payload&quot;: object | null  // one-key Payload object or null
+}
+</code></pre>
+<p>Application code normally does not need to work with these shapes directly. Use generated classes and <code>Encode*</code> / <code>Decode*</code> facades instead.</p>
+<h2 id="numeric-mapping-rules">Numeric Mapping Rules</h2>
+<p>To keep conversion lossless:</p>
+<ul>
+<li><code>u8</code>, <code>u16</code>, <code>u32</code>, <code>u64</code>, and <code>u128</code> map to <code>byte</code>, <code>ushort</code>, <code>uint</code>, <code>ulong</code>, and <code>UInt128</code></li>
+<li><code>i8</code>, <code>i16</code>, <code>i32</code>, <code>i64</code>, and <code>i128</code> map to <code>sbyte</code>, <code>short</code>, <code>int</code>, <code>long</code>, and <code>Int128</code></li>
+<li><code>f32</code> is transferred as its <code>u32</code> bit pattern and restored to <code>float</code></li>
+<li><code>f64</code> is transferred as its <code>u64</code> bit pattern and restored to <code>double</code></li>
+<li>vectors use <code>IReadOnlyList&lt;T&gt;</code></li>
+<li>fixed byte blobs use <code>byte[]</code></li>
+</ul>
+<p>This preserves exact Rust values across C# roundtrips, including float edge cases.</p>
+<h2 id="manual-quick-start-pinvoke-library">Manual Quick Start (P/Invoke Library)</h2>
+<p>The generated CLI project is usually the easiest path. If you need a custom P/Invoke crate, enable the <code>csharp</code> feature and call the generated helpers yourself:</p>
+<pre><code class="language-rust">pub struct PacketHandle {
+    value: brec::csharp_feat::CSharpValue,
+}
+
+#[unsafe(no_mangle)]
+pub unsafe extern &quot;C&quot; fn bindings_packet_decode(
+    bytes_ptr: *const u8,
+    bytes_len: usize,
+) -&gt; *mut PacketHandle {
+    let bytes = if bytes_len == 0 {
+        &amp;[][..]
+    } else {
+        unsafe { std::slice::from_raw_parts(bytes_ptr, bytes_len) }
+    };
+
+    let mut ctx = ();
+    match Packet::decode_csharp(bytes, &amp;mut ctx) {
+        Ok(value) =&gt; Box::into_raw(Box::new(PacketHandle { value })),
+        Err(_) =&gt; std::ptr::null_mut(),
+    }
+}
+</code></pre>
+<p>Generated protocol types expose Rust-side C# helper methods:</p>
+<ul>
+<li><code>decode_csharp(...)</code> - bytes -&gt; <code>CSharpValue</code></li>
+<li><code>encode_csharp(...)</code> - <code>CSharpValue</code> -&gt; bytes</li>
+</ul>
+<p>For packet and payload paths, context is passed explicitly (<code>ctx</code>) exactly like in regular Rust encode/decode flows.</p>
+<h3 id="data-contract-on-the-consumer-side">Data Contract On The Consumer Side</h3>
+<p>If you use the Rust helpers manually, the Rust API boundary is <code>CSharpValue</code>, not generated C# classes. Your FFI layer decides how to expose that value tree to .NET.</p>
+<p>What <code>brec</code> guarantees:</p>
+<ul>
+<li>The decoded object shape follows the protocol definition.</li>
+<li>If a variant is <code>BlockA</code>, the object contains exactly <code>BlockA</code> fields.</li>
+<li>If a variant is <code>PayloadA</code>, the object contains exactly <code>PayloadA</code> fields.</li>
+<li>Field names are preserved exactly as defined in your Rust protocol types.</li>
+</ul>
+<p>What <code>brec</code> does not do for a manual P/Invoke layer:</p>
+<ul>
+<li>It does not prescribe a single native transport strategy for <code>CSharpValue</code>.</li>
+<li>It does not perform your business-level validation.</li>
+</ul>
+<p>Responsibility split:</p>
+<ul>
+<li><code>brec</code> validates protocol data while decoding and produces protocol-shaped values.</li>
+<li>Your bindings layer decides how those values cross the native boundary.</li>
+<li>Your application is responsible for additional validation and optional mapping to typed domain models.</li>
+</ul>
+<p>Reference implementation in this repository:</p>
+<ul>
+<li>Generated C# e2e workspace: <code>e2e-gen/csharp/</code></li>
+<li>Protocol crate: <code>e2e-gen/csharp/protocol</code></li>
+<li>C# client: <code>e2e-gen/csharp/client</code></li>
+<li>End-to-end script: <code>e2e-gen/csharp/test.sh</code></li>
+</ul>
+<p>Direct links:</p>
+<ul>
+<li><a href="https://github.com/icsmw/brec/tree/main/e2e-gen/csharp">https://github.com/icsmw/brec/tree/main/e2e-gen/csharp</a></li>
+<li><a href="https://github.com/icsmw/brec/blob/main/e2e-gen/csharp/protocol/src/lib.rs">https://github.com/icsmw/brec/blob/main/e2e-gen/csharp/protocol/src/lib.rs</a></li>
+<li><a href="https://github.com/icsmw/brec/blob/main/e2e-gen/csharp/client/Program.cs">https://github.com/icsmw/brec/blob/main/e2e-gen/csharp/client/Program.cs</a></li>
+<li><a href="https://github.com/icsmw/brec/blob/main/e2e-gen/csharp/test.sh">https://github.com/icsmw/brec/blob/main/e2e-gen/csharp/test.sh</a></li>
+</ul>
+<h2 id="see-also">See Also</h2>
+<ul>
+<li><a href="../../parts/blocks/">Blocks</a></li>
+<li><a href="../../parts/payloads/">Payloads</a></li>
+<li><a href="../../parts/packets/">Packets</a></li>
+<li><a href="../napi/">NAPI (Rust &lt;-&gt; JS)</a></li>
+<li><a href="../wasm/">WASM (Rust &lt;-&gt; JS)</a></li>
+<li><a href="../java/">Java (Rust &lt;-&gt; Java)</a></li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": [], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>
