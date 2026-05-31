@@ -3,16 +3,29 @@ mod header;
 
 pub use header::*;
 
-/// Default payload context used by payloads that require no runtime state.
-pub type DefaultPayloadContext = ();
+/// Default protocol context used by payloads that require no runtime state.
+pub type DefaultProtocolContext = ();
 
-/// Returns the default payload context value, equivalent to `()`.
-pub const fn default_payload_context() -> DefaultPayloadContext {}
+/// Returns the default protocol context value, equivalent to `()`.
+pub const fn default_payload_context() -> DefaultProtocolContext {}
 
 /// Associates a payload type with the runtime context it expects during processing.
-pub trait PayloadSchema {
+pub trait ProtocolSchema {
     /// Runtime context passed into payload encode, decode, and size operations.
     type Context<'a>;
+
+    /// Maximum payload body length accepted by this protocol schema.
+    const MAX_PAYLOAD_LEN: u32 = crate::DEFAULT_MAX_PAYLOAD_LEN;
+
+    /// Maximum packet body length accepted by this protocol schema.
+    const MAX_PACKET_LEN: u64 = crate::DEFAULT_MAX_PACKET_LEN;
+
+    /// Initial allocation used by packet buffer readers for this schema.
+    const INITIAL_PACKET_BUFFER_CAPACITY: usize = crate::DEFAULT_INITIAL_PACKET_BUFFER_CAPACITY;
+}
+
+impl ProtocolSchema for () {
+    type Context<'a> = ();
 }
 
 /// Represents an encoded payload body, either borrowed from the original value
@@ -73,7 +86,7 @@ pub trait PayloadHooks {
 /// Trait for serializing a payload into a byte buffer.
 ///
 /// Requires `PayloadHooks`, so `before_encode()` will always be invoked before encoding.
-pub trait PayloadEncode: PayloadHooks + PayloadSchema {
+pub trait PayloadEncode: PayloadHooks + ProtocolSchema {
     /// Serializes the payload body into a standalone byte buffer.
     fn encode(&self, ctx: &mut Self::Context<'_>) -> std::io::Result<Vec<u8>>;
 }
@@ -84,7 +97,7 @@ pub trait PayloadEncode: PayloadHooks + PayloadSchema {
 /// this trait can return a reference to the existing bytes and skip re-encoding.
 ///
 /// Useful in zero-copy or deferred encoding scenarios.
-pub trait PayloadEncodeReferred: PayloadSchema {
+pub trait PayloadEncodeReferred: ProtocolSchema {
     /// Returns a borrowed encoded payload body when one is already available.
     fn encode(&self, ctx: &mut Self::Context<'_>) -> std::io::Result<Option<&[u8]>>;
 }
@@ -110,7 +123,7 @@ impl<T> PayloadEncoded for T where T: PayloadEncode + PayloadEncodeReferred {}
 /// Trait for decoding a payload from a byte buffer.
 ///
 /// Requires `PayloadHooks`, so `after_decode()` will always be called after decoding.
-pub trait PayloadDecode<T>: PayloadHooks + PayloadSchema {
+pub trait PayloadDecode<T>: PayloadHooks + ProtocolSchema {
     /// Reconstructs a payload value from encoded payload bytes.
     fn decode(buf: &[u8], ctx: &mut Self::Context<'_>) -> std::io::Result<T>;
 }
@@ -137,7 +150,7 @@ mod tests {
     #[derive(Default)]
     struct NoopHooksPayload;
 
-    impl PayloadSchema for NoopHooksPayload {
+    impl ProtocolSchema for NoopHooksPayload {
         type Context<'a> = ();
     }
 

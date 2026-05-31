@@ -67,14 +67,14 @@ impl<
 mod tests {
     use super::FileObserverOptions;
     use crate::{
-        DefaultPayloadContext,
+        DefaultProtocolContext,
         storage::observer::{SubscriptionDef, SubscriptionUpdate},
         tests::{TestBlock, TestPayload},
     };
 
     struct DummySubscription;
 
-    impl SubscriptionDef<TestBlock, TestBlock, TestPayload, TestPayload, DefaultPayloadContext>
+    impl SubscriptionDef<TestBlock, TestBlock, TestPayload, TestPayload, DefaultProtocolContext>
         for DummySubscription
     {
         fn on_update(&mut self, _total: usize, _added: usize) -> SubscriptionUpdate {
@@ -90,7 +90,7 @@ mod tests {
             TestPayload,
             TestPayload,
             DummySubscription,
-            DefaultPayloadContext,
+            DefaultProtocolContext,
         >::new("abc/storage.bin");
         assert!(opts.path.ends_with("abc/storage.bin"));
         assert!(opts.subscription.is_none());
@@ -104,7 +104,7 @@ mod tests {
             TestPayload,
             TestPayload,
             DummySubscription,
-            DefaultPayloadContext,
+            DefaultProtocolContext,
         >::new("x.bin")
         .subscribe(DummySubscription);
         assert!(opts.subscription.is_some());
@@ -118,7 +118,7 @@ mod tests {
             TestPayload,
             TestPayload,
             DummySubscription,
-            DefaultPayloadContext,
+            DefaultProtocolContext,
         >::new("dbg/path.bin");
         let dbg = format!("{opts:?}");
         assert!(dbg.contains("FileObserverOptions:"));

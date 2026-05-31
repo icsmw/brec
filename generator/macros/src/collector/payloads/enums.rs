@@ -11,13 +11,13 @@ pub fn generate(
     let contexts = payloads_context(payloads)?;
     let context_def = if contexts.is_empty() {
         quote! {
-            pub type PayloadContext<'a> = ();
+            pub type ProtocolContext<'a> = ();
         }
     } else {
         quote! {
             #[allow(dead_code)]
             #[allow(non_snake_case)]
-            pub enum PayloadContext<'a> {
+            pub enum ProtocolContext<'a> {
                 None,
                 #(#contexts,)*
             }
@@ -48,6 +48,20 @@ pub fn generate(
             String(String),
         }
     };
+    let max_payload_len = cfg
+        .get_default_max_payload_len()
+        .map(|len| quote! { #len })
+        .unwrap_or_else(|| quote! { brec::DEFAULT_MAX_PAYLOAD_LEN });
+    let max_packet_len = cfg
+        .get_default_max_packet_len()
+        .map(|len| quote! { #len as u64 })
+        .unwrap_or_else(|| quote! { brec::DEFAULT_MAX_PACKET_LEN });
+    let initial_packet_buffer_capacity = cfg
+        .get_default_initial_packet_buffer_capacity()
+        .map(|capacity| {
+            quote! { #capacity }
+        })
+        .unwrap_or_else(|| quote! { brec::DEFAULT_INITIAL_PACKET_BUFFER_CAPACITY });
     let napi_impl = {
         #[cfg(feature = "napi")]
         {
@@ -98,8 +112,14 @@ pub fn generate(
             #deafults
         }
 
-        impl brec::PayloadSchema for Payload {
-            type Context<'a> = PayloadContext<'a>;
+        impl brec::ProtocolSchema for Payload {
+            type Context<'a> = ProtocolContext<'a>;
+
+            const MAX_PAYLOAD_LEN: u32 = #max_payload_len;
+
+            const MAX_PACKET_LEN: u64 = #max_packet_len;
+
+            const INITIAL_PACKET_BUFFER_CAPACITY: usize = #initial_packet_buffer_capacity;
         }
 
         impl brec::PayloadHooks for Payload {}

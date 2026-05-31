@@ -48,7 +48,7 @@ pub struct MetaBlock {
 /// Packet payload used in this example.
 ///
 /// The important part is `crypt`: the payload is still regular bincode/serde
-/// data, but `brec` will now expect crypto options in `PayloadContext` and will
+/// data, but `brec` will now expect crypto options in `ProtocolContext` and will
 /// transparently encrypt/decrypt the payload body.
 #[payload(bincode, crypt)]
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
@@ -60,7 +60,7 @@ pub struct GreetingPayload {
 // - `Block`
 // - `Payload`
 // - `Packet`
-// - `PayloadContext<'a>`
+// - `ProtocolContext<'a>`
 // - `PacketBufReader`
 // - `Reader` / `Writer`
 brec::generate!();
@@ -83,7 +83,7 @@ fn usage(
     // Writer side: use the public key.
     let mut encrypt =
         EncryptOptions::from_public_key_pem(EXAMPLE_PUBLIC_KEY_PEM)?.with_key_id(KEY_ID.to_vec());
-    let mut encrypt_ctx = PayloadContext::Encrypt(&mut encrypt);
+    let mut encrypt_ctx = ProtocolContext::Encrypt(&mut encrypt);
 
     let mut bytes = Vec::new();
     packet.write_all(&mut bytes, &mut encrypt_ctx)?;
@@ -91,7 +91,7 @@ fn usage(
     // Reader side: use the matching private key.
     let mut decrypt = DecryptOptions::from_private_key_pem(EXAMPLE_PRIVATE_KEY_PEM)?
         .with_expected_key_id(KEY_ID.to_vec());
-    let mut decrypt_ctx = PayloadContext::Decrypt(&mut decrypt);
+    let mut decrypt_ctx = ProtocolContext::Decrypt(&mut decrypt);
 
     let restored = {
         let mut source = Cursor::new(bytes.as_slice());
@@ -129,11 +129,9 @@ mod tests {
 
         // Quick sanity check: encrypted bytes on the wire should not contain
         // the original plaintext message in plain form.
-        assert!(
-            !bytes
-                .windows(original.message.len())
-                .any(|window| window == original.message.as_bytes())
-        );
+        assert!(!bytes
+            .windows(original.message.len())
+            .any(|window| window == original.message.as_bytes()));
         assert_eq!(restored, original);
         Ok(())
     }

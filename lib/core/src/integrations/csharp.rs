@@ -7,7 +7,7 @@ impl<B: BlockDef + CSharpObject, P: PayloadDef<Inner>, Inner: PayloadInnerDef + 
     /// Reads packet bytes and converts to `CSharpValue` object.
     pub fn decode_csharp(
         bytes: &[u8],
-        ctx: &mut <Inner as PayloadSchema>::Context<'_>,
+        ctx: &mut <Inner as ProtocolSchema>::Context<'_>,
     ) -> Result<CSharpValue, Error> {
         let mut cursor = std::io::Cursor::new(bytes);
         let packet = <Self as ReadPacketFrom>::read(&mut cursor, ctx)?;
@@ -18,7 +18,7 @@ impl<B: BlockDef + CSharpObject, P: PayloadDef<Inner>, Inner: PayloadInnerDef + 
     pub fn encode_csharp(
         value: CSharpValue,
         out: &mut Vec<u8>,
-        ctx: &mut <Inner as PayloadSchema>::Context<'_>,
+        ctx: &mut <Inner as ProtocolSchema>::Context<'_>,
     ) -> Result<(), Error> {
         let (blocks, payload) = from_csharp_object::<B, Inner>(value)?;
         let mut packet = Self::new(blocks, payload);

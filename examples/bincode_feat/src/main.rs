@@ -28,7 +28,7 @@ pub struct GreetingPayload {
 // - `Block`
 // - `Payload`
 // - `Packet`
-// - `PayloadContext<'a>`
+// - `ProtocolContext<'a>`
 // - `PacketBufReader`
 // - `Reader` / `Writer`
 brec::generate!();

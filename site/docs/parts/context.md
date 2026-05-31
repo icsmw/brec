@@ -1,4 +1,4 @@
-# Payload Context
+# Protocol Context
 
 `brec` separates packet structure from payload runtime state.
 
@@ -9,7 +9,7 @@ Blocks are context-free. Payloads may require extra runtime data during:
 - size calculation
 - packet read/write operations
 
-This runtime data is called `Payload Context`.
+This runtime data is called `ProtocolContext`.
 
 ## Why It Exists
 
@@ -24,15 +24,19 @@ Typical examples:
 
 For the built-in crypto integration that uses this mechanism, see [Crypt](../features/crypt.md).
 
-Instead of passing an arbitrary generic options type through the whole API, `brec` binds a context type to the payload family through `PayloadSchema`.
+Instead of passing an arbitrary generic options type through the whole API, `brec` binds a context type and protocol size limits to the generated protocol through `ProtocolSchema`.
 
 ## Core Idea
 
 Each payload defines:
 
 ```rust
-pub trait PayloadSchema {
+pub trait ProtocolSchema {
     type Context<'a>;
+
+    const MAX_PAYLOAD_LEN: u32;
+    const MAX_PACKET_LEN: u64;
+    const INITIAL_PACKET_BUFFER_CAPACITY: usize;
 }
 ```
 
@@ -49,31 +53,36 @@ As a result:
 - block logic stays clean
 - payload logic can use runtime state when needed
 - packet and storage APIs stay explicit about where context is consumed
+- packet and payload readers share the same configured size limits
+
+`MAX_PAYLOAD_LEN` is the maximum accepted payload body length. `MAX_PACKET_LEN` is the maximum accepted packet body length, excluding `PacketHeader`. `INITIAL_PACKET_BUFFER_CAPACITY` is the initial allocation used by `PacketBufReader`; it is a performance hint, not a validity boundary.
+
+For generated protocols these values are configured through `brec::generate!()`. See [Code Generation](../code_generation.md#parameters).
 
 ## Default Context
 
 If a payload does not need any runtime state, use the default context:
 
 ```rust
-type Context<'a> = brec::DefaultPayloadContext;
+type Context<'a> = brec::DefaultProtocolContext;
 ```
 
-`DefaultPayloadContext` is just `()`.
+`DefaultProtocolContext` is just `()`.
 
 ## Generated Context
 
-When you use `brec::generate!()`, the macro generates a crate-local `PayloadContext<'a>`.
+When you use `brec::generate!()`, the macro generates a crate-local `ProtocolContext<'a>`.
 
 If there are no custom context entries, it becomes:
 
 ```rust
-pub type PayloadContext<'a> = ();
+pub type ProtocolContext<'a> = ();
 ```
 
 If custom context types exist, `generate!()` builds an enum:
 
 ```rust
-pub enum PayloadContext<'a> {
+pub enum ProtocolContext<'a> {
     None,
     MyOptions(&'a mut MyOptions),
 }
@@ -94,12 +103,12 @@ pub struct MyOptions {
 }
 ```
 
-This type is not treated as a regular payload. It is collected only to build `PayloadContext<'a>`.
+This type is not treated as a regular payload. It is collected only to build `ProtocolContext<'a>`.
 
 In other words, `#[payload(ctx)]` means:
 
 - do not generate a normal payload variant for this type
-- do generate a matching `PayloadContext` enum variant
+- do generate a matching `ProtocolContext` enum variant
 - pass this value by mutable reference during payload operations
 
 ## Manual Payload Implementation with Context
@@ -129,12 +138,12 @@ pub struct MyOptions {
 }
 
 impl MyOptions {
-    fn extract_prefix<'a>(ctx: &'a mut crate::PayloadContext<'_>) -> std::io::Result<&'a str> {
+    fn extract_prefix<'a>(ctx: &'a mut crate::ProtocolContext<'_>) -> std::io::Result<&'a str> {
         match ctx {
-            crate::PayloadContext::MyOptions(options) => Ok(options.prefix.as_str()),
-            crate::PayloadContext::None => Err(std::io::Error::new(
+            crate::ProtocolContext::MyOptions(options) => Ok(options.prefix.as_str()),
+            crate::ProtocolContext::None => Err(std::io::Error::new(
                 std::io::ErrorKind::InvalidInput,
-                "MyPayload expects PayloadContext::MyOptions",
+                "MyPayload expects ProtocolContext::MyOptions",
             )),
         }
     }
@@ -198,12 +207,12 @@ let packet = Packet::new(
         value: "hello".to_owned(),
     })),
 );
-let mut ctx = PayloadContext::MyOptions(&mut options);
+let mut ctx = ProtocolContext::MyOptions(&mut options);
 writer.insert(packet, &mut ctx)?;
 ```
 
 ```rust
-let mut ctx = PayloadContext::MyOptions(&mut options);
+let mut ctx = ProtocolContext::MyOptions(&mut options);
 for packet in reader.iter(&mut ctx) {
     let packet = packet?;
     // ...
@@ -211,7 +220,7 @@ for packet in reader.iter(&mut ctx) {
 ```
 
 ```rust
-let mut ctx = PayloadContext::MyOptions(&mut options);
+let mut ctx = ProtocolContext::MyOptions(&mut options);
 match packet_reader.read(&mut ctx)? {
     NextPacket::Found(packet) => {
         let _ = packet;

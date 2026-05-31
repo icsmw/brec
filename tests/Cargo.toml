@@ -1,6 +1,8 @@
 [workspace]
 resolver = "2"
 members = [
+    "custom_scheme_no_payload",
+    "custom_scheme_payload",
     "stress_blocks",
     "stress_payloads",
     "stress_payloads_crypt",

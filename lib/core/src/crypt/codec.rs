@@ -132,22 +132,23 @@ impl CryptCodec {
         record.encode()
     }
 
-    /// Encodes a payload with default payload context and encrypts the bytes.
+    /// Encodes a payload with default protocol context and encrypts the bytes.
     pub fn encrypt_payload<T>(payload: &T, options: &mut EncryptOptions) -> std::io::Result<Vec<u8>>
     where
-        T: PayloadEncode + crate::PayloadSchema<Context<'static> = crate::DefaultPayloadContext>,
+        T: PayloadEncode + crate::ProtocolSchema<Context<'static> = crate::DefaultProtocolContext>,
     {
         let payload_body = payload.encode(&mut crate::default_payload_context())?;
         Self::encrypt(&payload_body, options).map_err(std::io::Error::from)
     }
 
-    /// Decrypts bytes and decodes a payload with default payload context.
+    /// Decrypts bytes and decodes a payload with default protocol context.
     pub fn decrypt_payload<T>(
         encrypted_payload_body: &[u8],
         options: &mut DecryptOptions,
     ) -> std::io::Result<T>
     where
-        T: PayloadDecode<T> + crate::PayloadSchema<Context<'static> = crate::DefaultPayloadContext>,
+        T: PayloadDecode<T>
+            + crate::ProtocolSchema<Context<'static> = crate::DefaultProtocolContext>,
     {
         let payload_body =
             Self::decrypt(encrypted_payload_body, options).map_err(std::io::Error::from)?;
@@ -215,8 +216,8 @@ mod tests {
         value: u32,
     }
 
-    impl crate::PayloadSchema for MacroCryptPayload {
-        type Context<'a> = crate::DefaultPayloadContext;
+    impl crate::ProtocolSchema for MacroCryptPayload {
+        type Context<'a> = crate::DefaultProtocolContext;
     }
 
     impl crate::PayloadHooks for MacroCryptPayload {}

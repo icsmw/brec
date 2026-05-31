@@ -33,7 +33,9 @@ impl WriteTo for TestBlock {
 }
 
 impl TryReadFromBuffered for TestBlock {
-    fn try_read<T: std::io::BufRead>(_: &mut T) -> Result<ReadStatus<Self>, Error>
+    fn try_read<T: std::io::BufRead, S: ProtocolSchema>(
+        _: &mut T,
+    ) -> Result<ReadStatus<Self>, Error>
     where
         Self: Sized,
     {
@@ -42,7 +44,9 @@ impl TryReadFromBuffered for TestBlock {
 }
 
 impl TryReadFrom for TestBlock {
-    fn try_read<T: std::io::Read + std::io::Seek>(_: &mut T) -> Result<ReadStatus<Self>, Error>
+    fn try_read<T: std::io::Read + std::io::Seek, S: ProtocolSchema>(
+        _: &mut T,
+    ) -> Result<ReadStatus<Self>, Error>
     where
         Self: Sized,
     {
@@ -51,7 +55,7 @@ impl TryReadFrom for TestBlock {
 }
 
 impl ReadFrom for TestBlock {
-    fn read<T: std::io::Read>(_: &mut T) -> Result<Self, Error>
+    fn read<T: std::io::Read, S: ProtocolSchema>(_: &mut T) -> Result<Self, Error>
     where
         Self: Sized,
     {
@@ -92,8 +96,8 @@ impl TestPayload {
     }
 }
 
-impl PayloadSchema for TestPayload {
-    type Context<'a> = DefaultPayloadContext;
+impl ProtocolSchema for TestPayload {
+    type Context<'a> = DefaultProtocolContext;
 }
 
 impl WriteVectoredMutTo for TestPayload {
@@ -166,7 +170,7 @@ impl TryExtractPayloadFromBuffered<TestPayload> for TestPayload {
     fn try_read<B: std::io::BufRead>(
         _: &mut B,
         _: &PayloadHeader,
-        _: &mut <TestPayload as PayloadSchema>::Context<'_>,
+        _: &mut <TestPayload as ProtocolSchema>::Context<'_>,
     ) -> Result<ReadStatus<TestPayload>, Error> {
         Err(Error::Test)
     }
@@ -176,7 +180,7 @@ impl TryExtractPayloadFrom<TestPayload> for TestPayload {
     fn try_read<B: std::io::Read + std::io::Seek>(
         _: &mut B,
         _: &PayloadHeader,
-        _: &mut <TestPayload as PayloadSchema>::Context<'_>,
+        _: &mut <TestPayload as ProtocolSchema>::Context<'_>,
     ) -> Result<ReadStatus<TestPayload>, Error> {
         Err(Error::Test)
     }
@@ -186,7 +190,7 @@ impl ExtractPayloadFrom<TestPayload> for TestPayload {
     fn read<B: std::io::Read>(
         _: &mut B,
         _: &PayloadHeader,
-        _: &mut <TestPayload as PayloadSchema>::Context<'_>,
+        _: &mut <TestPayload as ProtocolSchema>::Context<'_>,
     ) -> Result<TestPayload, Error> {
         Err(Error::Test)
     }

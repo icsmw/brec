@@ -186,7 +186,7 @@ impl TryRead for Block {
 
             impl brec::TryReadFrom for #block_name {
 
-                fn try_read<T: std::io::Read + std::io::Seek>(buf: &mut T) -> Result<brec::ReadStatus<Self>, brec::Error> {
+                fn try_read<T: std::io::Read + std::io::Seek, S: brec::ProtocolSchema>(buf: &mut T) -> Result<brec::ReadStatus<Self>, brec::Error> {
                     use brec::prelude::*;
                     let mut sig_buf = [0u8; #sig_len];
                     let start_pos = buf.stream_position()?;
@@ -221,7 +221,7 @@ impl TryReadBuffered for Block {
 
             impl brec::TryReadFromBuffered for #block_name {
 
-                fn try_read<T: std::io::BufRead>(reader: &mut T) -> Result<brec::ReadStatus<Self>, brec::Error> {
+                fn try_read<T: std::io::BufRead, S: brec::ProtocolSchema>(reader: &mut T) -> Result<brec::ReadStatus<Self>, brec::Error> {
                     use std::io::BufRead;
                     use brec::prelude::*;
 

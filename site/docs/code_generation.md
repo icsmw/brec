@@ -1,4 +1,3 @@
-
 `brec` generates code in two stages:
 
 - When the `#[block]` macro is used, it generates code specific to the corresponding block.  
@@ -23,41 +22,60 @@ This macro must be called exactly **once per crate** and is responsible for:
 - Implementing required `brec` traits for all user-defined `Payload` types
 - Generating unified enums for blocks: `enum Block { ... }`
 - Generating unified enums for payloads: `enum Payload { ... }`
+- Implementing `ProtocolSchema` for the generated `Payload` enum
 - Exporting several convenience type aliases to simplify usage
 
-When context types are declared with `#[payload(ctx)]`, `generate!()` also constructs the crate-local `PayloadContext<'a>` type. See [Payload Context](parts/context.md).
+When context types are declared with `#[payload(ctx)]`, `generate!()` also constructs the crate-local `ProtocolContext<'a>` type. See [Protocol Context](parts/context.md).
+
+### Generated Protocol Schema
+
+The generated `Payload` enum is also the protocol-level schema carrier. Its `ProtocolSchema` implementation binds runtime context and resource limits to the generated packet API:
+
+```rust
+impl brec::ProtocolSchema for Payload {
+    type Context<'a> = ProtocolContext<'a>;
+
+    const MAX_PAYLOAD_LEN: u32 = brec::DEFAULT_MAX_PAYLOAD_LEN;
+    const MAX_PACKET_LEN: u64 = brec::DEFAULT_MAX_PACKET_LEN;
+    const INITIAL_PACKET_BUFFER_CAPACITY: usize =
+        brec::DEFAULT_INITIAL_PACKET_BUFFER_CAPACITY;
+}
+```
+
+`MAX_PAYLOAD_LEN` limits the payload body length accepted by payload readers and writers. `MAX_PACKET_LEN` limits the packet body length accepted by packet readers before they buffer or wait for a complete packet. `INITIAL_PACKET_BUFFER_CAPACITY` controls only the initial allocation used by `PacketBufReader`; it is capped by the payload limit and can grow as needed within the configured packet limits.
 
 ### Generated Aliases
+
 The macro defines the following aliases to reduce verbosity when using `brec` types:
 
-| Alias                    | Expanded to                                                                 |
-|-------------------------|------------------------------------------------------------------------------|
-| `Packet` | `PacketDef<Block, Payload, Payload>` |
+| Alias                            | Expanded to                                                             |
+| -------------------------------- | ----------------------------------------------------------------------- |
+| `Packet`                         | `PacketDef<Block, Payload, Payload>`                                    |
 | `BorrowedPacketBufReader<'a, R>` | `PacketBufReaderDef<'a, R, Block, BlockReferred<'a>, Payload, Payload>` |
-| `PacketBufReader<'a, R>` | same as `BorrowedPacketBufReader<'a, R>` |
-| `PeekedBlocks<'a>` | `PeekedBlocksDef<'a, BlockReferred<'a>>` |
-| `PeekedBlock<'a>` | `PeekedBlockDef<'a, BlockReferred<'a>>` |
-| `BorrowedRules<'a>` | `RulesDef<Block, BlockReferred<'a>, Payload, Payload>` |
-| `Rules<'a>` | same as `BorrowedRules<'a>` |
-| `BorrowedRule<'a>` | `RuleDef<Block, BlockReferred<'a>, Payload, Payload>` |
-| `Rule<'a>` | same as `BorrowedRule<'a>` |
-| `RuleFnDef<D, S>` | `RuleFnDef<D, S>` |
-| `BorrowedReader<'a, S>` | `ReaderDef<S, Block, BlockReferred<'a>, Payload, Payload>` |
-| `Reader<S>` | `ReaderDef<S, Block, BlockReferred<'static>, Payload, Payload>` |
-| `Writer<S>` | `WriterDef<S, Block, Payload, Payload>` |
+| `PacketBufReader<'a, R>`         | same as `BorrowedPacketBufReader<'a, R>`                                |
+| `PeekedBlocks<'a>`               | `PeekedBlocksDef<'a, BlockReferred<'a>>`                                |
+| `PeekedBlock<'a>`                | `PeekedBlockDef<'a, BlockReferred<'a>>`                                 |
+| `BorrowedRules<'a>`              | `RulesDef<Block, BlockReferred<'a>, Payload, Payload>`                  |
+| `Rules<'a>`                      | same as `BorrowedRules<'a>`                                             |
+| `BorrowedRule<'a>`               | `RuleDef<Block, BlockReferred<'a>, Payload, Payload>`                   |
+| `Rule<'a>`                       | same as `BorrowedRule<'a>`                                              |
+| `RuleFnDef<D, S>`                | `RuleFnDef<D, S>`                                                       |
+| `BorrowedReader<'a, S>`          | `ReaderDef<S, Block, BlockReferred<'a>, Payload, Payload>`              |
+| `Reader<S>`                      | `ReaderDef<S, Block, BlockReferred<'static>, Payload, Payload>`         |
+| `Writer<S>`                      | `WriterDef<S, Block, Payload, Payload>`                                 |
 
 These aliases make it easier to work with generated structures and remove the need to repeat generic parameters.
 
 When `brec` is built with the `observer` feature, the macro also generates:
 
-| Alias | Expanded to |
-|-------|-------------|
-| `SubscriptionUpdate` | `brec::SubscriptionUpdate` |
-| `SubscriptionErrorAction` | `brec::SubscriptionErrorAction` |
-| `Subscription` | local facade over `SubscriptionDef<Block, BlockReferred<'static>, Payload, Payload, ()>` |
-| `FileObserverOptions<S>` | local wrapper over `brec::FileObserverOptions<..., SubscriptionWrapper<S>>` |
-| `FileObserver` | local wrapper over `FileObserverDef<Block, BlockReferred<'static>, Payload, Payload, ()>` |
-| `FileObserverStream` | `brec::FileObserverStreamDef<Block, BlockReferred<'static>, Payload, Payload, ()>` |
+| Alias                     | Expanded to                                                                               |
+| ------------------------- | ----------------------------------------------------------------------------------------- |
+| `SubscriptionUpdate`      | `brec::SubscriptionUpdate`                                                                |
+| `SubscriptionErrorAction` | `brec::SubscriptionErrorAction`                                                           |
+| `Subscription`            | local facade over `SubscriptionDef<Block, BlockReferred<'static>, Payload, Payload, ()>`  |
+| `FileObserverOptions<S>`  | local wrapper over `brec::FileObserverOptions<..., SubscriptionWrapper<S>>`               |
+| `FileObserver`            | local wrapper over `FileObserverDef<Block, BlockReferred<'static>, Payload, Payload, ()>` |
+| `FileObserverStream`      | `brec::FileObserverStreamDef<Block, BlockReferred<'static>, Payload, Payload, ()>`        |
 
 `Subscription` uses `on_*` callbacks: `on_update`, `on_packet`, `on_error`, `on_stopped`, `on_aborted`.
 
@@ -69,6 +87,7 @@ When `brec` is built with the `observer` feature, the macro also generates:
 ### Visibility Requirements
 
 Ensure that all blocks and payloads are imported at the location where the macro is used:
+
 ```rust
 pub use blocks::*;
 pub use payloads::*;
@@ -89,6 +108,14 @@ The macro can be used with the following parameters:
   This parameter allows you to **manually** specify additional derives for the `Payload` enum-useful if you are
   only using the built-in payloads (`String`, `Vec<u8>`) and do not define custom ones.
 
+- `default_max_payload_len = N` - Sets `Payload::MAX_PAYLOAD_LEN`. The default is `brec::DEFAULT_MAX_PAYLOAD_LEN` (`1 MiB`). Payload headers and payload write paths reject payload bodies larger than this value.
+
+- `default_max_packet_len = N` - Sets `Payload::MAX_PACKET_LEN`. The default is `brec::DEFAULT_MAX_PACKET_LEN`, currently `DEFAULT_MAX_PAYLOAD_LEN * 2`. Packet readers reject packet bodies larger than this value before buffering or allocation-heavy processing.
+
+- `default_initial_packet_buffer_capacity = N` - Sets `Payload::INITIAL_PACKET_BUFFER_CAPACITY`. The default is `brec::DEFAULT_INITIAL_PACKET_BUFFER_CAPACITY` (`64 KiB`). This is a preallocation hint for `PacketBufReader`, not a protocol validity limit.
+
+These size parameters currently accept integer literals.
+
 For example,
 
 ```rust
@@ -105,5 +132,16 @@ pub use blocks::*;
 brec::generate!(no_default_payload);
 ```
 
+```rust
+pub use blocks::*;
+pub use payloads::*;
+
+brec::generate!(
+    default_max_payload_len = 4_194_304,
+    default_max_packet_len = 8_388_608,
+    default_initial_packet_buffer_capacity = 131_072,
+);
+```
+
 If the user **fully disables** payload support (as in the example above),
-the macro will **not generate any packet-related types** (see *Generated Aliases*).
+the macro will **not generate any packet-related types** (see _Generated Aliases_).

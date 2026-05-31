@@ -1,6 +1,6 @@
 [package]
 name        = "brec"
-version     = "0.4.0"
+version     = "0.5.0"
 edition     = "2024"
 authors     = ["d.astafyev@outlook.com"]
 description = "A flexible binary format for storing and streaming structured data as packets with CRC protection and recoverability from corruption. Built for extensibility and robustness."

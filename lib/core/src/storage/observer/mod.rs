@@ -36,9 +36,9 @@ impl<
     O: Send + Sync + 'static,
 > FileObserverDef<B, BR, P, Inner, O>
 where
-    for<'a> Inner: PayloadSchema<Context<'a> = O>,
+    for<'a> Inner: ProtocolSchema<Context<'a> = O>,
 {
-    /// Creates observer with explicit payload context options.
+    /// Creates observer with explicit protocol context options.
     pub fn with_opt<S>(
         mut options: FileObserverOptions<B, BR, P, Inner, S, O>,
         opt: O,
@@ -165,7 +165,7 @@ where
         })
     }
 
-    /// Creates observer using default payload context options.
+    /// Creates observer using default protocol context options.
     pub fn new<S>(options: FileObserverOptions<B, BR, P, Inner, S, O>) -> Result<Self, Error>
     where
         S: SubscriptionDef<B, BR, P, Inner, O> + 'static,
@@ -189,7 +189,7 @@ where
 #[cfg(test)]
 mod tests {
     use crate::{
-        DefaultPayloadContext, Error, FileObserverDef, FileObserverOptions, PacketDef,
+        DefaultProtocolContext, Error, FileObserverDef, FileObserverOptions, PacketDef,
         SubscriptionDef, SubscriptionErrorAction, SubscriptionUpdate,
         tests::{TestBlock, TestPayload},
     };
@@ -205,7 +205,7 @@ mod tests {
         aborted: Arc<AtomicUsize>,
     }
 
-    impl SubscriptionDef<TestBlock, TestBlock, TestPayload, TestPayload, DefaultPayloadContext>
+    impl SubscriptionDef<TestBlock, TestBlock, TestPayload, TestPayload, DefaultProtocolContext>
         for CountingSubscription
     {
         fn on_update(&mut self, _total: usize, _added: usize) -> SubscriptionUpdate {
@@ -266,7 +266,7 @@ mod tests {
             TestPayload,
             TestPayload,
             CountingSubscription,
-            DefaultPayloadContext,
+            DefaultProtocolContext,
         >::new(file.path());
 
         let result = FileObserverDef::with_opt(options, ());
@@ -292,7 +292,7 @@ mod tests {
             TestPayload,
             TestPayload,
             CountingSubscription,
-            DefaultPayloadContext,
+            DefaultProtocolContext,
         >::new(missing)
         .subscribe(subscription);
 
@@ -319,7 +319,7 @@ mod tests {
             TestPayload,
             TestPayload,
             CountingSubscription,
-            DefaultPayloadContext,
+            DefaultProtocolContext,
         >::new(file.path())
         .subscribe(subscription);
 

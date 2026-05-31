@@ -117,7 +117,7 @@ impl FileStorageOptions {
     ) -> Result<FileWriterDef<B, PL, Inner, O>, Error>
     where
         Inner: PayloadInnerDef,
-        for<'a> Inner: PayloadSchema<Context<'a> = O>,
+        for<'a> Inner: ProtocolSchema<Context<'a> = O>,
     {
         FileWriterDef::<B, PL, Inner, O>::with_opt(
             self.filename,
@@ -150,7 +150,7 @@ pub struct FileWriterDef<B: BlockDef, PL: PayloadDef<Inner>, Inner: PayloadInner
 
 impl<B: BlockDef, PL: PayloadDef<Inner>, Inner: PayloadInnerDef, O> FileWriterDef<B, PL, Inner, O>
 where
-    for<'a> Inner: PayloadSchema<Context<'a> = O>,
+    for<'a> Inner: ProtocolSchema<Context<'a> = O>,
 {
     /// Creates a new instance of `FileWriterDef`, opening the specified storage file and
     /// acquiring an exclusive advisory lock via a `.lock` companion file.
@@ -287,7 +287,7 @@ mod tests {
         let filename_a = filename.clone();
         let (tx, rx): (Sender<()>, Receiver<()>) = channel();
         let a = spawn(move || {
-            let a = FileWriterDef::<TestBlock, TestPayload, TestPayload, DefaultPayloadContext>::with_opt(
+            let a = FileWriterDef::<TestBlock, TestPayload, TestPayload, DefaultProtocolContext>::with_opt(
                 filename_a,
                 None,
                 None,
@@ -302,7 +302,7 @@ mod tests {
         let b = spawn(move || {
             rx.recv().expect("Signal  has been gotten");
 
-            FileWriterDef::<TestBlock, TestPayload, TestPayload, DefaultPayloadContext>::with_opt(
+            FileWriterDef::<TestBlock, TestPayload, TestPayload, DefaultProtocolContext>::with_opt(
                 &filename,
                 Some(Duration::from_millis(300)),
                 None,
@@ -325,7 +325,7 @@ mod tests {
         let (tx, rx): (Sender<()>, Receiver<()>) = channel();
         let a = spawn(move || {
             let a = FileStorageOptions::new(filename_a)
-                .open::<TestBlock, TestPayload, TestPayload, DefaultPayloadContext>(())
+                .open::<TestBlock, TestPayload, TestPayload, DefaultProtocolContext>(())
                 .expect("Storage A has been created");
             tx.send(()).expect("Signal has been send");
             sleep(Duration::from_millis(100));
@@ -336,7 +336,7 @@ mod tests {
             rx.recv().expect("Signal  has been gotten");
             FileStorageOptions::new(filename)
                 .timeout(Duration::from_millis(300))
-                .open::<TestBlock, TestPayload, TestPayload, DefaultPayloadContext>(())
+                .open::<TestBlock, TestPayload, TestPayload, DefaultProtocolContext>(())
                 .is_ok()
         });
         let a = a.join().expect("Storage A has been created");
@@ -353,7 +353,7 @@ mod tests {
         let filename_a = filename.clone();
         let (tx, rx): (Sender<()>, Receiver<()>) = channel();
         let a = spawn(move || {
-            let a = FileWriterDef::<TestBlock, TestPayload, TestPayload, DefaultPayloadContext>::with_opt(
+            let a = FileWriterDef::<TestBlock, TestPayload, TestPayload, DefaultProtocolContext>::with_opt(
                 filename_a,
                 None,
                 None,
@@ -367,7 +367,7 @@ mod tests {
         });
         let b = spawn(move || {
             rx.recv().expect("Signal  has been gotten");
-            FileWriterDef::<TestBlock, TestPayload, TestPayload, DefaultPayloadContext>::with_opt(
+            FileWriterDef::<TestBlock, TestPayload, TestPayload, DefaultProtocolContext>::with_opt(
                 &filename,
                 Some(Duration::from_millis(100)),
                 None,
@@ -390,7 +390,7 @@ mod tests {
         let filename_a = filename.clone();
         let (tx, rx): (Sender<()>, Receiver<()>) = channel();
         let a = spawn(move || {
-            let a = FileWriterDef::<TestBlock, TestPayload, TestPayload, DefaultPayloadContext>::with_opt(
+            let a = FileWriterDef::<TestBlock, TestPayload, TestPayload, DefaultProtocolContext>::with_opt(
                 filename_a,
                 None,
                 None,
@@ -404,7 +404,7 @@ mod tests {
         });
         let b = spawn(move || {
             rx.recv().expect("Signal  has been gotten");
-            FileWriterDef::<TestBlock, TestPayload, TestPayload, DefaultPayloadContext>::with_opt(
+            FileWriterDef::<TestBlock, TestPayload, TestPayload, DefaultProtocolContext>::with_opt(
                 &filename,
                 None,
                 None,

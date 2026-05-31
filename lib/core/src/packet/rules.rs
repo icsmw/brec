@@ -363,8 +363,8 @@ impl<B: BlockDef, BR: BlockReferredDef<B>, P: PayloadDef<Inner>, Inner: PayloadI
 #[cfg(test)]
 mod tests {
     use crate::{
-        ByteBlock, DefaultPayloadContext, Error, ExtractPayloadFrom, IoSlices, PacketDef,
-        PayloadDef, PayloadHeader, PayloadSchema, ReadBlockFrom, ReadBlockFromSlice, ReadFrom,
+        ByteBlock, DefaultProtocolContext, Error, ExtractPayloadFrom, IoSlices, PacketDef,
+        PayloadDef, PayloadHeader, ProtocolSchema, ReadBlockFrom, ReadBlockFromSlice, ReadFrom,
         ReadStatus, RuleDef, RuleDefId, RuleFnDef, RulesDef, TryExtractPayloadFrom,
         TryExtractPayloadFromBuffered, TryReadFrom, TryReadFromBuffered, WriteMutTo, WriteTo,
         WriteVectoredMutTo, WriteVectoredTo, packet::rules::PeekAs,
@@ -411,13 +411,15 @@ mod tests {
     // These methods are required by `BlockDef` bounds in packet/rules tests.
     // They are explicit stubs and are covered by a dedicated test below.
     impl TryReadFromBuffered for RuleBlock {
-        fn try_read<T: std::io::BufRead>(_: &mut T) -> Result<ReadStatus<Self>, Error> {
+        fn try_read<T: std::io::BufRead, S: ProtocolSchema>(
+            _: &mut T,
+        ) -> Result<ReadStatus<Self>, Error> {
             Err(Error::Test)
         }
     }
 
     impl TryReadFrom for RuleBlock {
-        fn try_read<T: std::io::Read + std::io::Seek>(
+        fn try_read<T: std::io::Read + std::io::Seek, S: ProtocolSchema>(
             _: &mut T,
         ) -> Result<ReadStatus<Self>, Error> {
             Err(Error::Test)
@@ -425,7 +427,7 @@ mod tests {
     }
 
     impl ReadFrom for RuleBlock {
-        fn read<T: std::io::Read>(_: &mut T) -> Result<Self, Error> {
+        fn read<T: std::io::Read, S: ProtocolSchema>(_: &mut T) -> Result<Self, Error> {
             Err(Error::Test)
         }
     }
@@ -459,8 +461,8 @@ mod tests {
         }
     }
 
-    impl PayloadSchema for RulePayload {
-        type Context<'a> = DefaultPayloadContext;
+    impl ProtocolSchema for RulePayload {
+        type Context<'a> = DefaultProtocolContext;
     }
 
     impl WriteVectoredMutTo for RulePayload {
@@ -543,7 +545,7 @@ mod tests {
         fn try_read<B: std::io::BufRead>(
             _: &mut B,
             _: &PayloadHeader,
-            _: &mut <RulePayload as PayloadSchema>::Context<'_>,
+            _: &mut <RulePayload as ProtocolSchema>::Context<'_>,
         ) -> Result<ReadStatus<RulePayload>, Error> {
             Err(Error::Test)
         }
@@ -553,7 +555,7 @@ mod tests {
         fn try_read<B: std::io::Read + std::io::Seek>(
             _: &mut B,
             _: &PayloadHeader,
-            _: &mut <RulePayload as PayloadSchema>::Context<'_>,
+            _: &mut <RulePayload as ProtocolSchema>::Context<'_>,
         ) -> Result<ReadStatus<RulePayload>, Error> {
             Err(Error::Test)
         }
@@ -563,7 +565,7 @@ mod tests {
         fn read<B: std::io::Read>(
             _: &mut B,
             _: &PayloadHeader,
-            _: &mut <RulePayload as PayloadSchema>::Context<'_>,
+            _: &mut <RulePayload as ProtocolSchema>::Context<'_>,
         ) -> Result<RulePayload, Error> {
             Err(Error::Test)
         }
@@ -755,15 +757,15 @@ mod tests {
         assert!(block.write_all(&mut Vec::new()).is_err());
         assert!(block.slices().is_err());
         assert!(matches!(
-            <RuleBlock as TryReadFromBuffered>::try_read(&mut buffered),
+            <RuleBlock as TryReadFromBuffered>::try_read::<_, ()>(&mut buffered),
             Err(Error::Test)
         ));
         assert!(matches!(
-            <RuleBlock as TryReadFrom>::try_read(&mut stream),
+            <RuleBlock as TryReadFrom>::try_read::<_, ()>(&mut stream),
             Err(Error::Test)
         ));
         assert!(matches!(
-            <RuleBlock as ReadFrom>::read(&mut buffered),
+            <RuleBlock as ReadFrom>::read::<_, ()>(&mut buffered),
             Err(Error::Test)
         ));
         assert!(matches!(

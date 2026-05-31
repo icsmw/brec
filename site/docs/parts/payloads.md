@@ -1,7 +1,6 @@
-
 `brec` does not impose any restrictions on the type of data that can be defined as a payload. However, a payload must implement the following traits:
 
-If your payload needs runtime state during encoding or decoding, see [Payload Context](context.md).
+If your payload needs runtime state during encoding or decoding, see [Protocol Context](context.md).
 
 If your payload also needs transparent encryption and decryption, see [Crypt](../features/crypt.md).
 
@@ -9,31 +8,31 @@ If newer payload types may appear before all consumers are upgraded, see [Resili
 
 ### Required Traits
 
-| Trait                  | Method | Return Type | Description |
-|------------------------|--------|-------------|-------------|
-| `PayloadSchema`       | `type Context<'a>` | associated type | Defines the payload context passed to encoding and decoding operations. |
-| `PayloadSize`         | `size(&self, ctx: &mut Self::Context<'_>)` | `std::io::Result<u64>` | Returns the size of the payload body in bytes (excluding the header). |
-| `PayloadSignature`    | `sig(&self)` | `ByteBlock` | Returns the signature, which can have a variable length of 4, 8, 16, 32, 64, or 128 bytes. |
-| `StaticPayloadSignature` | `ssig()` | `ByteBlock` | Similar to `sig`, but can be called without creating a payload instance. |
-| `PayloadEncode`       | `encode(&self, ctx: &mut Self::Context<'_>)` | `std::io::Result<Vec<u8>>` | Creates a binary representation of the payload (excluding the header). |
-| `PayloadEncodeReferred` | `encode(&self, ctx: &mut Self::Context<'_>)` | `std::io::Result<Option<&[u8]>>` | Creates a reference representation of the payload, if possible. Used for calculation of payload CRC and can boost performance |
-| `PayloadDecode<T>`    | `decode(buf: &[u8], ctx: &mut Self::Context<'_>)` | `std::io::Result<T>` | Attempts to reconstruct the payload from a byte slice. |
+| Trait                    | Method                                            | Return Type                      | Description                                                                                                                   |
+| ------------------------ | ------------------------------------------------- | -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| `ProtocolSchema`         | `type Context<'a>` and size constants             | associated items                 | Defines the runtime context and protocol size limits used by payload and packet operations.                                  |
+| `PayloadSize`            | `size(&self, ctx: &mut Self::Context<'_>)`        | `std::io::Result<u64>`           | Returns the size of the payload body in bytes (excluding the header).                                                         |
+| `PayloadSignature`       | `sig(&self)`                                      | `ByteBlock`                      | Returns the signature, which can have a variable length of 4, 8, 16, 32, 64, or 128 bytes.                                    |
+| `StaticPayloadSignature` | `ssig()`                                          | `ByteBlock`                      | Similar to `sig`, but can be called without creating a payload instance.                                                      |
+| `PayloadEncode`          | `encode(&self, ctx: &mut Self::Context<'_>)`      | `std::io::Result<Vec<u8>>`       | Creates a binary representation of the payload (excluding the header).                                                        |
+| `PayloadEncodeReferred`  | `encode(&self, ctx: &mut Self::Context<'_>)`      | `std::io::Result<Option<&[u8]>>` | Creates a reference representation of the payload, if possible. Used for calculation of payload CRC and can boost performance |
+| `PayloadDecode<T>`       | `decode(buf: &[u8], ctx: &mut Self::Context<'_>)` | `std::io::Result<T>`             | Attempts to reconstruct the payload from a byte slice.                                                                        |
 
 ### Automatically Implemented Traits
 
 The following traits are automatically applied and do not require manual implementation, though they can be overridden if needed:
 
-| Trait                  | Method | Return Type | Description |
-|------------------------|--------|-------------|-------------|
-| `PayloadCrc`          | `crc(&self)` | `std::io::Result<ByteBlock>` | Returns the CRC of the payload, which can have a variable length of 4, 8, 16, 32, 64, or 128 bytes. |
-| `ReadPayloadFrom`     | `read<B: std::io::Read>(buf: &mut B, header: &PayloadHeader, ctx: &mut T::Context<'_>)` | `Result<T, Error>` | Reads the payload from a source. |
-| `TryReadPayloadFrom`  | `try_read<B: std::io::Read + std::io::Seek>(buf: &mut B, header: &PayloadHeader, ctx: &mut T::Context<'_>)` | `Result<ReadStatus<T>, Error>` | Attempts to read the payload from a source. If there is insufficient data, it returns a corresponding read status instead of an error. |
-| `TryReadPayloadFromBuffered` | `try_read<B: std::io::BufRead>(buf: &mut B, header: &PayloadHeader, ctx: &mut T::Context<'_>)` | `Result<ReadStatus<T>, Error>` | Similar to `TryReadPayloadFrom`, but operates on a buffered source. |
-| `WritePayloadWithHeaderTo` | `write<T: std::io::Write>(&mut self, buf: &mut T, ctx: &mut Self::Context<'_>)` | `std::io::Result<usize>` | Equivalent to the standard `write` method, returning the number of bytes written. Does not guarantee that data is flushed to the output, so calling `flush` is required if such guarantees are needed. |
-| `WritePayloadWithHeaderTo` | `write_all<T: std::io::Write>(&mut self, buf: &mut T, ctx: &mut Self::Context<'_>)` | `std::io::Result<()>` | Equivalent to the standard `write_all` method. |
-| `WriteVectoredPayloadWithHeaderTo` | `write_vectored<T: std::io::Write>(&mut self, buf: &mut T, ctx: &mut Self::Context<'_>)` | `std::io::Result<usize>` | Attempts a vectored write of the payload (analogous to the standard `write_vectored`). |
-| `WriteVectoredPayloadWithHeaderTo` | `slices(&mut self, ctx: &mut Self::Context<'_>)` | `std::io::Result<IoSlices>` | Returns the binary representation of the payload as slices. |
-| `WriteVectoredPayloadWithHeaderTo` | `write_vectored_all<T: std::io::Write>(&mut self, buf: &mut T, ctx: &mut Self::Context<'_>)` | `std::io::Result<()>` | Attempts a vectored write of the payload (analogous to the standard `write_vectored_all`). |
+| Trait                              | Method                                                                                                      | Return Type                    | Description                                                                                                                                                                                            |
+| ---------------------------------- | ----------------------------------------------------------------------------------------------------------- | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `PayloadCrc`                       | `crc(&self)`                                                                                                | `std::io::Result<ByteBlock>`   | Returns the CRC of the payload, which can have a variable length of 4, 8, 16, 32, 64, or 128 bytes.                                                                                                    |
+| `ReadPayloadFrom`                  | `read<B: std::io::Read>(buf: &mut B, header: &PayloadHeader, ctx: &mut T::Context<'_>)`                     | `Result<T, Error>`             | Reads the payload from a source.                                                                                                                                                                       |
+| `TryReadPayloadFrom`               | `try_read<B: std::io::Read + std::io::Seek>(buf: &mut B, header: &PayloadHeader, ctx: &mut T::Context<'_>)` | `Result<ReadStatus<T>, Error>` | Attempts to read the payload from a source. If there is insufficient data, it returns a corresponding read status instead of an error.                                                                 |
+| `TryReadPayloadFromBuffered`       | `try_read<B: std::io::BufRead>(buf: &mut B, header: &PayloadHeader, ctx: &mut T::Context<'_>)`              | `Result<ReadStatus<T>, Error>` | Similar to `TryReadPayloadFrom`, but operates on a buffered source.                                                                                                                                    |
+| `WritePayloadWithHeaderTo`         | `write<T: std::io::Write>(&mut self, buf: &mut T, ctx: &mut Self::Context<'_>)`                             | `std::io::Result<usize>`       | Equivalent to the standard `write` method, returning the number of bytes written. Does not guarantee that data is flushed to the output, so calling `flush` is required if such guarantees are needed. |
+| `WritePayloadWithHeaderTo`         | `write_all<T: std::io::Write>(&mut self, buf: &mut T, ctx: &mut Self::Context<'_>)`                         | `std::io::Result<()>`          | Equivalent to the standard `write_all` method.                                                                                                                                                         |
+| `WriteVectoredPayloadWithHeaderTo` | `write_vectored<T: std::io::Write>(&mut self, buf: &mut T, ctx: &mut Self::Context<'_>)`                    | `std::io::Result<usize>`       | Attempts a vectored write of the payload (analogous to the standard `write_vectored`).                                                                                                                 |
+| `WriteVectoredPayloadWithHeaderTo` | `slices(&mut self, ctx: &mut Self::Context<'_>)`                                                            | `std::io::Result<IoSlices>`    | Returns the binary representation of the payload as slices.                                                                                                                                            |
+| `WriteVectoredPayloadWithHeaderTo` | `write_vectored_all<T: std::io::Write>(&mut self, buf: &mut T, ctx: &mut Self::Context<'_>)`                | `std::io::Result<()>`          | Attempts a vectored write of the payload (analogous to the standard `write_vectored_all`).                                                                                                             |
 
 ### Payload Header (`PayloadHeader`)
 
@@ -41,11 +40,11 @@ The payload header is not a generated structure but a static one included in the
 
 `PayloadHeader` implements the following traits:
 
-| Trait               | Method | Return Type | Description |
-|---------------------|--------|-------------|-------------|
-| `ReadFrom`        | `read<T: std::io::Read>(buf: &mut T)` | `Result<Self, Error>` | Attempts to read `PayloadHeader` from a source. |
-| `TryReadFrom`     | `try_read<T: std::io::Read + std::io::Seek>(buf: &mut T)` | `Result<ReadStatus<Self>, Error>` | Attempts to read `PayloadHeader`, but if data is insufficient, returns a corresponding read status instead of an error. Also, moves the source's position only on successful reading; otherwise, it remains unchanged. |
-| `TryReadFromBuffered` | `try_read<T: std::io::BufRead>(reader: &mut T)` | `Result<ReadStatus<Self>, Error>` | Identical to `TryReadFrom`. |
+| Trait                 | Method                                                    | Return Type                       | Description                                                                                                                                                                                                            |
+| --------------------- | --------------------------------------------------------- | --------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ReadFrom`            | `read<T: std::io::Read, S: ProtocolSchema>(buf: &mut T)`                     | `Result<Self, Error>`             | Attempts to read `PayloadHeader` from a source and rejects payload lengths above `S::MAX_PAYLOAD_LEN`.                                                                                                                   |
+| `TryReadFrom`         | `try_read<T: std::io::Read + std::io::Seek, S: ProtocolSchema>(buf: &mut T)` | `Result<ReadStatus<Self>, Error>` | Attempts to read `PayloadHeader`, but if data is insufficient, returns a corresponding read status instead of an error. Also, moves the source's position only on successful reading; otherwise, it remains unchanged. |
+| `TryReadFromBuffered` | `try_read<T: std::io::BufRead, S: ProtocolSchema>(reader: &mut T)`           | `Result<ReadStatus<Self>, Error>` | Buffered variant of `TryReadFrom` with the same `S::MAX_PAYLOAD_LEN` validation.                                                                                                                                        |
 
 Thus, if you are manually implementing payload reading from a source, you should first read `PayloadHeader`, and then, using the obtained header, proceed to read the payload itself.
 
@@ -72,7 +71,7 @@ pub enum Payload {
 
 Enabling the `bincode` feature provides the simplest and most flexible way to define payload types. By specifying `#[payload(bincode)]`, any type that supports `serde` serialization and deserialization can be used as a `payload`.
 
-If you need manual payload implementations with a custom runtime context instead, see [Payload Context](context.md).
+If you need manual payload implementations with a custom runtime context instead, see [Protocol Context](context.md).
 
 If you need `bincode` payloads with transparent encryption, see [Crypt](../features/crypt.md).
 

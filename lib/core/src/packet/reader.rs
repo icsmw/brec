@@ -177,6 +177,9 @@ impl<
         &mut self,
         header: PacketHeader,
     ) -> Result<ResolveHeaderReady<B, P, Inner>, Error> {
+        if header.size > Inner::MAX_PACKET_LEN {
+            return Err(Error::InvalidLength);
+        }
         let buffer = self.inner.fill_buf()?;
         // Check do we have enough data to load packet
         let packet_size = header.size as usize;
@@ -229,6 +232,9 @@ impl<
         let header_len = PacketHeader::ssize() as usize;
         match status {
             PacketHeaderState::Found(header, sgmt) => {
+                if header.size > Inner::MAX_PACKET_LEN {
+                    return Err(Error::InvalidLength);
+                }
                 let header_start = *sgmt.start();
                 let header_end = *sgmt.end();
                 if header_start > 0 {
@@ -290,7 +296,9 @@ impl<
             inner: std::io::BufReader::new(inner),
             rules: RulesDef::default(),
             recent: HeaderReadState::Empty,
-            buffered: Vec::with_capacity(u32::MAX as usize),
+            buffered: Vec::with_capacity(
+                Inner::INITIAL_PACKET_BUFFER_CAPACITY.min(Inner::MAX_PAYLOAD_LEN as usize),
+            ),
         }
     }
 
@@ -313,7 +321,7 @@ impl<
     /// To continue reading, the user must call `read` on `PacketBufReaderDef` again to process more data.
     pub fn read(
         &mut self,
-        ctx: &mut <Inner as PayloadSchema>::Context<'_>,
+        ctx: &mut <Inner as ProtocolSchema>::Context<'_>,
     ) -> Result<NextPacket<B, P, Inner>, Error> {
         let recent = std::mem::replace(&mut self.recent, HeaderReadState::Empty);
         let (packet_buffer, header, consume) = match recent {
@@ -367,6 +375,9 @@ impl<
                         return Ok(NextPacket::NotEnoughData(needed));
                     }
                     PacketHeaderState::Found(header, sgmt) => {
+                        if header.size > Inner::MAX_PACKET_LEN {
+                            return Err(Error::InvalidLength);
+                        }
                         // PacketDef header has been found
                         if sgmt.start() > &0 {
                             self.rules.ignore(&buffer[..*sgmt.start()])?;
@@ -430,16 +441,20 @@ impl<
         // Loading payload if exists
         let pkg = if header.payload {
             let mut payload_buffer = &packet_buffer[blocks_len..];
-            match <PayloadHeader as TryReadFromBuffered>::try_read(&mut payload_buffer) {
-                Ok(ReadStatus::Success(header)) => {
-                    let mut payload_buffer = &packet_buffer[blocks_len + header.size()..];
+            match <PayloadHeader as TryReadFromBuffered>::try_read::<_, Inner>(&mut payload_buffer)
+            {
+                Ok(ReadStatus::Success(payload_header)) => {
+                    if let Err(err) = header.validate_payload(&payload_header) {
+                        return self.drop_and_consume(consume, Err(err));
+                    }
+                    let mut payload_buffer = &packet_buffer[blocks_len + payload_header.size()..];
                     if !self.rules.filter_payload(payload_buffer) {
                         // PacketDef marked as ignored
                         return self.drop_and_consume(consume, Ok(NextPacket::Skipped));
                     }
                     match <P as TryExtractPayloadFromBuffered<Inner>>::try_read(
                         &mut payload_buffer,
-                        &header,
+                        &payload_header,
                         ctx,
                     )? {
                         ReadStatus::Success(payload) => PacketDef::new(
@@ -568,6 +583,38 @@ mod tests {
             reader.read(&mut ()).expect("second read"),
             NextPacket::NoData
         ));
+    }
+
+    #[test]
+    fn read_detects_payload_length_outside_packet_before_extracting_payload() {
+        let payload_header = PayloadHeader {
+            sig: ByteBlock::Len4(*b"ABCD"),
+            crc: ByteBlock::Len4([1, 2, 3, 4]),
+            len: 1,
+        };
+        let packet_header = PacketHeader::from_lengths(0, payload_header.size() as u64, true);
+        let mut bytes = Vec::new();
+        packet_header
+            .write_all(&mut bytes)
+            .expect("packet header write");
+        bytes.extend_from_slice(&payload_header.as_vec());
+
+        let mut input = Cursor::new(bytes);
+        let mut reader = ReaderUnderTest::new(&mut input);
+        assert!(matches!(reader.read(&mut ()), Err(Error::InvalidLength)));
+    }
+
+    #[test]
+    fn read_rejects_packet_size_larger_than_schema_max_before_buffering_body() {
+        let packet_header = PacketHeader::from_lengths(TestPayload::MAX_PACKET_LEN + 1, 0, false);
+        let mut bytes = Vec::new();
+        packet_header
+            .write_all(&mut bytes)
+            .expect("packet header write");
+
+        let mut input = Cursor::new(bytes);
+        let mut reader = ReaderUnderTest::new(&mut input);
+        assert!(matches!(reader.read(&mut ()), Err(Error::InvalidLength)));
     }
 
     #[test]

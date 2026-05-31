@@ -28,8 +28,8 @@ impl StaticPayloadSignature for Vec<u8> {
     }
 }
 
-impl PayloadSchema for Vec<u8> {
-    type Context<'a> = DefaultPayloadContext;
+impl ProtocolSchema for Vec<u8> {
+    type Context<'a> = DefaultProtocolContext;
 }
 
 impl PayloadEncode for Vec<u8> {
@@ -83,7 +83,8 @@ mod tests {
         assert!(encoded.len() > header.payload_len());
 
         let mut cursor = Cursor::new(encoded);
-        let parsed = <PayloadHeader as ReadFrom>::read(&mut cursor).expect("header must parse");
+        let parsed = <PayloadHeader as ReadFrom>::read::<_, Vec<u8>>(&mut cursor)
+            .expect("header must parse");
         let restored = <Vec<u8> as ReadPayloadFrom<Vec<u8>>>::read(
             &mut cursor,
             &parsed,

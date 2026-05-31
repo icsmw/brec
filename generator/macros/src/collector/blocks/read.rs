@@ -22,7 +22,7 @@ pub fn read_from(blocks: &[&Block]) -> Result<TokenStream, E> {
     }
     Ok(quote! {
         impl brec::ReadFrom for Block {
-            fn read<T: std::io::Read>(buf: &mut T) -> Result<Self, brec::Error> {
+            fn read<T: std::io::Read, S: brec::ProtocolSchema>(buf: &mut T) -> Result<Self, brec::Error> {
                 #(#variants)*
                 Err(brec::Error::SignatureDismatch(
                     brec::Unrecognized::block_from(buf)?
@@ -89,7 +89,7 @@ pub fn try_read_from(blocks: &[&Block]) -> Result<TokenStream, E> {
         let fullname = blk.fullname()?;
         let fullpath = blk.fullpath()?;
         variants.push(quote! {
-            match <#fullpath as brec::TryReadFrom>::try_read(buf) {
+            match <#fullpath as brec::TryReadFrom>::try_read::<_, S>(buf) {
                 Ok(brec::ReadStatus::Success(blk)) => {
                     return Ok(brec::ReadStatus::Success(Block::#fullname(blk)))
                 }
@@ -136,7 +136,7 @@ pub fn try_read_from(blocks: &[&Block]) -> Result<TokenStream, E> {
     };
     Ok(quote! {
         impl brec::TryReadFrom for Block {
-            fn try_read<T: std::io::Read + std::io::Seek>(buf: &mut T) -> Result<brec::ReadStatus<Self>, brec::Error> {
+            fn try_read<T: std::io::Read + std::io::Seek, S: brec::ProtocolSchema>(buf: &mut T) -> Result<brec::ReadStatus<Self>, brec::Error> {
                 #(#variants)*
                 #tail
             }
@@ -150,7 +150,7 @@ pub fn try_read_from_buffered(blocks: &[&Block]) -> Result<TokenStream, E> {
         let fullname = blk.fullname()?;
         let fullpath = blk.fullpath()?;
         variants.push(quote! {
-            match <#fullpath as brec::TryReadFromBuffered>::try_read(buf) {
+            match <#fullpath as brec::TryReadFromBuffered>::try_read::<_, S>(buf) {
                 Ok(brec::ReadStatus::Success(blk)) => {
                     return Ok(brec::ReadStatus::Success(Block::#fullname(blk)))
                 }
@@ -168,7 +168,7 @@ pub fn try_read_from_buffered(blocks: &[&Block]) -> Result<TokenStream, E> {
 
     Ok(quote! {
         impl brec::TryReadFromBuffered for Block {
-            fn try_read<T: std::io::BufRead>(buf: &mut T) -> Result<brec::ReadStatus<Self>, brec::Error> {
+            fn try_read<T: std::io::BufRead, S: brec::ProtocolSchema>(buf: &mut T) -> Result<brec::ReadStatus<Self>, brec::Error> {
                 #(#variants)*
 
                 brec::Unrecognized::block_from_buffer(buf).map_or_else(

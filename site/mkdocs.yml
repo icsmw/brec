@@ -11,7 +11,7 @@ nav:
   - Protocol Parts:
       - Blocks: parts/blocks.md
       - Payloads: parts/payloads.md
-      - Payload Context: parts/context.md
+      - Protocol Context: parts/context.md
       - Packets: parts/packets.md
   - Features:
       - Resilient Compatibility: features/resilient.md

@@ -12,7 +12,7 @@ impl<B: BlockDef + JavaObject, P: PayloadDef<Inner>, Inner: PayloadInnerDef + Ja
     pub fn decode_java<'local>(
         env: &mut Env<'local>,
         bytes: &[u8],
-        ctx: &mut <Inner as PayloadSchema>::Context<'_>,
+        ctx: &mut <Inner as ProtocolSchema>::Context<'_>,
     ) -> Result<JObject<'local>, Error> {
         let mut cursor = std::io::Cursor::new(bytes);
         let packet = <Self as ReadPacketFrom>::read(&mut cursor, ctx)?;
@@ -28,7 +28,7 @@ impl<B: BlockDef + JavaObject, P: PayloadDef<Inner>, Inner: PayloadInnerDef + Ja
         env: &mut Env<'local>,
         value: JObject<'local>,
         out: &mut Vec<u8>,
-        ctx: &mut <Inner as PayloadSchema>::Context<'_>,
+        ctx: &mut <Inner as ProtocolSchema>::Context<'_>,
     ) -> Result<(), Error> {
         let (blocks, payload) = from_java_object::<B, Inner>(env, value)?;
         let mut packet = Self::new(blocks, payload);

@@ -56,7 +56,7 @@ impl<
         let mut offset = 0;
         loop {
             self.inner.seek(std::io::SeekFrom::Start(offset))?;
-            match <Slot as TryReadFrom>::try_read(&mut self.inner) {
+            match <Slot as TryReadFrom>::try_read::<_, ()>(&mut self.inner) {
                 Ok(ReadStatus::Success(slot)) => {
                     let position = offset;
                     offset += slot.size() + slot.width();
@@ -103,7 +103,7 @@ impl<
         let origin_source_pos = source_pos;
         loop {
             self.inner.seek(std::io::SeekFrom::Start(source_pos))?;
-            match <Slot as TryReadFrom>::try_read(&mut self.inner) {
+            match <Slot as TryReadFrom>::try_read::<_, ()>(&mut self.inner) {
                 Ok(ReadStatus::Success(slot)) => {
                     if let Some((_, _, crc)) = last
                         && source_pos == origin_source_pos
@@ -212,7 +212,7 @@ impl<
     /// * `ReaderIterator` yielding `Result<PacketDef<..>, Error>`
     pub fn iter<'a>(
         &'a mut self,
-        ctx: &'a mut <Inner as PayloadSchema>::Context<'a>,
+        ctx: &'a mut <Inner as ProtocolSchema>::Context<'a>,
     ) -> ReaderIterator<'a, impl Iterator<Item = &'a Slot>, S, B, P, Inner> {
         ReaderIterator::new(
             &mut self.inner,
@@ -225,7 +225,7 @@ impl<
     pub fn seek<'a>(
         &'a mut self,
         packet: usize,
-        ctx: &'a mut <Inner as PayloadSchema>::Context<'a>,
+        ctx: &'a mut <Inner as ProtocolSchema>::Context<'a>,
     ) -> Result<ReaderIterator<'a, impl Iterator<Item = &'a Slot>, S, B, P, Inner>, Error> {
         ReaderIterator::new(
             &mut self.inner,
@@ -241,7 +241,7 @@ impl<
     /// * `ReaderFilteredIterator` yielding packets that pass rules
     pub fn filtered<'a>(
         &'a mut self,
-        ctx: &'a mut <Inner as PayloadSchema>::Context<'a>,
+        ctx: &'a mut <Inner as ProtocolSchema>::Context<'a>,
     ) -> ReaderFilteredIterator<'a, impl Iterator<Item = &'a Slot>, S, B, BR, P, Inner> {
         ReaderFilteredIterator::new(
             &mut self.inner,
@@ -263,7 +263,7 @@ impl<
     pub fn nth(
         &mut self,
         nth: usize,
-        ctx: &mut <Inner as PayloadSchema>::Context<'_>,
+        ctx: &mut <Inner as ProtocolSchema>::Context<'_>,
     ) -> Result<Option<PacketDef<B, P, Inner>>, Error> {
         let slot_index = nth / DEFAULT_SLOT_CAPACITY;
         let index_in_slot = nth % DEFAULT_SLOT_CAPACITY;
@@ -302,7 +302,7 @@ impl<
         &'a mut self,
         from: usize,
         len: usize,
-        ctx: &'a mut <Inner as PayloadSchema>::Context<'a>,
+        ctx: &'a mut <Inner as ProtocolSchema>::Context<'a>,
     ) -> ReaderRangeIterator<'a, S, B, BR, P, Inner> {
         ReaderRangeIterator::new(self, from, len, ctx)
     }
@@ -319,7 +319,7 @@ impl<
         &'a mut self,
         from: usize,
         len: usize,
-        ctx: &'a mut <Inner as PayloadSchema>::Context<'a>,
+        ctx: &'a mut <Inner as ProtocolSchema>::Context<'a>,
     ) -> ReaderRangeFilteredIterator<'a, S, B, BR, P, Inner> {
         ReaderRangeFilteredIterator::new(self, from, len, ctx)
     }
@@ -340,7 +340,7 @@ impl<
     pub(crate) fn nth_filtered(
         &mut self,
         from: usize,
-        ctx: &mut <Inner as PayloadSchema>::Context<'_>,
+        ctx: &mut <Inner as ProtocolSchema>::Context<'_>,
     ) -> Result<NthFilteredPacket<B, P, Inner>, Error> {
         let slot_index = from / DEFAULT_SLOT_CAPACITY;
         let index_in_slot = from % DEFAULT_SLOT_CAPACITY;

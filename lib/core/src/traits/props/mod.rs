@@ -94,16 +94,16 @@ pub trait PayloadSize: PayloadEncoded {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{PayloadEncode, PayloadEncodeReferred, PayloadSchema};
+    use crate::{PayloadEncode, PayloadEncodeReferred, ProtocolSchema};
 
     struct DemoPayload(Vec<u8>);
     struct OwnedOnlyPayload(Vec<u8>);
 
-    impl PayloadSchema for DemoPayload {
+    impl ProtocolSchema for DemoPayload {
         type Context<'a> = ();
     }
 
-    impl PayloadSchema for OwnedOnlyPayload {
+    impl ProtocolSchema for OwnedOnlyPayload {
         type Context<'a> = ();
     }
 

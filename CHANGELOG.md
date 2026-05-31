@@ -1,3 +1,30 @@
+## 0.5.0 (31.05.2026)
+
+### Breaking Changes
+
+- Renamed the generated runtime context and schema API from payload-scoped names to protocol-scoped names:
+  `PayloadContext` is now `ProtocolContext`, and `PayloadSchema` is now `ProtocolSchema`.
+- Updated payload and packet header read APIs to validate against `ProtocolSchema` limits while reading.
+
+### Added
+
+- Added protocol size limits to `ProtocolSchema`:
+  `MAX_PAYLOAD_LEN`, `MAX_PACKET_LEN`, and `INITIAL_PACKET_BUFFER_CAPACITY`.
+- Added `brec::generate!` settings for generated protocol limits:
+  `default_max_payload_len`, `default_max_packet_len`, and `default_initial_packet_buffer_capacity`.
+- Added packet-size validation before packet bodies are buffered or decoded.
+- Added generated protocol limit coverage for protocols with built-in payloads only and with user-defined payloads.
+
+### Changes
+
+- Moved payload length validation into `PayloadHeader` readers so parsed headers are validated at the boundary.
+- Updated generated block, payload, packet, crypt, resilient, storage, and integration code to use `ProtocolSchema`.
+- Updated documentation and examples to describe `ProtocolContext`, `ProtocolSchema`, and protocol size limits.
+
+### Fixes
+
+- Fixed generated `MAX_PACKET_LEN` constants from `brec::generate!` custom settings so integer values are emitted as `u64`.
+
 ## 0.4.0 (25.05.2026)
 
 ### Added

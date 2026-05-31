@@ -119,10 +119,10 @@ pub fn generate_impl(payloads: &[&Payload], cfg: &Config) -> Result<TokenStream,
 
             pub fn decode_wasm(
                 bytes: &[u8],
-                ctx: &mut crate::PayloadContext<'_>,
+                ctx: &mut crate::ProtocolContext<'_>,
             ) -> Result<wasm_bindgen::JsValue, brec::Error> {
                 let mut cursor = std::io::Cursor::new(bytes);
-                let header = <brec::PayloadHeader as brec::ReadFrom>::read(&mut cursor)?;
+                let header = <brec::PayloadHeader as brec::ReadFrom>::read::<_, crate::Payload>(&mut cursor)?;
                 let payload = <Payload as brec::ExtractPayloadFrom<Payload>>::read(&mut cursor, &header, ctx)?;
                 Ok(payload.to_wasm_object()?)
             }
@@ -130,7 +130,7 @@ pub fn generate_impl(payloads: &[&Payload], cfg: &Config) -> Result<TokenStream,
             pub fn encode_wasm(
                 value: wasm_bindgen::JsValue,
                 out: &mut Vec<u8>,
-                ctx: &mut crate::PayloadContext<'_>,
+                ctx: &mut crate::ProtocolContext<'_>,
             ) -> Result<(), brec::Error> {
                 let mut payload = Payload::from_wasm_object(value)?;
                 brec::WriteMutTo::write_all(&mut payload, out, ctx)?;

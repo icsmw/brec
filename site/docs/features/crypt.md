@@ -7,7 +7,7 @@ The feature is payload-oriented:
 - packet structure stays the same
 - blocks are not encrypted
 - only the payload body is encrypted
-- encryption/decryption is driven through `PayloadContext`
+- encryption/decryption is driven through `ProtocolContext`
 
 This means the integration point is small: you keep using `Packet`, `PacketBufReader`, `Writer`, `Reader`, and the payload itself, but the payload is declared with crypto support and read/write operations receive crypto options.
 
@@ -73,7 +73,7 @@ If your payload uses `#[payload(bincode, crypt)]`, you need both:
 
 With `bincode`, the payload gets automatic encode/decode support, so you do not have to manually implement the payload traits just to use encryption.
 
-If you need the runtime-state side of this model first, see [Payload Context](../parts/context.md).
+If you need the runtime-state side of this model first, see [Protocol Context](../parts/context.md).
 
 ## Core idea
 
@@ -86,13 +86,13 @@ pub struct MyPayload {
 }
 ```
 
-the generated crate-local `PayloadContext<'a>` gets crypto variants.
+the generated crate-local `ProtocolContext<'a>` gets crypto variants.
 
 In practice, you pass one of these at the operation boundary:
 
 ```rust
-let mut encrypt = PayloadContext::Encrypt(&mut encrypt_options);
-let mut decrypt = PayloadContext::Decrypt(&mut decrypt_options);
+let mut encrypt = ProtocolContext::Encrypt(&mut encrypt_options);
+let mut decrypt = ProtocolContext::Decrypt(&mut decrypt_options);
 ```
 
 So the mental model is simple:
@@ -103,7 +103,7 @@ So the mental model is simple:
 
 This does not create a conflict for mixed protocols.
 
-- encrypted payloads read `PayloadContext::Encrypt(...)` / `PayloadContext::Decrypt(...)`
+- encrypted payloads read `ProtocolContext::Encrypt(...)` / `ProtocolContext::Decrypt(...)`
 - non-encrypted payloads may coexist in the same generated payload family
 - plain `#[payload(bincode)]` payloads simply do not use the crypto options stored in the context enum
 
@@ -151,14 +151,14 @@ fn usage() -> Result<GreetingPayload, Box<dyn std::error::Error>> {
 
     let mut encrypt = EncryptOptions::from_public_key_pem(PUBLIC_KEY_PEM)?
         .with_key_id(KEY_ID.to_vec());
-    let mut encrypt_ctx = PayloadContext::Encrypt(&mut encrypt);
+    let mut encrypt_ctx = ProtocolContext::Encrypt(&mut encrypt);
 
     let mut bytes = Vec::new();
     packet.write_all(&mut bytes, &mut encrypt_ctx)?;
 
     let mut decrypt = DecryptOptions::from_private_key_pem(PRIVATE_KEY_PEM)?
         .with_expected_key_id(KEY_ID.to_vec());
-    let mut decrypt_ctx = PayloadContext::Decrypt(&mut decrypt);
+    let mut decrypt_ctx = ProtocolContext::Decrypt(&mut decrypt);
 
     let mut source = Cursor::new(bytes.as_slice());
     let mut reader = PacketBufReader::new(&mut source);

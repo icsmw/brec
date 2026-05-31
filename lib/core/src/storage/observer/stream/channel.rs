@@ -86,7 +86,7 @@ impl<
     O: Send + Sync + 'static,
 > ObserverStreamState<B, BR, P, Inner, O>
 where
-    for<'a> Inner: PayloadSchema<Context<'a> = O>,
+    for<'a> Inner: ProtocolSchema<Context<'a> = O>,
 {
     /// Creates the internal observer and wires it to the channel-backed stream
     /// adapter.
@@ -115,7 +115,7 @@ where
 mod tests {
     use super::{ObserverStreamState, StreamSubscription};
     use crate::{
-        DefaultPayloadContext, Error, FileObserverEvent, PacketDef, SubscriptionDef,
+        DefaultProtocolContext, Error, FileObserverEvent, PacketDef, SubscriptionDef,
         SubscriptionErrorAction, SubscriptionUpdate,
         tests::{TestBlock, TestPayload},
     };
@@ -127,7 +127,7 @@ mod tests {
     fn stream_subscription_maps_callbacks_to_events() {
         let (tx, mut rx) = mpsc::unbounded_channel();
         let mut sub =
-            StreamSubscription::<TestBlock, TestPayload, TestPayload, DefaultPayloadContext> {
+            StreamSubscription::<TestBlock, TestPayload, TestPayload, DefaultProtocolContext> {
                 tx,
                 _phantom: PhantomData,
             };
@@ -136,13 +136,13 @@ mod tests {
             TestBlock,
             TestPayload,
             TestPayload,
-            DefaultPayloadContext,
+            DefaultProtocolContext,
         > as SubscriptionDef<
             TestBlock,
             TestBlock,
             TestPayload,
             TestPayload,
-            DefaultPayloadContext,
+            DefaultProtocolContext,
         >>::on_update(&mut sub, 7, 3);
         assert_eq!(update, SubscriptionUpdate::Read);
         assert!(
@@ -158,13 +158,13 @@ mod tests {
             TestBlock,
             TestPayload,
             TestPayload,
-            DefaultPayloadContext,
+            DefaultProtocolContext,
         > as SubscriptionDef<
             TestBlock,
             TestBlock,
             TestPayload,
             TestPayload,
-            DefaultPayloadContext,
+            DefaultProtocolContext,
         >>::on_packet(&mut sub, packet);
         assert!(
             matches!(
@@ -178,13 +178,13 @@ mod tests {
             TestBlock,
             TestPayload,
             TestPayload,
-            DefaultPayloadContext,
+            DefaultProtocolContext,
         > as SubscriptionDef<
             TestBlock,
             TestBlock,
             TestPayload,
             TestPayload,
-            DefaultPayloadContext,
+            DefaultProtocolContext,
         >>::on_error(&mut sub, &Error::Test);
         assert_eq!(action, SubscriptionErrorAction::Continue);
         match rx.try_recv().expect("expected error event") {
@@ -199,13 +199,13 @@ mod tests {
             TestBlock,
             TestPayload,
             TestPayload,
-            DefaultPayloadContext,
+            DefaultProtocolContext,
         > as SubscriptionDef<
             TestBlock,
             TestBlock,
             TestPayload,
             TestPayload,
-            DefaultPayloadContext,
+            DefaultProtocolContext,
         >>::on_stopped(&mut sub, Some(Error::Test));
         assert!(
             matches!(
@@ -219,13 +219,13 @@ mod tests {
             TestBlock,
             TestPayload,
             TestPayload,
-            DefaultPayloadContext,
+            DefaultProtocolContext,
         > as SubscriptionDef<
             TestBlock,
             TestBlock,
             TestPayload,
             TestPayload,
-            DefaultPayloadContext,
+            DefaultProtocolContext,
         >>::on_aborted(&mut sub);
         assert!(
             matches!(
@@ -243,7 +243,7 @@ mod tests {
         drop(rx);
 
         let mut sub =
-            StreamSubscription::<TestBlock, TestPayload, TestPayload, DefaultPayloadContext> {
+            StreamSubscription::<TestBlock, TestPayload, TestPayload, DefaultProtocolContext> {
                 tx,
                 _phantom: PhantomData,
             };
@@ -253,13 +253,13 @@ mod tests {
                 TestBlock,
                 TestPayload,
                 TestPayload,
-                DefaultPayloadContext,
+                DefaultProtocolContext,
             > as SubscriptionDef<
                 TestBlock,
                 TestBlock,
                 TestPayload,
                 TestPayload,
-                DefaultPayloadContext,
+                DefaultProtocolContext,
             >>::on_update(&mut sub, 1, 1),
             SubscriptionUpdate::Read
         );
@@ -267,26 +267,26 @@ mod tests {
             TestBlock,
             TestPayload,
             TestPayload,
-            DefaultPayloadContext,
+            DefaultProtocolContext,
         > as SubscriptionDef<
             TestBlock,
             TestBlock,
             TestPayload,
             TestPayload,
-            DefaultPayloadContext,
+            DefaultProtocolContext,
         >>::on_packet(&mut sub, PacketDef::<TestBlock, TestPayload, TestPayload>::default());
         assert_eq!(
             <StreamSubscription<
                 TestBlock,
                 TestPayload,
                 TestPayload,
-                DefaultPayloadContext,
+                DefaultProtocolContext,
             > as SubscriptionDef<
                 TestBlock,
                 TestBlock,
                 TestPayload,
                 TestPayload,
-                DefaultPayloadContext,
+                DefaultProtocolContext,
             >>::on_error(&mut sub, &Error::Test),
             SubscriptionErrorAction::Continue
         );
@@ -294,25 +294,25 @@ mod tests {
             TestBlock,
             TestPayload,
             TestPayload,
-            DefaultPayloadContext,
+            DefaultProtocolContext,
         > as SubscriptionDef<
             TestBlock,
             TestBlock,
             TestPayload,
             TestPayload,
-            DefaultPayloadContext,
+            DefaultProtocolContext,
         >>::on_stopped(&mut sub, None);
         <StreamSubscription<
             TestBlock,
             TestPayload,
             TestPayload,
-            DefaultPayloadContext,
+            DefaultProtocolContext,
         > as SubscriptionDef<
             TestBlock,
             TestBlock,
             TestPayload,
             TestPayload,
-            DefaultPayloadContext,
+            DefaultProtocolContext,
         >>::on_aborted(&mut sub);
     }
 
@@ -324,7 +324,7 @@ mod tests {
             TestBlock,
             TestPayload,
             TestPayload,
-            DefaultPayloadContext,
+            DefaultProtocolContext,
         >::new(missing, ());
         assert!(state.is_err());
     }
@@ -337,7 +337,7 @@ mod tests {
             TestBlock,
             TestPayload,
             TestPayload,
-            DefaultPayloadContext,
+            DefaultProtocolContext,
         >::new(file.path(), ())
         .expect("state must be created for existing file");
 

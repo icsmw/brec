@@ -7,7 +7,7 @@ impl<B: BlockDef + WasmObject, P: PayloadDef<Inner>, Inner: PayloadInnerDef + Wa
     /// Reads packet bytes and converts to JS object.
     pub fn decode_wasm(
         bytes: &[u8],
-        ctx: &mut <Inner as PayloadSchema>::Context<'_>,
+        ctx: &mut <Inner as ProtocolSchema>::Context<'_>,
     ) -> Result<JsValue, Error> {
         let mut cursor = std::io::Cursor::new(bytes);
         let packet = <Self as ReadPacketFrom>::read(&mut cursor, ctx)?;
@@ -18,7 +18,7 @@ impl<B: BlockDef + WasmObject, P: PayloadDef<Inner>, Inner: PayloadInnerDef + Wa
     pub fn encode_wasm(
         value: JsValue,
         out: &mut Vec<u8>,
-        ctx: &mut <Inner as PayloadSchema>::Context<'_>,
+        ctx: &mut <Inner as ProtocolSchema>::Context<'_>,
     ) -> Result<(), Error> {
         let (blocks, payload) = from_wasm_object::<B, Inner>(value)?;
         let mut packet = Self::new(blocks, payload);

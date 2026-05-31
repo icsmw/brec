@@ -52,6 +52,24 @@ impl PacketHeader {
         + std::mem::size_of::<u32>()
     ) as u64;
 
+    /// Validates that a serialized payload frame fits into this packet.
+    ///
+    /// `PayloadHeader` readers validate protocol limits such as `MAX_PAYLOAD_LEN`.
+    /// This method checks only the packet-level boundary: payload header plus
+    /// payload body must fit into `size - blocks_len`.
+    pub fn validate_payload(&self, payload_header: &PayloadHeader) -> Result<(), Error> {
+        if self.blocks_len > self.size {
+            return Err(Error::InvalidLength);
+        }
+
+        let payload_total = payload_header.size() as u64 + payload_header.payload_len() as u64;
+        let packet_payload_left = self.size - self.blocks_len;
+        if payload_total > packet_payload_left {
+            return Err(Error::InvalidLength);
+        }
+        Ok(())
+    }
+
     pub(crate) fn from_lengths(blocks_len: u64, payload_len: u64, has_payload: bool) -> Self {
         let size = blocks_len + payload_len;
         let mut hasher = crc32fast::Hasher::new();
@@ -82,7 +100,7 @@ impl PacketHeader {
     pub fn new<B: BlockDef, Inner: PayloadInnerDef>(
         blocks: &[B],
         payload: Option<&Inner>,
-        ctx: &mut <Inner as PayloadSchema>::Context<'_>,
+        ctx: &mut <Inner as ProtocolSchema>::Context<'_>,
     ) -> std::io::Result<Self> {
         let blocks_len: u64 = blocks.iter().map(|blk| blk.size()).sum();
         let payload_len: u64 = payload
@@ -105,7 +123,7 @@ impl PacketHeader {
     /// The total payload size in bytes (`header + body`), or an error if size calculation fails.
     pub fn payload_size<Inner: PayloadInnerDef>(
         payload: &Inner,
-        ctx: &mut <Inner as PayloadSchema>::Context<'_>,
+        ctx: &mut <Inner as ProtocolSchema>::Context<'_>,
     ) -> std::io::Result<u64> {
         let payload_header_len: u64 = PayloadHeader::ssize::<Inner>(payload).map(|s| s as u64)?;
         let payload_body_len: u64 = payload.size(ctx)?;

@@ -1,7 +1,7 @@
 use crate::test::*;
 use crate::*;
 use std::{
-    fs::{File, metadata},
+    fs::{metadata, File},
     time::Instant,
 };
 
@@ -11,7 +11,13 @@ pub fn create_file(
     count: usize,
     filename: &str,
 ) -> std::io::Result<()> {
-    create_file_for_platform(payload, packets, count, filename, report::Platform::BrecStorage)
+    create_file_for_platform(
+        payload,
+        packets,
+        count,
+        filename,
+        report::Platform::BrecStorage,
+    )
 }
 
 pub(crate) fn create_file_for_platform(
@@ -37,7 +43,7 @@ pub(crate) fn create_file_for_platform(
         .open(&tmp)?;
     let mut storage = Writer::new(&mut file)
         .map_err(|err| std::io::Error::new(std::io::ErrorKind::InvalidData, err.to_string()))?;
-    let mut ctx = PayloadContext::None;
+    let mut ctx = ProtocolContext::None;
     while count > 0 {
         for packet in packets.iter() {
             storage.insert(packet.into(), &mut ctx).map_err(|err| {
@@ -109,7 +115,7 @@ pub(crate) fn create_file_crypt_for_platform(
     let mut encrypt = tests::crypt::encrypt_options(session_reuse_limit, decrypt_cache_limit);
     let mut storage = Writer::new(&mut file)
         .map_err(|err| std::io::Error::new(std::io::ErrorKind::InvalidData, err.to_string()))?;
-    let mut encrypt_ctx = PayloadContext::Encrypt(&mut encrypt);
+    let mut encrypt_ctx = ProtocolContext::Encrypt(&mut encrypt);
     while count > 0 {
         for packet in packets.iter() {
             storage
@@ -146,7 +152,7 @@ pub fn read_file(payload: report::PayloadKind, filename: &str) -> std::io::Resul
     let mut file: File = File::open(tmp)?;
     let mut storage = Reader::new(&mut file)
         .map_err(|err| std::io::Error::new(std::io::ErrorKind::InvalidData, err.to_string()))?;
-    let mut ctx = PayloadContext::None;
+    let mut ctx = ProtocolContext::None;
     let mut count = 0;
     for packet in storage.iter(&mut ctx) {
         match packet {
@@ -193,7 +199,7 @@ pub fn read_file_borrowed(
     let mut file: File = File::open(tmp)?;
     let mut storage = Reader::new(&mut file)
         .map_err(|err| std::io::Error::new(std::io::ErrorKind::InvalidData, err.to_string()))?;
-    let mut ctx = PayloadContext::None;
+    let mut ctx = ProtocolContext::None;
     let mut count = 0usize;
     for packet in storage.iter(&mut ctx) {
         match packet {
@@ -239,7 +245,7 @@ pub fn read_file_crypt(
     let mut decrypt = tests::crypt::decrypt_options(session_reuse_limit, decrypt_cache_limit);
     let mut storage = Reader::new(&mut file)
         .map_err(|err| std::io::Error::new(std::io::ErrorKind::InvalidData, err.to_string()))?;
-    let mut decrypt_ctx = PayloadContext::Decrypt(&mut decrypt);
+    let mut decrypt_ctx = ProtocolContext::Decrypt(&mut decrypt);
     let mut count = 0;
     for packet in storage.iter(&mut decrypt_ctx) {
         match packet {
@@ -296,7 +302,7 @@ pub fn filter_file(payload: report::PayloadKind, filename: &str) -> std::io::Res
             tests::is_match_packet,
         ))))
         .unwrap();
-    let mut ctx = PayloadContext::None;
+    let mut ctx = ProtocolContext::None;
     let mut count = 0;
     for packet in storage.filtered(&mut ctx) {
         match packet {
@@ -353,7 +359,7 @@ pub fn filter_file_crypt(
             tests::is_match_packet,
         ))))
         .unwrap();
-    let mut decrypt_ctx = PayloadContext::Decrypt(&mut decrypt);
+    let mut decrypt_ctx = ProtocolContext::Decrypt(&mut decrypt);
     let mut count = 0;
     for packet in storage.filtered(&mut decrypt_ctx) {
         match packet {

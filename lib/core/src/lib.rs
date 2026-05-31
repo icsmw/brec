@@ -16,6 +16,15 @@ extern crate brec_macros;
 /// Maximum number of blocks allowed in a single packet.
 pub const MAX_BLOCKS_COUNT: u8 = u8::MAX;
 
+/// Default maximum payload body length accepted by generated protocols.
+pub const DEFAULT_MAX_PAYLOAD_LEN: u32 = 1024 * 1024;
+
+/// Default maximum packet body length accepted by generated protocols.
+pub const DEFAULT_MAX_PACKET_LEN: u64 = (DEFAULT_MAX_PAYLOAD_LEN as u64) * 2;
+
+/// Default initial allocation used by packet buffer readers.
+pub const DEFAULT_INITIAL_PACKET_BUFFER_CAPACITY: usize = 64 * 1024;
+
 /// Shared error types used across the crate.
 pub mod error;
 /// Feature-gated integration helpers for C#, Node.js, WASM, and Java bridges.
@@ -50,8 +59,8 @@ pub use crc32fast;
 #[cfg(feature = "crypt")]
 pub use crypt::{CryptAlgorithm, CryptCodec, CryptEnvelopeRecord};
 pub use payload::{
-    DefaultPayloadContext, PayloadDecode, PayloadEncode, PayloadEncodeReferred, PayloadHeader,
-    PayloadHooks, PayloadSchema, default_payload_context,
+    DefaultProtocolContext, PayloadDecode, PayloadEncode, PayloadEncodeReferred, PayloadHeader,
+    PayloadHooks, ProtocolSchema, default_payload_context,
 };
 pub use storage::*;
 

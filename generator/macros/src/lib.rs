@@ -175,7 +175,7 @@ pub fn block(attr: TokenStream, input: TokenStream) -> TokenStream {
 /// pub enum MyPayloadEnum { ... }
 /// ```
 ///
-/// The generated payload schema uses the crate-local `PayloadContext<'a>` type that is later emitted
+/// The generated protocol schema uses the crate-local `ProtocolContext<'a>` type that is later emitted
 /// by `brec::generate!()`.
 ///
 /// ## Using `#[payload(ctx)]`
@@ -185,7 +185,7 @@ pub fn block(attr: TokenStream, input: TokenStream) -> TokenStream {
 /// Such a type:
 ///
 /// - is **not** added to the generated `Payload` enum
-/// - is used to build the generated crate-local `PayloadContext<'a>` enum
+/// - is used to build the generated crate-local `ProtocolContext<'a>` enum
 /// - is passed by mutable reference into payload encode/decode/size operations
 ///
 /// Example:
@@ -198,7 +198,7 @@ pub fn block(attr: TokenStream, input: TokenStream) -> TokenStream {
 ///
 /// brec::generate!();
 ///
-/// pub enum PayloadContext<'a> {
+/// pub enum ProtocolContext<'a> {
 ///     None,
 ///     MyOptions(&'a mut MyOptions),
 /// }
@@ -207,7 +207,7 @@ pub fn block(attr: TokenStream, input: TokenStream) -> TokenStream {
 /// If there are no custom context types and no encrypted payloads, `brec::generate!()` emits:
 ///
 /// ```ignore
-/// pub type PayloadContext<'a> = ();
+/// pub type ProtocolContext<'a> = ();
 /// ```
 ///
 /// ## Using `#[payload(bincode, crypt)]`
@@ -219,8 +219,8 @@ pub fn block(attr: TokenStream, input: TokenStream) -> TokenStream {
 /// `brec::generate!()`:
 ///
 /// ```ignore
-/// let mut encrypt = PayloadContext::Encrypt(&mut encrypt_options);
-/// let mut decrypt = PayloadContext::Decrypt(&mut decrypt_options);
+/// let mut encrypt = ProtocolContext::Encrypt(&mut encrypt_options);
+/// let mut decrypt = ProtocolContext::Decrypt(&mut decrypt_options);
 /// ```
 ///
 /// In other words:
@@ -250,7 +250,7 @@ pub fn block(attr: TokenStream, input: TokenStream) -> TokenStream {
 ///   Please note that bincode has a number of limitations, which you can review in its official documentation.
 ///
 /// - `ctx` - marks this type as payload runtime context instead of a regular payload.  
-///   `brec::generate!()` collects such types into the generated `PayloadContext<'a>` enum.
+///   `brec::generate!()` collects such types into the generated `ProtocolContext<'a>` enum.
 ///
 /// - `crypt` - available only when the `crypt` feature is enabled and intended to be used together with `bincode`
 ///   as `#[payload(bincode, crypt)]`. It generates internal crypto-wrapper-based payload encode/decode
@@ -331,8 +331,8 @@ pub fn derive_csharp(input: TokenStream) -> TokenStream {
 /// - Implementing required `brec` traits for all user-defined `Payload` types
 /// - Generating unified enums for blocks: `enum Block { ... }`
 /// - Generating unified enums for payloads: `enum Payload { ... }`
-/// - Generating the crate-local payload runtime context type: `type PayloadContext<'a> = ()`
-///   or `enum PayloadContext<'a> { ... }`
+/// - Generating the crate-local payload runtime context type: `type ProtocolContext<'a> = ()`
+///   or `enum ProtocolContext<'a> { ... }`
 /// - Exporting several convenience type aliases to simplify usage
 ///
 /// ### Generated Aliases
@@ -356,11 +356,11 @@ pub fn derive_csharp(input: TokenStream) -> TokenStream {
 ///
 /// These aliases make it easier to work with generated structures and remove the need to repeat generic parameters.
 ///
-/// `PayloadContext<'a>` is also generated alongside these aliases:
+/// `ProtocolContext<'a>` is also generated alongside these aliases:
 ///
-/// - `pub type PayloadContext<'a> = ()` when no custom `#[payload(ctx)]` types and no encrypted payloads exist
-/// - `pub enum PayloadContext<'a> { None, ... }` when at least one context entry exists
-/// - `PayloadContext::Encrypt(...)` / `PayloadContext::Decrypt(...)` are added automatically if at least one payload
+/// - `pub type ProtocolContext<'a> = ()` when no custom `#[payload(ctx)]` types and no encrypted payloads exist
+/// - `pub enum ProtocolContext<'a> { None, ... }` when at least one context entry exists
+/// - `ProtocolContext::Encrypt(...)` / `ProtocolContext::Decrypt(...)` are added automatically if at least one payload
 ///   uses `#[payload(bincode, crypt)]`
 ///
 /// When `brec` is built with the `observer` feature, the macro also generates:
