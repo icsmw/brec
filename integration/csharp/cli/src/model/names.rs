@@ -26,6 +26,14 @@ impl TypeNames {
                 &payload.fullpath,
             );
         }
+        for context in &scheme.contexts {
+            Self::register(
+                &mut by_raw,
+                &context.name,
+                &context.fullname,
+                &context.fullpath,
+            );
+        }
         for scheme_type in &scheme.types {
             Self::register(
                 &mut by_raw,
@@ -49,6 +57,12 @@ impl TypeNames {
         for payload in &scheme.payloads {
             Self::collect_fields(&payload.fields, &mut refs);
             for variant in &payload.variants {
+                Self::collect_fields(&variant.fields, &mut refs);
+            }
+        }
+        for context in &scheme.contexts {
+            Self::collect_fields(&context.fields, &mut refs);
+            for variant in &context.variants {
                 Self::collect_fields(&variant.fields, &mut refs);
             }
         }

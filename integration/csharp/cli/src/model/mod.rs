@@ -73,7 +73,7 @@ impl Model {
             payloads: scheme
                 .payloads
                 .iter()
-                .filter(|payload| !payload.is_ctx && payload.is_bincode)
+                .filter(|payload| payload.is_bincode)
                 .map(|payload| TypeDef::from_payload(payload, &names))
                 .collect::<Result<Vec<_>, _>>()?,
             default_payloads: !scheme.config.no_default_payloads,

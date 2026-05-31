@@ -4,6 +4,8 @@
 
 - Renamed the generated runtime context and schema API from payload-scoped names to protocol-scoped names:
   `PayloadContext` is now `ProtocolContext`, and `PayloadSchema` is now `ProtocolSchema`.
+- Replaced `#[payload(ctx)]` with a dedicated `#[context]` attribute for declaring protocol context types.
+- Changed generated scheme files to expose protocol contexts through a dedicated `contexts` field instead of encoding them as payloads with `is_ctx`.
 - Updated payload and packet header read APIs to validate against `ProtocolSchema` limits while reading.
 
 ### Added

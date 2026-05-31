@@ -1,7 +1,7 @@
 use crate::*;
 use brec_scheme::{
-    SchemeBlock, SchemeBlockField, SchemeConfig, SchemeFieldType, SchemeFile, SchemePayload,
-    SchemePayloadField, SchemePayloadVariant, SchemeType,
+    SchemeBlock, SchemeBlockField, SchemeConfig, SchemeContext, SchemeFieldType, SchemeFile,
+    SchemePayload, SchemePayloadField, SchemePayloadVariant, SchemeType,
 };
 use std::{
     env, fs,
@@ -31,6 +31,7 @@ impl<'a> Scheme<'a> {
             config: self.config(),
             blocks: self.blocks()?,
             payloads: self.payloads()?,
+            contexts: self.contexts()?,
             types: self.types()?,
         };
         let content = serde_json::to_vec_pretty(&output).map_err(std::io::Error::other)?;
@@ -96,7 +97,6 @@ impl<'a> Scheme<'a> {
                     name: payload.name.clone(),
                     fullname: payload.fullname()?.to_string(),
                     fullpath: payload.fullpath()?.to_string(),
-                    is_ctx: payload.attrs.is_ctx(),
                     is_bincode: payload.attrs.is_bincode(),
                     is_crypt: payload.attrs.is_crypt(),
                     no_crc: payload.attrs.is_no_crc(),
@@ -110,6 +110,28 @@ impl<'a> Scheme<'a> {
             .collect::<Result<Vec<_>, E>>()?;
         payloads.sort_by(|a, b| a.fullname.cmp(&b.fullname));
         Ok(payloads)
+    }
+
+    fn contexts(&self) -> Result<Vec<SchemeContext>, E> {
+        let package = self.package.clone();
+        let mut contexts = self
+            .collector
+            .contexts
+            .get(&package)
+            .into_iter()
+            .flat_map(|contexts| contexts.values())
+            .map(|context| {
+                Ok(SchemeContext {
+                    name: context.name.clone(),
+                    fullname: context.fullname()?.to_string(),
+                    fullpath: context.fullpath()?.to_string(),
+                    fields: Self::payload_fields(&context.kind),
+                    variants: Self::payload_variants(&context.kind),
+                })
+            })
+            .collect::<Result<Vec<_>, E>>()?;
+        contexts.sort_by(|a, b| a.fullname.cmp(&b.fullname));
+        Ok(contexts)
     }
 
     fn types(&self) -> Result<Vec<SchemeType>, E> {

@@ -732,12 +732,12 @@ The working examples are available in the `examples` directory of the repository
 
 #### Declaring a Custom Context Type
 
-Mark a type with `#[payload(ctx)]`:
+Mark a type with `#[context]`:
 
 ```ignore
 use brec::payload;
 
-#[payload(ctx)]
+#[context]
 pub struct MyOptions {
     pub prefix: String,
 }
@@ -745,7 +745,7 @@ pub struct MyOptions {
 
 This type is not treated as a regular payload. It is collected only to build `ProtocolContext<'a>`.
 
-In other words, `#[payload(ctx)]` means:
+In other words, `#[context]` means:
 
 - do not generate a normal payload variant for this type
 - do generate a matching `ProtocolContext` enum variant
@@ -772,7 +772,7 @@ Example:
 ```ignore
 use brec::{PayloadCrc, PayloadDecode, PayloadEncode, PayloadEncodeReferred, PayloadSize};
 
-#[payload(ctx)]
+#[context]
 pub struct MyOptions {
     pub prefix: String,
 }
@@ -1321,7 +1321,7 @@ This macro must be called exactly **once per crate** and is responsible for:
 - Implementing `ProtocolSchema` for the generated `Payload` enum
 - Exporting several convenience type aliases to simplify usage
 
-When context types are declared with `#[payload(ctx)]`, `generate!()` also constructs the crate-local `ProtocolContext<'a>` type.
+When context types are declared with `#[context]`, `generate!()` also constructs the crate-local `ProtocolContext<'a>` type.
 
 ### Generated Protocol Schema
 

@@ -22,7 +22,7 @@ pub struct MetaBlock {
 /// The `#[payload(ctx)]` attribute tells `brec::generate!()` to add a matching
 /// variant to the generated `ProtocolContext<'a>` enum:
 /// `ProtocolContext::PrefixContext(&'a mut PrefixContext)`.
-#[payload(ctx)]
+#[context]
 pub struct PrefixContext {
     pub prefix: String,
 }

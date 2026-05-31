@@ -5,11 +5,12 @@ use quote::quote;
 
 pub fn generate(
     payloads: &[&Payload],
+    contexts: &[&Context],
     derives: Vec<TokenStream>,
     cfg: &Config,
 ) -> Result<TokenStream, E> {
-    let contexts = payloads_context(payloads)?;
-    let context_def = if contexts.is_empty() {
+    let context_variants = payloads_context(payloads, contexts)?;
+    let context_def = if context_variants.is_empty() {
         quote! {
             pub type ProtocolContext<'a> = ();
         }
@@ -19,14 +20,14 @@ pub fn generate(
             #[allow(non_snake_case)]
             pub enum ProtocolContext<'a> {
                 None,
-                #(#contexts,)*
+                #(#context_variants,)*
             }
         }
     };
     let payloads = payloads
         .iter()
         .copied()
-        .filter(|pl| !pl.attrs.is_ctx() && !pl.attrs.is_include())
+        .filter(|pl| !pl.attrs.is_include())
         .collect::<Vec<_>>();
     let mut variants = Vec::new();
     for pl in payloads.iter() {
@@ -135,17 +136,17 @@ pub fn generate(
     })
 }
 
-fn payloads_context(payloads: &[&Payload]) -> Result<Vec<TokenStream>, E> {
+fn payloads_context(payloads: &[&Payload], contexts: &[&Context]) -> Result<Vec<TokenStream>, E> {
     let mut variants = Vec::new();
     let mut has_crypt = false;
+    for context in contexts.iter() {
+        let fullname = context.fullname()?;
+        let fullpath = context.fullpath()?;
+        variants.push(quote! {#fullname(&'a mut #fullpath)});
+    }
     for payload in payloads.iter() {
         if payload.attrs.is_crypt() {
             has_crypt = true;
-        }
-        if payload.attrs.is_ctx() {
-            let fullname = payload.fullname()?;
-            let fullpath = payload.fullpath()?;
-            variants.push(quote! {#fullname(&'a mut #fullpath)});
         }
     }
     if has_crypt {

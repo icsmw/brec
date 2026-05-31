@@ -3,10 +3,7 @@ use proc_macro2::TokenStream;
 use quote::quote;
 use syn::Ident;
 
-pub fn generate(name: &Ident, attrs: &PayloadAttrs) -> Result<TokenStream, E> {
-    if attrs.is_ctx() {
-        return Ok(quote! {});
-    }
+pub fn generate(name: &Ident, _attrs: &PayloadAttrs) -> Result<TokenStream, E> {
     Ok(quote! {
         impl #name {
             fn to_wasm_object(&self) -> Result<wasm_bindgen::JsValue, brec::wasm_feat::WasmError> {

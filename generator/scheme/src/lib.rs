@@ -12,6 +12,8 @@ pub struct SchemeFile {
     pub blocks: Vec<SchemeBlock>,
     pub payloads: Vec<SchemePayload>,
     #[serde(default)]
+    pub contexts: Vec<SchemeContext>,
+    #[serde(default)]
     pub types: Vec<SchemeType>,
 }
 
@@ -36,13 +38,21 @@ pub struct SchemePayload {
     pub name: String,
     pub fullname: String,
     pub fullpath: String,
-    pub is_ctx: bool,
     pub is_bincode: bool,
     pub is_crypt: bool,
     pub no_crc: bool,
     pub no_auto_crc: bool,
     pub no_default_sig: bool,
     pub hooks: bool,
+    pub fields: Vec<SchemePayloadField>,
+    pub variants: Vec<SchemePayloadVariant>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct SchemeContext {
+    pub name: String,
+    pub fullname: String,
+    pub fullpath: String,
     pub fields: Vec<SchemePayloadField>,
     pub variants: Vec<SchemePayloadVariant>,
 }

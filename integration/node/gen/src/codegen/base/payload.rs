@@ -2,10 +2,7 @@ use brec_macros_parser::*;
 use proc_macro2::{Ident, TokenStream};
 use quote::quote;
 
-pub fn generate(name: &Ident, attrs: &PayloadAttrs) -> Result<TokenStream, E> {
-    if attrs.is_ctx() {
-        return Ok(quote! {});
-    }
+pub fn generate(name: &Ident, _attrs: &PayloadAttrs) -> Result<TokenStream, E> {
     Ok(quote! {
         impl #name {
             fn to_napi_object<'env>(&self, env: &'env napi::Env) -> Result<napi::Unknown<'env>, brec::napi_feat::NapiError> {
