@@ -138,7 +138,7 @@ dependencies = [
 
 [[package]]
 name = "brec"
-version = "0.5.0"
+version = "0.6.0"
 dependencies = [
  "bincode",
  "brec_consts",
@@ -257,7 +257,7 @@ dependencies = [
 
 [[package]]
 name = "brec_macros"
-version = "0.5.0"
+version = "0.6.0"
 dependencies = [
  "brec_consts",
  "brec_csharp_gen",

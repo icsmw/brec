@@ -74,8 +74,15 @@ pub enum ResolveHeaderReady<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInn
 /// allows users to handle non-`brec` data instead of discarding it, enabling logging or reprocessing
 /// if necessary.
 ///
+/// Reader rules may also use a user-owned workflow context. Construct the reader with
+/// [`PacketBufReaderDef::with_context`] to attach any diagnostics or control state to the reader.
+/// `RuleDef::IgnoredControl` can inspect ignored bytes and return `IgnoredAction::Stop` to abort
+/// scanning with `Error::IgnoredDataRejected`. `RuleDef::NextPacket` observes each non-error
+/// `NextPacket` result before it is returned, which is useful for collecting stream health metrics such
+/// as good packets versus ignored bytes.
+///
 /// It is important to note that there is no need to use `PacketBufReaderDef` directly.
-/// When invoking the `generate!()` macro, a wrapper type `PacketBufReader<R: std::io::Read, W: std::io::Write>`
+/// When invoking the `generate!()` macro, a wrapper type `PacketBufReader<R: std::io::Read, WorkflowCtx = ()>`
 /// is generated, eliminating the requirement to specify all generic parameters manually. Users should
 /// prefer `PacketBufReader` when creating a reader instance.
 ///
@@ -89,11 +96,14 @@ pub struct PacketBufReaderDef<
     BR: BlockReferredDef<B>,
     P: PayloadDef<Inner>,
     Inner: PayloadInnerDef,
+    WorkflowCtx = (),
 > {
     /// Buffered reader for handling input stream operations.
     inner: std::io::BufReader<&'a mut R>,
     /// Collection of processing rules applied to incoming data.
-    rules: RulesDef<B, BR, P, Inner>,
+    rules: RulesDef<B, BR, P, Inner, WorkflowCtx>,
+    /// User-owned workflow context available to reader rules.
+    workflow: WorkflowCtx,
     /// Stores the current state of the header reading process.
     recent: HeaderReadState,
     /// Internal buffer for accumulating data before processing.
@@ -107,7 +117,8 @@ impl<
     BR: BlockReferredDef<B>,
     P: PayloadDef<Inner>,
     Inner: PayloadInnerDef,
-> PacketBufReaderDef<'a, R, B, BR, P, Inner>
+    WorkflowCtx,
+> PacketBufReaderDef<'a, R, B, BR, P, Inner, WorkflowCtx>
 {
     /// Parses a packet header from the provided buffer.
     ///
@@ -165,7 +176,18 @@ impl<
         if let Some(s) = consume {
             self.inner.consume(s)
         }
-        result
+        match result {
+            Ok(next) => self.emit_next(next),
+            Err(err) => Err(err),
+        }
+    }
+
+    fn emit_next(
+        &mut self,
+        next: NextPacket<B, P, Inner>,
+    ) -> Result<NextPacket<B, P, Inner>, Error> {
+        self.rules.next_packet(&next, &mut self.workflow)?;
+        Ok(next)
     }
 
     /// Attempts to process a previously detected header when sufficient data is available.
@@ -238,7 +260,8 @@ impl<
                 let header_start = *sgmt.start();
                 let header_end = *sgmt.end();
                 if header_start > 0 {
-                    self.rules.ignore(&buffer[..header_start])?;
+                    self.rules
+                        .ignore(&buffer[..header_start], &mut self.workflow)?;
                 }
                 let consumed_from_extracted = header_end.saturating_sub(buffered).min(appended);
                 let consumed_front = buffered + consumed_from_extracted;
@@ -248,7 +271,8 @@ impl<
                 let packet_end = header_end + header.size as usize;
                 let ignored_tail_end = consumed_front.min(buffer.len());
                 if packet_end < ignored_tail_end {
-                    self.rules.ignore(&buffer[packet_end..ignored_tail_end])?;
+                    self.rules
+                        .ignore(&buffer[packet_end..ignored_tail_end], &mut self.workflow)?;
                 }
                 self.buffered.clear();
                 if payload_prefetched > 0 {
@@ -257,44 +281,50 @@ impl<
                 }
                 self.inner.consume(consumed_from_extracted);
                 self.recent = HeaderReadState::Ready(Some(header));
-                Ok(NextPacket::NotEnoughData(0))
+                self.emit_next(NextPacket::NotEnoughData(0))
             }
             PacketHeaderState::NotEnoughData(from, needed) => {
                 if appended == 0 {
-                    self.rules.ignore(&buffer)?;
-                    return Ok(NextPacket::NoData);
+                    self.rules.ignore(&buffer, &mut self.workflow)?;
+                    return self.emit_next(NextPacket::NoData);
                 }
                 if from > 0 {
                     // We can drain most bytes in buffer and left only length of header signature
-                    self.rules.ignore(&buffer[..from])?;
+                    self.rules.ignore(&buffer[..from], &mut self.workflow)?;
                     buffer.drain(..from);
                 }
                 self.inner.consume(appended);
                 self.recent = HeaderReadState::Refill(Some((buffer, needed)));
-                Ok(NextPacket::NotEnoughData(needed))
+                self.emit_next(NextPacket::NotEnoughData(needed))
             }
             PacketHeaderState::NotFound => {
                 if appended == 0 {
-                    self.rules.ignore(&buffer)?;
-                    return Ok(NextPacket::NoData);
+                    self.rules.ignore(&buffer, &mut self.workflow)?;
+                    return self.emit_next(NextPacket::NoData);
                 }
                 if buffer.len() > header_len {
-                    self.rules.ignore(&buffer[..buffer.len() - header_len])?;
+                    self.rules
+                        .ignore(&buffer[..buffer.len() - header_len], &mut self.workflow)?;
                     // We can drain most bytes in buffer and left only length of header signature
                     buffer.drain(..(buffer.len() - header_len));
                 }
                 self.inner.consume(appended);
                 self.recent = HeaderReadState::Refill(Some((buffer, header_len)));
-                Ok(NextPacket::NotFound)
+                self.emit_next(NextPacket::NotFound)
             }
         }
     }
 
-    /// Creates a new instance of the reader with explicit options.
-    pub fn new(inner: &'a mut R) -> Self {
+    /// Creates a new reader with an explicit workflow context.
+    ///
+    /// The workflow context is independent from `ProtocolSchema::Context`: protocol context is passed
+    /// to `read(ctx)` for payload decoding, while workflow context is owned by the reader and passed
+    /// to workflow-oriented rules such as `RuleDef::IgnoredControl` and `RuleDef::NextPacket`.
+    pub fn with_context(inner: &'a mut R, workflow: WorkflowCtx) -> Self {
         Self {
             inner: std::io::BufReader::new(inner),
             rules: RulesDef::default(),
+            workflow,
             recent: HeaderReadState::Empty,
             buffered: Vec::with_capacity(
                 Inner::INITIAL_PACKET_BUFFER_CAPACITY.min(Inner::MAX_PAYLOAD_LEN as usize),
@@ -302,8 +332,23 @@ impl<
         }
     }
 
+    /// Returns an immutable reference to the reader workflow context.
+    pub fn context(&self) -> &WorkflowCtx {
+        &self.workflow
+    }
+
+    /// Returns a mutable reference to the reader workflow context.
+    pub fn context_mut(&mut self) -> &mut WorkflowCtx {
+        &mut self.workflow
+    }
+
+    /// Consumes the reader and returns its workflow context.
+    pub fn into_context(self) -> WorkflowCtx {
+        self.workflow
+    }
+
     /// Adds a processing rule. See `RuleDef` for more details.
-    pub fn add_rule(&mut self, rule: RuleDef<B, BR, P, Inner>) -> Result<(), Error> {
+    pub fn add_rule(&mut self, rule: RuleDef<B, BR, P, Inner, WorkflowCtx>) -> Result<(), Error> {
         self.rules.add_rule(rule)
     }
 
@@ -326,7 +371,7 @@ impl<
         let recent = std::mem::replace(&mut self.recent, HeaderReadState::Empty);
         let (packet_buffer, header, consume) = match recent {
             HeaderReadState::Ready(Some(header)) => match self.resolve_header_ready(header)? {
-                ResolveHeaderReady::Next(next) => return Ok(next),
+                ResolveHeaderReady::Next(next) => return self.emit_next(next),
                 ResolveHeaderReady::Resolved(header) => (self.buffered.as_slice(), header, None),
             },
             HeaderReadState::Refill(Some((buffer, needed))) => {
@@ -336,7 +381,7 @@ impl<
                 self.buffered.clear();
                 let buffer = self.inner.fill_buf()?;
                 if buffer.is_empty() {
-                    return Ok(NextPacket::NoData);
+                    return self.emit_next(NextPacket::NoData);
                 }
                 let available = buffer.len();
                 if available < PacketHeader::ssize() as usize {
@@ -345,13 +390,14 @@ impl<
                     data.extend_from_slice(buffer);
                     self.recent = HeaderReadState::Refill(Some((data, needed)));
                     self.inner.consume(available);
-                    return Ok(NextPacket::NotEnoughData(needed));
+                    return self.emit_next(NextPacket::NotEnoughData(needed));
                 }
                 match PacketBufReaderDef::<'a, R, B, BR, P, Inner>::read_header(buffer)? {
                     PacketHeaderState::NotFound => {
                         let header_len = PacketHeader::ssize() as usize;
                         if available > header_len {
-                            self.rules.ignore(&buffer[..available - header_len])?;
+                            self.rules
+                                .ignore(&buffer[..available - header_len], &mut self.workflow)?;
                             self.recent = HeaderReadState::Refill(Some((
                                 buffer[available - header_len..].to_vec(),
                                 header_len,
@@ -361,18 +407,18 @@ impl<
                                 HeaderReadState::Refill(Some((buffer.to_vec(), header_len)));
                         }
                         self.inner.consume(available);
-                        return Ok(NextPacket::NotFound);
+                        return self.emit_next(NextPacket::NotFound);
                     }
                     PacketHeaderState::NotEnoughData(from, needed) => {
                         // Not enough data to read packet header
                         if from > 0 {
-                            self.rules.ignore(&buffer[..from])?;
+                            self.rules.ignore(&buffer[..from], &mut self.workflow)?;
                         }
                         let mut data: Vec<u8> = Vec::with_capacity(buffer.len() - from);
                         data.extend_from_slice(&buffer[from..]);
                         self.recent = HeaderReadState::Refill(Some((data, needed)));
                         self.inner.consume(available);
-                        return Ok(NextPacket::NotEnoughData(needed));
+                        return self.emit_next(NextPacket::NotEnoughData(needed));
                     }
                     PacketHeaderState::Found(header, sgmt) => {
                         if header.size > Inner::MAX_PACKET_LEN {
@@ -380,7 +426,8 @@ impl<
                         }
                         // PacketDef header has been found
                         if sgmt.start() > &0 {
-                            self.rules.ignore(&buffer[..*sgmt.start()])?;
+                            self.rules
+                                .ignore(&buffer[..*sgmt.start()], &mut self.workflow)?;
                         }
                         let packet_size = header.size as usize;
                         let needs = packet_size + *sgmt.end();
@@ -389,7 +436,7 @@ impl<
                             self.buffered.extend_from_slice(&buffer[*sgmt.end()..]);
                             self.inner.consume(available);
                             self.recent = HeaderReadState::Ready(Some(header));
-                            return Ok(NextPacket::NotEnoughData(needs - available));
+                            return self.emit_next(NextPacket::NotEnoughData(needs - available));
                         }
                         let consume = Some(*sgmt.end() + header.size as usize);
                         (
@@ -498,6 +545,24 @@ impl<
     }
 }
 
+impl<
+    'a,
+    R: std::io::Read,
+    B: BlockDef,
+    BR: BlockReferredDef<B>,
+    P: PayloadDef<Inner>,
+    Inner: PayloadInnerDef,
+> PacketBufReaderDef<'a, R, B, BR, P, Inner, ()>
+{
+    /// Creates a new reader with an empty workflow context.
+    ///
+    /// Use `with_context(inner, workflow)` when reader rules need to store diagnostics or control
+    /// state while scanning mixed streams.
+    pub fn new(inner: &'a mut R) -> Self {
+        Self::with_context(inner, ())
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -510,6 +575,15 @@ mod tests {
 
     type ReaderUnderTest<'a> =
         PacketBufReaderDef<'a, Cursor<Vec<u8>>, TestBlock, TestBlock, TestPayload, TestPayload>;
+    type ReaderWithContext<'a, Ctx> = PacketBufReaderDef<
+        'a,
+        Cursor<Vec<u8>>,
+        TestBlock,
+        TestBlock,
+        TestPayload,
+        TestPayload,
+        Ctx,
+    >;
 
     fn empty_packet_bytes() -> Vec<u8> {
         let header = PacketHeader::from_lengths(0, 0, false);
@@ -583,6 +657,102 @@ mod tests {
             reader.read(&mut ()).expect("second read"),
             NextPacket::NoData
         ));
+    }
+
+    #[test]
+    fn read_stops_when_ignored_control_rejects_prefix() {
+        let mut input_bytes = vec![0x11, 0x22, 0x33];
+        input_bytes.extend_from_slice(&empty_packet_bytes());
+
+        let mut input = Cursor::new(input_bytes);
+        let mut reader = ReaderUnderTest::new(&mut input);
+        reader
+            .add_rule(RuleDef::IgnoredControl(RuleFnDef::Static(|_, _| {
+                Ok(IgnoredAction::Stop)
+            })))
+            .expect("ignored control rule");
+
+        assert!(matches!(
+            reader.read(&mut ()),
+            Err(Error::IgnoredDataRejected)
+        ));
+    }
+
+    #[test]
+    fn read_calls_next_packet_rule_before_returning_results() {
+        let mut input = Cursor::new(empty_packet_bytes());
+        let mut reader = ReaderUnderTest::new(&mut input);
+
+        let results = Arc::new(Mutex::new(Vec::<&'static str>::new()));
+        let results_c = results.clone();
+        reader
+            .add_rule(RuleDef::NextPacket(RuleFnDef::Dynamic(Box::new(
+                move |next, _| {
+                    let name = match next {
+                        NextPacket::NotEnoughData(_) => "not_enough",
+                        NextPacket::NoData => "no_data",
+                        NextPacket::NotFound => "not_found",
+                        NextPacket::Skipped => "skipped",
+                        NextPacket::Found(_) => "found",
+                    };
+                    results_c.lock().expect("results lock").push(name);
+                    Ok(())
+                },
+            ))))
+            .expect("next packet rule");
+
+        assert!(matches!(
+            reader.read(&mut ()).expect("first read"),
+            NextPacket::Found(_)
+        ));
+        assert!(matches!(
+            reader.read(&mut ()).expect("second read"),
+            NextPacket::NoData
+        ));
+
+        assert_eq!(
+            *results.lock().expect("results lock"),
+            vec!["found", "no_data"]
+        );
+    }
+
+    #[test]
+    fn read_rules_can_update_owned_workflow_context() {
+        #[derive(Default)]
+        struct Stats {
+            ignored_bytes: usize,
+            found: usize,
+        }
+
+        let mut input_bytes = vec![0x11, 0x22, 0x33];
+        input_bytes.extend_from_slice(&empty_packet_bytes());
+
+        let mut input = Cursor::new(input_bytes);
+        let mut reader: ReaderWithContext<'_, Stats> =
+            PacketBufReaderDef::with_context(&mut input, Stats::default());
+        reader
+            .add_rule(RuleDef::IgnoredControl(RuleFnDef::Static(
+                |bytes, stats| {
+                    stats.ignored_bytes += bytes.len();
+                    Ok(IgnoredAction::Continue)
+                },
+            )))
+            .expect("ignored control rule");
+        reader
+            .add_rule(RuleDef::NextPacket(RuleFnDef::Static(|next, stats| {
+                if matches!(next, NextPacket::Found(_)) {
+                    stats.found += 1;
+                }
+                Ok(())
+            })))
+            .expect("next packet rule");
+
+        assert!(matches!(
+            reader.read(&mut ()).expect("read"),
+            NextPacket::Found(_)
+        ));
+        assert_eq!(reader.context().ignored_bytes, 3);
+        assert_eq!(reader.context().found, 1);
     }
 
     #[test]

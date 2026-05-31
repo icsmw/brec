@@ -108,7 +108,7 @@ dependencies = [
 
 [[package]]
 name = "brec"
-version = "0.5.0"
+version = "0.6.0"
 dependencies = [
  "bincode",
  "brec_consts",
@@ -131,7 +131,7 @@ version = "0.5.0"
 
 [[package]]
 name = "brec_macros"
-version = "0.5.0"
+version = "0.6.0"
 dependencies = [
  "brec_consts",
  "brec_macros_parser",
@@ -1000,6 +1000,14 @@ name = "winnow"
 version = "1.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0592e1c9d151f854e6fd382574c3a0855250e1d9b2f99d9281c6e6391af352f1"
+
+[[package]]
+name = "workflow_ctx"
+version = "0.1.0"
+dependencies = [
+ "brec",
+ "serde",
+]
 
 [[package]]
 name = "x509-parser"

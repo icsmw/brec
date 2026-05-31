@@ -1,3 +1,8 @@
 [workspace]
 resolver = "2"
-members  = ["ctx", "bincode_feat", "crypt", "packets"]
+members  = ["ctx", "bincode_feat", "crypt", "packets", "workflow_ctx"]
+
+[workspace.dependencies]
+bincode = { version = "2.0", features = ["serde"] }
+brec    = { path = "../lib/core" }
+serde   = { version = "1.0", features = ["derive"] }

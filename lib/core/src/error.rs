@@ -165,6 +165,9 @@ pub enum Error {
     /// An encoded length field does not match the expected or allowed size.
     #[error("Invalid encoded length")]
     InvalidLength,
+    /// A user-provided ignored-data rule rejected unrecognized stream bytes.
+    #[error("Ignored data rejected")]
+    IgnoredDataRejected,
     /// The packet contains more blocks than `brec` allows.
     #[error("Attempt to read more blocks than allowed")]
     MaxBlocksCount,
@@ -271,7 +274,7 @@ pub enum Error {
 }
 
 impl Error {
-    /// Converts partial-read errors into [`ReadStatus::NeedMoreData`](crate::ReadStatus::NeedMoreData).
+    /// Converts partial-read errors into [`ReadStatus::NotEnoughData`](crate::ReadStatus::NotEnoughData).
     ///
     /// Returns `Err(self)` for all non-recoverable errors.
     pub fn into_read_status<T>(self) -> Result<crate::ReadStatus<T>, Self> {
