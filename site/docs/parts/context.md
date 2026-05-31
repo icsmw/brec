@@ -92,12 +92,12 @@ The working examples are available in the `examples` directory of the repository
 
 ## Declaring a Custom Context Type
 
-Mark a type with `#[payload(ctx)]`:
+Mark a type with `#[context]`:
 
 ```rust
 use brec::payload;
 
-#[payload(ctx)]
+#[context]
 pub struct MyOptions {
     pub prefix: String,
 }
@@ -105,7 +105,7 @@ pub struct MyOptions {
 
 This type is not treated as a regular payload. It is collected only to build `ProtocolContext<'a>`.
 
-In other words, `#[payload(ctx)]` means:
+In other words, `#[context]` means:
 
 - do not generate a normal payload variant for this type
 - do generate a matching `ProtocolContext` enum variant
@@ -132,7 +132,7 @@ Example:
 ```rust
 use brec::{PayloadCrc, PayloadDecode, PayloadEncode, PayloadEncodeReferred, PayloadSize};
 
-#[payload(ctx)]
+#[context]
 pub struct MyOptions {
     pub prefix: String,
 }

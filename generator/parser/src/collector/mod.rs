@@ -17,6 +17,7 @@ pub fn get_pkg_name() -> String {
 #[derive(Debug, Default)]
 pub struct Collector {
     pub blocks: HashMap<String, HashMap<String, Block>>,
+    pub contexts: HashMap<String, HashMap<String, Context>>,
     pub payloads: HashMap<String, HashMap<String, Payload>>,
 }
 
@@ -34,6 +35,12 @@ impl Collector {
         let payloads = self.payloads.entry(get_pkg_name()).or_default();
         let fname = payload.fullname()?.to_string();
         payloads.entry(fname).or_insert(payload);
+        Ok(())
+    }
+    pub fn add_context(&mut self, context: Context) -> Result<(), E> {
+        let contexts = self.contexts.entry(get_pkg_name()).or_default();
+        let fname = context.fullname()?.to_string();
+        contexts.entry(fname).or_insert(context);
         Ok(())
     }
     pub fn is_blocks_empty(&mut self) -> bool {

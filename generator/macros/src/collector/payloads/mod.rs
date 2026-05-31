@@ -8,14 +8,18 @@ mod props;
 mod read;
 mod write;
 
-pub fn generate(payloads: Vec<&Payload>, cfg: &Config) -> Result<TokenStream, E> {
+pub fn generate(
+    payloads: Vec<&Payload>,
+    contexts: Vec<&Context>,
+    cfg: &Config,
+) -> Result<TokenStream, E> {
     let ordinary_payloads = payloads
         .iter()
         .copied()
-        .filter(|p| !p.attrs.is_ctx() && !p.attrs.is_include())
+        .filter(|p| !p.attrs.is_include())
         .collect::<Vec<_>>();
     let derives = Derives::common(ordinary_payloads.iter().map(|p| &p.derives).collect())?;
-    let payload = enums::generate(&payloads, derives, cfg)?;
+    let payload = enums::generate(&payloads, &contexts, derives, cfg)?;
     let encode = props::encode(&ordinary_payloads)?;
     let encode_referred = props::encode_referred(&ordinary_payloads)?;
     let sig = props::sig(&ordinary_payloads)?;

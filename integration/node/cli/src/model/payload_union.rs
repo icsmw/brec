@@ -3,9 +3,8 @@ use brec_scheme::SchemeFile;
 
 /// Union of payloads that can be encoded through the generated Node package.
 ///
-/// Context payloads are intentionally skipped because generated bindings use
-/// an empty context. Built-in `Bytes` and `String` payloads are added unless
-/// the protocol scheme explicitly disables default payloads.
+/// Built-in `Bytes` and `String` payloads are added unless the protocol scheme
+/// explicitly disables default payloads.
 pub struct PayloadUnion(Vec<Type>);
 
 impl PayloadUnion {
@@ -13,7 +12,7 @@ impl PayloadUnion {
         let mut variants = scheme
             .payloads
             .iter()
-            .filter(|payload| !payload.is_ctx && payload.is_bincode)
+            .filter(|payload| payload.is_bincode)
             .map(|payload| {
                 Ok(Type::object(vec![Field::required(
                     &payload.fullname,

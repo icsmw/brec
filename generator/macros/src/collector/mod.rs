@@ -24,6 +24,13 @@ pub fn generate(collector: &mut Collector, cfg: &Config) -> Result<TokenStream, 
         .filter(|payload| !payload.attrs.is_include())
         .cloned()
         .collect::<Vec<_>>();
+    let contexts = collector
+        .contexts
+        .entry(pkg_name.clone())
+        .or_default()
+        .values()
+        .cloned()
+        .collect::<Vec<_>>();
 
     if cfg.is_scheme() {
         scheme::Scheme::generate(collector, cfg)?;
@@ -37,7 +44,11 @@ pub fn generate(collector: &mut Collector, cfg: &Config) -> Result<TokenStream, 
     let payload = if payloads.is_empty() && cfg.is_no_default_payloads() {
         quote! {}
     } else {
-        payloads::generate(payloads.iter().collect::<Vec<&Payload>>(), cfg)?
+        payloads::generate(
+            payloads.iter().collect::<Vec<&Payload>>(),
+            contexts.iter().collect::<Vec<&Context>>(),
+            cfg,
+        )?
     };
     let packet = if blocks.is_empty() || (payloads.is_empty() && cfg.is_no_default_payloads()) {
         quote! {}

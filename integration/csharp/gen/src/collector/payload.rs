@@ -7,7 +7,7 @@ use syn::LitStr;
 pub fn generate_impl(payloads: &[&Payload], cfg: &Config) -> Result<TokenStream, E> {
     let mut to_wrapped = Vec::new();
     let mut from_wrapped = Vec::new();
-    for payload in payloads.iter().filter(|pl| !pl.attrs.is_ctx()) {
+    for payload in payloads.iter() {
         let fullname = payload.fullname()?;
         let fullpath = payload.fullpath()?;
         let key = LitStr::new(&fullname.to_string(), proc_macro2::Span::call_site());

@@ -294,6 +294,13 @@ pub fn payload(attr: TokenStream, input: TokenStream) -> TokenStream {
     parser::payload::parse(attrs, input).into()
 }
 
+#[proc_macro_attribute]
+pub fn context(attr: TokenStream, input: TokenStream) -> TokenStream {
+    let attrs = parse_macro_input!(attr as ContextAttrs);
+    let input = parse_macro_input!(input as DeriveInput);
+    parser::context::parse(attrs, input).into()
+}
+
 /// Derives `brec::csharp_feat::CSharpConvert` for regular Rust `struct` / `enum` types.
 ///
 /// Use it for nested types used inside `#[payload]` objects when `csharp`

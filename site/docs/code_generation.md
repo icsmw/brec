@@ -25,7 +25,7 @@ This macro must be called exactly **once per crate** and is responsible for:
 - Implementing `ProtocolSchema` for the generated `Payload` enum
 - Exporting several convenience type aliases to simplify usage
 
-When context types are declared with `#[payload(ctx)]`, `generate!()` also constructs the crate-local `ProtocolContext<'a>` type. See [Protocol Context](parts/context.md).
+When context types are declared with `#[context]`, `generate!()` also constructs the crate-local `ProtocolContext<'a>` type. See [Protocol Context](parts/context.md).
 
 ### Generated Protocol Schema
 

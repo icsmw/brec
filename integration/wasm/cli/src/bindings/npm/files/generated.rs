@@ -119,7 +119,6 @@ mod tests {
                     name: "PayloadAlpha".to_owned(),
                     fullname: "PayloadAlpha".to_owned(),
                     fullpath: "PayloadAlpha".to_owned(),
-                    is_ctx: false,
                     is_bincode: true,
                     is_crypt: false,
                     no_crc: false,
@@ -153,7 +152,6 @@ mod tests {
                     name: "PayloadBeta".to_owned(),
                     fullname: "PayloadBeta".to_owned(),
                     fullpath: "PayloadBeta".to_owned(),
-                    is_ctx: false,
                     is_bincode: true,
                     is_crypt: false,
                     no_crc: false,
@@ -192,6 +190,7 @@ mod tests {
                     ],
                 },
             ],
+            contexts: Vec::new(),
             types: vec![SchemeType {
                 name: "NestedStructCA".to_owned(),
                 fullname: "NestedStructCA".to_owned(),
