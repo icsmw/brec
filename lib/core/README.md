@@ -635,8 +635,9 @@ The `payload` macro can be used with the following directives:
 - `no_crc` - Disables CRC verification for the payload. Note that this does not remove the CRC field from the binary representation of the payload (specifically in `PayloadHeader`). The CRC field will still be present but filled with zeros, and no CRC calculation will be performed.
 - `no_auto_crc` - Disables CRC verification for `payload(bincode)`, requiring a manual implementation of the `PayloadCrc` trait. This parameter is only relevant when using the `bincode` feature.
 - `bincode` - available only when the bincode feature is enabled. It allows using any structure as a payload as long as it meets the requirements of the bincode crate, i.e., it implements serde serialization and deserialization. Please note that bincode has a number of limitations, which you can review in its official documentation.
-- `ctx` - marks a type as payload runtime context instead of a regular payload. Such a type is collected by `brec::generate!()` to build the crate-local `ProtocolContext<'a>` enum and is passed by mutable reference into payload encode/decode/size operations.
 - `crypt` - available only when the `crypt` feature is enabled and intended to be used together with `bincode` as `#[payload(bincode, crypt)]`. It enables transparent payload encryption/decryption driven through `ProtocolContext`.
+
+Protocol context types are declared with the separate `#[context]` attribute. Such a type is collected by `brec::generate!()` to build the crate-local `ProtocolContext<'a>` enum and is passed by mutable reference into payload encode/decode/size operations.
 
 ### Protocol Context
 

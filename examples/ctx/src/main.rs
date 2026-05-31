@@ -13,13 +13,13 @@ pub struct MetaBlock {
     pub request_id: u32,
 }
 
-/// User-defined payload context.
+/// User-defined protocol context.
 ///
 /// Context is passed to payload encode/decode operations in mutable form, which
 /// makes it suitable for runtime state such as prefixes, caches, crypto keys,
 /// or other temporary data required only during processing.
 ///
-/// The `#[payload(ctx)]` attribute tells `brec::generate!()` to add a matching
+/// The `#[context]` attribute tells `brec::generate!()` to add a matching
 /// variant to the generated `ProtocolContext<'a>` enum:
 /// `ProtocolContext::PrefixContext(&'a mut PrefixContext)`.
 #[context]
@@ -149,7 +149,7 @@ mod tests {
     #[test]
     fn context_aware_packet_roundtrip() -> Result<(), Box<dyn std::error::Error>> {
         let original = GreetingPayload {
-            message: "hello from payload context".to_owned(),
+            message: "hello from protocol context".to_owned(),
         };
         let mut packet = Packet::new(
             vec![Block::MetaBlock(MetaBlock { request_id: 7 })],

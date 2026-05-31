@@ -122,7 +122,7 @@ pub fn block(attr: TokenStream, input: TokenStream) -> TokenStream {
 /// Marks a user-defined type as a `Payload` for use in `brec`-compatible binary streams.
 ///
 /// This macro enables participation of a struct or enum in the `Payload` system and code generation.
-/// It also supports payload runtime context declarations via `#[payload(ctx)]`.
+/// Protocol context types are declared separately with [`#[context]`](crate::context).
 ///
 /// For regular payloads, the macro automatically implements most required traits for payload integration,
 /// **except** the following:
@@ -178,9 +178,9 @@ pub fn block(attr: TokenStream, input: TokenStream) -> TokenStream {
 /// The generated protocol schema uses the crate-local `ProtocolContext<'a>` type that is later emitted
 /// by `brec::generate!()`.
 ///
-/// ## Using `#[payload(ctx)]`
+/// ## Using `#[context]`
 ///
-/// `#[payload(ctx)]` marks a type as payload runtime context instead of a regular payload.
+/// `#[context]` marks a type as protocol runtime context instead of a regular payload.
 ///
 /// Such a type:
 ///
@@ -191,7 +191,7 @@ pub fn block(attr: TokenStream, input: TokenStream) -> TokenStream {
 /// Example:
 ///
 /// ```ignore
-/// #[payload(ctx)]
+/// #[context]
 /// pub struct MyOptions {
 ///     pub prefix: String,
 /// }
@@ -249,8 +249,7 @@ pub fn block(attr: TokenStream, input: TokenStream) -> TokenStream {
 ///   long as it meets the requirements of the bincode crate, i.e., it implements serde serialization and deserialization.
 ///   Please note that bincode has a number of limitations, which you can review in its official documentation.
 ///
-/// - `ctx` - marks this type as payload runtime context instead of a regular payload.  
-///   `brec::generate!()` collects such types into the generated `ProtocolContext<'a>` enum.
+/// Protocol context types are declared with the separate `#[context]` attribute.
 ///
 /// - `crypt` - available only when the `crypt` feature is enabled and intended to be used together with `bincode`
 ///   as `#[payload(bincode, crypt)]`. It generates internal crypto-wrapper-based payload encode/decode
@@ -338,7 +337,7 @@ pub fn derive_csharp(input: TokenStream) -> TokenStream {
 /// - Implementing required `brec` traits for all user-defined `Payload` types
 /// - Generating unified enums for blocks: `enum Block { ... }`
 /// - Generating unified enums for payloads: `enum Payload { ... }`
-/// - Generating the crate-local payload runtime context type: `type ProtocolContext<'a> = ()`
+/// - Generating the crate-local protocol runtime context type: `type ProtocolContext<'a> = ()`
 ///   or `enum ProtocolContext<'a> { ... }`
 /// - Exporting several convenience type aliases to simplify usage
 ///
@@ -365,7 +364,7 @@ pub fn derive_csharp(input: TokenStream) -> TokenStream {
 ///
 /// `ProtocolContext<'a>` is also generated alongside these aliases:
 ///
-/// - `pub type ProtocolContext<'a> = ()` when no custom `#[payload(ctx)]` types and no encrypted payloads exist
+/// - `pub type ProtocolContext<'a> = ()` when no custom `#[context]` types and no encrypted payloads exist
 /// - `pub enum ProtocolContext<'a> { None, ... }` when at least one context entry exists
 /// - `ProtocolContext::Encrypt(...)` / `ProtocolContext::Decrypt(...)` are added automatically if at least one payload
 ///   uses `#[payload(bincode, crypt)]`
