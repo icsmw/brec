@@ -917,7 +917,7 @@ At the API level, `crypt` gives you:
 - `EncryptOptions`
 - `DecryptOptions`
 - `CryptPolicy`
-- `BricCryptCodec`
+- `CryptCodec`
 - crypto-aware payload generation through `#[payload(..., crypt)]`
 
 Recommended path:
@@ -1063,7 +1063,7 @@ fn usage() -> Result<GreetingPayload, Box<dyn std::error::Error>> {
 
 Important implications:
 
-- you do not need to manually call `BricCryptCodec` for normal packet flow
+- you do not need to manually call `CryptCodec` for normal packet flow
 - you do need to provide the right crypto context during read/write
 - using the wrong context variant or missing crypto options will fail at runtime
 - this requirement applies only to payloads declared with `crypt`; plain payloads can live in the same protocol and ignore the crypto context entirely
@@ -1175,9 +1175,9 @@ let encrypt = EncryptOptions::from_public_key_pem(public_pem)?.with_policy(polic
 let decrypt = DecryptOptions::from_private_key_pem(private_pem)?.with_policy(policy);
 ```
 
-#### When to Use `BricCryptCodec` Directly
+#### When to Use `CryptCodec` Directly
 
-Most users should not call `BricCryptCodec` directly during normal packet I/O.
+Most users should not call `CryptCodec` directly during normal packet I/O.
 
 It is useful when you need payload-level crypto outside packet read/write, for example:
 
@@ -1187,12 +1187,12 @@ It is useful when you need payload-level crypto outside packet read/write, for e
 
 Useful methods:
 
-- `BricCryptCodec::encrypt(...)`
-- `BricCryptCodec::decrypt(...)`
-- `BricCryptCodec::encrypt_payload(...)`
-- `BricCryptCodec::decrypt_payload(...)`
-- `BricCryptCodec::parse(...)`
-- `BricCryptCodec::format(...)`
+- `CryptCodec::encrypt(...)`
+- `CryptCodec::decrypt(...)`
+- `CryptCodec::encrypt_payload(...)`
+- `CryptCodec::decrypt_payload(...)`
+- `CryptCodec::parse(...)`
+- `CryptCodec::format(...)`
 
 #### Error Model
 

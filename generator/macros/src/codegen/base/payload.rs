@@ -81,7 +81,7 @@ impl Base for Payload {
                                 ));
                             }
                         };
-                        brec::BricCryptCodec::encrypt(&payload_body, encrypt_options).map_err(std::io::Error::from)
+                        brec::CryptCodec::encrypt(&payload_body, encrypt_options).map_err(std::io::Error::from)
                     }
                 }
 
@@ -105,7 +105,7 @@ impl Base for Payload {
                                 ));
                             }
                         };
-                        let payload_body = brec::BricCryptCodec::decrypt(buf, decrypt_options)
+                        let payload_body = brec::CryptCodec::decrypt(buf, decrypt_options)
                             .map_err(std::io::Error::from)?;
                         brec::bincode::serde::decode_from_slice(&payload_body, brec::bincode::config::standard())
                             .map(|(value, _)| value)

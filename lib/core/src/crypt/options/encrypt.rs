@@ -18,7 +18,7 @@ use crate::crypt::{
 
 const PEM_CERTIFICATE_TAG: &str = "CERTIFICATE";
 
-/// Encryption settings for `BricCryptCodec`.
+/// Encryption settings for `CryptCodec`.
 ///
 /// This object is designed to be reused and keeps already-parsed key material.
 pub struct EncryptOptions {

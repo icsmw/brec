@@ -11,7 +11,7 @@ use crate::crypt::{
     options::CryptPolicy,
 };
 
-/// Decryption settings for `BricCryptCodec`.
+/// Decryption settings for `CryptCodec`.
 ///
 /// This object is designed to be reused and keeps already-parsed key material.
 pub struct DecryptOptions {

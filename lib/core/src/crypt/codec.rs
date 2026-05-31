@@ -15,9 +15,9 @@ use crate::crypt::{
 use crate::{PayloadDecode, PayloadEncode};
 
 /// Codec for encrypting/decrypting payload bytes into internal crypto envelope.
-pub struct BricCryptCodec;
+pub struct CryptCodec;
 
-impl BricCryptCodec {
+impl CryptCodec {
     /// Encrypts payload bytes and serializes envelope.
     pub fn encrypt(payload_body: &[u8], options: &mut EncryptOptions) -> CryptResult<Vec<u8>> {
         let (session_id, wrapped_key, mut session_key) = match options.current_session() {
@@ -173,9 +173,8 @@ mod tests {
         let mut decrypt_options =
             DecryptOptions::new(private_key).with_expected_key_id(TEST_KEY_ID.to_vec());
 
-        let encrypted =
-            BricCryptCodec::encrypt(TEST_PAYLOAD, &mut encrypt_options).expect("encrypt");
-        let decrypted = BricCryptCodec::decrypt(&encrypted, &mut decrypt_options).expect("decrypt");
+        let encrypted = CryptCodec::encrypt(TEST_PAYLOAD, &mut encrypt_options).expect("encrypt");
+        let decrypted = CryptCodec::decrypt(&encrypted, &mut decrypt_options).expect("decrypt");
 
         assert_eq!(decrypted, TEST_PAYLOAD);
     }
@@ -191,9 +190,8 @@ mod tests {
         let mut encrypt_options = EncryptOptions::new(source_public_key);
         let mut decrypt_options = DecryptOptions::new(another_private_key);
 
-        let encrypted =
-            BricCryptCodec::encrypt(TEST_PAYLOAD, &mut encrypt_options).expect("encrypt");
-        let decrypted = BricCryptCodec::decrypt(&encrypted, &mut decrypt_options);
+        let encrypted = CryptCodec::encrypt(TEST_PAYLOAD, &mut encrypt_options).expect("encrypt");
+        let decrypted = CryptCodec::decrypt(&encrypted, &mut decrypt_options);
 
         assert!(decrypted.is_err());
     }
@@ -266,10 +264,9 @@ mod tests {
 
         let payload = TEST_PAYLOAD.to_vec();
         let encrypted =
-            BricCryptCodec::encrypt_payload(&payload, &mut encrypt_options).expect("encrypt");
-        let decrypted =
-            BricCryptCodec::decrypt_payload::<Vec<u8>>(&encrypted, &mut decrypt_options)
-                .expect("decrypt");
+            CryptCodec::encrypt_payload(&payload, &mut encrypt_options).expect("encrypt");
+        let decrypted = CryptCodec::decrypt_payload::<Vec<u8>>(&encrypted, &mut decrypt_options)
+            .expect("decrypt");
 
         assert_eq!(decrypted, payload);
     }
@@ -286,8 +283,8 @@ mod tests {
 
         let payload = TEST_PAYLOAD.to_vec();
         let encrypted =
-            BricCryptCodec::encrypt_payload(&payload, &mut encrypt_options).expect("encrypt");
-        let result = BricCryptCodec::decrypt_payload::<Vec<u8>>(&encrypted, &mut decrypt_options);
+            CryptCodec::encrypt_payload(&payload, &mut encrypt_options).expect("encrypt");
+        let result = CryptCodec::decrypt_payload::<Vec<u8>>(&encrypted, &mut decrypt_options);
 
         assert!(result.is_err());
     }
@@ -300,13 +297,12 @@ mod tests {
 
         let payload = MacroCryptPayload { value: 42 };
         let mut encode_opt = EncryptOptions::new(public_key).with_key_id(TEST_KEY_ID.to_vec());
-        let encoded = BricCryptCodec::encrypt_payload(&payload, &mut encode_opt).expect("encode");
+        let encoded = CryptCodec::encrypt_payload(&payload, &mut encode_opt).expect("encode");
 
         let mut decode_opt =
             DecryptOptions::new(private_key).with_expected_key_id(TEST_KEY_ID.to_vec());
-        let decoded =
-            BricCryptCodec::decrypt_payload::<MacroCryptPayload>(&encoded, &mut decode_opt)
-                .expect("decode");
+        let decoded = CryptCodec::decrypt_payload::<MacroCryptPayload>(&encoded, &mut decode_opt)
+            .expect("decode");
 
         assert_eq!(decoded, payload);
     }
@@ -319,12 +315,12 @@ mod tests {
         let mut encrypt_options = EncryptOptions::new(public_key);
         let reuse_limit = encrypt_options.policy().session_reuse_limit;
 
-        let first = BricCryptCodec::parse(
-            &BricCryptCodec::encrypt(TEST_PAYLOAD, &mut encrypt_options).expect("encrypt first"),
+        let first = CryptCodec::parse(
+            &CryptCodec::encrypt(TEST_PAYLOAD, &mut encrypt_options).expect("encrypt first"),
         )
         .expect("parse first");
-        let second = BricCryptCodec::parse(
-            &BricCryptCodec::encrypt(TEST_PAYLOAD, &mut encrypt_options).expect("encrypt second"),
+        let second = CryptCodec::parse(
+            &CryptCodec::encrypt(TEST_PAYLOAD, &mut encrypt_options).expect("encrypt second"),
         )
         .expect("parse second");
 
@@ -333,14 +329,14 @@ mod tests {
 
         let mut last = second;
         for _ in 2..reuse_limit {
-            last = BricCryptCodec::parse(
-                &BricCryptCodec::encrypt(TEST_PAYLOAD, &mut encrypt_options).expect("encrypt"),
+            last = CryptCodec::parse(
+                &CryptCodec::encrypt(TEST_PAYLOAD, &mut encrypt_options).expect("encrypt"),
             )
             .expect("parse");
         }
 
-        let rotated = BricCryptCodec::parse(
-            &BricCryptCodec::encrypt(TEST_PAYLOAD, &mut encrypt_options).expect("encrypt rotated"),
+        let rotated = CryptCodec::parse(
+            &CryptCodec::encrypt(TEST_PAYLOAD, &mut encrypt_options).expect("encrypt rotated"),
         )
         .expect("parse rotated");
 
@@ -365,17 +361,16 @@ mod tests {
 
         let encrypted: Vec<Vec<u8>> = payloads
             .iter()
-            .map(|payload| BricCryptCodec::encrypt(payload, &mut encrypt_options).expect("encrypt"))
+            .map(|payload| CryptCodec::encrypt(payload, &mut encrypt_options).expect("encrypt"))
             .collect();
 
-        let parsed_first = BricCryptCodec::parse(&encrypted[0]).expect("parse first");
-        let parsed_last = BricCryptCodec::parse(&encrypted[2]).expect("parse last");
+        let parsed_first = CryptCodec::parse(&encrypted[0]).expect("parse first");
+        let parsed_last = CryptCodec::parse(&encrypted[2]).expect("parse last");
         assert_eq!(parsed_first.session_id, parsed_last.session_id);
 
         for (encrypted, expected) in encrypted.iter().zip(payloads.iter()) {
             decrypt_options.clear_session_cache();
-            let decrypted =
-                BricCryptCodec::decrypt(encrypted, &mut decrypt_options).expect("decrypt");
+            let decrypted = CryptCodec::decrypt(encrypted, &mut decrypt_options).expect("decrypt");
             assert_eq!(&decrypted, expected);
         }
     }
@@ -389,9 +384,8 @@ mod tests {
         let mut decrypt_options =
             DecryptOptions::new(private_key).with_expected_key_id(TEST_KEY_ID.to_vec());
 
-        let encrypted =
-            BricCryptCodec::encrypt(TEST_PAYLOAD, &mut encrypt_options).expect("encrypt");
-        let envelope = BricCryptCodec::parse(&encrypted).expect("parse");
+        let encrypted = CryptCodec::encrypt(TEST_PAYLOAD, &mut encrypt_options).expect("encrypt");
+        let envelope = CryptCodec::parse(&encrypted).expect("parse");
 
         decrypt_options.cache_session(
             envelope.session_id,
@@ -400,7 +394,7 @@ mod tests {
             [7u8; consts::ENVELOPE_SESSION_KEY_LEN],
         );
 
-        let decrypted = BricCryptCodec::decrypt(&encrypted, &mut decrypt_options).expect("decrypt");
+        let decrypted = CryptCodec::decrypt(&encrypted, &mut decrypt_options).expect("decrypt");
         assert_eq!(decrypted, TEST_PAYLOAD);
     }
 }

@@ -47,9 +47,9 @@ pub fn decrypt_options(session_reuse_limit: u32, decrypt_cache_limit: usize) -> 
 }
 
 pub fn encrypt_bytes(payload: &[u8], options: &mut EncryptOptions) -> std::io::Result<Vec<u8>> {
-    BricCryptCodec::encrypt(payload, options).map_err(std::io::Error::from)
+    CryptCodec::encrypt(payload, options).map_err(std::io::Error::from)
 }
 
 pub fn decrypt_bytes(payload: &[u8], options: &mut DecryptOptions) -> std::io::Result<Vec<u8>> {
-    BricCryptCodec::decrypt(payload, options).map_err(std::io::Error::from)
+    CryptCodec::decrypt(payload, options).map_err(std::io::Error::from)
 }

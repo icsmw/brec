@@ -48,7 +48,7 @@ pub use brec_wasm_gen_macro::Wasm;
 pub use brec_wasm_lib as wasm_feat;
 pub use crc32fast;
 #[cfg(feature = "crypt")]
-pub use crypt::{BricCryptCodec, CryptAlgorithm, CryptEnvelopeRecord};
+pub use crypt::{CryptAlgorithm, CryptCodec, CryptEnvelopeRecord};
 pub use payload::{
     DefaultPayloadContext, PayloadDecode, PayloadEncode, PayloadEncodeReferred, PayloadHeader,
     PayloadHooks, PayloadSchema, default_payload_context,
