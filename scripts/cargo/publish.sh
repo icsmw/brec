@@ -13,6 +13,7 @@ start_from=""
 only=""
 skip_published=1
 registry=""
+registry_token="${CARGO_REGISTRY_TOKEN:-}"
 
 publish_args=()
 
@@ -75,6 +76,7 @@ while [[ "$#" -gt 0 ]]; do
                 echo "Missing value for --token"
                 exit 1
             fi
+            registry_token="$2"
             publish_args+=(--token "$2")
             shift 2
             ;;
@@ -195,6 +197,7 @@ crate_version_is_published() {
     local name="$1"
     local version="$2"
     local status
+    local curl_args=()
 
     if [[ "$skip_published" != "1" || "$dry_run" == "1" ]]; then
         return 1
@@ -205,8 +208,20 @@ crate_version_is_published() {
         exit 1
     fi
 
-    status="$(curl --silent --show-error --location --output /dev/null --write-out "%{http_code}" \
-        "https://crates.io/api/v1/crates/${name}/${version}")"
+    curl_args=(
+        --silent
+        --show-error
+        --location
+        --user-agent "brec-publish-script/1.0"
+        --header "Accept: application/json"
+        --output /dev/null
+        --write-out "%{http_code}"
+    )
+    if [[ -n "$registry_token" ]]; then
+        curl_args+=(--header "Authorization: ${registry_token}")
+    fi
+
+    status="$(curl "${curl_args[@]}" "https://crates.io/api/v1/crates/${name}/${version}")"
 
     case "$status" in
         200)
