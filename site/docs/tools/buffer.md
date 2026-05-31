@@ -2,25 +2,30 @@
 
 To read from a data source, `brec` includes the `PacketBufReader<R: std::io::Read>` tool (available after code generation by calling `brec::generate!()`). `PacketBufReader` ensures safe reading from both **pure `brec` message streams** and **mixed data streams** (containing both `brec` messages and arbitrary data).
 
-Below is an example of reading all `brec` messages from a stream while counting the number of "junk" bytes (i.e., data that is not a `brec` message):
+Below is an example of reading all `brec` messages from a stream while counting the number of "junk" bytes (i.e., data that is not a `brec` message). The statistics live in the reader workflow context, not in the payload protocol context:
 
 ```rust
+#[derive(Default)]
+struct ReaderStats {
+    ignored_bytes: usize,
+}
+
 fn reading<R: std::io::Read>(source: &mut R) -> std::io::Result<(Vec<Packet>, usize)> {
     let mut packets: Vec<Packet> = Vec::new();
-    let mut reader: PacketBufReader<_> = PacketBufReader::new(source);
-    let ignored: Arc<AtomicUsize> = Arc::new(AtomicUsize::new(0));
-    let ignored_inner = ignored.clone();
+    let mut reader = PacketBufReader::with_context(source, ReaderStats::default());
+    let mut ctx = brec::default_payload_context();
     
     reader
-        .add_rule(Rule::Ignored(brec::RuleFnDef::Dynamic(Box::new(
-            move |bytes: &[u8]| {
-                ignored_inner.fetch_add(bytes.len(), Ordering::SeqCst);
+        .add_rule(Rule::IgnoredControl(brec::RuleFnDef::Static(
+            |bytes: &[u8], stats: &mut ReaderStats| {
+                stats.ignored_bytes += bytes.len();
+                Ok(brec::IgnoredAction::Continue)
             },
-        ))))
+        )))
         .unwrap();
     
     loop {
-        match reader.read(&mut brec::default_payload_context()) {
+        match reader.read(&mut ctx) {
             Ok(next) => match next {
                 NextPacket::Found(packet) => packets.push(packet),
                 NextPacket::NotFound => {
@@ -44,7 +49,8 @@ fn reading<R: std::io::Read>(source: &mut R) -> std::io::Result<(Vec<Packet>, us
             }
         };
     }
-    Ok((packets, ignored.load(Ordering::SeqCst)))
+    let ignored = reader.into_context().ignored_bytes;
+    Ok((packets, ignored))
 }
 ```
 
@@ -73,6 +79,8 @@ Another key feature of `PacketBufReader` is that users can define **custom rules
 | Rule                   | Available Data                      | Description |
 |------------------------|--------------------------------------|-------------|
 | `Rule::Ignored`        | `&[u8]`                              | Triggered when data not related to `brec` messages is encountered. Provides a byte slice of the unrelated data. |
+| `Rule::IgnoredControl` | `&[u8]`, `&mut WorkflowCtx`          | Like `Ignored`, but can update reader-owned workflow state and stop scanning by returning `IgnoredAction::Stop`. |
+| `Rule::NextPacket`     | `&NextPacket`, `&mut WorkflowCtx`    | Triggered immediately before a non-error `NextPacket` result is returned. Useful for diagnostics and stream health metrics. |
 | `Rule::Prefilter`      | `PeekedBlocks<'a>`                   | Triggered when a packet is found and its blocks have been partially parsed in zero-copy mode. This is the cheapest place to decide whether the payload should be parsed at all. |
 | `Rule::FilterPayload`  | `&[u8]`                              | Allows peeking into the payload bytes before deserialization. This is especially useful if the payload is, for example, a string - enabling scenarios like substring search. |
 | `Rule::FilterPacket`   | `&Packet`                            | Triggered after the packet is fully parsed, giving the user a final chance to accept or reject the packet. |
@@ -80,6 +88,48 @@ Another key feature of `PacketBufReader` is that users can define **custom rules
 `PeekedBlocks` is the main user-facing facade for cheap prefiltering. It hides the low-level `BlockReferred<'a>` representation while still allowing advanced access through `PeekedBlock::as_referred()` and `PeekedBlocks::as_slice()` when needed.
 
 The rules `Rule::Prefilter` and `Rule::FilterPayload` are particularly effective at improving performance, as they allow you to skip the most expensive part - parsing the payload - if the packet is not needed.
+
+### Workflow Context and Bad Bytes
+
+`PacketBufReader` can own a workflow context that is separate from the protocol context passed to `read(ctx)`.
+
+- protocol context is for payload encode/decode logic;
+- workflow context is for reader-side diagnostics and control decisions.
+
+Use `PacketBufReader::with_context(source, stats)` when you want rules to update custom state such as ignored byte counters, packet counters, or stream health scores.
+
+```rust
+#[derive(Default)]
+struct ReaderStats {
+    ignored_bytes: usize,
+    found_packets: usize,
+}
+
+let mut reader = PacketBufReader::with_context(source, ReaderStats::default());
+
+reader.add_rule(Rule::IgnoredControl(brec::RuleFnDef::Static(
+    |bytes, stats| {
+        stats.ignored_bytes += bytes.len();
+
+        if stats.ignored_bytes > 64 * 1024 {
+            Ok(brec::IgnoredAction::Stop)
+        } else {
+            Ok(brec::IgnoredAction::Continue)
+        }
+    },
+)))?;
+
+reader.add_rule(Rule::NextPacket(brec::RuleFnDef::Static(
+    |next, stats| {
+        if matches!(next, NextPacket::Found(_)) {
+            stats.found_packets += 1;
+        }
+        Ok(())
+    },
+)))?;
+```
+
+Returning `IgnoredAction::Stop` from `Rule::IgnoredControl` aborts reading with `Error::IgnoredDataRejected`. This is the recommended pattern for pure network protocols where arbitrary bytes before a packet are suspicious: count or inspect ignored bytes, then close the connection once the stream exceeds your policy. For file recovery or log scanning, return `IgnoredAction::Continue` and keep the collected diagnostics instead.
 
 ### Recommended Filtering Flow
 

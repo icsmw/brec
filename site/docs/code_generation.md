@@ -48,21 +48,21 @@ impl brec::ProtocolSchema for Payload {
 
 The macro defines the following aliases to reduce verbosity when using `brec` types:
 
-| Alias                            | Expanded to                                                             |
-| -------------------------------- | ----------------------------------------------------------------------- |
-| `Packet`                         | `PacketDef<Block, Payload, Payload>`                                    |
-| `BorrowedPacketBufReader<'a, R>` | `PacketBufReaderDef<'a, R, Block, BlockReferred<'a>, Payload, Payload>` |
-| `PacketBufReader<'a, R>`         | same as `BorrowedPacketBufReader<'a, R>`                                |
-| `PeekedBlocks<'a>`               | `PeekedBlocksDef<'a, BlockReferred<'a>>`                                |
-| `PeekedBlock<'a>`                | `PeekedBlockDef<'a, BlockReferred<'a>>`                                 |
-| `BorrowedRules<'a>`              | `RulesDef<Block, BlockReferred<'a>, Payload, Payload>`                  |
-| `Rules<'a>`                      | same as `BorrowedRules<'a>`                                             |
-| `BorrowedRule<'a>`               | `RuleDef<Block, BlockReferred<'a>, Payload, Payload>`                   |
-| `Rule<'a>`                       | same as `BorrowedRule<'a>`                                              |
-| `RuleFnDef<D, S>`                | `RuleFnDef<D, S>`                                                       |
-| `BorrowedReader<'a, S>`          | `ReaderDef<S, Block, BlockReferred<'a>, Payload, Payload>`              |
-| `Reader<S>`                      | `ReaderDef<S, Block, BlockReferred<'static>, Payload, Payload>`         |
-| `Writer<S>`                      | `WriterDef<S, Block, Payload, Payload>`                                 |
+| Alias                                             | Expanded to                                                                                     |
+| ------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| `Packet`                                          | `PacketDef<Block, Payload, Payload>`                                                            |
+| `BorrowedPacketBufReader<'a, R, WorkflowCtx = ()>` | `PacketBufReaderDef<'a, R, Block, BlockReferred<'a>, Payload, Payload, WorkflowCtx>`             |
+| `PacketBufReader<'a, R, WorkflowCtx = ()>`         | same as `BorrowedPacketBufReader<'a, R, WorkflowCtx>`                                           |
+| `PeekedBlocks<'a>`                                | `PeekedBlocksDef<'a, BlockReferred<'a>>`                                                        |
+| `PeekedBlock<'a>`                                 | `PeekedBlockDef<'a, BlockReferred<'a>>`                                                         |
+| `BorrowedRules<'a, WorkflowCtx = ()>`             | `RulesDef<Block, BlockReferred<'a>, Payload, Payload, WorkflowCtx>`                              |
+| `Rules<'a, WorkflowCtx = ()>`                     | same as `BorrowedRules<'a, WorkflowCtx>`                                                        |
+| `BorrowedRule<'a, WorkflowCtx = ()>`              | `RuleDef<Block, BlockReferred<'a>, Payload, Payload, WorkflowCtx>`                               |
+| `Rule<'a, WorkflowCtx = ()>`                      | same as `BorrowedRule<'a, WorkflowCtx>`                                                         |
+| `RuleFnDef<D, S>`                                 | `RuleFnDef<D, S>`                                                                               |
+| `BorrowedReader<'a, S>`                           | `ReaderDef<S, Block, BlockReferred<'a>, Payload, Payload>`                                      |
+| `Reader<S>`                                       | `ReaderDef<S, Block, BlockReferred<'static>, Payload, Payload>`                                 |
+| `Writer<S>`                                       | `WriterDef<S, Block, Payload, Payload>`                                                         |
 
 These aliases make it easier to work with generated structures and remove the need to repeat generic parameters.
 

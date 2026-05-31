@@ -1,3 +1,20 @@
+## 0.6.0 (31.05.2026)
+
+### Added
+
+- Workflow context support for packet readers: `PacketBufReaderDef` now accepts a generic `WorkflowCtx` parameter allowing users to attach custom state to the reader.
+- Enhanced reader rules with workflow context callbacks:
+  - `RuleDef::IgnoredControl` can inspect ignored bytes and return `IgnoredAction::Stop` to abort scanning with `Error::IgnoredDataRejected`.
+  - `RuleDef::NextPacket` observes each successful `NextPacket` result before it is returned, useful for collecting stream health metrics.
+- Support for user-owned diagnostic and control state propagation through the reading pipeline.
+
+### Changes
+
+- Updated `PacketBufReaderDef` struct to include `workflow` field for storing workflow context.
+- Enhanced reader internals to emit callbacks for next packet and ignored data events.
+- Updated generated `PacketBufReader` wrapper to support workflow context with default `()` type.
+- Documentation updates for reader rules, workflow context usage patterns, and buffer management.
+
 ## 0.5.0 (31.05.2026)
 
 ### Breaking Changes
@@ -98,7 +115,7 @@ This change does not make `brec` asynchronous - I/O operations remain blocking (
 ### Fixes
 
 - Fixed issue with `count()` on `StorageDef`
-- Fixed missed setup (on load) of slot's locator 
+- Fixed missed setup (on load) of slot's locator
 
 ### Changes
 

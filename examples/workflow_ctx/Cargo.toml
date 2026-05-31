@@ -1,5 +1,5 @@
 [package]
-name        = "packets"
+name        = "workflow_ctx"
 version     = "0.1.0"
 edition     = "2024"
 authors     = ["d.astafyev@outlook.com"]

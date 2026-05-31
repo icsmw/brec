@@ -25,7 +25,7 @@
 - **Optional Java bridge (JNI)** - With the `java` feature, protocol objects can be converted directly between Rust and Java runtime objects without JSON as an intermediate transport.
 - **Optional C# bridge (PInvoke / C ABI)** - With the `csharp` feature, protocol objects can be converted directly between Rust packet models and a stable Rust-side value ABI for .NET-facing integrations.
 - **High performance** - Parsing performance is on par with the most optimized binary parsers (see the Performance section).
-- **Simple to use** - Just annotate your structs with #[block] or #[payload], and brec takes care of the rest - your protocol is ready to go.
+- **Simple to use** - Just annotate your structs with `#[block]` or `#[payload]`, and brec takes care of the rest - your protocol is ready to go.
 
 # General Overview
 
@@ -198,7 +198,7 @@ pub struct MyNestedType { ... }
 - field names and variant names are preserved exactly from the Rust protocol model
 
 For complete usage, reflection rules, and packet/object shapes in C#, see:
-https://icsmw.github.io/brec/integrations/csharp/
+<https://icsmw.github.io/brec/integrations/csharp/>
 
 ## NAPI (Rust <-> JS)
 
@@ -235,7 +235,7 @@ pub struct MyNestedType { ... }
 - `f64` is represented via JS `BigInt` as a lossless bit pattern
 
 For complete usage, reflection rules, and packet/object shapes in JS, see:
-https://icsmw.github.io/brec/integrations/napi/
+<https://icsmw.github.io/brec/integrations/napi/>
 
 ## WASM (Rust <-> JS)
 
@@ -270,7 +270,7 @@ pub struct MyNestedType { ... }
 - `f64` is represented via JS `BigInt` as a lossless bit pattern
 
 For complete usage, reflection rules, and packet/object shapes in JS, see:
-https://icsmw.github.io/brec/integrations/wasm/
+<https://icsmw.github.io/brec/integrations/wasm/>
 
 ## Java (Rust <-> Java)
 
@@ -305,7 +305,7 @@ pub struct MyNestedType { ... }
 - `i64`, `u64`, `i128`, `u128` are mapped via `java.math.BigInteger`
 
 For complete usage, reflection rules, and packet/object shapes in Java, see:
-https://icsmw.github.io/brec/integrations/java/
+<https://icsmw.github.io/brec/integrations/java/>
 
 ## Simple Packet Construction
 
@@ -1345,21 +1345,21 @@ impl brec::ProtocolSchema for Payload {
 
 The macro defines the following aliases to reduce verbosity when using `brec` types:
 
-| Alias                            | Expanded to                                                             |
-| -------------------------------- | ----------------------------------------------------------------------- |
-| `Packet`                         | `PacketDef<Block, Payload, Payload>`                                    |
-| `BorrowedPacketBufReader<'a, R>` | `PacketBufReaderDef<'a, R, Block, BlockReferred<'a>, Payload, Payload>` |
-| `PacketBufReader<'a, R>`         | same as `BorrowedPacketBufReader<'a, R>`                                |
-| `PeekedBlocks<'a>`               | `PeekedBlocksDef<'a, BlockReferred<'a>>`                                |
-| `PeekedBlock<'a>`                | `PeekedBlockDef<'a, BlockReferred<'a>>`                                 |
-| `BorrowedRules<'a>`              | `RulesDef<Block, BlockReferred<'a>, Payload, Payload>`                  |
-| `Rules<'a>`                      | same as `BorrowedRules<'a>`                                             |
-| `BorrowedRule<'a>`               | `RuleDef<Block, BlockReferred<'a>, Payload, Payload>`                   |
-| `Rule<'a>`                       | same as `BorrowedRule<'a>`                                              |
-| `RuleFnDef<D, S>`                | `RuleFnDef<D, S>`                                                       |
-| `BorrowedReader<'a, S>`          | `ReaderDef<S, Block, BlockReferred<'a>, Payload, Payload>`              |
-| `Reader<S>`                      | `ReaderDef<S, Block, BlockReferred<'static>, Payload, Payload>`         |
-| `Writer<S>`                      | `WriterDef<S, Block, Payload, Payload>`                                 |
+| Alias                                             | Expanded to                                                                         |
+| ------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| `Packet`                                          | `PacketDef<Block, Payload, Payload>`                                                |
+| `BorrowedPacketBufReader<'a, R, WorkflowCtx = ()>` | `PacketBufReaderDef<'a, R, Block, BlockReferred<'a>, Payload, Payload, WorkflowCtx>` |
+| `PacketBufReader<'a, R, WorkflowCtx = ()>`         | same as `BorrowedPacketBufReader<'a, R, WorkflowCtx>`                               |
+| `PeekedBlocks<'a>`                                | `PeekedBlocksDef<'a, BlockReferred<'a>>`                                            |
+| `PeekedBlock<'a>`                                 | `PeekedBlockDef<'a, BlockReferred<'a>>`                                             |
+| `BorrowedRules<'a, WorkflowCtx = ()>`             | `RulesDef<Block, BlockReferred<'a>, Payload, Payload, WorkflowCtx>`                  |
+| `Rules<'a, WorkflowCtx = ()>`                     | same as `BorrowedRules<'a, WorkflowCtx>`                                            |
+| `BorrowedRule<'a, WorkflowCtx = ()>`              | `RuleDef<Block, BlockReferred<'a>, Payload, Payload, WorkflowCtx>`                   |
+| `Rule<'a, WorkflowCtx = ()>`                      | same as `BorrowedRule<'a, WorkflowCtx>`                                             |
+| `RuleFnDef<D, S>`                                 | `RuleFnDef<D, S>`                                                                   |
+| `BorrowedReader<'a, S>`                           | `ReaderDef<S, Block, BlockReferred<'a>, Payload, Payload>`                          |
+| `Reader<S>`                                       | `ReaderDef<S, Block, BlockReferred<'static>, Payload, Payload>`                     |
+| `Writer<S>`                                       | `WriterDef<S, Block, Payload, Payload>`                                             |
 
 These aliases make it easier to work with generated structures and remove the need to repeat generic parameters.
 
@@ -1449,25 +1449,30 @@ the macro will **not generate any packet-related types** (see _Generated Aliases
 
 To read from a data source, `brec` includes the `PacketBufReader<R: std::io::Read>` tool (available after code generation by calling `brec::generate!()`). `PacketBufReader` ensures safe reading from both **pure `brec` message streams** and **mixed data streams** (containing both `brec` messages and arbitrary data).
 
-Below is an example of reading all `brec` messages from a stream while counting the number of "junk" bytes (i.e., data that is not a `brec` message):
+Below is an example of reading all `brec` messages from a stream while counting the number of "junk" bytes (i.e., data that is not a `brec` message). The statistics live in the reader workflow context, not in the payload protocol context:
 
 ```ignore
+#[derive(Default)]
+struct ReaderStats {
+    ignored_bytes: usize,
+}
+
 fn reading<R: std::io::Read>(source: &mut R) -> std::io::Result<(Vec<Packet>, usize)> {
     let mut packets: Vec<Packet> = Vec::new();
-    let mut reader: PacketBufReader<_> = PacketBufReader::new(source);
-    let ignored: Arc<AtomicUsize> = Arc::new(AtomicUsize::new(0));
-    let ignored_inner = ignored.clone();
+    let mut reader = PacketBufReader::with_context(source, ReaderStats::default());
+    let mut ctx = brec::default_payload_context();
 
     reader
-        .add_rule(Rule::Ignored(brec::RuleFnDef::Dynamic(Box::new(
-            move |bytes: &[u8]| {
-                ignored_inner.fetch_add(bytes.len(), Ordering::SeqCst);
+        .add_rule(Rule::IgnoredControl(brec::RuleFnDef::Static(
+            |bytes: &[u8], stats: &mut ReaderStats| {
+                stats.ignored_bytes += bytes.len();
+                Ok(brec::IgnoredAction::Continue)
             },
-        ))))
+        )))
         .unwrap();
 
     loop {
-        match reader.read() {
+        match reader.read(&mut ctx) {
             Ok(next) => match next {
                 NextPacket::Found(packet) => packets.push(packet),
                 NextPacket::NotFound => {
@@ -1491,16 +1496,17 @@ fn reading<R: std::io::Read>(source: &mut R) -> std::io::Result<(Vec<Packet>, us
             }
         };
     }
-    Ok((packets, ignored.load(Ordering::SeqCst)))
+    let ignored = reader.into_context().ignored_bytes;
+    Ok((packets, ignored))
 }
 ```
 
 ### Key Features of `PacketBufReader`
 
-- If there is **insufficient data** (`NextPacket::NotEnoughData`), `PacketBufReader` will attempt to load more data on each subsequent call to `read()`.
-- If **no `brec` data is found** in the current `read()` iteration (`NextPacket::NotFound`), `PacketBufReader` will also attempt to load more data on each subsequent `read()`.
+- If there is **insufficient data** (`NextPacket::NotEnoughData`), `PacketBufReader` will attempt to load more data on each subsequent call to `read(ctx)`.
+- If **no `brec` data is found** in the current `read(ctx)` iteration (`NextPacket::NotFound`), `PacketBufReader` will also attempt to load more data on each subsequent `read(ctx)`.
 
-Thus, `PacketBufReader` **automatically manages data loading**, removing the need for users to implement their own data-fetching logic.
+Thus, `PacketBufReader` **automatically manages data loading**, removing the need for users to implement their own data-fetching logic. The protocol context must still be supplied on each `read(ctx)` call.
 
 ### `NextPacket` Read Statuses
 
@@ -1512,22 +1518,66 @@ Thus, `PacketBufReader` **automatically manages data loading**, removing the nee
 | `NextPacket::Skipped`       | A packet was detected but skipped due to filtering rules.                  | ✅ Yes                |
 | `NextPacket::NoData`        | No more data can be retrieved from the source.                             | ❌ No                 |
 
-After receiving `NextPacket::NoData`, further calls to `read()` are meaningless, as `PacketBufReader` has exhausted all available data from the source.
+After receiving `NextPacket::NoData`, further calls to `read(ctx)` are meaningless, as `PacketBufReader` has exhausted all available data from the source.
 
 ### Custom Filtering Rules in `PacketBufReader`
 
-Another key feature of `PacketBufReader` is that users can define **custom rules** to be applied during data reading. These rules can be updated dynamically between `read()` calls using `add_rule` and `remove_rule`.
+Another key feature of `PacketBufReader` is that users can define **custom rules** to be applied during data reading. These rules can be updated dynamically between `read(ctx)` calls using `add_rule` and `remove_rule`.
 
-| Rule                  | Available Data     | Description                                                                                                                                                                     |
-| --------------------- | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `Rule::Ignored`       | `&[u8]`            | Triggered when data not related to `brec` messages is encountered. Provides a byte slice of the unrelated data.                                                                 |
-| `Rule::Prefilter`     | `PeekedBlocks<'a>` | Triggered when a packet is found and its blocks have been partially parsed in zero-copy mode. This is the cheapest place to decide whether the payload should be parsed at all. |
-| `Rule::FilterPayload` | `&[u8]`            | Allows peeking into the payload bytes before deserialization. This is especially useful if the payload is, for example, a string - enabling scenarios like substring search.    |
-| `Rule::FilterPacket`  | `&Packet`          | Triggered after the packet is fully parsed, giving the user a final chance to accept or reject the packet.                                                                      |
+| Rule                   | Available Data                   | Description                                                                                                                                                                     |
+| ---------------------- | -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Rule::Ignored`        | `&[u8]`                         | Triggered when data not related to `brec` messages is encountered. Provides a byte slice of the unrelated data.                                                                 |
+| `Rule::IgnoredControl` | `&[u8]`, `&mut WorkflowCtx`     | Like `Ignored`, but can update reader-owned workflow state and stop scanning by returning `IgnoredAction::Stop`.                                                               |
+| `Rule::NextPacket`     | `&NextPacket`, `&mut WorkflowCtx` | Triggered immediately before a non-error `NextPacket` result is returned. Useful for diagnostics and stream health metrics.                                                    |
+| `Rule::Prefilter`      | `PeekedBlocks<'a>`              | Triggered when a packet is found and its blocks have been partially parsed in zero-copy mode. This is the cheapest place to decide whether the payload should be parsed at all. |
+| `Rule::FilterPayload`  | `&[u8]`                         | Allows peeking into the payload bytes before deserialization. This is especially useful if the payload is, for example, a string - enabling scenarios like substring search.    |
+| `Rule::FilterPacket`   | `&Packet`                       | Triggered after the packet is fully parsed, giving the user a final chance to accept or reject the packet.                                                                      |
 
 `PeekedBlocks` is the main user-facing facade for cheap prefiltering. It hides the low-level `BlockReferred<'a>` representation while still allowing advanced access through `PeekedBlock::as_referred()` and `PeekedBlocks::as_slice()` when needed.
 
 The rules `Rule::Prefilter` and `Rule::FilterPayload` are particularly effective at improving performance, as they allow you to skip the most expensive part - parsing the payload - if the packet is not needed.
+
+### Workflow Context and Bad Bytes
+
+`PacketBufReader` can own a workflow context that is separate from the protocol context passed to `read(ctx)`.
+
+- protocol context is for payload encode/decode logic;
+- workflow context is for reader-side diagnostics and control decisions.
+
+Use `PacketBufReader::with_context(source, stats)` when you want rules to update custom state such as ignored byte counters, packet counters, or stream health scores.
+
+```ignore
+#[derive(Default)]
+struct ReaderStats {
+    ignored_bytes: usize,
+    found_packets: usize,
+}
+
+let mut reader = PacketBufReader::with_context(source, ReaderStats::default());
+
+reader.add_rule(Rule::IgnoredControl(brec::RuleFnDef::Static(
+    |bytes, stats| {
+        stats.ignored_bytes += bytes.len();
+
+        if stats.ignored_bytes > 64 * 1024 {
+            Ok(brec::IgnoredAction::Stop)
+        } else {
+            Ok(brec::IgnoredAction::Continue)
+        }
+    },
+)))?;
+
+reader.add_rule(Rule::NextPacket(brec::RuleFnDef::Static(
+    |next, stats| {
+        if matches!(next, NextPacket::Found(_)) {
+            stats.found_packets += 1;
+        }
+        Ok(())
+    },
+)))?;
+```
+
+Returning `IgnoredAction::Stop` from `Rule::IgnoredControl` aborts reading with `Error::IgnoredDataRejected`. This is the recommended pattern for pure network protocols where arbitrary bytes before a packet are suspicious: count or inspect ignored bytes, then close the connection once the stream exceeds your policy. For file recovery or log scanning, return `IgnoredAction::Continue` and keep the collected diagnostics instead.
 
 ### Recommended Filtering Flow
 
@@ -1761,7 +1811,7 @@ Any structure marked with the `block` macro will have the following extended rep
 
 Thus, the total binary length of a block is calculated as:
 
-```ignore
+```text
 length = 4 (Signature) + Block's Fields Length + 4 (CRC)
 ```
 

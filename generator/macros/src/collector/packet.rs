@@ -130,11 +130,12 @@ pub fn generate() -> Result<TokenStream, E> {
         pub type Packet = brec::PacketDef<Block, Payload, Payload>;
 
         #[allow(dead_code, type_alias_bounds)]
-        pub type BorrowedPacketBufReader<'a, R> =
-            brec::PacketBufReaderDef<'a, R, Block, BlockReferred<'a>, Payload, Payload>;
+        pub type BorrowedPacketBufReader<'a, R, WorkflowCtx = ()> =
+            brec::PacketBufReaderDef<'a, R, Block, BlockReferred<'a>, Payload, Payload, WorkflowCtx>;
 
         #[allow(dead_code, type_alias_bounds)]
-        pub type PacketBufReader<'a, R> = BorrowedPacketBufReader<'a, R>;
+        pub type PacketBufReader<'a, R, WorkflowCtx = ()> =
+            BorrowedPacketBufReader<'a, R, WorkflowCtx>;
 
         #[allow(dead_code)]
         pub type PeekedBlocks<'a> = brec::PeekedBlocksDef<'a, BlockReferred<'a>>;
@@ -143,17 +144,20 @@ pub fn generate() -> Result<TokenStream, E> {
         pub type PeekedBlock<'a> = brec::PeekedBlockDef<'a, BlockReferred<'a>>;
 
         #[allow(dead_code, type_alias_bounds)]
-        pub type BorrowedRules<'a> =
-            brec::RulesDef<Block, BlockReferred<'a>, Payload, Payload>;
+        pub type BorrowedRules<'a, WorkflowCtx = ()> =
+            brec::RulesDef<Block, BlockReferred<'a>, Payload, Payload, WorkflowCtx>;
 
         #[allow(dead_code, type_alias_bounds)]
-        pub type Rules<'a> = brec::RulesDef<Block, BlockReferred<'a>, Payload, Payload>;
+        pub type Rules<'a, WorkflowCtx = ()> =
+            brec::RulesDef<Block, BlockReferred<'a>, Payload, Payload, WorkflowCtx>;
 
         #[allow(dead_code, type_alias_bounds)]
-        pub type BorrowedRule<'a> = brec::RuleDef<Block, BlockReferred<'a>, Payload, Payload>;
+        pub type BorrowedRule<'a, WorkflowCtx = ()> =
+            brec::RuleDef<Block, BlockReferred<'a>, Payload, Payload, WorkflowCtx>;
 
         #[allow(dead_code, type_alias_bounds)]
-        pub type Rule<'a> = brec::RuleDef<Block, BlockReferred<'a>, Payload, Payload>;
+        pub type Rule<'a, WorkflowCtx = ()> =
+            brec::RuleDef<Block, BlockReferred<'a>, Payload, Payload, WorkflowCtx>;
 
         #[allow(dead_code)]
         pub type RuleFnDef<D, S> = brec::RuleFnDef<D, S>;

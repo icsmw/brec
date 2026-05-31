@@ -19,6 +19,25 @@ pub enum RuleFnDef<D, S> {
 /// Callback used when `PacketBufReaderDef` encounters unrecognized data.
 pub type IgnoredCallback = RuleFnDef<Box<dyn FnMut(&[u8]) + Send + 'static>, fn(&[u8])>;
 
+/// Action returned by controlled ignored-data callbacks.
+///
+/// Use this with `RuleDef::IgnoredControl` to decide whether the reader should
+/// continue scanning after unrecognized bytes or abort with `Error::IgnoredDataRejected`.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum IgnoredAction {
+    /// Continue scanning the stream for the next packet.
+    Continue,
+    /// Stop reading and return `Error::IgnoredDataRejected`.
+    Stop,
+}
+
+/// Callback used when `PacketBufReaderDef` encounters unrecognized data and the
+/// caller wants to update workflow context or decide whether scanning should continue.
+pub type ControlledIgnoredCallback<WorkflowCtx> = RuleFnDef<
+    Box<dyn FnMut(&[u8], &mut WorkflowCtx) -> Result<IgnoredAction, Error> + Send + 'static>,
+    fn(&[u8], &mut WorkflowCtx) -> Result<IgnoredAction, Error>,
+>;
+
 /// Callback used to handle and write unrecognized data to a separate writer.
 pub type WriteIgnoredCallback<W> = RuleFnDef<
     Box<dyn FnMut(&mut std::io::BufWriter<W>, &[u8]) -> std::io::Result<()> + Send + 'static>,
@@ -181,6 +200,14 @@ pub type FilterCallback<B, P, Inner> = RuleFnDef<
     fn(&PacketDef<B, P, Inner>) -> bool,
 >;
 
+/// Callback invoked before `PacketBufReaderDef` returns a non-error `NextPacket` result.
+pub type NextPacketCallback<B, P, Inner, WorkflowCtx> = RuleFnDef<
+    Box<
+        dyn FnMut(&NextPacket<B, P, Inner>, &mut WorkflowCtx) -> Result<(), Error> + Send + 'static,
+    >,
+    fn(&NextPacket<B, P, Inner>, &mut WorkflowCtx) -> Result<(), Error>,
+>;
+
 /// Defines processing rules used by `PacketBufReaderDef`.
 ///
 /// These rules serve as lightweight hooks, allowing the user to handle non-`brec` binary data,
@@ -194,10 +221,24 @@ pub type FilterCallback<B, P, Inner> = RuleFnDef<
 /// `missing_docs` is suppressed locally for this declaration.
 #[allow(missing_docs)]
 #[enum_ids::enum_ids(display)]
-pub enum RuleDef<B: BlockDef, BR: BlockReferredDef<B>, P: PayloadDef<Inner>, Inner: PayloadInnerDef>
-{
+pub enum RuleDef<
+    B: BlockDef,
+    BR: BlockReferredDef<B>,
+    P: PayloadDef<Inner>,
+    Inner: PayloadInnerDef,
+    WorkflowCtx = (),
+> {
     /// Triggered when unknown or malformed data is encountered.
     Ignored(IgnoredCallback),
+
+    /// Triggered when unknown or malformed data is encountered.
+    ///
+    /// This rule receives the reader workflow context and can stop scanning by
+    /// returning `IgnoredAction::Stop`.
+    IgnoredControl(ControlledIgnoredCallback<WorkflowCtx>),
+
+    /// Triggered immediately before a non-error `NextPacket` result is returned to the caller.
+    NextPacket(NextPacketCallback<B, P, Inner, WorkflowCtx>),
 
     /// Cheap prefilter during partial block parsing.
     ///
@@ -222,27 +263,38 @@ pub struct RulesDef<
     BR: BlockReferredDef<B>,
     P: PayloadDef<Inner>,
     Inner: PayloadInnerDef,
+    WorkflowCtx = (),
 > {
     /// Raw list of installed rules in evaluation order.
-    pub rules: Vec<RuleDef<B, BR, P, Inner>>,
+    pub rules: Vec<RuleDef<B, BR, P, Inner, WorkflowCtx>>,
 }
 
-impl<B: BlockDef, BR: BlockReferredDef<B>, P: PayloadDef<Inner>, Inner: PayloadInnerDef> Default
-    for RulesDef<B, BR, P, Inner>
+impl<
+    B: BlockDef,
+    BR: BlockReferredDef<B>,
+    P: PayloadDef<Inner>,
+    Inner: PayloadInnerDef,
+    WorkflowCtx,
+> Default for RulesDef<B, BR, P, Inner, WorkflowCtx>
 {
     /// Initializes an empty rule set.
     fn default() -> Self {
         Self { rules: Vec::new() }
     }
 }
-impl<B: BlockDef, BR: BlockReferredDef<B>, P: PayloadDef<Inner>, Inner: PayloadInnerDef>
-    RulesDef<B, BR, P, Inner>
+impl<
+    B: BlockDef,
+    BR: BlockReferredDef<B>,
+    P: PayloadDef<Inner>,
+    Inner: PayloadInnerDef,
+    WorkflowCtx,
+> RulesDef<B, BR, P, Inner, WorkflowCtx>
 {
     /// Adds a new rule to the rule set.
     ///
     /// Only one rule of each type is allowed at any time. Adding a duplicate
     /// will result in `Error::RuleDuplicate`.
-    pub fn add_rule(&mut self, rule: RuleDef<B, BR, P, Inner>) -> Result<(), Error> {
+    pub fn add_rule(&mut self, rule: RuleDef<B, BR, P, Inner, WorkflowCtx>) -> Result<(), Error> {
         match &rule {
             RuleDef::Prefilter(..) => {
                 if self
@@ -276,6 +328,24 @@ impl<B: BlockDef, BR: BlockReferredDef<B>, P: PayloadDef<Inner>, Inner: PayloadI
                     return Err(Error::RuleDuplicate);
                 }
             }
+            RuleDef::IgnoredControl(..) => {
+                if self
+                    .rules
+                    .iter()
+                    .any(|r| matches!(r, RuleDef::IgnoredControl(..)))
+                {
+                    return Err(Error::RuleDuplicate);
+                }
+            }
+            RuleDef::NextPacket(..) => {
+                if self
+                    .rules
+                    .iter()
+                    .any(|r| matches!(r, RuleDef::NextPacket(..)))
+                {
+                    return Err(Error::RuleDuplicate);
+                }
+            }
         };
         self.rules.push(rule);
         Ok(())
@@ -287,15 +357,41 @@ impl<B: BlockDef, BR: BlockReferredDef<B>, P: PayloadDef<Inner>, Inner: PayloadI
             .retain(|r| r.id().to_string() != rule.to_string());
     }
 
-    /// Executes the `Ignored` rule (if defined) with the provided data.
-    pub fn ignore(&mut self, buffer: &[u8]) -> Result<(), Error> {
+    /// Executes ignored-data rules (if defined) with the provided data.
+    pub fn ignore(&mut self, buffer: &[u8], ctx: &mut WorkflowCtx) -> Result<(), Error> {
         for rule in self.rules.iter_mut() {
             match rule {
                 RuleDef::Ignored(cb) => match cb {
                     RuleFnDef::Static(cb) => cb(buffer),
                     RuleFnDef::Dynamic(cb) => cb(buffer),
                 },
+                RuleDef::IgnoredControl(cb) => {
+                    let action = match cb {
+                        RuleFnDef::Static(cb) => cb(buffer, ctx)?,
+                        RuleFnDef::Dynamic(cb) => cb(buffer, ctx)?,
+                    };
+                    if action == IgnoredAction::Stop {
+                        return Err(Error::IgnoredDataRejected);
+                    }
+                }
                 _ignored => {}
+            }
+        }
+        Ok(())
+    }
+
+    /// Executes the `NextPacket` rule (if defined) before returning a reader result.
+    pub fn next_packet(
+        &mut self,
+        next: &NextPacket<B, P, Inner>,
+        ctx: &mut WorkflowCtx,
+    ) -> Result<(), Error> {
+        for rule in self.rules.iter_mut() {
+            if let RuleDef::NextPacket(cb) = rule {
+                match cb {
+                    RuleFnDef::Static(cb) => cb(next, ctx)?,
+                    RuleFnDef::Dynamic(cb) => cb(next, ctx)?,
+                }
             }
         }
         Ok(())
@@ -363,11 +459,11 @@ impl<B: BlockDef, BR: BlockReferredDef<B>, P: PayloadDef<Inner>, Inner: PayloadI
 #[cfg(test)]
 mod tests {
     use crate::{
-        ByteBlock, DefaultProtocolContext, Error, ExtractPayloadFrom, IoSlices, PacketDef,
-        PayloadDef, PayloadHeader, ProtocolSchema, ReadBlockFrom, ReadBlockFromSlice, ReadFrom,
-        ReadStatus, RuleDef, RuleDefId, RuleFnDef, RulesDef, TryExtractPayloadFrom,
-        TryExtractPayloadFromBuffered, TryReadFrom, TryReadFromBuffered, WriteMutTo, WriteTo,
-        WriteVectoredMutTo, WriteVectoredTo, packet::rules::PeekAs,
+        ByteBlock, DefaultProtocolContext, Error, ExtractPayloadFrom, IgnoredAction, IoSlices,
+        NextPacket, PacketDef, PayloadDef, PayloadHeader, ProtocolSchema, ReadBlockFrom,
+        ReadBlockFromSlice, ReadFrom, ReadStatus, RuleDef, RuleDefId, RuleFnDef, RulesDef,
+        TryExtractPayloadFrom, TryExtractPayloadFromBuffered, TryReadFrom, TryReadFromBuffered,
+        WriteMutTo, WriteTo, WriteVectoredMutTo, WriteVectoredTo, packet::rules::PeekAs,
     };
     use std::io::Cursor;
     use std::sync::{
@@ -647,6 +743,26 @@ mod tests {
         ));
 
         rules
+            .add_rule(RuleDef::IgnoredControl(RuleFnDef::Static(|_, _| {
+                Ok(IgnoredAction::Continue)
+            })))
+            .expect("first ignored control");
+        assert!(matches!(
+            rules.add_rule(RuleDef::IgnoredControl(RuleFnDef::Static(|_, _| {
+                Ok(IgnoredAction::Continue)
+            }))),
+            Err(Error::RuleDuplicate)
+        ));
+
+        rules
+            .add_rule(RuleDef::NextPacket(RuleFnDef::Static(|_, _| Ok(()))))
+            .expect("first next packet");
+        assert!(matches!(
+            rules.add_rule(RuleDef::NextPacket(RuleFnDef::Static(|_, _| Ok(())))),
+            Err(Error::RuleDuplicate)
+        ));
+
+        rules
             .add_rule(RuleDef::Prefilter(RuleFnDef::Static(|_| true)))
             .expect("first prefilter");
         assert!(matches!(
@@ -658,6 +774,18 @@ mod tests {
         rules
             .add_rule(RuleDef::Ignored(RuleFnDef::Static(|_| {})))
             .expect("ignored can be added again after remove");
+
+        rules.remove_rule(RuleDefId::IgnoredControl);
+        rules
+            .add_rule(RuleDef::IgnoredControl(RuleFnDef::Static(|_, _| {
+                Ok(IgnoredAction::Continue)
+            })))
+            .expect("ignored control can be added again after remove");
+
+        rules.remove_rule(RuleDefId::NextPacket);
+        rules
+            .add_rule(RuleDef::NextPacket(RuleFnDef::Static(|_, _| Ok(()))))
+            .expect("next packet can be added again after remove");
 
         rules
             .add_rule(RuleDef::FilterPayload(RuleFnDef::Static(|_| true)))
@@ -704,7 +832,7 @@ mod tests {
             })))
             .expect("packet rule");
 
-        rules.ignore(&[9, 9]).expect("ignore callback");
+        rules.ignore(&[9, 9], &mut ()).expect("ignore callback");
         assert_eq!(ignored_calls.load(Ordering::SeqCst), 1);
 
         let blocks_a = vec![RuleBlock::new(1)];
@@ -737,8 +865,164 @@ mod tests {
             .add_rule(RuleDef::Ignored(RuleFnDef::Static(ignored_static_cb)))
             .expect("ignored static rule");
 
-        rules.ignore(&[1, 2, 3]).expect("ignore static callback");
+        rules
+            .ignore(&[1, 2, 3], &mut ())
+            .expect("ignore static callback");
         assert_eq!(IGNORED_STATIC_CALLS.load(Ordering::SeqCst), 1);
+    }
+
+    #[test]
+    fn rules_ignored_control_can_continue_or_stop_with_context() {
+        struct IgnoreCtx {
+            total: usize,
+            limit: usize,
+            next_results: usize,
+        }
+
+        struct ControlledPayload;
+
+        impl ProtocolSchema for ControlledPayload {
+            type Context<'a> = IgnoreCtx;
+        }
+
+        impl WriteVectoredMutTo for ControlledPayload {
+            fn slices(&mut self, _: &mut Self::Context<'_>) -> std::io::Result<IoSlices<'_>> {
+                Err(std::io::Error::other("controlled payload slices test stub"))
+            }
+        }
+
+        impl WriteMutTo for ControlledPayload {
+            fn write<T: std::io::Write>(
+                &mut self,
+                _: &mut T,
+                _: &mut Self::Context<'_>,
+            ) -> std::io::Result<usize> {
+                Err(std::io::Error::other("controlled payload write test stub"))
+            }
+
+            fn write_all<T: std::io::Write>(
+                &mut self,
+                _: &mut T,
+                _: &mut Self::Context<'_>,
+            ) -> std::io::Result<()> {
+                Err(std::io::Error::other(
+                    "controlled payload write_all test stub",
+                ))
+            }
+        }
+
+        impl crate::PayloadSignature for ControlledPayload {
+            fn sig(&self) -> ByteBlock {
+                ByteBlock::Len4(*b"CTRL")
+            }
+        }
+
+        impl crate::PayloadEncodeReferred for ControlledPayload {
+            fn encode(&self, _: &mut Self::Context<'_>) -> std::io::Result<Option<&[u8]>> {
+                Err(std::io::Error::other(
+                    "controlled payload encode_referred test stub",
+                ))
+            }
+        }
+
+        impl crate::PayloadHooks for ControlledPayload {}
+
+        impl crate::PayloadEncode for ControlledPayload {
+            fn encode(&self, _: &mut Self::Context<'_>) -> std::io::Result<Vec<u8>> {
+                Err(std::io::Error::other("controlled payload encode test stub"))
+            }
+        }
+
+        impl crate::PayloadCrc for ControlledPayload {
+            fn crc(&self, _: &mut Self::Context<'_>) -> std::io::Result<ByteBlock> {
+                Err(std::io::Error::other("controlled payload crc test stub"))
+            }
+
+            fn crc_size() -> usize {
+                0
+            }
+        }
+
+        impl crate::PayloadSize for ControlledPayload {
+            fn size(&self, _: &mut Self::Context<'_>) -> std::io::Result<u64> {
+                Err(std::io::Error::other("controlled payload size test stub"))
+            }
+        }
+
+        impl crate::PayloadInnerDef for ControlledPayload {}
+
+        impl TryExtractPayloadFromBuffered<ControlledPayload> for ControlledPayload {
+            fn try_read<B: std::io::BufRead>(
+                _: &mut B,
+                _: &PayloadHeader,
+                _: &mut <ControlledPayload as ProtocolSchema>::Context<'_>,
+            ) -> Result<ReadStatus<ControlledPayload>, Error> {
+                Err(Error::Test)
+            }
+        }
+
+        impl TryExtractPayloadFrom<ControlledPayload> for ControlledPayload {
+            fn try_read<B: std::io::Read + std::io::Seek>(
+                _: &mut B,
+                _: &PayloadHeader,
+                _: &mut <ControlledPayload as ProtocolSchema>::Context<'_>,
+            ) -> Result<ReadStatus<ControlledPayload>, Error> {
+                Err(Error::Test)
+            }
+        }
+
+        impl ExtractPayloadFrom<ControlledPayload> for ControlledPayload {
+            fn read<B: std::io::Read>(
+                _: &mut B,
+                _: &PayloadHeader,
+                _: &mut <ControlledPayload as ProtocolSchema>::Context<'_>,
+            ) -> Result<ControlledPayload, Error> {
+                Err(Error::Test)
+            }
+        }
+
+        impl PayloadDef<ControlledPayload> for ControlledPayload {}
+
+        let mut rules = RulesDef::<
+            RuleBlock,
+            RuleBlock,
+            ControlledPayload,
+            ControlledPayload,
+            IgnoreCtx,
+        >::default();
+        rules
+            .add_rule(RuleDef::IgnoredControl(RuleFnDef::Static(|bytes, ctx| {
+                ctx.total += bytes.len();
+                if ctx.total > ctx.limit {
+                    Ok(IgnoredAction::Stop)
+                } else {
+                    Ok(IgnoredAction::Continue)
+                }
+            })))
+            .expect("ignored control rule");
+        rules
+            .add_rule(RuleDef::NextPacket(RuleFnDef::Static(|_, ctx| {
+                ctx.next_results += 1;
+                Ok(())
+            })))
+            .expect("next packet rule");
+
+        let mut ctx = IgnoreCtx {
+            total: 0,
+            limit: 4,
+            next_results: 0,
+        };
+        rules.ignore(&[1, 2], &mut ctx).expect("first chunk");
+        assert_eq!(ctx.total, 2);
+        assert!(matches!(
+            rules.ignore(&[3, 4, 5], &mut ctx),
+            Err(Error::IgnoredDataRejected)
+        ));
+        assert_eq!(ctx.total, 5);
+        rules
+            .next_packet(&NextPacket::NotFound, &mut ctx)
+            .expect("next packet callback");
+        assert_eq!(ctx.next_results, 1);
     }
 
     #[test]

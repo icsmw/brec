@@ -7,7 +7,7 @@
 /// the `Block` or `Payload` without advancing the buffer position becomes impossible.
 ///
 /// `BufferedReader` solves this issue by allowing safe "peeking" into the buffer before
-/// consuming any data. This is achieved through the [`refill`] method, which preloads
+/// consuming any data. This is achieved through [`BufferedReader::refill`], which preloads
 /// the required amount of data to ensure the signature can be read safely.
 ///
 /// ### Performance Considerations
