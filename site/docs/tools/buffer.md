@@ -52,7 +52,7 @@ fn reading<R: std::io::Read>(source: &mut R) -> std::io::Result<(Vec<Packet>, us
 - If there is **insufficient data** (`NextPacket::NotEnoughData`), `PacketBufReader` will attempt to load more data on each subsequent call to `read(ctx)`.  
 - If **no `brec` data is found** in the current `read(ctx)` iteration (`NextPacket::NotFound`), `PacketBufReader` will also attempt to load more data on each subsequent `read(ctx)`.  
 
-Thus, `PacketBufReader` **automatically manages data loading**, removing the need for users to implement their own data-fetching logic. The payload context must still be supplied on each `read(ctx)` call.
+Thus, `PacketBufReader` **automatically manages data loading**, removing the need for users to implement their own data-fetching logic. The protocol context must still be supplied on each `read(ctx)` call. The reader also applies `ProtocolSchema::MAX_PACKET_LEN` before buffering a detected packet body.
 
 ### `NextPacket` Read Statuses
 

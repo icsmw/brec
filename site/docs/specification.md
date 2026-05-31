@@ -100,3 +100,5 @@ Thus, in binary format, a packet is structured as follows:
 | `PacketHeader` | 29 bytes | 1 |
 | `Block`        | ---    | 0 to 255 |
 | `Payload`      | ---    | 0 or 1 |
+
+`PacketHeader::size` is checked against the generated protocol's `ProtocolSchema::MAX_PACKET_LEN` by packet readers. `PayloadHeader` length is checked against `ProtocolSchema::MAX_PAYLOAD_LEN`. These limits are resource policy limits: they define the maximum message sizes the generated protocol is willing to accept, not cryptographic authentication.

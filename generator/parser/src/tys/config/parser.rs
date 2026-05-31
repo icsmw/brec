@@ -30,6 +30,36 @@ impl Parse for Config {
                             continue;
                         }
                         return Err(syn::Error::new_spanned(assign, E::UnsupportedAttr));
+                    } else if key == SettingId::DefaultMaxPayloadLen.to_string()
+                        || key == SettingId::DefaultMaxPacketLen.to_string()
+                    {
+                        let value = if let Expr::Lit(expr_lit) = assign.right.as_ref()
+                            && let syn::Lit::Int(lit_int) = &expr_lit.lit
+                        {
+                            lit_int
+                                .base10_parse::<u32>()
+                                .map_err(|e| syn::Error::new_spanned(expr_lit, e.to_string()))?
+                        } else {
+                            return Err(syn::Error::new_spanned(assign.right, E::UnsupportedAttr));
+                        };
+                        if key == SettingId::DefaultMaxPayloadLen.to_string() {
+                            settings.push(Setting::DefaultMaxPayloadLen(value));
+                        } else {
+                            settings.push(Setting::DefaultMaxPacketLen(value));
+                        }
+                        continue;
+                    } else if key == SettingId::DefaultInitialPacketBufferCapacity.to_string() {
+                        let value = if let Expr::Lit(expr_lit) = assign.right.as_ref()
+                            && let syn::Lit::Int(lit_int) = &expr_lit.lit
+                        {
+                            lit_int
+                                .base10_parse::<usize>()
+                                .map_err(|e| syn::Error::new_spanned(expr_lit, e.to_string()))?
+                        } else {
+                            return Err(syn::Error::new_spanned(assign.right, E::UnsupportedAttr));
+                        };
+                        settings.push(Setting::DefaultInitialPacketBufferCapacity(value));
+                        continue;
                     } else {
                         return Err(syn::Error::new_spanned(assign, E::UnsupportedAttr));
                     }

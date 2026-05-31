@@ -29,7 +29,7 @@ impl ReadFrom for SlotHeader {
     /// # Errors
     /// - `Error::SignatureDismatch` if the signature is incorrect.
     /// - I/O errors if reading fails.
-    fn read<T: std::io::Read>(buf: &mut T) -> Result<Self, Error> {
+    fn read<T: std::io::Read, S: ProtocolSchema>(buf: &mut T) -> Result<Self, Error> {
         let mut sig = [0u8; 8];
         buf.read_exact(&mut sig)?;
         if sig != STORAGE_SLOT_SIG {
@@ -55,7 +55,9 @@ impl TryReadFrom for SlotHeader {
     /// # Errors
     /// - `Error::SignatureDismatch` if the signature is invalid.
     /// - I/O errors during reading or seeking.
-    fn try_read<T: std::io::Read + std::io::Seek>(buf: &mut T) -> Result<ReadStatus<Self>, Error> {
+    fn try_read<T: std::io::Read + std::io::Seek, S: ProtocolSchema>(
+        buf: &mut T,
+    ) -> Result<ReadStatus<Self>, Error> {
         let start_pos = buf.stream_position()?;
         let len = buf.seek(std::io::SeekFrom::End(0))? - start_pos;
         buf.seek(std::io::SeekFrom::Start(start_pos))?;
@@ -97,11 +99,11 @@ mod tests {
         let bytes = encoded_header(7);
 
         let mut cursor = Cursor::new(bytes.clone());
-        let header = SlotHeader::read(&mut cursor).expect("read slot header");
+        let header = SlotHeader::read::<_, ()>(&mut cursor).expect("read slot header");
         assert_eq!(header.capacity, 7);
 
         let mut cursor = Cursor::new(bytes);
-        match SlotHeader::try_read(&mut cursor).expect("try_read slot header") {
+        match SlotHeader::try_read::<_, ()>(&mut cursor).expect("try_read slot header") {
             ReadStatus::Success(h) => assert_eq!(h.capacity, 7),
             ReadStatus::NotEnoughData(_) => panic!("expected Success"),
         }
@@ -111,7 +113,7 @@ mod tests {
     fn slot_header_try_read_not_enough_and_bad_signature() {
         let short = vec![1_u8, 2, 3];
         let mut cursor = Cursor::new(short);
-        match SlotHeader::try_read(&mut cursor).expect("short input should not fail") {
+        match SlotHeader::try_read::<_, ()>(&mut cursor).expect("short input should not fail") {
             ReadStatus::NotEnoughData(need) => assert_eq!(need, SlotHeader::ssize()),
             ReadStatus::Success(_) => panic!("expected NotEnoughData"),
         }
@@ -121,7 +123,7 @@ mod tests {
         bad[0] ^= 0xFF;
         let mut cursor = Cursor::new(bad);
         assert!(matches!(
-            SlotHeader::try_read(&mut cursor),
+            SlotHeader::try_read::<_, ()>(&mut cursor),
             Err(Error::SignatureDismatch(_))
         ));
         assert_eq!(

@@ -21,12 +21,12 @@ impl<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> ReadPacketFrom
 {
     fn read<T: std::io::Read>(
         buf: &mut T,
-        ctx: &mut <Self as PayloadSchema>::Context<'_>,
+        ctx: &mut <Self as ProtocolSchema>::Context<'_>,
     ) -> Result<Self, Error>
     where
         Self: Sized,
     {
-        let header = PacketHeader::read(buf)?;
+        let header = PacketHeader::read::<_, Inner>(buf)?;
         let mut pkg = PacketDef::default();
         let mut read = 0;
         if header.blocks_len > 0 {
@@ -35,7 +35,7 @@ impl<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> ReadPacketFrom
             let mut reader = std::io::Cursor::new(blocks);
             let mut iterations = 0;
             loop {
-                match <B as TryReadFromBuffered>::try_read(&mut reader)? {
+                match <B as TryReadFromBuffered>::try_read::<_, Inner>(&mut reader)? {
                     ReadStatus::Success(blk) => {
                         read += blk.size();
                         pkg.blocks.push(blk);
@@ -54,8 +54,9 @@ impl<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> ReadPacketFrom
             }
         }
         if header.payload {
-            let header = <PayloadHeader as ReadFrom>::read(buf)?;
-            let payload = <P as ExtractPayloadFrom<Inner>>::read(buf, &header, ctx)?;
+            let payload_header = <PayloadHeader as ReadFrom>::read::<_, Inner>(buf)?;
+            header.validate_payload(&payload_header)?;
+            let payload = <P as ExtractPayloadFrom<Inner>>::read(buf, &payload_header, ctx)?;
             pkg.payload = Some(payload);
         }
         Ok(pkg)
@@ -84,7 +85,7 @@ impl<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> TryReadPacketFro
 {
     fn try_read<T: std::io::Read + std::io::Seek>(
         buf: &mut T,
-        ctx: &mut <Self as PayloadSchema>::Context<'_>,
+        ctx: &mut <Self as ProtocolSchema>::Context<'_>,
     ) -> Result<PacketReadStatus<Self>, Error>
     where
         Self: Sized,
@@ -94,7 +95,7 @@ impl<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> TryReadPacketFro
         buf.seek(std::io::SeekFrom::Start(start_pos))?;
         #[cfg(feature = "resilient")]
         let mut unrecognized = Vec::new();
-        let packet_header = match <PacketHeader as TryReadFrom>::try_read(buf)? {
+        let packet_header = match <PacketHeader as TryReadFrom>::try_read::<_, Inner>(buf)? {
             ReadStatus::NotEnoughData(needed) => {
                 return Ok(PacketReadStatus::NotEnoughData(needed));
             }
@@ -109,7 +110,7 @@ impl<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> TryReadPacketFro
         if packet_header.blocks_len > 0 {
             let mut iterations = 0;
             loop {
-                match <B as TryReadFrom>::try_read(buf) {
+                match <B as TryReadFrom>::try_read::<_, Inner>(buf) {
                     Ok(ReadStatus::Success(blk)) => {
                         read += blk.size();
                         pkg.blocks.push(blk);
@@ -167,14 +168,11 @@ impl<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> TryReadPacketFro
             }
         }
         if packet_header.payload {
-            match <PayloadHeader as TryReadFrom>::try_read(buf)? {
+            match <PayloadHeader as TryReadFrom>::try_read::<_, Inner>(buf)? {
                 ReadStatus::Success(payload_header) => {
-                    let payload_total =
-                        payload_header.size() as u64 + payload_header.payload_len() as u64;
-                    let packet_payload_left = packet_header.size - packet_header.blocks_len;
-                    if payload_total > packet_payload_left {
+                    if let Err(err) = packet_header.validate_payload(&payload_header) {
                         buf.seek(std::io::SeekFrom::Start(start_pos))?;
-                        return Err(Error::InvalidLength);
+                        return Err(err);
                     }
                     match <P as TryExtractPayloadFrom<Inner>>::try_read(buf, &payload_header, ctx) {
                         Ok(ReadStatus::Success(payload)) => {
@@ -188,13 +186,6 @@ impl<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> TryReadPacketFro
                             #[cfg(feature = "resilient")]
                             if let Error::SignatureDismatch(mut entry) = err {
                                 let payload_len = payload_header.payload_len() as u64;
-                                let payload_total = payload_len + payload_header.size() as u64;
-                                let packet_payload_left =
-                                    packet_header.size - packet_header.blocks_len;
-                                if payload_total > packet_payload_left {
-                                    buf.seek(std::io::SeekFrom::Start(start_pos))?;
-                                    return Err(Error::InvalidLength);
-                                }
                                 entry.pos =
                                     Some(PacketHeader::ssize() + packet_header.blocks_len + 1);
                                 entry.len = Some(payload_len);
@@ -251,7 +242,7 @@ impl<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> TryReadPacketFro
 {
     fn try_read<T: std::io::BufRead>(
         reader: &mut T,
-        ctx: &mut <Self as PayloadSchema>::Context<'_>,
+        ctx: &mut <Self as ProtocolSchema>::Context<'_>,
     ) -> Result<PacketReadStatus<Self>, Error>
     where
         Self: Sized,
@@ -264,6 +255,9 @@ impl<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> TryReadPacketFro
             ));
         }
         let packet_header = PacketHeader::read_from_slice(bytes, false)?;
+        if packet_header.size > Inner::MAX_PACKET_LEN {
+            return Err(Error::InvalidLength);
+        }
         let packet_size = PacketHeader::ssize() + packet_header.size;
         if packet_size > available {
             return Ok(PacketReadStatus::NotEnoughData(packet_size - available));
@@ -276,7 +270,7 @@ impl<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> TryReadPacketFro
         if packet_header.blocks_len > 0 {
             let mut iterations = 0;
             loop {
-                match <B as TryReadFromBuffered>::try_read(reader) {
+                match <B as TryReadFromBuffered>::try_read::<_, Inner>(reader) {
                     Ok(ReadStatus::Success(blk)) => {
                         read += blk.size();
                         pkg.blocks.push(blk);
@@ -327,14 +321,9 @@ impl<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> TryReadPacketFro
             }
         }
         if packet_header.payload {
-            match <PayloadHeader as TryReadFromBuffered>::try_read(reader)? {
+            match <PayloadHeader as TryReadFromBuffered>::try_read::<_, Inner>(reader)? {
                 ReadStatus::Success(payload_header) => {
-                    let payload_total =
-                        payload_header.size() as u64 + payload_header.payload_len() as u64;
-                    let packet_payload_left = packet_header.size - packet_header.blocks_len;
-                    if payload_total > packet_payload_left {
-                        return Err(Error::InvalidLength);
-                    }
+                    packet_header.validate_payload(&payload_header)?;
                     reader.consume(payload_header.size());
                     match <P as TryExtractPayloadFromBuffered<Inner>>::try_read(
                         reader,
@@ -351,12 +340,6 @@ impl<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> TryReadPacketFro
                             #[cfg(feature = "resilient")]
                             if let Error::SignatureDismatch(mut entry) = err {
                                 let payload_len = payload_header.payload_len() as u64;
-                                let payload_total = payload_len + payload_header.size() as u64;
-                                let packet_payload_left =
-                                    packet_header.size - packet_header.blocks_len;
-                                if payload_total > packet_payload_left {
-                                    return Err(Error::InvalidLength);
-                                }
                                 entry.pos =
                                     Some(PacketHeader::ssize() + packet_header.blocks_len + 1);
                                 entry.len = Some(payload_len);
@@ -389,8 +372,9 @@ impl<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> TryReadPacketFro
 #[cfg(test)]
 mod tests {
     use crate::{
-        ByteBlock, DefaultPayloadContext, Error, PacketDef, PacketHeader, PacketReadStatus,
-        PayloadHeader, ReadPacketFrom, TryReadPacketFrom, TryReadPacketFromBuffered, WriteTo,
+        ByteBlock, DefaultProtocolContext, Error, PacketDef, PacketHeader, PacketReadStatus,
+        PayloadHeader, ProtocolSchema, ReadPacketFrom, TryReadPacketFrom,
+        TryReadPacketFromBuffered, WriteTo,
         tests::{TestBlock, TestPayload},
     };
     use std::io::{BufReader, Cursor, Seek};
@@ -409,7 +393,7 @@ mod tests {
         let mut cursor = Cursor::new(bytes.clone());
         let packet = <PacketDef<TestBlock, TestPayload, TestPayload> as ReadPacketFrom>::read(
             &mut cursor,
-            &mut DefaultPayloadContext::default(),
+            &mut DefaultProtocolContext::default(),
         )
         .expect("read empty packet");
         assert!(packet.blocks.is_empty());
@@ -418,7 +402,7 @@ mod tests {
         let mut cursor = Cursor::new(bytes.clone());
         match <PacketDef<TestBlock, TestPayload, TestPayload> as TryReadPacketFrom>::try_read(
             &mut cursor,
-            &mut DefaultPayloadContext::default(),
+            &mut DefaultProtocolContext::default(),
         )
         .expect("try_read empty packet")
         {
@@ -441,7 +425,7 @@ mod tests {
         let mut reader = BufReader::new(Cursor::new(bytes));
         match <PacketDef<TestBlock, TestPayload, TestPayload> as TryReadPacketFromBuffered>::try_read(
             &mut reader,
-            &mut DefaultPayloadContext::default(),
+            &mut DefaultProtocolContext::default(),
         )
         .expect("buffered try_read empty packet")
         {
@@ -465,7 +449,7 @@ mod tests {
         let mut cursor = Cursor::new(short.clone());
         match <PacketDef<TestBlock, TestPayload, TestPayload> as TryReadPacketFrom>::try_read(
             &mut cursor,
-            &mut DefaultPayloadContext::default(),
+            &mut DefaultProtocolContext::default(),
         )
         .expect("try_read short must not fail")
         {
@@ -477,7 +461,7 @@ mod tests {
         let mut reader = BufReader::new(Cursor::new(short));
         match <PacketDef<TestBlock, TestPayload, TestPayload> as TryReadPacketFromBuffered>::try_read(
             &mut reader,
-            &mut DefaultPayloadContext::default(),
+            &mut DefaultProtocolContext::default(),
         )
         .expect("buffered try_read short must not fail")
         {
@@ -488,12 +472,12 @@ mod tests {
 
     #[test]
     fn packet_try_read_and_buffered_detect_invalid_payload_length_mismatch() {
-        let packet_header = PacketHeader::from_lengths(0, 0, true);
         let payload_header = PayloadHeader {
             sig: ByteBlock::Len4(*b"ABCD"),
             crc: ByteBlock::Len4([1, 2, 3, 4]),
             len: 1,
         };
+        let packet_header = PacketHeader::from_lengths(0, payload_header.size() as u64, true);
 
         let mut bytes = Vec::new();
         packet_header
@@ -503,9 +487,18 @@ mod tests {
 
         let mut cursor = Cursor::new(bytes.clone());
         assert!(matches!(
+            <PacketDef<TestBlock, TestPayload, TestPayload> as ReadPacketFrom>::read(
+                &mut cursor,
+                &mut DefaultProtocolContext::default(),
+            ),
+            Err(Error::InvalidLength)
+        ));
+
+        let mut cursor = Cursor::new(bytes.clone());
+        assert!(matches!(
             <PacketDef<TestBlock, TestPayload, TestPayload> as TryReadPacketFrom>::try_read(
                 &mut cursor,
-                &mut DefaultPayloadContext::default(),
+                &mut DefaultProtocolContext::default(),
             ),
             Err(Error::InvalidLength)
         ));
@@ -519,7 +512,25 @@ mod tests {
         assert!(matches!(
             <PacketDef<TestBlock, TestPayload, TestPayload> as TryReadPacketFromBuffered>::try_read(
                 &mut reader,
-                &mut DefaultPayloadContext::default(),
+                &mut DefaultProtocolContext::default(),
+            ),
+            Err(Error::InvalidLength)
+        ));
+    }
+
+    #[test]
+    fn packet_try_read_buffered_rejects_packet_size_larger_than_schema_max() {
+        let packet_header = PacketHeader::from_lengths(TestPayload::MAX_PACKET_LEN + 1, 0, false);
+        let mut bytes = Vec::new();
+        packet_header
+            .write_all(&mut bytes)
+            .expect("packet header write");
+
+        let mut reader = BufReader::new(Cursor::new(bytes));
+        assert!(matches!(
+            <PacketDef<TestBlock, TestPayload, TestPayload> as TryReadPacketFromBuffered>::try_read(
+                &mut reader,
+                &mut DefaultProtocolContext::default(),
             ),
             Err(Error::InvalidLength)
         ));

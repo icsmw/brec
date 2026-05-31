@@ -136,10 +136,10 @@ pub fn generate_impl(payloads: &[&Payload], cfg: &Config) -> Result<TokenStream,
             pub fn decode_napi<'env>(
                 env: &'env napi::Env,
                 bytes: napi::bindgen_prelude::Buffer,
-                ctx: &mut crate::PayloadContext<'_>,
+                ctx: &mut crate::ProtocolContext<'_>,
             ) -> Result<napi::Unknown<'env>, brec::Error> {
                 let mut cursor = std::io::Cursor::new(bytes.as_ref());
-                let header = <brec::PayloadHeader as brec::ReadFrom>::read(&mut cursor)?;
+                let header = <brec::PayloadHeader as brec::ReadFrom>::read::<_, crate::Payload>(&mut cursor)?;
                 let payload = <Payload as brec::ExtractPayloadFrom<Payload>>::read(&mut cursor, &header, ctx)?;
                 Ok(payload.to_napi_object(env)?)
             }
@@ -148,7 +148,7 @@ pub fn generate_impl(payloads: &[&Payload], cfg: &Config) -> Result<TokenStream,
                 env: &napi::Env,
                 value: napi::Unknown<'_>,
                 out: &mut Vec<u8>,
-                ctx: &mut crate::PayloadContext<'_>,
+                ctx: &mut crate::ProtocolContext<'_>,
             ) -> Result<(), brec::Error> {
                 let mut payload = Payload::from_napi_object(env, value)?;
                 brec::WriteMutTo::write_all(&mut payload, out, ctx)?;

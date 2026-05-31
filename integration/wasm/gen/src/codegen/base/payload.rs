@@ -19,10 +19,10 @@ pub fn generate(name: &Ident, attrs: &PayloadAttrs) -> Result<TokenStream, E> {
 
             pub fn decode_wasm(
                 bytes: &[u8],
-                ctx: &mut crate::PayloadContext<'_>,
+                ctx: &mut crate::ProtocolContext<'_>,
             ) -> Result<wasm_bindgen::JsValue, brec::Error> {
                 let mut cursor = std::io::Cursor::new(bytes);
-                let header = <brec::PayloadHeader as brec::ReadFrom>::read(&mut cursor)?;
+                let header = <brec::PayloadHeader as brec::ReadFrom>::read::<_, crate::Payload>(&mut cursor)?;
                 let payload = <#name as brec::ReadPayloadFrom<#name>>::read(
                     &mut cursor,
                     &header,
@@ -34,7 +34,7 @@ pub fn generate(name: &Ident, attrs: &PayloadAttrs) -> Result<TokenStream, E> {
             pub fn encode_wasm(
                 value: wasm_bindgen::JsValue,
                 out: &mut Vec<u8>,
-                ctx: &mut crate::PayloadContext<'_>,
+                ctx: &mut crate::ProtocolContext<'_>,
             ) -> Result<(), brec::Error> {
                 let mut payload = #name::from_wasm_object(value)?;
                 brec::WritePayloadWithHeaderTo::write_all(&mut payload, out, ctx)?;

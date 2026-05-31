@@ -17,8 +17,8 @@ test-utils = ["dep:proptest"]
 brec      = { workspace = true, features = ["bincode", "napi"] }
 napi      = { workspace = true }
 serde     = { workspace = true, features = ["derive"] }
-thiserror = "2.0"
-proptest  = { version = "1.10", optional = true }
+thiserror = { workspace = true }
+proptest  = { workspace = true, optional = true }
 
 [dev-dependencies]
-proptest = "1.10"
+proptest = { workspace = true }

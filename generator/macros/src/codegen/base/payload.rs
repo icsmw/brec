@@ -32,9 +32,17 @@ impl Base for Payload {
                 impl brec::PayloadHooks for #payload_name { }
             }
         };
+
         let schema_impl = quote! {
-            impl brec::PayloadSchema for #payload_name {
-                type Context<'a> = crate::PayloadContext<'a>;
+            impl brec::ProtocolSchema for #payload_name {
+                type Context<'a> = crate::ProtocolContext<'a>;
+
+                const MAX_PAYLOAD_LEN: u32 = crate::Payload::MAX_PAYLOAD_LEN;
+
+                const MAX_PACKET_LEN: u64 = crate::Payload::MAX_PACKET_LEN;
+
+                const INITIAL_PACKET_BUFFER_CAPACITY: usize =
+                    crate::Payload::INITIAL_PACKET_BUFFER_CAPACITY;
             }
         };
         let bincode_impl = if self.attrs.is_bincode() && !self.attrs.is_crypt() {
@@ -70,12 +78,12 @@ impl Base for Payload {
                         let payload_body = brec::bincode::serde::encode_to_vec(self, brec::bincode::config::standard())
                             .map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidData, e.to_string()))?;
                         let encrypt_options = match ctx {
-                            crate::PayloadContext::Encrypt(opt) => opt,
+                            crate::ProtocolContext::Encrypt(opt) => opt,
                             _ => {
                                 return Err(std::io::Error::new(
                                     std::io::ErrorKind::InvalidInput,
                                     format!(
-                                        "payload {} with #[payload(crypt, bincode)] expects PayloadContext::Encrypt",
+                                        "payload {} with #[payload(crypt, bincode)] expects ProtocolContext::Encrypt",
                                         stringify!(#payload_name),
                                     ),
                                 ));
@@ -94,12 +102,12 @@ impl Base for Payload {
                 impl brec::PayloadDecode<#payload_name> for #payload_name {
                     fn decode(buf: &[u8], ctx: &mut Self::Context<'_>) -> std::io::Result<#payload_name> {
                         let decrypt_options = match ctx {
-                            crate::PayloadContext::Decrypt(opt) => opt,
+                            crate::ProtocolContext::Decrypt(opt) => opt,
                             _ => {
                                 return Err(std::io::Error::new(
                                     std::io::ErrorKind::InvalidInput,
                                     format!(
-                                        "payload {} with #[payload(crypt, bincode)] expects PayloadContext::Decrypt",
+                                        "payload {} with #[payload(crypt, bincode)] expects ProtocolContext::Decrypt",
                                         stringify!(#payload_name),
                                     ),
                                 ));

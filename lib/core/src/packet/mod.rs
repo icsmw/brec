@@ -33,7 +33,7 @@ pub trait BlockDef:
 /// Includes encoding, CRC, size, hooks, and full write logic (including headers).
 pub trait PayloadInnerDef:
     Sized
-    + PayloadSchema
+    + ProtocolSchema
     + PayloadEncode
     + PayloadHooks
     + PayloadEncodeReferred
@@ -89,10 +89,10 @@ pub struct PacketDef<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> 
     _pi: PhantomData<P>,
 }
 
-impl<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> PayloadSchema
+impl<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> ProtocolSchema
     for PacketDef<B, P, Inner>
 {
-    type Context<'a> = <Inner as PayloadSchema>::Context<'a>;
+    type Context<'a> = <Inner as ProtocolSchema>::Context<'a>;
 }
 
 impl<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> PacketDef<B, P, Inner> {
@@ -128,14 +128,14 @@ impl<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> PacketDef<B, P, 
     pub fn filtered<R, BR>(
         reader: &mut R,
         rules: &RulesDef<B, BR, P, Inner>,
-        ctx: &mut <Inner as PayloadSchema>::Context<'_>,
+        ctx: &mut <Inner as ProtocolSchema>::Context<'_>,
     ) -> Result<LookInStatus<PacketDef<B, P, Inner>>, Error>
     where
         R: std::io::Read + std::io::Seek,
         BR: BlockReferredDef<B>,
         Self: Sized,
     {
-        let header = <PacketHeader as ReadFrom>::read(reader)?;
+        let header = <PacketHeader as ReadFrom>::read::<_, Inner>(reader)?;
         let mut read = 0usize;
         let mut blocks = Vec::new();
         let blocks_len = header.blocks_len as usize;
@@ -163,10 +163,10 @@ impl<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> PacketDef<B, P, 
             return Ok(LookInStatus::Denied(packet_size));
         }
         let pkg = if header.payload {
-            let payload_header = <PayloadHeader as ReadFrom>::read(reader)?;
-            let payload_body_len = payload_header.payload_len();
+            let payload_header = <PayloadHeader as ReadFrom>::read::<_, Inner>(reader)?;
+            header.validate_payload(&payload_header)?;
             if rules.has_payload_filter() {
-                let mut payload_buffer = vec![0; payload_body_len];
+                let mut payload_buffer = vec![0; payload_header.payload_len()];
                 reader.read_exact(&mut payload_buffer)?;
                 if !rules.filter_payload(&payload_buffer) {
                     return Ok(LookInStatus::Denied(packet_size));
@@ -250,7 +250,7 @@ mod tests {
     #[derive(Clone)]
     struct TestPayload(u8);
 
-    impl PayloadSchema for TestPayload {
+    impl ProtocolSchema for TestPayload {
         type Context<'a> = DecodeCtx;
     }
 
@@ -307,7 +307,7 @@ mod tests {
         fn try_read<B: std::io::BufRead>(
             _: &mut B,
             _: &PayloadHeader,
-            ctx: &mut <TestPayload as PayloadSchema>::Context<'_>,
+            ctx: &mut <TestPayload as ProtocolSchema>::Context<'_>,
         ) -> Result<ReadStatus<TestPayload>, Error> {
             match ctx.buffered {
                 DecodeOutcome::Success => Ok(ReadStatus::Success(TestPayload(7))),
@@ -322,7 +322,7 @@ mod tests {
         fn try_read<B: std::io::Read + std::io::Seek>(
             _: &mut B,
             _: &PayloadHeader,
-            ctx: &mut <TestPayload as PayloadSchema>::Context<'_>,
+            ctx: &mut <TestPayload as ProtocolSchema>::Context<'_>,
         ) -> Result<ReadStatus<TestPayload>, Error> {
             match ctx.stream {
                 DecodeOutcome::Success => Ok(ReadStatus::Success(TestPayload(9))),
@@ -337,7 +337,7 @@ mod tests {
         fn read<B: std::io::Read>(
             _: &mut B,
             _: &PayloadHeader,
-            _: &mut <TestPayload as PayloadSchema>::Context<'_>,
+            _: &mut <TestPayload as ProtocolSchema>::Context<'_>,
         ) -> Result<TestPayload, Error> {
             panic!("unexpected ExtractPayloadFrom::read call in packet::mod tests")
         }
@@ -371,13 +371,15 @@ mod tests {
     }
 
     impl TryReadFromBuffered for TestBlock {
-        fn try_read<T: std::io::BufRead>(_: &mut T) -> Result<ReadStatus<Self>, Error> {
+        fn try_read<T: std::io::BufRead, S: ProtocolSchema>(
+            _: &mut T,
+        ) -> Result<ReadStatus<Self>, Error> {
             panic!("unexpected TestBlock::try_read(buffered) call in packet::mod tests")
         }
     }
 
     impl TryReadFrom for TestBlock {
-        fn try_read<T: std::io::Read + std::io::Seek>(
+        fn try_read<T: std::io::Read + std::io::Seek, S: ProtocolSchema>(
             _: &mut T,
         ) -> Result<ReadStatus<Self>, Error> {
             panic!("unexpected TestBlock::try_read(stream) call in packet::mod tests")
@@ -385,7 +387,7 @@ mod tests {
     }
 
     impl ReadFrom for TestBlock {
-        fn read<T: std::io::Read>(_: &mut T) -> Result<Self, Error> {
+        fn read<T: std::io::Read, S: ProtocolSchema>(_: &mut T) -> Result<Self, Error> {
             panic!("unexpected TestBlock::read call in packet::mod tests")
         }
     }

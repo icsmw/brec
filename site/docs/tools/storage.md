@@ -7,25 +7,26 @@ In addition to stream reading, `brec` provides a storage layer built around two 
 
 Both become available after invoking `brec::generate!()`.
 
-| Method                                | Description |
-|--------------------------------------|-------------|
-| `Writer::insert(&mut self, packet: Packet, ctx: &mut PayloadContext<'_>)` | Inserts a packet into the storage. |
-| `Reader::add_rule(&mut self, rule: Rule)` | Adds a filtering rule. |
-| `Reader::remove_rule(&mut self, rule: RuleDefId)` | Removes a filtering rule. |
-| `Reader::count(&self)` | Returns the number of records currently stored. |
-| `Reader::iter(&mut self, ctx: &mut PayloadContext<'_>)` | Returns an iterator over the storage. This method does not apply filters, even if previously added. |
-| `Reader::filtered(&mut self, ctx: &mut PayloadContext<'_>)` | Returns an iterator with filters applied. The filtering rules are identical to those used in `PacketBufReader`. |
-| `Reader::nth(&mut self, nth: usize, ctx: &mut PayloadContext<'_>)` | Attempts to read the packet at the specified index. This method does not apply filtering. |
-| `Reader::range(&mut self, from: usize, len: usize, ctx: &mut PayloadContext<'_>)` | Returns an iterator over a given range of packets. |
-| `Reader::range_filtered(&mut self, from: usize, len: usize, ctx: &mut PayloadContext<'_>)` | Returns an iterator over a range of packets with filters applied. |
-| `Reader::seek(&mut self, packet: usize, ctx: &mut PayloadContext<'_>)` | Returns an iterator starting from the specified packet index. |
-| `Reader::reload(&mut self)` | Reloads slot metadata and discovers packets appended after the reader was created. |
+| Method                                                                                      | Description                                                                                                     |
+| ------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| `Writer::insert(&mut self, packet: Packet, ctx: &mut ProtocolContext<'_>)`                  | Inserts a packet into the storage.                                                                              |
+| `Reader::add_rule(&mut self, rule: Rule)`                                                   | Adds a filtering rule.                                                                                          |
+| `Reader::remove_rule(&mut self, rule: RuleDefId)`                                           | Removes a filtering rule.                                                                                       |
+| `Reader::count(&self)`                                                                      | Returns the number of records currently stored.                                                                 |
+| `Reader::iter(&mut self, ctx: &mut ProtocolContext<'_>)`                                    | Returns an iterator over the storage. This method does not apply filters, even if previously added.             |
+| `Reader::filtered(&mut self, ctx: &mut ProtocolContext<'_>)`                                | Returns an iterator with filters applied. The filtering rules are identical to those used in `PacketBufReader`. |
+| `Reader::nth(&mut self, nth: usize, ctx: &mut ProtocolContext<'_>)`                         | Attempts to read the packet at the specified index. This method does not apply filtering.                       |
+| `Reader::range(&mut self, from: usize, len: usize, ctx: &mut ProtocolContext<'_>)`          | Returns an iterator over a given range of packets.                                                              |
+| `Reader::range_filtered(&mut self, from: usize, len: usize, ctx: &mut ProtocolContext<'_>)` | Returns an iterator over a range of packets with filters applied.                                               |
+| `Reader::seek(&mut self, packet: usize, ctx: &mut ProtocolContext<'_>)`                     | Returns an iterator starting from the specified packet index.                                                   |
+| `Reader::reload(&mut self)`                                                                 | Reloads slot metadata and discovers packets appended after the reader was created.                              |
 
 Filtering by blocks or payload improves performance by allowing the system to avoid fully parsing packets unless necessary.
 
 ### Storage Layout and Slot Design
 
 The storage layer is based on how it organizes packets internally:
+
 - Packets are not stored sequentially but are grouped into **slots**, with **500 packets per slot**.
 - Each slot stores metadata about packet positions in the file and includes a **CRC** for slot validation, which makes the storage robust against corruption.
 - Thanks to the slot metadata, `Reader` can **quickly locate packets by index** or **return a packet range efficiently**.
@@ -138,7 +139,7 @@ This mechanism ensures that:
 
 This allows safe coordination in multi-process environments, without resorting to global OS-level locks.
 
-### Example 
+### Example
 
 ```
 FileStorage::new(

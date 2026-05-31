@@ -98,7 +98,7 @@ pub trait SubscriptionDef<
 mod tests {
     use super::{SubscriptionDef, SubscriptionErrorAction, SubscriptionUpdate};
     use crate::{
-        DefaultPayloadContext, Error, PacketDef,
+        DefaultProtocolContext, Error, PacketDef,
         tests::{TestBlock, TestPayload},
     };
 
@@ -106,7 +106,7 @@ mod tests {
         updates: usize,
     }
 
-    impl SubscriptionDef<TestBlock, TestBlock, TestPayload, TestPayload, DefaultPayloadContext>
+    impl SubscriptionDef<TestBlock, TestBlock, TestPayload, TestPayload, DefaultProtocolContext>
         for TestSubscription
     {
         fn on_update(&mut self, _total: usize, _added: usize) -> SubscriptionUpdate {

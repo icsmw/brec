@@ -12,7 +12,7 @@ impl<B: BlockDef + NapiObject, P: PayloadDef<Inner>, Inner: PayloadInnerDef + Na
     pub fn decode_napi<'env>(
         env: &'env Env,
         bytes: Buffer,
-        ctx: &mut <Inner as PayloadSchema>::Context<'_>,
+        ctx: &mut <Inner as ProtocolSchema>::Context<'_>,
     ) -> Result<Unknown<'env>, Error> {
         let mut cursor = std::io::Cursor::new(bytes.as_ref());
         let packet = <Self as ReadPacketFrom>::read(&mut cursor, ctx)?;
@@ -28,7 +28,7 @@ impl<B: BlockDef + NapiObject, P: PayloadDef<Inner>, Inner: PayloadInnerDef + Na
         env: &Env,
         value: Unknown<'_>,
         out: &mut Vec<u8>,
-        ctx: &mut <Inner as PayloadSchema>::Context<'_>,
+        ctx: &mut <Inner as ProtocolSchema>::Context<'_>,
     ) -> Result<(), Error> {
         let (blocks, payload) = from_napi_object::<B, Inner>(env, value)?;
         let mut packet = Self::new(blocks, payload);

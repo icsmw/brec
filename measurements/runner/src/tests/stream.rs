@@ -3,10 +3,10 @@ use crate::*;
 use brec::prelude::*;
 use std::io::Write;
 use std::{
-    fs::{File, metadata},
+    fs::{metadata, File},
     sync::{
-        Arc,
         atomic::{AtomicUsize, Ordering},
+        Arc,
     },
     time::Instant,
 };
@@ -31,7 +31,7 @@ pub fn create_file(
         .create(true)
         .truncate(true)
         .open(&tmp)?;
-    let mut ctx = PayloadContext::None;
+    let mut ctx = ProtocolContext::None;
     while count > 0 {
         for wrapped in packets.iter() {
             let mut packet: Packet = wrapped.into();
@@ -81,7 +81,7 @@ pub fn create_file_crypt(
         .truncate(true)
         .open(&tmp)?;
     let mut encrypt = tests::crypt::encrypt_options(session_reuse_limit, decrypt_cache_limit);
-    let mut encrypt_ctx = PayloadContext::Encrypt(&mut encrypt);
+    let mut encrypt_ctx = ProtocolContext::Encrypt(&mut encrypt);
     while count > 0 {
         for wrapped in packets.iter() {
             let mut packet: Packet = wrapped.into();
@@ -115,7 +115,7 @@ pub fn read_file(payload: report::PayloadKind, filename: &str) -> std::io::Resul
     let now = Instant::now();
     let metrics = crate::metrics::Tracker::start();
     let mut reader: PacketBufReader<_> = PacketBufReader::new(&mut file);
-    let mut ctx = PayloadContext::None;
+    let mut ctx = ProtocolContext::None;
     let mut count = 0;
     loop {
         match reader.read(&mut ctx) {
@@ -173,7 +173,7 @@ pub fn read_file_crypt(
     let mut file: File = File::open(tmp)?;
     let mut decrypt = tests::crypt::decrypt_options(session_reuse_limit, decrypt_cache_limit);
     let mut reader: PacketBufReader<_> = PacketBufReader::new(&mut file);
-    let mut decrypt_ctx = PayloadContext::Decrypt(&mut decrypt);
+    let mut decrypt_ctx = ProtocolContext::Decrypt(&mut decrypt);
     let mut count = 0;
     loop {
         match reader.read(&mut decrypt_ctx) {
@@ -217,7 +217,7 @@ pub fn filter_file(payload: report::PayloadKind, filename: &str) -> std::io::Res
     let now = Instant::now();
     let metrics = crate::metrics::Tracker::start();
     let mut reader: PacketBufReader<_> = PacketBufReader::new(&mut file);
-    let mut ctx = PayloadContext::None;
+    let mut ctx = ProtocolContext::None;
     reader
         .add_rule(Rule::Prefilter(brec::RuleFnDef::Dynamic(Box::new(
             move |blocks| {
@@ -289,7 +289,7 @@ pub fn filter_file_crypt(
     let mut file: File = File::open(tmp)?;
     let mut decrypt = tests::crypt::decrypt_options(session_reuse_limit, decrypt_cache_limit);
     let mut reader: PacketBufReader<_> = PacketBufReader::new(&mut file);
-    let mut decrypt_ctx = PayloadContext::Decrypt(&mut decrypt);
+    let mut decrypt_ctx = ProtocolContext::Decrypt(&mut decrypt);
     reader
         .add_rule(Rule::Prefilter(brec::RuleFnDef::Dynamic(Box::new(
             move |blocks| {
@@ -351,7 +351,7 @@ pub fn read_file_borrowed_referred(
     let now = Instant::now();
     let metrics = crate::metrics::Tracker::start();
     let mut reader: PacketBufReader<_> = PacketBufReader::new(&mut file);
-    let mut ctx = PayloadContext::None;
+    let mut ctx = ProtocolContext::None;
     let visited = Arc::new(AtomicUsize::new(0));
     let visited_ref = Arc::clone(&visited);
     reader

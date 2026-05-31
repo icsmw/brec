@@ -20,7 +20,7 @@ pub fn writing_to(payloads: &[&Payload]) -> Result<TokenStream, E> {
             fn write<T: std::io::Write>(
                 &mut self,
                 buf: &mut T,
-                _ctx: &mut <Self as brec::PayloadSchema>::Context<'_>,
+                _ctx: &mut <Self as brec::ProtocolSchema>::Context<'_>,
             ) -> std::io::Result<usize> {
                 match self {
                     #(#write,)*
@@ -32,7 +32,7 @@ pub fn writing_to(payloads: &[&Payload]) -> Result<TokenStream, E> {
             fn write_all<T: std::io::Write>(
                 &mut self,
                 buf: &mut T,
-                _ctx: &mut <Self as brec::PayloadSchema>::Context<'_>,
+                _ctx: &mut <Self as brec::ProtocolSchema>::Context<'_>,
             ) -> std::io::Result<()> {
                 match self {
                     #(#write_all,)*
@@ -54,7 +54,7 @@ pub fn writing_vectored_to(payloads: &[&Payload]) -> Result<TokenStream, E> {
         impl brec::WriteVectoredMutTo for Payload {
             fn slices(
                 &mut self,
-                _ctx: &mut <Self as brec::PayloadSchema>::Context<'_>,
+                _ctx: &mut <Self as brec::ProtocolSchema>::Context<'_>,
             ) -> std::io::Result<brec::IoSlices<'_>> {
                 use brec::WriteVectoredPayloadWithHeaderTo;
                 match self {

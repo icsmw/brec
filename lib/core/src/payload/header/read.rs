@@ -16,9 +16,10 @@ impl ReadFrom for PayloadHeader {
     ///
     /// # Errors
     /// - `Error::InvalidCapacity` if signature or CRC length is invalid
+    /// - `Error::InvalidLength` if payload length exceeds `S::MAX_PAYLOAD_LEN`
     /// - `std::io::Error` if reading fails
     /// - Any conversion error from `ByteBlock::try_into()`
-    fn read<T: std::io::Read>(buf: &mut T) -> Result<Self, Error> {
+    fn read<R: std::io::Read, S: ProtocolSchema>(buf: &mut R) -> Result<Self, Error> {
         let mut sig_len = [0u8; 1];
         buf.read_exact(&mut sig_len)?;
         let sig_len = sig_len[0];
@@ -33,11 +34,16 @@ impl ReadFrom for PayloadHeader {
         buf.read_exact(&mut crc)?;
         let mut len = [0u8; 4];
         buf.read_exact(&mut len)?;
-        Ok(Self {
-            crc: crc.try_into()?,
-            len: u32::from_le_bytes(len),
-            sig: sig.try_into()?,
-        })
+        let len = u32::from_le_bytes(len);
+        if len > S::MAX_PAYLOAD_LEN {
+            Err(Error::InvalidLength)
+        } else {
+            Ok(Self {
+                crc: crc.try_into()?,
+                len,
+                sig: sig.try_into()?,
+            })
+        }
     }
 }
 
@@ -51,7 +57,10 @@ impl TryReadFrom for PayloadHeader {
     /// - `ReadStatus::NotEnoughData(n)` if more bytes are required
     /// - `Error::FailToReadPayloadHeader` if structure is invalid or inconsistent
     /// - `Error::InvalidCapacity` for unsupported signature or CRC lengths
-    fn try_read<T: std::io::Read + std::io::Seek>(buf: &mut T) -> Result<ReadStatus<Self>, Error> {
+    /// - `Error::InvalidLength` if payload length exceeds `S::MAX_PAYLOAD_LEN`
+    fn try_read<T: std::io::Read + std::io::Seek, S: ProtocolSchema>(
+        buf: &mut T,
+    ) -> Result<ReadStatus<Self>, Error> {
         let mut reader = SafeHeaderReader::new(buf)?;
         let sig_len = match reader.next_u8()? {
             NextChunk::NotEnoughData(n) => return Ok(ReadStatus::NotEnoughData(n)),
@@ -80,6 +89,9 @@ impl TryReadFrom for PayloadHeader {
             NextChunk::U32(v) => v,
             _ => return Err(Error::FailToReadPayloadHeader),
         };
+        if len > S::MAX_PAYLOAD_LEN {
+            return Err(Error::InvalidLength);
+        }
         Ok(ReadStatus::Success(Self {
             crc: crc.try_into()?,
             len,
@@ -94,14 +106,18 @@ impl TryReadFromBuffered for PayloadHeader {
     /// This implementation works purely on the internal buffer (via `fill_buf`) and returns
     /// `NotEnoughData` if more bytes are required to complete the header.
     ///
-    /// After confirming that enough bytes are available, it delegates to `PayloadHeader::read()`
-    /// using a `Cursor`.
+    /// After confirming that enough bytes are available, it delegates to
+    /// `PayloadHeader::read::<_, S>()` using a `Cursor`, so the same schema
+    /// length validation applies.
     ///
     /// # Returns
     /// - `ReadStatus::Success(header)` - fully parsed header
     /// - `ReadStatus::NotEnoughData(bytes)` - indicates how many more bytes are needed
     /// - `Error::InvalidCapacity` if signature or CRC size is unsupported
-    fn try_read<T: std::io::BufRead>(reader: &mut T) -> Result<ReadStatus<Self>, Error> {
+    /// - `Error::InvalidLength` if payload length exceeds `S::MAX_PAYLOAD_LEN`
+    fn try_read<T: std::io::BufRead, S: ProtocolSchema>(
+        reader: &mut T,
+    ) -> Result<ReadStatus<Self>, Error> {
         /// Helper function used in `try_read` to early-return if not enough bytes are in buffer.
         ///
         /// It calculates the required number of bytes and returns `ReadStatus::NotEnoughData` if needed.
@@ -143,7 +159,7 @@ impl TryReadFromBuffered for PayloadHeader {
             return Ok(rs);
         }
 
-        let header = PayloadHeader::read(&mut std::io::Cursor::new(buffer))?;
+        let header = PayloadHeader::read::<_, S>(&mut std::io::Cursor::new(buffer))?;
         Ok(ReadStatus::Success(header))
     }
 }
@@ -169,13 +185,13 @@ mod tests {
         let bytes = sample_header_bytes();
 
         let mut cursor = Cursor::new(bytes.clone());
-        let header = PayloadHeader::read(&mut cursor).expect("read header");
+        let header = PayloadHeader::read::<_, ()>(&mut cursor).expect("read header");
         assert_eq!(header.payload_len(), 1234);
         assert_eq!(header.sig.as_slice(), b"ABCD");
         assert_eq!(header.crc.as_slice(), &[9, 8, 7, 6]);
 
         let mut cursor = Cursor::new(bytes);
-        match <PayloadHeader as TryReadFrom>::try_read(&mut cursor).expect("try_read") {
+        match <PayloadHeader as TryReadFrom>::try_read::<_, ()>(&mut cursor).expect("try_read") {
             ReadStatus::Success(header) => {
                 assert_eq!(header.payload_len(), 1234);
                 assert_eq!(header.sig.as_slice(), b"ABCD");
@@ -189,13 +205,13 @@ mod tests {
         let bad_sig_len = vec![3, 1, 2, 3, 4, 0, 0, 0, 0];
         let mut cursor = Cursor::new(bad_sig_len.clone());
         assert!(matches!(
-            PayloadHeader::read(&mut cursor),
+            PayloadHeader::read::<_, ()>(&mut cursor),
             Err(Error::InvalidCapacity(_, _))
         ));
 
         let mut cursor = Cursor::new(bad_sig_len);
         assert!(matches!(
-            <PayloadHeader as TryReadFrom>::try_read(&mut cursor),
+            <PayloadHeader as TryReadFrom>::try_read::<_, ()>(&mut cursor),
             Err(Error::InvalidCapacity(_, _))
         ));
     }
@@ -206,14 +222,16 @@ mod tests {
         let short = bytes[..2].to_vec();
 
         let mut cursor = Cursor::new(short.clone());
-        match <PayloadHeader as TryReadFrom>::try_read(&mut cursor).expect("try_read short") {
+        match <PayloadHeader as TryReadFrom>::try_read::<_, ()>(&mut cursor)
+            .expect("try_read short")
+        {
             ReadStatus::NotEnoughData(need) => assert!(need > 0),
             ReadStatus::Success(_) => panic!("expected NotEnoughData"),
         }
         assert_eq!(cursor.stream_position().expect("pos"), 0);
 
         let mut reader = BufReader::new(Cursor::new(short));
-        match <PayloadHeader as TryReadFromBuffered>::try_read(&mut reader)
+        match <PayloadHeader as TryReadFromBuffered>::try_read::<_, ()>(&mut reader)
             .expect("buffered try_read short")
         {
             ReadStatus::NotEnoughData(need) => assert!(need > 0),
@@ -221,7 +239,7 @@ mod tests {
         }
 
         let mut reader = BufReader::new(Cursor::new(bytes));
-        match <PayloadHeader as TryReadFromBuffered>::try_read(&mut reader)
+        match <PayloadHeader as TryReadFromBuffered>::try_read::<_, ()>(&mut reader)
             .expect("buffered try_read full")
         {
             ReadStatus::Success(header) => {

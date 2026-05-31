@@ -33,7 +33,7 @@ fn read_payloads(buffer: &[u8]) -> std::io::Result<Vec<Payload>> {
 
     let mut reader = BufReader::new(Cursor::new(buffer));
     let mut payloads = Vec::new();
-    while let Ok(header) = brec::PayloadHeader::read(&mut reader) {
+    while let Ok(header) = brec::PayloadHeader::read::<_, Payload>(&mut reader) {
         payloads.push(Payload::read(&mut reader, &header, &mut ()).map_err(|err| {
             std::io::Error::new(std::io::ErrorKind::InvalidData, err.to_string())
         })?);
@@ -48,7 +48,7 @@ fn read_payloads_from_buffered(buffer: &[u8]) -> std::io::Result<(Vec<Payload>, 
     let mut inner = Cursor::new(buffer);
     let mut reader = BufferedReader::new(&mut inner);
     let mut payloads = Vec::new();
-    while let Ok(header) = brec::PayloadHeader::read(&mut reader) {
+    while let Ok(header) = brec::PayloadHeader::read::<_, Payload>(&mut reader) {
         match <Payload as TryExtractPayloadFromBuffered<Payload>>::try_read(
             &mut reader,
             &header,
@@ -170,7 +170,7 @@ proptest! {
             payload.write_all(&mut buf, &mut ())?;
             bytes += buf.len();
             let mut cursor = Cursor::new(buf);
-            let header = brec::PayloadHeader::read(&mut cursor)?;
+            let header = brec::PayloadHeader::read::<_, Payload>(&mut cursor)?;
             match <Payload as TryExtractPayloadFrom<Payload>>::try_read(&mut cursor, &header, &mut ())?
             {
                 ReadStatus::Success(restored) => {
@@ -193,7 +193,7 @@ proptest! {
             payload.write_all(&mut buf, &mut ())?;
             bytes += buf.len();
             let mut cursor = Cursor::new(buf);
-            let header = brec::PayloadHeader::read(&mut cursor)?;
+            let header = brec::PayloadHeader::read::<_, Payload>(&mut cursor)?;
             match <Payload as TryExtractPayloadFromBuffered<Payload>>::try_read(&mut cursor, &header, &mut ())?
             {
                 ReadStatus::Success(restored) => {

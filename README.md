@@ -29,7 +29,7 @@
 - **Non-packet data is preserved** - When reading mixed streams, unrecognized data is not lost. You can capture and process it separately using rules and callbacks.
 - **Persistent storage layer** - `brec` provides a high-performance storage engine for persisting packets. Its slot-based layout enables fast indexed access, filtering, and direct access by packet index.
 - **Optional file observer** - Enable the `observer` feature to watch storage files and consume newly appended packets asynchronously.
-- **Payload runtime context** - Payloads may use explicit runtime state during encode/decode, which makes features like custom context-aware payload logic and crypto integration possible.
+- **Protocol runtime context** - Payloads may use explicit runtime state during encode/decode, while generated protocols also carry shared size limits for payloads, packets, and reader preallocation.
 - **Optional payload encryption** - With the `crypt` feature, selected payloads can be encrypted while other payloads in the same protocol remain open.
 - **Optional resilient compatibility** - With the `resilient` feature, older readers can skip unknown blocks and payloads during protocol evolution.
 - **Optional Node.js bridge (N-API)** - With the `napi` feature, protocol objects can be converted directly between Rust and JavaScript without JSON conversion as an intermediate transport.
@@ -96,7 +96,7 @@ Useful entry points:
 
 - [Getting Started](https://icsmw.github.io/brec/getting_started/)
 - [Payloads](https://icsmw.github.io/brec/parts/payloads/)
-- [Payload Context](https://icsmw.github.io/brec/parts/context/)
+- [Protocol Context](https://icsmw.github.io/brec/parts/context/)
 - [Crypt](https://icsmw.github.io/brec/features/crypt/)
 - [Resilient Compatibility](https://icsmw.github.io/brec/features/resilient/)
 

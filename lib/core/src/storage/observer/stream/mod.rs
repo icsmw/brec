@@ -93,7 +93,7 @@ impl<
     O: Send + Sync + 'static,
 > Unpin for FileObserverStreamDef<B, BR, P, Inner, O>
 where
-    for<'a> Inner: PayloadSchema<Context<'a> = O>,
+    for<'a> Inner: ProtocolSchema<Context<'a> = O>,
 {
 }
 
@@ -105,7 +105,7 @@ impl<
     O: Send + Sync + 'static,
 > FileObserverStreamDef<B, BR, P, Inner, O>
 where
-    for<'a> Inner: PayloadSchema<Context<'a> = O>,
+    for<'a> Inner: ProtocolSchema<Context<'a> = O>,
 {
     /// Creates a new observer stream for the target storage file.
     ///
@@ -140,7 +140,7 @@ impl<
     O: Send + Sync + 'static,
 > tokio_stream::Stream for FileObserverStreamDef<B, BR, P, Inner, O>
 where
-    for<'a> Inner: PayloadSchema<Context<'a> = O>,
+    for<'a> Inner: ProtocolSchema<Context<'a> = O>,
 {
     type Item = FileObserverEvent<B, P, Inner>;
 

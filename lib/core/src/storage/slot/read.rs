@@ -15,8 +15,8 @@ impl ReadFrom for Slot {
     /// - I/O errors during reading
     /// - `Error::SignatureDismatch` if header signature is invalid
     /// - `Error::CrcDismatch` if CRC check fails
-    fn read<T: std::io::Read>(buf: &mut T) -> Result<Self, Error> {
-        let header = SlotHeader::read(buf)?;
+    fn read<T: std::io::Read, S: ProtocolSchema>(buf: &mut T) -> Result<Self, Error> {
+        let header = SlotHeader::read::<_, S>(buf)?;
 
         let mut lenghts = Vec::with_capacity(header.capacity as usize);
         for _ in 0..header.capacity {
@@ -52,12 +52,14 @@ impl TryReadFrom for Slot {
     /// - `ReadStatus::Success(slot)` on success
     /// - `ReadStatus::NotEnoughData(missing)` if full data is not yet available
     /// - `Error::CrcDismatch` if CRC check fails
-    fn try_read<T: std::io::Read + std::io::Seek>(buf: &mut T) -> Result<ReadStatus<Self>, Error> {
+    fn try_read<T: std::io::Read + std::io::Seek, S: ProtocolSchema>(
+        buf: &mut T,
+    ) -> Result<ReadStatus<Self>, Error> {
         let start_pos = buf.stream_position()?;
         let len = buf.seek(std::io::SeekFrom::End(0))? - start_pos;
         buf.seek(std::io::SeekFrom::Start(start_pos))?;
 
-        let header = match SlotHeader::try_read(buf)? {
+        let header = match SlotHeader::try_read::<_, S>(buf)? {
             ReadStatus::Success(header) => header,
             ReadStatus::NotEnoughData(needed) => return Ok(ReadStatus::NotEnoughData(needed)),
         };
@@ -112,13 +114,13 @@ mod tests {
         let bytes = encoded_slot();
 
         let mut cursor = Cursor::new(bytes.clone());
-        let read = Slot::read(&mut cursor).expect("slot read");
+        let read = Slot::read::<_, ()>(&mut cursor).expect("slot read");
         assert_eq!(read.capacity, 3);
         assert_eq!(read.lenghts, vec![12, 34, 0]);
         assert_eq!(read.crc, read.crc());
 
         let mut cursor = Cursor::new(bytes);
-        match Slot::try_read(&mut cursor).expect("slot try_read") {
+        match Slot::try_read::<_, ()>(&mut cursor).expect("slot try_read") {
             ReadStatus::Success(read) => {
                 assert_eq!(read.capacity, 3);
                 assert_eq!(read.lenghts, vec![12, 34, 0]);
@@ -134,11 +136,14 @@ mod tests {
         bytes[last] ^= 0xFF;
 
         let mut cursor = Cursor::new(bytes.clone());
-        assert!(matches!(Slot::read(&mut cursor), Err(Error::CrcDismatch)));
+        assert!(matches!(
+            Slot::read::<_, ()>(&mut cursor),
+            Err(Error::CrcDismatch)
+        ));
 
         let mut cursor = Cursor::new(bytes);
         assert!(matches!(
-            Slot::try_read(&mut cursor),
+            Slot::try_read::<_, ()>(&mut cursor),
             Err(Error::CrcDismatch)
         ));
     }
@@ -149,7 +154,7 @@ mod tests {
         let short = bytes[..8].to_vec();
         let mut cursor = Cursor::new(short);
 
-        match Slot::try_read(&mut cursor).expect("not enough data should not fail") {
+        match Slot::try_read::<_, ()>(&mut cursor).expect("not enough data should not fail") {
             ReadStatus::NotEnoughData(_) => {}
             ReadStatus::Success(_) => panic!("expected NotEnoughData"),
         }

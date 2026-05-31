@@ -24,7 +24,7 @@ pub fn extract_from(payloads: &[&Payload]) -> Result<TokenStream, E> {
             fn read<B: std::io::Read>(
                 buf: &mut B,
                 header: &brec::PayloadHeader,
-                _ctx: &mut <Payload as brec::PayloadSchema>::Context<'_>,
+                _ctx: &mut <Payload as brec::ProtocolSchema>::Context<'_>,
             ) -> Result<Payload, brec::Error>
             where
                 Self: Sized,
@@ -80,7 +80,7 @@ pub fn try_extract_from(payloads: &[&Payload]) -> Result<TokenStream, E> {
             fn try_read<B: std::io::Read + std::io::Seek>(
                 buf: &mut B,
                 header: &brec::PayloadHeader,
-                _ctx: &mut <Payload as brec::PayloadSchema>::Context<'_>,
+                _ctx: &mut <Payload as brec::ProtocolSchema>::Context<'_>,
             ) -> Result<brec::ReadStatus<Payload>, brec::Error> {
                 #(#variants)*
                 match <Vec<u8> as brec::TryReadPayloadFrom<Vec<u8>>>::try_read(buf, header, &mut brec::default_payload_context()) {
@@ -143,7 +143,7 @@ pub fn try_extract_from_buffered(payloads: &[&Payload]) -> Result<TokenStream, E
             fn try_read<B: std::io::BufRead>(
                 buf: &mut B,
                 header: &brec::PayloadHeader,
-                _ctx: &mut <Payload as brec::PayloadSchema>::Context<'_>,
+                _ctx: &mut <Payload as brec::ProtocolSchema>::Context<'_>,
             ) -> Result<brec::ReadStatus<Payload>, brec::Error> {
                 #(#variants)*
                 match <Vec<u8> as brec::TryReadPayloadFromBuffered<Vec<u8>>>::try_read(buf, header, &mut brec::default_payload_context()) {

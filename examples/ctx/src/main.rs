@@ -20,8 +20,8 @@ pub struct MetaBlock {
 /// or other temporary data required only during processing.
 ///
 /// The `#[payload(ctx)]` attribute tells `brec::generate!()` to add a matching
-/// variant to the generated `PayloadContext<'a>` enum:
-/// `PayloadContext::PrefixContext(&'a mut PrefixContext)`.
+/// variant to the generated `ProtocolContext<'a>` enum:
+/// `ProtocolContext::PrefixContext(&'a mut PrefixContext)`.
 #[payload(ctx)]
 pub struct PrefixContext {
     pub prefix: String,
@@ -29,12 +29,12 @@ pub struct PrefixContext {
 
 impl PrefixContext {
     /// Extracts the expected context variant for `GreetingPayload`.
-    fn extract_prefix<'a>(ctx: &'a mut crate::PayloadContext<'_>) -> std::io::Result<&'a str> {
+    fn extract_prefix<'a>(ctx: &'a mut crate::ProtocolContext<'_>) -> std::io::Result<&'a str> {
         match ctx {
-            crate::PayloadContext::PrefixContext(options) => Ok(options.prefix.as_str()),
-            crate::PayloadContext::None => Err(Error::new(
+            crate::ProtocolContext::PrefixContext(options) => Ok(options.prefix.as_str()),
+            crate::ProtocolContext::None => Err(Error::new(
                 ErrorKind::InvalidInput,
-                "GreetingPayload expects PayloadContext::PrefixContext",
+                "GreetingPayload expects ProtocolContext::PrefixContext",
             )),
         }
     }
@@ -133,7 +133,7 @@ impl PayloadCrc for GreetingPayload {}
 // - `Block`
 // - `Payload`
 // - `Packet`
-// - `PayloadContext<'a>`
+// - `ProtocolContext<'a>`
 // - `PacketBufReader`
 // - `Reader` / `Writer`
 brec::generate!();
@@ -159,7 +159,7 @@ mod tests {
         let mut encode_options = PrefixContext {
             prefix: "[ctx] ".to_owned(),
         };
-        let mut encode_ctx = PayloadContext::PrefixContext(&mut encode_options);
+        let mut encode_ctx = ProtocolContext::PrefixContext(&mut encode_options);
 
         let mut bytes = Vec::new();
         packet.write_all(&mut bytes, &mut encode_ctx)?;
@@ -170,7 +170,7 @@ mod tests {
         let mut decode_options = PrefixContext {
             prefix: "[ctx] ".to_owned(),
         };
-        let mut decode_ctx = PayloadContext::PrefixContext(&mut decode_options);
+        let mut decode_ctx = ProtocolContext::PrefixContext(&mut decode_options);
 
         let packet = match reader.read(&mut decode_ctx)? {
             NextPacket::Found(packet) => packet,

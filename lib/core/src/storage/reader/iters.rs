@@ -115,7 +115,7 @@ pub struct ReaderIterator<
     locator: PacketsLocatorIterator<'a, I>,
     source: &'a mut S,
     buffer: Cursor<Vec<u8>>,
-    ctx: &'a mut <Inner as PayloadSchema>::Context<'a>,
+    ctx: &'a mut <Inner as ProtocolSchema>::Context<'a>,
     _block: std::marker::PhantomData<B>,
     _payload: std::marker::PhantomData<P>,
     _payload_inner: std::marker::PhantomData<Inner>,
@@ -134,7 +134,7 @@ impl<
     pub fn new(
         source: &'a mut S,
         slots: I,
-        ctx: &'a mut <Inner as PayloadSchema>::Context<'a>,
+        ctx: &'a mut <Inner as ProtocolSchema>::Context<'a>,
     ) -> Self {
         Self {
             locator: PacketsLocatorIterator::new(slots),
@@ -235,7 +235,7 @@ pub struct ReaderFilteredIterator<
     source: &'a mut S,
     rules: &'a RulesDef<B, BR, P, Inner>,
     buffer: Cursor<Vec<u8>>,
-    ctx: &'a mut <Inner as PayloadSchema>::Context<'a>,
+    ctx: &'a mut <Inner as ProtocolSchema>::Context<'a>,
 }
 
 impl<
@@ -253,7 +253,7 @@ impl<
         source: &'a mut S,
         slots: I,
         rules: &'a RulesDef<B, BR, P, Inner>,
-        ctx: &'a mut <Inner as PayloadSchema>::Context<'a>,
+        ctx: &'a mut <Inner as ProtocolSchema>::Context<'a>,
     ) -> Self {
         Self {
             locator: PacketsLocatorIterator::new(slots),
@@ -336,7 +336,7 @@ pub struct ReaderRangeIterator<
     storage: &'a mut ReaderDef<S, B, BR, P, Inner>,
     len: usize,
     from: usize,
-    ctx: &'a mut <Inner as PayloadSchema>::Context<'a>,
+    ctx: &'a mut <Inner as ProtocolSchema>::Context<'a>,
     _block: std::marker::PhantomData<B>,
     _payload: std::marker::PhantomData<P>,
     _payload_inner: std::marker::PhantomData<Inner>,
@@ -355,7 +355,7 @@ impl<
         storage: &'a mut ReaderDef<S, B, BR, P, Inner>,
         from: usize,
         len: usize,
-        ctx: &'a mut <Inner as PayloadSchema>::Context<'a>,
+        ctx: &'a mut <Inner as ProtocolSchema>::Context<'a>,
     ) -> Self {
         Self {
             storage,
@@ -421,7 +421,7 @@ pub struct ReaderRangeFilteredIterator<
     storage: &'a mut ReaderDef<S, B, BR, P, Inner>,
     len: usize,
     from: usize,
-    ctx: &'a mut <Inner as PayloadSchema>::Context<'a>,
+    ctx: &'a mut <Inner as ProtocolSchema>::Context<'a>,
 }
 
 impl<
@@ -437,7 +437,7 @@ impl<
         storage: &'a mut ReaderDef<S, B, BR, P, Inner>,
         from: usize,
         len: usize,
-        ctx: &'a mut <Inner as PayloadSchema>::Context<'a>,
+        ctx: &'a mut <Inner as ProtocolSchema>::Context<'a>,
     ) -> Self {
         Self {
             storage,

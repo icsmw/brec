@@ -28,8 +28,8 @@ impl StaticPayloadSignature for String {
     }
 }
 
-impl PayloadSchema for String {
-    type Context<'a> = DefaultPayloadContext;
+impl ProtocolSchema for String {
+    type Context<'a> = DefaultProtocolContext;
 }
 
 impl PayloadEncode for String {
@@ -83,7 +83,8 @@ mod tests {
         assert!(encoded.len() > header.payload_len());
 
         let mut cursor = Cursor::new(encoded);
-        let parsed = <PayloadHeader as ReadFrom>::read(&mut cursor).expect("header must parse");
+        let parsed =
+            <PayloadHeader as ReadFrom>::read::<_, String>(&mut cursor).expect("header must parse");
         let restored = <String as ReadPayloadFrom<String>>::read(
             &mut cursor,
             &parsed,

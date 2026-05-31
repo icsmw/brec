@@ -14,8 +14,10 @@ impl ReadFrom for PacketHeader {
     /// Returns:
     /// - `Error::SignatureDismatch` if the header signature is invalid.
     /// - `Error::CrcDismatch` if the CRC check fails.
+    /// - `Error::InvalidLength` if `blocks_len` exceeds total packet size
+    ///   or packet size exceeds `S::MAX_PACKET_LEN`.
     /// - I/O errors on read failure.
-    fn read<T: std::io::Read>(buf: &mut T) -> Result<Self, Error> {
+    fn read<T: std::io::Read, S: ProtocolSchema>(buf: &mut T) -> Result<Self, Error> {
         let mut sig = [0u8; 8];
         buf.read_exact(&mut sig)?;
         if sig != PACKET_SIG {
@@ -46,11 +48,16 @@ impl ReadFrom for PacketHeader {
             crc,
         };
 
-        if pkg.crc.to_le_bytes() == pkg.crc() {
-            Ok(pkg)
-        } else {
-            Err(Error::CrcDismatch)
+        if pkg.crc.to_le_bytes() != pkg.crc() {
+            return Err(Error::CrcDismatch);
         }
+        if pkg.size > S::MAX_PACKET_LEN {
+            return Err(Error::InvalidLength);
+        }
+        if pkg.blocks_len > pkg.size {
+            return Err(Error::InvalidLength);
+        }
+        Ok(pkg)
     }
 }
 
@@ -64,6 +71,7 @@ impl ReadBlockFromSlice for PacketHeader {
     /// - `Error::NotEnoughData` if the buffer is too short.
     /// - `Error::SignatureDismatch` if the signature is invalid.
     /// - `Error::CrcDismatch` if the CRC check fails.
+    /// - `Error::InvalidLength` if `blocks_len` exceeds total packet size.
     fn read_from_slice<'a>(buf: &'a [u8], _skip_sig: bool) -> Result<Self, Error>
     where
         Self: 'a + Sized,
@@ -93,11 +101,13 @@ impl ReadBlockFromSlice for PacketHeader {
             crc,
         };
 
-        if pkg.crc.to_le_bytes() == pkg.crc() {
-            Ok(pkg)
-        } else {
-            Err(Error::CrcDismatch)
+        if pkg.crc.to_le_bytes() != pkg.crc() {
+            return Err(Error::CrcDismatch);
         }
+        if pkg.blocks_len > pkg.size {
+            return Err(Error::InvalidLength);
+        }
+        Ok(pkg)
     }
 }
 
@@ -109,7 +119,9 @@ impl TryReadFrom for PacketHeader {
     ///
     /// # Errors
     /// Propagates I/O and header validation errors.
-    fn try_read<T: std::io::Read + std::io::Seek>(buf: &mut T) -> Result<ReadStatus<Self>, Error> {
+    fn try_read<T: std::io::Read + std::io::Seek, S: ProtocolSchema>(
+        buf: &mut T,
+    ) -> Result<ReadStatus<Self>, Error> {
         let start_pos = buf.stream_position()?;
         let len = buf.seek(std::io::SeekFrom::End(0))? - start_pos;
         buf.seek(std::io::SeekFrom::Start(start_pos))?;
@@ -118,7 +130,7 @@ impl TryReadFrom for PacketHeader {
             return Ok(ReadStatus::NotEnoughData(PacketHeader::ssize() - len));
         }
 
-        Ok(ReadStatus::Success(PacketHeader::read(buf)?))
+        Ok(ReadStatus::Success(PacketHeader::read::<_, S>(buf)?))
     }
 }
 
@@ -132,7 +144,9 @@ impl TryReadFromBuffered for PacketHeader {
     ///
     /// # Errors
     /// Returns header validation or I/O errors.
-    fn try_read<T: std::io::BufRead>(reader: &mut T) -> Result<ReadStatus<Self>, Error> {
+    fn try_read<T: std::io::BufRead, S: ProtocolSchema>(
+        reader: &mut T,
+    ) -> Result<ReadStatus<Self>, Error> {
         let bytes = reader.fill_buf()?;
         if (bytes.len() as u64) < PacketHeader::ssize() {
             return Ok(ReadStatus::NotEnoughData(
@@ -140,7 +154,7 @@ impl TryReadFromBuffered for PacketHeader {
             ));
         }
 
-        let header = ReadStatus::Success(PacketHeader::read(reader)?);
+        let header = ReadStatus::Success(PacketHeader::read::<_, S>(reader)?);
         reader.consume(PacketHeader::ssize() as usize);
         Ok(header)
     }
@@ -149,8 +163,8 @@ impl TryReadFromBuffered for PacketHeader {
 #[cfg(test)]
 mod tests {
     use crate::{
-        CrcU32, Error, PacketHeader, ReadBlockFromSlice, ReadFrom, ReadStatus, TryReadFrom,
-        TryReadFromBuffered, WriteTo,
+        CrcU32, Error, PacketHeader, ProtocolSchema, ReadBlockFromSlice, ReadFrom, ReadStatus,
+        TryReadFrom, TryReadFromBuffered, WriteTo,
     };
     use std::io::{BufReader, Cursor, Seek};
 
@@ -172,12 +186,20 @@ mod tests {
         out
     }
 
+    struct LimitedPacket;
+
+    impl ProtocolSchema for LimitedPacket {
+        type Context<'a> = ();
+
+        const MAX_PACKET_LEN: u64 = 10;
+    }
+
     #[test]
     fn read_and_read_from_slice_decode_valid_header() {
         let bytes = encoded_header();
 
         let mut cursor = Cursor::new(bytes.clone());
-        let read = PacketHeader::read(&mut cursor).expect("read from io must work");
+        let read = PacketHeader::read::<_, ()>(&mut cursor).expect("read from io must work");
         assert_eq!(read.size, 123);
         assert_eq!(read.blocks_len, 77);
         assert!(read.payload);
@@ -195,7 +217,7 @@ mod tests {
         bad_sig[0] ^= 0xFF;
         let mut cursor = Cursor::new(bad_sig);
         assert!(matches!(
-            PacketHeader::read(&mut cursor),
+            PacketHeader::read::<_, ()>(&mut cursor),
             Err(Error::SignatureDismatch(_))
         ));
 
@@ -204,8 +226,44 @@ mod tests {
         bad_crc[last] ^= 0xFF;
         let mut cursor = Cursor::new(bad_crc);
         assert!(matches!(
-            PacketHeader::read(&mut cursor),
+            PacketHeader::read::<_, ()>(&mut cursor),
             Err(Error::CrcDismatch)
+        ));
+    }
+
+    #[test]
+    fn read_rejects_blocks_len_larger_than_packet_size() {
+        let mut header = sample_header();
+        header.size = 10;
+        header.blocks_len = 11;
+        header.crc = u32::from_le_bytes(header.crc());
+        let mut bytes = Vec::new();
+        header.write_all(&mut bytes).expect("header write");
+
+        let mut cursor = Cursor::new(bytes.clone());
+        assert!(matches!(
+            PacketHeader::read::<_, ()>(&mut cursor),
+            Err(Error::InvalidLength)
+        ));
+        assert!(matches!(
+            PacketHeader::read_from_slice(&bytes, false),
+            Err(Error::InvalidLength)
+        ));
+    }
+
+    #[test]
+    fn read_rejects_packet_size_larger_than_schema_max() {
+        let mut header = sample_header();
+        header.size = 11;
+        header.blocks_len = 0;
+        header.crc = u32::from_le_bytes(header.crc());
+        let mut bytes = Vec::new();
+        header.write_all(&mut bytes).expect("header write");
+
+        let mut cursor = Cursor::new(bytes);
+        assert!(matches!(
+            PacketHeader::read::<_, LimitedPacket>(&mut cursor),
+            Err(Error::InvalidLength)
         ));
     }
 
@@ -215,7 +273,7 @@ mod tests {
         let short = full[..8].to_vec();
         let mut cursor = Cursor::new(short);
 
-        match <PacketHeader as TryReadFrom>::try_read(&mut cursor)
+        match <PacketHeader as TryReadFrom>::try_read::<_, ()>(&mut cursor)
             .expect("try_read must not fail on short input")
         {
             ReadStatus::NotEnoughData(need) => assert!(need > 0),
@@ -228,7 +286,7 @@ mod tests {
         );
 
         let mut cursor = Cursor::new(full);
-        match <PacketHeader as TryReadFrom>::try_read(&mut cursor)
+        match <PacketHeader as TryReadFrom>::try_read::<_, ()>(&mut cursor)
             .expect("try_read must decode full header")
         {
             ReadStatus::Success(header) => {
@@ -250,7 +308,7 @@ mod tests {
         let short = full[..5].to_vec();
 
         let mut reader = BufReader::new(Cursor::new(short));
-        match <PacketHeader as TryReadFromBuffered>::try_read(&mut reader)
+        match <PacketHeader as TryReadFromBuffered>::try_read::<_, ()>(&mut reader)
             .expect("buffered short read must not fail")
         {
             ReadStatus::NotEnoughData(need) => assert!(need > 0),
@@ -258,7 +316,7 @@ mod tests {
         }
 
         let mut reader = BufReader::new(Cursor::new(full));
-        match <PacketHeader as TryReadFromBuffered>::try_read(&mut reader)
+        match <PacketHeader as TryReadFromBuffered>::try_read::<_, ()>(&mut reader)
             .expect("buffered full read must succeed")
         {
             ReadStatus::Success(header) => {

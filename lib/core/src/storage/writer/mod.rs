@@ -53,7 +53,7 @@ impl<
         let mut offset = 0;
         loop {
             self.inner.seek(std::io::SeekFrom::Start(offset))?;
-            match <Slot as TryReadFrom>::try_read(&mut self.inner) {
+            match <Slot as TryReadFrom>::try_read::<_, ()>(&mut self.inner) {
                 Ok(ReadStatus::Success(slot)) => {
                     offset += slot.size() + slot.width();
                     self.slots.push(slot);
@@ -85,7 +85,7 @@ impl<
     pub fn insert(
         &mut self,
         mut packet: PacketDef<B, P, Inner>,
-        ctx: &mut <Inner as PayloadSchema>::Context<'_>,
+        ctx: &mut <Inner as ProtocolSchema>::Context<'_>,
     ) -> Result<(), Error> {
         let offset = match self.locator.next(&self.slots) {
             Some(offset) => offset,

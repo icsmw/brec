@@ -765,7 +765,7 @@ fn unknown_block_signature(block_bytes: &[u8]) -> [u8; 4] {
         candidate[0] ^= i;
         let mut probe = block_bytes.to_vec();
         probe[..4].copy_from_slice(&candidate);
-        let verdict = <Block as TryReadFrom>::try_read(&mut std::io::Cursor::new(&probe));
+        let verdict = <Block as TryReadFrom>::try_read::<_, ()>(&mut std::io::Cursor::new(&probe));
         if matches!(verdict, Err(brec::Error::SignatureDismatch(_))) {
             return candidate;
         }

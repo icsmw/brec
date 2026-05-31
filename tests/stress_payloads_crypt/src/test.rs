@@ -1,9 +1,9 @@
 use brec::prelude::*;
 use proptest::prelude::*;
 use rsa::{
-    RsaPrivateKey,
     pkcs8::{EncodePrivateKey, EncodePublicKey},
     rand_core::OsRng,
+    RsaPrivateKey,
 };
 use std::sync::OnceLock;
 
@@ -75,7 +75,7 @@ fn write_to_buf<W: std::io::Write>(
     payloads: &mut [Payload],
     encrypt: &mut EncryptOptions,
 ) -> std::io::Result<()> {
-    let mut encrypt_ctx = PayloadContext::Encrypt(encrypt);
+    let mut encrypt_ctx = ProtocolContext::Encrypt(encrypt);
     for payload in payloads.iter_mut() {
         payload.write_all(buf, &mut encrypt_ctx)?;
     }
@@ -87,8 +87,8 @@ fn read_payloads(buffer: &[u8], decrypt: &mut DecryptOptions) -> std::io::Result
 
     let mut reader = BufReader::new(Cursor::new(buffer));
     let mut payloads = Vec::new();
-    let mut decrypt_ctx = PayloadContext::Decrypt(decrypt);
-    while let Ok(header) = brec::PayloadHeader::read(&mut reader) {
+    let mut decrypt_ctx = ProtocolContext::Decrypt(decrypt);
+    while let Ok(header) = brec::PayloadHeader::read::<_, Payload>(&mut reader) {
         payloads.push(
             Payload::read(&mut reader, &header, &mut decrypt_ctx).map_err(|err| {
                 std::io::Error::new(std::io::ErrorKind::InvalidData, err.to_string())
@@ -108,8 +108,8 @@ fn read_payloads_from_buffered(
     let mut inner = Cursor::new(buffer);
     let mut reader = BufferedReader::new(&mut inner);
     let mut payloads = Vec::new();
-    let mut decrypt_ctx = PayloadContext::Decrypt(decrypt);
-    while let Ok(header) = brec::PayloadHeader::read(&mut reader) {
+    let mut decrypt_ctx = ProtocolContext::Decrypt(decrypt);
+    while let Ok(header) = brec::PayloadHeader::read::<_, Payload>(&mut reader) {
         match <Payload as TryExtractPayloadFromBuffered<Payload>>::try_read(
             &mut reader,
             &header,
@@ -187,8 +187,8 @@ proptest! {
     fn check_sizes(mut payloads in proptest::collection::vec(any::<Payload>(), 1..max())) {
         let mut certs = certificates();
         let mut bytes = 0;
-        let mut encrypt_ctx = PayloadContext::Encrypt(&mut certs.encrypt);
-        let mut decrypt_ctx = PayloadContext::Decrypt(&mut certs.decrypt);
+        let mut encrypt_ctx = ProtocolContext::Encrypt(&mut certs.encrypt);
+        let mut decrypt_ctx = ProtocolContext::Decrypt(&mut certs.decrypt);
         for payload in payloads.iter_mut() {
             let mut buffer = Vec::new();
             payload.write_all(&mut buffer, &mut encrypt_ctx)?;
@@ -196,7 +196,7 @@ proptest! {
             assert_eq!(buffer.len(), expected_size as usize);
 
             let mut cursor = std::io::Cursor::new(buffer);
-            let header = brec::PayloadHeader::read(&mut cursor)?;
+            let header = brec::PayloadHeader::read::<_, Payload>(&mut cursor)?;
             let restored = Payload::read(&mut cursor, &header, &mut decrypt_ctx)
                 .map_err(|err| std::io::Error::new(std::io::ErrorKind::InvalidData, err.to_string()))?;
             assert_eq!(payload, &restored);
@@ -238,14 +238,14 @@ proptest! {
         use std::io::Cursor;
         let mut certs = certificates();
         let mut bytes = 0;
-        let mut encrypt_ctx = PayloadContext::Encrypt(&mut certs.encrypt);
-        let mut decrypt_ctx = PayloadContext::Decrypt(&mut certs.decrypt);
+        let mut encrypt_ctx = ProtocolContext::Encrypt(&mut certs.encrypt);
+        let mut decrypt_ctx = ProtocolContext::Decrypt(&mut certs.decrypt);
         for payload in payloads.iter_mut() {
             let mut buf: Vec<u8> = Vec::new();
             payload.write_all(&mut buf, &mut encrypt_ctx)?;
             bytes += buf.len();
             let mut cursor = Cursor::new(buf);
-            let header = brec::PayloadHeader::read(&mut cursor)?;
+            let header = brec::PayloadHeader::read::<_, Payload>(&mut cursor)?;
             match <Payload as TryExtractPayloadFrom<Payload>>::try_read(
                 &mut cursor,
                 &header,
@@ -267,14 +267,14 @@ proptest! {
         use std::io::Cursor;
         let mut certs = certificates();
         let mut bytes = 0;
-        let mut encrypt_ctx = PayloadContext::Encrypt(&mut certs.encrypt);
-        let mut decrypt_ctx = PayloadContext::Decrypt(&mut certs.decrypt);
+        let mut encrypt_ctx = ProtocolContext::Encrypt(&mut certs.encrypt);
+        let mut decrypt_ctx = ProtocolContext::Decrypt(&mut certs.decrypt);
         for payload in payloads.iter_mut() {
             let mut buf: Vec<u8> = Vec::new();
             payload.write_all(&mut buf, &mut encrypt_ctx)?;
             bytes += buf.len();
             let mut cursor = Cursor::new(buf);
-            let header = brec::PayloadHeader::read(&mut cursor)?;
+            let header = brec::PayloadHeader::read::<_, Payload>(&mut cursor)?;
             match <Payload as TryExtractPayloadFromBuffered<Payload>>::try_read(
                 &mut cursor,
                 &header,
@@ -302,10 +302,10 @@ fn decrypt_fails_with_wrong_certificate() {
         .new_tree(&mut TestRunner::default())
         .unwrap()
         .current();
-    let mut encrypt_ctx = PayloadContext::Encrypt(&mut certs.encrypt);
+    let mut encrypt_ctx = ProtocolContext::Encrypt(&mut certs.encrypt);
     let encrypted =
         <PayloadC as PayloadEncode>::encode(&payload, &mut encrypt_ctx).expect("encrypt payload");
-    let mut wrong_decrypt_ctx = PayloadContext::Decrypt(&mut certs.wrong_decrypt);
+    let mut wrong_decrypt_ctx = ProtocolContext::Decrypt(&mut certs.wrong_decrypt);
     let result = <PayloadC as PayloadDecode<PayloadC>>::decode(&encrypted, &mut wrong_decrypt_ctx);
     assert!(result.is_err());
 }

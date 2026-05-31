@@ -1,4 +1,3 @@
-
 Users do not need to define possible packet types since any combination of blocks (up to 255) and a single optional payload constitutes a valid packet.
 
 ```rust
@@ -20,7 +19,7 @@ let my_packet = Packet::new(
 - A packet can contain **0 to 255 blocks**.
 - A packet can include **0 or 1 payload**.
 
-**Warning!** In most cases, having 1-5 blocks per packet is more than sufficient. A significant number of blocks can lead to an increase in compilation time but will not affect the performance of the compiled code. Therefore, if compilation time is a critical factor, it is recommended to avoid a large number of blocks in packets. 
+**Warning!** In most cases, having 1-5 blocks per packet is more than sufficient. A significant number of blocks can lead to an increase in compilation time but will not affect the performance of the compiled code. Therefore, if compilation time is a critical factor, it is recommended to avoid a large number of blocks in packets.
 
 To clarify, **runtime performance is not affected**, but the compilation time increases because the compiler has to generate multiple implementations for generic types used in `PacketDef` (an internal `brec` structure).
 
@@ -30,26 +29,26 @@ For mixed-version deployments, pair packet evolution with the `resilient` featur
 
 A `Packet` can be used as a standalone unit for data exchange. It implements the following traits:
 
-| Trait                 | Method | Return Type | Description |
-|-----------------------|--------|-------------|-------------|
-| `ReadPacketFrom`           | `read<T: std::io::Read>(buf: &mut T, ctx: &mut Self::Context<'_>)` | `Result<Self, Error>` | Attempts to read a packet from a source. |
-| `TryReadPacketFrom`        | `try_read<T: std::io::Read + std::io::Seek>(buf: &mut T, ctx: &mut Self::Context<'_>)` | `Result<ReadStatus<Self>, Error>` | Attempts to read a packet, but if data is insufficient, it returns a corresponding read status instead of an error. Also, moves the source’s position only upon successful reading; otherwise, it remains unchanged. |
-| `TryReadPacketFromBuffered` | `try_read<T: std::io::BufRead>(reader: &mut T, ctx: &mut Self::Context<'_>)` | `Result<ReadStatus<Self>, Error>` | Identical to `TryReadPacketFrom`, but for buffered sources. |
-| `WriteMutTo`         | `write<T: std::io::Write>(&mut self, buf: &mut T, ctx: &mut Self::Context<'_>)` | `std::io::Result<usize>` | Equivalent to the standard `write` method, returning the number of bytes written. Does not guarantee that data is flushed to the output, so calling `flush` is required if such guarantees are needed. |
-| `WriteMutTo`         | `write_all<T: std::io::Write>(&mut self, buf: &mut T, ctx: &mut Self::Context<'_>)` | `std::io::Result<()>` | Equivalent to the standard `write_all` method. |
-| `WriteVectoredMutTo` | `slices(&mut self, ctx: &mut Self::Context<'_>)` | `std::io::Result<IoSlices>` | Returns the binary representation of the packet as slices. |
-| `WriteVectoredMutTo` | `write_vectored<T: std::io::Write>(&mut self, buf: &mut T, ctx: &mut Self::Context<'_>)` | `std::io::Result<usize>` | Attempts a vectored write of the packet (analogous to the standard `write_vectored`). |
-| `WriteVectoredMutTo` | `write_vectored_all<T: std::io::Write>(&mut self, buf: &mut T, ctx: &mut Self::Context<'_>)` | `std::io::Result<()>` | Attempts a vectored write of the packet (analogous to the standard `write_vectored_all`). |
+| Trait                       | Method                                                                                       | Return Type                       | Description                                                                                                                                                                                                          |
+| --------------------------- | -------------------------------------------------------------------------------------------- | --------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ReadPacketFrom`            | `read<T: std::io::Read>(buf: &mut T, ctx: &mut Self::Context<'_>)`                           | `Result<Self, Error>`             | Attempts to read a packet from a source.                                                                                                                                                                             |
+| `TryReadPacketFrom`         | `try_read<T: std::io::Read + std::io::Seek>(buf: &mut T, ctx: &mut Self::Context<'_>)`       | `Result<ReadStatus<Self>, Error>` | Attempts to read a packet, but if data is insufficient, it returns a corresponding read status instead of an error. Also, moves the source’s position only upon successful reading; otherwise, it remains unchanged. |
+| `TryReadPacketFromBuffered` | `try_read<T: std::io::BufRead>(reader: &mut T, ctx: &mut Self::Context<'_>)`                 | `Result<ReadStatus<Self>, Error>` | Identical to `TryReadPacketFrom`, but for buffered sources.                                                                                                                                                          |
+| `WriteMutTo`                | `write<T: std::io::Write>(&mut self, buf: &mut T, ctx: &mut Self::Context<'_>)`              | `std::io::Result<usize>`          | Equivalent to the standard `write` method, returning the number of bytes written. Does not guarantee that data is flushed to the output, so calling `flush` is required if such guarantees are needed.               |
+| `WriteMutTo`                | `write_all<T: std::io::Write>(&mut self, buf: &mut T, ctx: &mut Self::Context<'_>)`          | `std::io::Result<()>`             | Equivalent to the standard `write_all` method.                                                                                                                                                                       |
+| `WriteVectoredMutTo`        | `slices(&mut self, ctx: &mut Self::Context<'_>)`                                             | `std::io::Result<IoSlices>`       | Returns the binary representation of the packet as slices.                                                                                                                                                           |
+| `WriteVectoredMutTo`        | `write_vectored<T: std::io::Write>(&mut self, buf: &mut T, ctx: &mut Self::Context<'_>)`     | `std::io::Result<usize>`          | Attempts a vectored write of the packet (analogous to the standard `write_vectored`).                                                                                                                                |
+| `WriteVectoredMutTo`        | `write_vectored_all<T: std::io::Write>(&mut self, buf: &mut T, ctx: &mut Self::Context<'_>)` | `std::io::Result<()>`             | Attempts a vectored write of the packet (analogous to the standard `write_vectored_all`).                                                                                                                            |
 
 ### Packet Filtering
 
-`Packet` provides a highly useful method: 
+`Packet` provides a highly useful method:
 
 ```rust
 filtered<R: std::io::Read + std::io::Seek>(
-    reader: &mut R, 
+    reader: &mut R,
     rules: &Rules,
-    ctx: &mut <Payload as brec::PayloadSchema>::Context<'_>,
+    ctx: &mut <Payload as brec::ProtocolSchema>::Context<'_>,
 ) -> Result<LookInStatus<Packet>, Error>
 ```
 

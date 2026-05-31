@@ -8,7 +8,8 @@ pub use status::*;
 
 /// Trait for reading a type directly from any `Read` stream.
 ///
-/// Used for deserializing simple binary structures.
+/// Used for deserializing binary structures. `S` provides protocol context and
+/// size limits for readers that need them; schema-independent readers can ignore it.
 pub trait ReadFrom {
     /// Reads and constructs the value from a binary reader.
     ///
@@ -17,7 +18,7 @@ pub trait ReadFrom {
     ///
     /// # Returns
     /// A deserialized instance of the implementing type or an error.
-    fn read<T: std::io::Read>(buf: &mut T) -> Result<Self, Error>
+    fn read<R: std::io::Read, S: ProtocolSchema>(buf: &mut R) -> Result<Self, Error>
     where
         Self: Sized;
 }
@@ -58,6 +59,7 @@ pub trait ReadBlockFrom {
 /// Trait for reading and validating a typed payload using a `PayloadHeader`.
 ///
 /// Performs signature and CRC checks, and delegates to `PayloadDecode`.
+/// The header is expected to have passed schema length validation when it was read.
 pub trait ReadPayloadFrom<
     T: Sized + PayloadDecode<T> + PayloadHooks + StaticPayloadSignature + PayloadCrc,
 >
@@ -93,12 +95,12 @@ pub trait ReadPayloadFrom<
     }
 }
 
-/// Trait for reading a full packet from a stream with payload context.
-pub trait ReadPacketFrom: PayloadSchema {
-    /// Reads and constructs the packet from a binary reader using the provided payload context.
+/// Trait for reading a full packet from a stream with protocol context.
+pub trait ReadPacketFrom: ProtocolSchema {
+    /// Reads and constructs the packet from a binary reader using the provided protocol context.
     fn read<T: std::io::Read>(
         buf: &mut T,
-        ctx: &mut <Self as PayloadSchema>::Context<'_>,
+        ctx: &mut <Self as ProtocolSchema>::Context<'_>,
     ) -> Result<Self, Error>
     where
         Self: Sized;
@@ -115,7 +117,7 @@ pub trait ExtractPayloadFrom<T: Sized> {
         ctx: &mut T::Context<'_>,
     ) -> Result<T, Error>
     where
-        T: PayloadSchema;
+        T: ProtocolSchema;
 }
 
 /// Trait for attempting to read a payload if enough data is available in the stream.
@@ -161,15 +163,15 @@ pub trait TryExtractPayloadFrom<T: Sized> {
         ctx: &mut T::Context<'_>,
     ) -> Result<ReadStatus<T>, Error>
     where
-        T: PayloadSchema;
+        T: ProtocolSchema;
 }
 
-/// Trait for attempting to read a packet from a seekable stream with payload context.
-pub trait TryReadPacketFrom: PayloadSchema {
+/// Trait for attempting to read a packet from a seekable stream with protocol context.
+pub trait TryReadPacketFrom: ProtocolSchema {
     /// Tries to read the full packet from a seekable stream.
     fn try_read<T: std::io::Read + std::io::Seek>(
         buf: &mut T,
-        ctx: &mut <Self as PayloadSchema>::Context<'_>,
+        ctx: &mut <Self as ProtocolSchema>::Context<'_>,
     ) -> Result<PacketReadStatus<Self>, Error>
     where
         Self: Sized;
@@ -210,15 +212,15 @@ pub trait TryExtractPayloadFromBuffered<T: Sized> {
         ctx: &mut T::Context<'_>,
     ) -> Result<ReadStatus<T>, Error>
     where
-        T: PayloadSchema;
+        T: ProtocolSchema;
 }
 
 /// Variant of `TryReadPacketFrom` for buffered, non-seekable streams.
-pub trait TryReadPacketFromBuffered: PayloadSchema {
-    /// Tries to read the full packet from a buffered stream using the provided payload context.
+pub trait TryReadPacketFromBuffered: ProtocolSchema {
+    /// Tries to read the full packet from a buffered stream using the provided protocol context.
     fn try_read<T: std::io::BufRead>(
         buf: &mut T,
-        ctx: &mut <Self as PayloadSchema>::Context<'_>,
+        ctx: &mut <Self as ProtocolSchema>::Context<'_>,
     ) -> Result<PacketReadStatus<Self>, Error>
     where
         Self: Sized;
@@ -230,9 +232,13 @@ pub trait TryReadPacketFromBuffered: PayloadSchema {
 pub trait TryReadFrom {
     /// Tries to read the full structure from a seekable stream.
     ///
+    /// `S` provides protocol size limits for readers that need them.
+    ///
     /// # Returns
     /// A `ReadStatus<Self>` indicating success or how many more bytes are required.
-    fn try_read<T: std::io::Read + std::io::Seek>(buf: &mut T) -> Result<ReadStatus<Self>, Error>
+    fn try_read<T: std::io::Read + std::io::Seek, S: ProtocolSchema>(
+        buf: &mut T,
+    ) -> Result<ReadStatus<Self>, Error>
     where
         Self: Sized;
 }
@@ -241,9 +247,75 @@ pub trait TryReadFrom {
 pub trait TryReadFromBuffered {
     /// Tries to read the full structure from a buffered stream.
     ///
+    /// `S` provides protocol size limits for readers that need them.
+    ///
     /// # Returns
     /// A `ReadStatus<Self>` indicating success or failure.
-    fn try_read<T: std::io::BufRead>(buf: &mut T) -> Result<ReadStatus<Self>, Error>
+    fn try_read<T: std::io::BufRead, S: ProtocolSchema>(
+        buf: &mut T,
+    ) -> Result<ReadStatus<Self>, Error>
     where
         Self: Sized;
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::io::Cursor;
+
+    #[derive(Debug)]
+    struct LimitedPayload;
+
+    impl ProtocolSchema for LimitedPayload {
+        type Context<'a> = ();
+
+        const MAX_PAYLOAD_LEN: u32 = 2;
+    }
+
+    impl PayloadHooks for LimitedPayload {}
+
+    impl PayloadEncode for LimitedPayload {
+        fn encode(&self, _: &mut Self::Context<'_>) -> std::io::Result<Vec<u8>> {
+            Ok(Vec::new())
+        }
+    }
+
+    impl PayloadEncodeReferred for LimitedPayload {
+        fn encode(&self, _: &mut Self::Context<'_>) -> std::io::Result<Option<&[u8]>> {
+            Ok(Some(&[]))
+        }
+    }
+
+    impl StaticPayloadSignature for LimitedPayload {
+        fn ssig() -> ByteBlock {
+            ByteBlock::Len4(*b"LIMT")
+        }
+    }
+
+    impl PayloadCrc for LimitedPayload {}
+
+    impl PayloadDecode<LimitedPayload> for LimitedPayload {
+        fn decode(_: &[u8], _: &mut Self::Context<'_>) -> std::io::Result<LimitedPayload> {
+            Ok(LimitedPayload)
+        }
+    }
+
+    impl ReadPayloadFrom<LimitedPayload> for LimitedPayload {}
+
+    #[test]
+    fn payload_header_read_rejects_len_larger_than_schema_max_before_allocation() {
+        let header = PayloadHeader {
+            sig: ByteBlock::Len4(*b"LIMT"),
+            crc: ByteBlock::Len4([0; 4]),
+            len: 3,
+        };
+        let mut input = Cursor::new(header.as_vec());
+
+        let err = match PayloadHeader::read::<_, LimitedPayload>(&mut input) {
+            Ok(_) => panic!("payload header length must exceed schema max"),
+            Err(err) => err,
+        };
+
+        assert!(matches!(err, Error::InvalidLength));
+    }
 }

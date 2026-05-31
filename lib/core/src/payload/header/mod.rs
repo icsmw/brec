@@ -42,16 +42,17 @@ impl PayloadHeader {
     /// by calling the corresponding traits.
     ///
     /// # Errors
-    /// Returns an I/O error if the payload size exceeds `u32::MAX`.
+    /// Returns an I/O error if the payload size exceeds this schema's maximum payload length.
     pub fn new<T: PayloadSignature + PayloadSize + PayloadCrc>(
         src: &T,
         ctx: &mut T::Context<'_>,
     ) -> std::io::Result<Self> {
         let len = src.size(ctx)?;
-        if len > u32::MAX as u64 {
+        let max_len = <T as ProtocolSchema>::MAX_PAYLOAD_LEN as u64;
+        if len > max_len {
             return Err(std::io::Error::new(
                 std::io::ErrorKind::InvalidData,
-                format!("Size of payload cannot be bigger {} bytes", u32::MAX),
+                format!("Size of payload cannot be bigger {max_len} bytes"),
             ));
         }
         Ok(Self {
@@ -62,6 +63,9 @@ impl PayloadHeader {
     }
 
     /// Returns the payload length as a `usize`, for buffer allocation.
+    ///
+    /// Headers read from untrusted input should be produced by the schema-aware
+    /// readers, which validate this value against `ProtocolSchema::MAX_PAYLOAD_LEN`.
     pub fn payload_len(&self) -> usize {
         self.len as usize
     }
@@ -116,12 +120,12 @@ impl PayloadHeader {
 mod tests {
     use crate::{
         ByteBlock, PayloadCrc, PayloadEncode, PayloadEncodeReferred, PayloadHeader, PayloadHooks,
-        PayloadSchema, PayloadSignature, PayloadSize,
+        PayloadSignature, PayloadSize, ProtocolSchema,
     };
 
     struct DemoPayload(Vec<u8>);
 
-    impl PayloadSchema for DemoPayload {
+    impl ProtocolSchema for DemoPayload {
         type Context<'a> = ();
     }
 

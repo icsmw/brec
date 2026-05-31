@@ -19,6 +19,8 @@ When `resilient` is enabled:
 - unknown payloads may also be skipped, because payload headers already contain payload length;
 - packet-level reads return both recognized data and metadata about skipped entities.
 
+Unknown blocks are skipped only inside the block section declared by `PacketHeader::blocks_len`. Unknown payloads are skipped only inside the packet payload area. Packet readers still enforce the configured `ProtocolSchema::MAX_PACKET_LEN`, so `resilient` does not turn an arbitrarily large packet into acceptable input.
+
 ### Cost Of The Feature
 
 `resilient` is not free, and it is better to say that directly.
@@ -164,6 +166,7 @@ Also note:
 
 - protocols built with and without `resilient` are intentionally incompatible;
 - `resilient` is a protocol choice, not a transparent runtime toggle.
+- `resilient` is not authentication. CRC detects accidental corruption, but a hostile source that can rewrite bytes and recompute CRC can still construct a new structurally valid packet within your configured protocol limits.
 
 If one side writes resilient blocks and the other side expects non-resilient blocks, parsing will fail.
 

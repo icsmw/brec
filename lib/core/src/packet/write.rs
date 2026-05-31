@@ -26,7 +26,7 @@ impl<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> WriteMutTo
     fn write<T: std::io::Write>(
         &mut self,
         buf: &mut T,
-        ctx: &mut <Self as PayloadSchema>::Context<'_>,
+        ctx: &mut <Self as ProtocolSchema>::Context<'_>,
     ) -> std::io::Result<usize> {
         let prepared_payload = if let Some(payload) = self.payload.as_ref() {
             Some(prepare_payload(payload, ctx)?)
@@ -78,7 +78,7 @@ impl<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> WriteMutTo
     fn write_all<T: std::io::Write>(
         &mut self,
         buf: &mut T,
-        ctx: &mut <Self as PayloadSchema>::Context<'_>,
+        ctx: &mut <Self as ProtocolSchema>::Context<'_>,
     ) -> std::io::Result<()> {
         let prepared_payload = if let Some(payload) = self.payload.as_ref() {
             Some(prepare_payload(payload, ctx)?)
@@ -130,7 +130,7 @@ impl<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> WriteVectoredMut
     /// A ready-to-write `IoSlices` that can be passed to `write_vectored`.
     fn slices(
         &mut self,
-        ctx: &mut <Self as PayloadSchema>::Context<'_>,
+        ctx: &mut <Self as ProtocolSchema>::Context<'_>,
     ) -> std::io::Result<IoSlices<'_>> {
         let prepared_payload = if let Some(payload) = self.payload.as_ref() {
             Some(prepare_payload(payload, ctx)?)
@@ -165,9 +165,9 @@ impl<B: BlockDef, P: PayloadDef<Inner>, Inner: PayloadInnerDef> WriteVectoredMut
 #[cfg(test)]
 mod tests {
     use crate::{
-        ByteBlock, DefaultPayloadContext, Error, ExtractPayloadFrom, IoSlices, PacketDef,
+        ByteBlock, DefaultProtocolContext, Error, ExtractPayloadFrom, IoSlices, PacketDef,
         PacketHeader, PayloadCrc, PayloadDef, PayloadEncode, PayloadEncodeReferred, PayloadHeader,
-        PayloadHooks, PayloadInnerDef, PayloadSchema, PayloadSignature, PayloadSize, ReadFrom,
+        PayloadHooks, PayloadInnerDef, PayloadSignature, PayloadSize, ProtocolSchema, ReadFrom,
         ReadStatus, TryExtractPayloadFrom, TryExtractPayloadFromBuffered, TryReadFrom,
         TryReadFromBuffered, WriteMutTo, WriteTo, WriteVectoredMutTo, WriteVectoredTo,
     };
@@ -202,19 +202,21 @@ mod tests {
     // packet generics in tests. They are intentional stub implementations that return
     // explicit errors, and we call them in a dedicated test so coverage metrics stay honest.
     impl TryReadFromBuffered for OkBlock {
-        fn try_read<T: std::io::BufRead>(_: &mut T) -> Result<ReadStatus<Self>, Error> {
+        fn try_read<T: std::io::BufRead, S: ProtocolSchema>(
+            _: &mut T,
+        ) -> Result<ReadStatus<Self>, Error> {
             Err(Error::Test)
         }
     }
     impl TryReadFrom for OkBlock {
-        fn try_read<T: std::io::Read + std::io::Seek>(
+        fn try_read<T: std::io::Read + std::io::Seek, S: ProtocolSchema>(
             _: &mut T,
         ) -> Result<ReadStatus<Self>, Error> {
             Err(Error::Test)
         }
     }
     impl crate::ReadFrom for OkBlock {
-        fn read<T: std::io::Read>(_: &mut T) -> Result<Self, Error> {
+        fn read<T: std::io::Read, S: ProtocolSchema>(_: &mut T) -> Result<Self, Error> {
             Err(Error::Test)
         }
     }
@@ -254,19 +256,21 @@ mod tests {
         }
     }
     impl TryReadFromBuffered for ErrBlock {
-        fn try_read<T: std::io::BufRead>(_: &mut T) -> Result<ReadStatus<Self>, Error> {
+        fn try_read<T: std::io::BufRead, S: ProtocolSchema>(
+            _: &mut T,
+        ) -> Result<ReadStatus<Self>, Error> {
             Err(Error::Test)
         }
     }
     impl TryReadFrom for ErrBlock {
-        fn try_read<T: std::io::Read + std::io::Seek>(
+        fn try_read<T: std::io::Read + std::io::Seek, S: ProtocolSchema>(
             _: &mut T,
         ) -> Result<ReadStatus<Self>, Error> {
             Err(Error::Test)
         }
     }
     impl crate::ReadFrom for ErrBlock {
-        fn read<T: std::io::Read>(_: &mut T) -> Result<Self, Error> {
+        fn read<T: std::io::Read, S: ProtocolSchema>(_: &mut T) -> Result<Self, Error> {
             Err(Error::Test)
         }
     }
@@ -288,8 +292,8 @@ mod tests {
     #[derive(Clone)]
     struct LocalPayload(Vec<u8>);
 
-    impl PayloadSchema for LocalPayload {
-        type Context<'a> = DefaultPayloadContext;
+    impl ProtocolSchema for LocalPayload {
+        type Context<'a> = DefaultProtocolContext;
     }
     impl PayloadHooks for LocalPayload {}
     impl PayloadEncode for LocalPayload {
@@ -337,7 +341,7 @@ mod tests {
         fn try_read<B: std::io::BufRead>(
             _: &mut B,
             _: &PayloadHeader,
-            _: &mut <LocalPayload as PayloadSchema>::Context<'_>,
+            _: &mut <LocalPayload as ProtocolSchema>::Context<'_>,
         ) -> Result<ReadStatus<LocalPayload>, Error> {
             Err(Error::Test)
         }
@@ -346,7 +350,7 @@ mod tests {
         fn try_read<B: std::io::Read + std::io::Seek>(
             _: &mut B,
             _: &PayloadHeader,
-            _: &mut <LocalPayload as PayloadSchema>::Context<'_>,
+            _: &mut <LocalPayload as ProtocolSchema>::Context<'_>,
         ) -> Result<ReadStatus<LocalPayload>, Error> {
             Err(Error::Test)
         }
@@ -355,7 +359,7 @@ mod tests {
         fn read<B: std::io::Read>(
             _: &mut B,
             _: &PayloadHeader,
-            _: &mut <LocalPayload as PayloadSchema>::Context<'_>,
+            _: &mut <LocalPayload as ProtocolSchema>::Context<'_>,
         ) -> Result<LocalPayload, Error> {
             Err(Error::Test)
         }
@@ -365,8 +369,8 @@ mod tests {
     #[derive(Clone)]
     struct OwnedPayload(Vec<u8>);
 
-    impl PayloadSchema for OwnedPayload {
-        type Context<'a> = DefaultPayloadContext;
+    impl ProtocolSchema for OwnedPayload {
+        type Context<'a> = DefaultProtocolContext;
     }
     impl PayloadHooks for OwnedPayload {}
     impl PayloadEncode for OwnedPayload {
@@ -414,7 +418,7 @@ mod tests {
         fn try_read<B: std::io::BufRead>(
             _: &mut B,
             _: &PayloadHeader,
-            _: &mut <OwnedPayload as PayloadSchema>::Context<'_>,
+            _: &mut <OwnedPayload as ProtocolSchema>::Context<'_>,
         ) -> Result<ReadStatus<OwnedPayload>, Error> {
             Err(Error::Test)
         }
@@ -423,7 +427,7 @@ mod tests {
         fn try_read<B: std::io::Read + std::io::Seek>(
             _: &mut B,
             _: &PayloadHeader,
-            _: &mut <OwnedPayload as PayloadSchema>::Context<'_>,
+            _: &mut <OwnedPayload as ProtocolSchema>::Context<'_>,
         ) -> Result<ReadStatus<OwnedPayload>, Error> {
             Err(Error::Test)
         }
@@ -432,7 +436,7 @@ mod tests {
         fn read<B: std::io::Read>(
             _: &mut B,
             _: &PayloadHeader,
-            _: &mut <OwnedPayload as PayloadSchema>::Context<'_>,
+            _: &mut <OwnedPayload as ProtocolSchema>::Context<'_>,
         ) -> Result<OwnedPayload, Error> {
             Err(Error::Test)
         }
@@ -485,14 +489,14 @@ mod tests {
         let mut packet = PacketDef::<OkBlock, LocalPayload, LocalPayload>::default();
         let mut out = Vec::new();
         let written = packet
-            .write(&mut out, &mut DefaultPayloadContext::default())
+            .write(&mut out, &mut DefaultProtocolContext::default())
             .expect("write");
         assert_eq!(written, PacketHeader::SIZE as usize);
         assert_eq!(out.len(), PacketHeader::SIZE as usize);
 
         let mut out_all = Vec::new();
         packet
-            .write_all(&mut out_all, &mut DefaultPayloadContext::default())
+            .write_all(&mut out_all, &mut DefaultProtocolContext::default())
             .expect("write_all");
         assert_eq!(out_all.len(), PacketHeader::SIZE as usize);
         assert_eq!(out, out_all);
@@ -506,7 +510,7 @@ mod tests {
             out: Vec::new(),
         };
         let written = packet
-            .write(&mut writer, &mut DefaultPayloadContext::default())
+            .write(&mut writer, &mut DefaultProtocolContext::default())
             .expect("partial write");
         assert_eq!(written, 3);
         assert_eq!(writer.out.len(), 3);
@@ -522,7 +526,7 @@ mod tests {
         );
         let mut out = Vec::new();
         let written = packet
-            .write(&mut out, &mut DefaultPayloadContext::default())
+            .write(&mut out, &mut DefaultProtocolContext::default())
             .expect("write");
 
         let mut out_all = Vec::new();
@@ -531,7 +535,7 @@ mod tests {
             Some(payload),
         );
         packet_all
-            .write_all(&mut out_all, &mut DefaultPayloadContext::default())
+            .write_all(&mut out_all, &mut DefaultProtocolContext::default())
             .expect("write_all");
 
         assert_eq!(written, out.len());
@@ -551,7 +555,7 @@ mod tests {
         };
 
         let written = packet
-            .write(&mut writer, &mut DefaultPayloadContext::default())
+            .write(&mut writer, &mut DefaultProtocolContext::default())
             .expect("write");
         assert_eq!(written, PacketHeader::SIZE as usize + 1);
     }
@@ -560,7 +564,7 @@ mod tests {
     fn write_returns_partial_when_payload_header_is_short() {
         let payload = LocalPayload(vec![10, 20, 30, 40]);
         let payload_header_len =
-            PayloadHeader::new(&payload, &mut DefaultPayloadContext::default())
+            PayloadHeader::new(&payload, &mut DefaultProtocolContext::default())
                 .expect("payload header")
                 .size();
         let mut packet =
@@ -572,7 +576,7 @@ mod tests {
         };
 
         let written = packet
-            .write(&mut writer, &mut DefaultPayloadContext::default())
+            .write(&mut writer, &mut DefaultProtocolContext::default())
             .expect("write");
         assert_eq!(
             written,
@@ -584,7 +588,7 @@ mod tests {
     fn write_returns_partial_when_payload_body_is_short() {
         let payload = LocalPayload(vec![10, 20, 30, 40]);
         let payload_header_len =
-            PayloadHeader::new(&payload, &mut DefaultPayloadContext::default())
+            PayloadHeader::new(&payload, &mut DefaultProtocolContext::default())
                 .expect("payload header")
                 .size();
         let mut packet =
@@ -600,7 +604,7 @@ mod tests {
         };
 
         let written = packet
-            .write(&mut writer, &mut DefaultPayloadContext::default())
+            .write(&mut writer, &mut DefaultProtocolContext::default())
             .expect("write");
         assert_eq!(
             written,
@@ -613,11 +617,11 @@ mod tests {
         let mut packet =
             PacketDef::<ErrBlock, LocalPayload, LocalPayload>::new(vec![ErrBlock], None);
         let err = packet
-            .write(&mut Vec::new(), &mut DefaultPayloadContext::default())
+            .write(&mut Vec::new(), &mut DefaultProtocolContext::default())
             .expect_err("block write must fail");
         assert_eq!(err.kind(), std::io::ErrorKind::Other);
 
-        let err = match packet.slices(&mut DefaultPayloadContext::default()) {
+        let err = match packet.slices(&mut DefaultProtocolContext::default()) {
             Ok(_) => panic!("block slices must fail"),
             Err(err) => err,
         };
@@ -629,7 +633,7 @@ mod tests {
         let mut packet =
             PacketDef::<ErrBlock, LocalPayload, LocalPayload>::new(vec![ErrBlock], None);
         let err = packet
-            .write_all(&mut Vec::new(), &mut DefaultPayloadContext::default())
+            .write_all(&mut Vec::new(), &mut DefaultProtocolContext::default())
             .expect_err("block write_all must fail");
         assert_eq!(err.kind(), std::io::ErrorKind::Other);
     }
@@ -644,11 +648,11 @@ mod tests {
 
         let mut out = Vec::new();
         packet
-            .write_all(&mut out, &mut DefaultPayloadContext::default())
+            .write_all(&mut out, &mut DefaultProtocolContext::default())
             .expect("write_all");
 
         let mut cursor = Cursor::new(out.as_slice());
-        let packet_header = PacketHeader::read(&mut cursor).expect("packet header read");
+        let packet_header = PacketHeader::read::<_, ()>(&mut cursor).expect("packet header read");
         assert_eq!(packet_header.blocks_len, 2);
         assert!(packet_header.payload);
 
@@ -656,7 +660,8 @@ mod tests {
         cursor.read_exact(&mut block).expect("read block");
         assert_eq!(block, [1, 2]);
 
-        let payload_header = PayloadHeader::read(&mut cursor).expect("payload header read");
+        let payload_header =
+            PayloadHeader::read::<_, ()>(&mut cursor).expect("payload header read");
         assert_eq!(payload_header.payload_len(), 4);
         let mut payload_body = [0_u8; 4];
         cursor
@@ -669,7 +674,7 @@ mod tests {
             Some(payload),
         );
         let slices = packet2
-            .slices(&mut DefaultPayloadContext::default())
+            .slices(&mut DefaultProtocolContext::default())
             .expect("slices");
         let mut vectored = Vec::new();
         for s in slices.get() {
@@ -686,7 +691,7 @@ mod tests {
             Some(payload.clone()),
         );
         let slices = packet
-            .slices(&mut DefaultPayloadContext::default())
+            .slices(&mut DefaultProtocolContext::default())
             .expect("slices");
         let mut vectored = Vec::new();
         for s in slices.get() {
@@ -699,7 +704,7 @@ mod tests {
         );
         let mut out_all = Vec::new();
         packet_all
-            .write_all(&mut out_all, &mut DefaultPayloadContext::default())
+            .write_all(&mut out_all, &mut DefaultProtocolContext::default())
             .expect("write_all");
 
         assert_eq!(vectored, out_all);
@@ -716,15 +721,15 @@ mod tests {
         };
 
         assert!(matches!(
-            <OkBlock as TryReadFromBuffered>::try_read(&mut buffered),
+            <OkBlock as TryReadFromBuffered>::try_read::<_, ()>(&mut buffered),
             Err(Error::Test)
         ));
         assert!(matches!(
-            <OkBlock as TryReadFrom>::try_read(&mut stream),
+            <OkBlock as TryReadFrom>::try_read::<_, ()>(&mut stream),
             Err(Error::Test)
         ));
         assert!(matches!(
-            <OkBlock as crate::ReadFrom>::read(&mut buffered),
+            <OkBlock as crate::ReadFrom>::read::<_, ()>(&mut buffered),
             Err(Error::Test)
         ));
         assert!(matches!(
@@ -737,15 +742,15 @@ mod tests {
         ));
 
         assert!(matches!(
-            <ErrBlock as TryReadFromBuffered>::try_read(&mut buffered),
+            <ErrBlock as TryReadFromBuffered>::try_read::<_, ()>(&mut buffered),
             Err(Error::Test)
         ));
         assert!(matches!(
-            <ErrBlock as TryReadFrom>::try_read(&mut stream),
+            <ErrBlock as TryReadFrom>::try_read::<_, ()>(&mut stream),
             Err(Error::Test)
         ));
         assert!(matches!(
-            <ErrBlock as crate::ReadFrom>::read(&mut buffered),
+            <ErrBlock as crate::ReadFrom>::read::<_, ()>(&mut buffered),
             Err(Error::Test)
         ));
         assert!(matches!(

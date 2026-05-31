@@ -48,7 +48,7 @@ fn read_blocks(buffer: &[u8]) -> std::io::Result<(Vec<Block>, u64)> {
     let mut reader = BufReader::new(Cursor::new(buffer));
     let mut consumed = 0;
     loop {
-        match <Block as TryReadFrom>::try_read(&mut reader) {
+        match <Block as TryReadFrom>::try_read::<_, ()>(&mut reader) {
             Ok(ReadStatus::Success(blk)) => {
                 consumed = reader.stream_position()?;
                 blocks.push(blk);
@@ -78,7 +78,7 @@ fn read_blocks_from_buffered(buffer: &[u8]) -> std::io::Result<(Vec<Block>, usiz
         if reader.buffer_len().unwrap() < 4 {
             reader.refill().unwrap();
         }
-        match <Block as TryReadFromBuffered>::try_read(&mut reader) {
+        match <Block as TryReadFromBuffered>::try_read::<_, ()>(&mut reader) {
             Ok(ReadStatus::Success(blk)) => {
                 blocks.push(blk);
             }

@@ -35,7 +35,7 @@
 ///         if reader.buffer_len().unwrap() < 4 {
 ///             reader.refill().unwrap();
 ///         }
-///         match <Block as TryReadFromBuffered>::try_read(&mut reader) {
+///         match <Block as TryReadFromBuffered>::try_read::<_, ()>(&mut reader) {
 ///             Ok(ReadStatus::Success(blk)) => {
 ///                 blocks.push(blk);
 ///             }
@@ -81,7 +81,7 @@ impl<'a, R: std::io::BufRead> BufferedReader<'a, R> {
     ///         if reader.buffer_len().unwrap() < 4 {
     ///             reader.refill().unwrap();
     ///         }
-    ///         match <Block as TryReadFromBuffered>::try_read(&mut reader) {
+    ///         match <Block as TryReadFromBuffered>::try_read::<_, ()>(&mut reader) {
     ///             Ok(ReadStatus::Success(blk)) => {
     ///                 blocks.push(blk);
     ///             }

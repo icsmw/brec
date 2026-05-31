@@ -14,10 +14,11 @@ where
 {
     let body = payload.encoded(ctx)?;
     let len = body.len();
-    if len > u32::MAX as usize {
+    let max_len = <T as ProtocolSchema>::MAX_PAYLOAD_LEN as usize;
+    if len > max_len {
         return Err(std::io::Error::new(
             std::io::ErrorKind::InvalidData,
-            format!("Size of payload cannot be bigger {} bytes", u32::MAX),
+            format!("Size of payload cannot be bigger {max_len} bytes"),
         ));
     }
 
@@ -48,7 +49,7 @@ pub trait WriteTo {
 /// Trait for writing a mutable reference to a writable stream.
 ///
 /// This is useful when the data to be written may require mutation during encoding.
-pub trait WriteMutTo: PayloadSchema {
+pub trait WriteMutTo: ProtocolSchema {
     /// Writes the encoded contents to the given writer.
     ///
     /// # Returns
@@ -56,14 +57,14 @@ pub trait WriteMutTo: PayloadSchema {
     fn write<T: std::io::Write>(
         &mut self,
         buf: &mut T,
-        ctx: &mut <Self as PayloadSchema>::Context<'_>,
+        ctx: &mut <Self as ProtocolSchema>::Context<'_>,
     ) -> std::io::Result<usize>;
 
     /// Writes all encoded content to the stream, ensuring complete output.
     fn write_all<T: std::io::Write>(
         &mut self,
         buf: &mut T,
-        ctx: &mut <Self as PayloadSchema>::Context<'_>,
+        ctx: &mut <Self as ProtocolSchema>::Context<'_>,
     ) -> std::io::Result<()>;
 }
 
@@ -91,12 +92,12 @@ pub trait WriteVectoredTo {
 /// Trait for vectored I/O with mutable data.
 ///
 /// This variant allows mutation when preparing data for writing.
-pub trait WriteVectoredMutTo: PayloadSchema {
+pub trait WriteVectoredMutTo: ProtocolSchema {
     /// Writes the encoded data using vectored I/O.
     fn write_vectored<T: std::io::Write>(
         &mut self,
         buf: &mut T,
-        ctx: &mut <Self as PayloadSchema>::Context<'_>,
+        ctx: &mut <Self as ProtocolSchema>::Context<'_>,
     ) -> std::io::Result<usize> {
         buf.write_vectored(&self.slices(ctx)?.get())
     }
@@ -104,14 +105,14 @@ pub trait WriteVectoredMutTo: PayloadSchema {
     /// Returns the I/O slices for the data to write.
     fn slices(
         &mut self,
-        ctx: &mut <Self as PayloadSchema>::Context<'_>,
+        ctx: &mut <Self as ProtocolSchema>::Context<'_>,
     ) -> std::io::Result<IoSlices<'_>>;
 
     /// Ensures all data is written using vectored I/O.
     fn write_vectored_all<T: std::io::Write>(
         &mut self,
         buf: &mut T,
-        ctx: &mut <Self as PayloadSchema>::Context<'_>,
+        ctx: &mut <Self as ProtocolSchema>::Context<'_>,
     ) -> std::io::Result<()> {
         self.slices(ctx)?.write_vectored_all(buf)
     }
@@ -137,7 +138,7 @@ where
     fn write<T: std::io::Write>(
         &mut self,
         buf: &mut T,
-        ctx: &mut <Self as PayloadSchema>::Context<'_>,
+        ctx: &mut <Self as ProtocolSchema>::Context<'_>,
     ) -> std::io::Result<usize> {
         let (header, body) = prepare_payload(self, ctx)?;
         let header = header.as_vec();
@@ -149,7 +150,7 @@ where
     fn write_all<T: std::io::Write>(
         &mut self,
         buf: &mut T,
-        ctx: &mut <Self as PayloadSchema>::Context<'_>,
+        ctx: &mut <Self as ProtocolSchema>::Context<'_>,
     ) -> std::io::Result<()> {
         let (header, body) = prepare_payload(self, ctx)?;
         buf.write_all(&header.as_vec())?;
@@ -169,7 +170,7 @@ where
     fn write_vectored<T: std::io::Write>(
         &mut self,
         buf: &mut T,
-        ctx: &mut <Self as PayloadSchema>::Context<'_>,
+        ctx: &mut <Self as ProtocolSchema>::Context<'_>,
     ) -> std::io::Result<usize> {
         buf.write_vectored(&self.slices(ctx)?.get())
     }
@@ -177,7 +178,7 @@ where
     /// Prepares the header and payload slices for vectored I/O.
     fn slices(
         &mut self,
-        ctx: &mut <Self as PayloadSchema>::Context<'_>,
+        ctx: &mut <Self as ProtocolSchema>::Context<'_>,
     ) -> std::io::Result<IoSlices<'_>> {
         let mut slices = IoSlices::default();
         let (header, body) = prepare_payload(self, ctx)?;
@@ -194,7 +195,7 @@ where
     fn write_vectored_all<T: std::io::Write>(
         &mut self,
         buf: &mut T,
-        ctx: &mut <Self as PayloadSchema>::Context<'_>,
+        ctx: &mut <Self as ProtocolSchema>::Context<'_>,
     ) -> std::io::Result<()> {
         self.slices(ctx)?.write_vectored_all(buf)
     }
@@ -203,7 +204,7 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{PayloadEncode, PayloadEncodeReferred, PayloadHooks, PayloadSchema};
+    use crate::{PayloadEncode, PayloadEncodeReferred, PayloadHooks, ProtocolSchema};
     use std::io::Cursor;
 
     struct DemoVectored<'a> {
@@ -225,14 +226,14 @@ mod tests {
         tail: Vec<u8>,
     }
 
-    impl PayloadSchema for DemoVectoredMut<'_> {
+    impl ProtocolSchema for DemoVectoredMut<'_> {
         type Context<'a> = ();
     }
 
     impl WriteVectoredMutTo for DemoVectoredMut<'_> {
         fn slices(
             &mut self,
-            _: &mut <Self as PayloadSchema>::Context<'_>,
+            _: &mut <Self as ProtocolSchema>::Context<'_>,
         ) -> std::io::Result<IoSlices<'_>> {
             let mut slices = IoSlices::default();
             slices.add_slice(self.head);
@@ -246,7 +247,7 @@ mod tests {
         bytes: Vec<u8>,
     }
 
-    impl PayloadSchema for BorrowedPayload {
+    impl ProtocolSchema for BorrowedPayload {
         type Context<'a> = ();
     }
 
@@ -280,7 +281,7 @@ mod tests {
         bytes: Vec<u8>,
     }
 
-    impl PayloadSchema for OwnedPayload {
+    impl ProtocolSchema for OwnedPayload {
         type Context<'a> = ();
     }
 
@@ -308,6 +309,48 @@ mod tests {
     impl PayloadSize for OwnedPayload {}
     impl WritePayloadWithHeaderTo for OwnedPayload {}
     impl WriteVectoredPayloadWithHeaderTo for OwnedPayload {}
+
+    struct LimitedPayload(Vec<u8>);
+
+    impl ProtocolSchema for LimitedPayload {
+        type Context<'a> = ();
+
+        const MAX_PAYLOAD_LEN: u32 = 2;
+    }
+
+    impl PayloadHooks for LimitedPayload {}
+
+    impl PayloadEncode for LimitedPayload {
+        fn encode(&self, _: &mut Self::Context<'_>) -> std::io::Result<Vec<u8>> {
+            Ok(self.0.clone())
+        }
+    }
+
+    impl PayloadEncodeReferred for LimitedPayload {
+        fn encode(&self, _: &mut Self::Context<'_>) -> std::io::Result<Option<&[u8]>> {
+            Ok(None)
+        }
+    }
+
+    impl PayloadSignature for LimitedPayload {
+        fn sig(&self) -> ByteBlock {
+            ByteBlock::Len4(*b"LIMT")
+        }
+    }
+
+    #[test]
+    fn prepare_payload_rejects_payload_larger_than_schema_max() {
+        let payload = LimitedPayload(vec![1, 2, 3]);
+        let mut ctx = ();
+
+        let err = match prepare_payload(&payload, &mut ctx) {
+            Ok(_) => panic!("payload must exceed schema max"),
+            Err(err) => err,
+        };
+
+        assert_eq!(err.kind(), std::io::ErrorKind::InvalidData);
+        assert!(err.to_string().contains("2 bytes"));
+    }
 
     #[test]
     fn prepare_payload_and_payload_write_methods_work() {
